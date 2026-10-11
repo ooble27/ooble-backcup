@@ -22,7 +22,9 @@ STAMP="$(date -u +%Y-%m-%d-%H%M)"
 WORK="$(mktemp -d)"
 mkdir -p "$OUT_DIR" "$WORK/db" "$WORK/storage"
 
-psql_q() { psql "$DB" -qtAX -v ON_ERROR_STOP=1 "$@"; }
+# Toujours en tant que postgres : l'accès temporaire Supabase est un rôle membre
+# de postgres, qui doit l'endosser pour lire les tables protégées (storage.objects…).
+psql_q() { { echo "set role postgres;"; cat; } | psql "$DB" -qtAX -v ON_ERROR_STOP=1 "$@"; }
 
 # Journal : début.
 RUN_ID="$(psql_q -v url="${RUN_URL:-}" <<'SQL'
@@ -53,18 +55,20 @@ echo "→ Comptage des lignes (avant)"
 count_tables > "$WORK/counts-before.json"
 
 echo "→ Base de données"
-pg_dump "$DB" -Fc --no-owner --no-privileges -n public -f "$WORK/db/public.dump"
-pg_dump "$DB" -Fp --data-only --no-owner --no-privileges \
+pg_dump "$DB" --role=postgres -Fc --no-owner --no-privileges -n public -f "$WORK/db/public.dump"
+pg_dump "$DB" --role=postgres -Fp --data-only --no-owner --no-privileges \
   -t auth.users -t auth.identities -t auth.mfa_factors -f "$WORK/db/auth-data.sql"
-pg_dump "$DB" -Fp --data-only --no-owner --no-privileges \
+pg_dump "$DB" --role=postgres -Fp --data-only --no-owner --no-privileges \
   -t storage.buckets -t storage.objects -f "$WORK/db/storage-data.sql"
-pg_dump "$DB" -Fp --data-only --no-owner --no-privileges -t cron.job -f "$WORK/db/cron-jobs.sql"
+pg_dump "$DB" --role=postgres -Fp --data-only --no-owner --no-privileges -t cron.job -f "$WORK/db/cron-jobs.sql"
 
 echo "→ Comptage des lignes (après)"
 count_tables > "$WORK/counts-after.json"
 
 echo "→ Fichiers"
-psql_q -c "select bucket_id || '/' || name from storage.objects where name is not null order by 1" > "$WORK/files.txt"
+psql_q > "$WORK/files.txt" <<'SQL'
+select bucket_id || '/' || name from storage.objects where name is not null order by 1;
+SQL
 FILES=0
 while IFS= read -r path; do
   [ -z "$path" ] && continue

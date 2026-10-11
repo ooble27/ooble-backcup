@@ -20,31 +20,27 @@ En cas d'échec, GitHub vous envoie un courriel et le back-office l'affiche en r
 
 ---
 
-## Mise en place (une seule fois, 5 minutes)
+## Mise en place (une seule fois, 2 minutes)
 
-Deux secrets suffisent : la sauvegarde retrouve seule la clé `service_role` (avec le jeton
-Supabase déjà utilisé pour les déploiements) et l'adresse de la base.
+Un seul secret à ajouter : la phrase de chiffrement. Pour lire la base et les fichiers, la
+sauvegarde utilise le jeton Supabase déjà enregistré pour les déploiements
+(`SUPABASE_ACCESS_TOKEN`) : elle crée un accès temporaire à la base, comme la CLI Supabase,
+et le retire à la fin. Aucun mot de passe à chercher dans Supabase.
 
-**1. Mot de passe de la base**
-1. Ouvrir https://supabase.com/dashboard/project/uukxacjjviiktmbikdwp/database/settings
-2. Section **Database password** → **Reset database password** → **Generate a password** →
-   **Copy** → **Reset password**. (Rien d'autre dans Ooble n'utilise ce mot de passe.)
-3. Ouvrir https://github.com/ooble27/Ooble-/settings/secrets/actions/new
-4. **Name** : `SUPABASE_DB_PASSWORD` · **Secret** : coller · **Add secret**.
-
-**2. Phrase secrète de chiffrement**
+**1. Phrase secrète de chiffrement**
 1. Inventer une phrase d'au moins 20 caractères (par exemple quatre ou cinq mots au hasard)
    et l'écrire **sur papier** et dans votre gestionnaire de mots de passe. **Sans elle, les
    sauvegardes sont illisibles, pour tout le monde.**
 2. Ouvrir https://github.com/ooble27/Ooble-/settings/secrets/actions/new
 3. **Name** : `BACKUP_PASSPHRASE` · **Secret** : la phrase · **Add secret**.
 
-**3. Première sauvegarde**
+**2. Première sauvegarde**
 Ouvrir https://github.com/ooble27/Ooble-/actions/workflows/backup.yml → **Run workflow** →
 **Run workflow**. Après 3 à 5 minutes, le back-office affiche « Dernière sauvegarde réussie ».
 
-Secrets facultatifs : `SUPABASE_DB_URL` (adresse complète, remplace le mot de passe) et
-`SUPABASE_SERVICE_ROLE_KEY` (si le jeton de déploiement change).
+Secrets facultatifs (seulement si le jeton de déploiement disparaît un jour) :
+`SUPABASE_DB_PASSWORD` (mot de passe de la base, page **Database → Settings** de Supabase),
+`SUPABASE_DB_URL` (adresse complète) et `SUPABASE_SERVICE_ROLE_KEY`.
 
 ### Copie supplémentaire chez Cloudflare R2 (facultatif)
 

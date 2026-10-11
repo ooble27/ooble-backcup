@@ -39,7 +39,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
       TEST_DB_URL: postgresql://postgres:restore-test@localhost:5432/postgres
-      OUT_DIR: ${{ runner.temp }}/backup
+      OUT_DIR: /tmp/ooble-backup
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       GH_TOKEN: ${{ github.token }}
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
@@ -48,16 +48,18 @@ jobs:
 
       - name: Vérifier les secrets
         run: |
-          missing=""
-          [ -n "$SUPABASE_DB_URL$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
-          [ -n "$SUPABASE_SERVICE_ROLE_KEY$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_SERVICE_ROLE_KEY"
-          [ -n "$BACKUP_PASSPHRASE" ] || missing="$missing BACKUP_PASSPHRASE"
-          if [ -n "$missing" ]; then
-            echo "::error::Sauvegarde impossible : secrets GitHub manquants :$missing (voir docs/SAUVEGARDES.md)"
+          # Seule la phrase secrète est obligatoire : la base et la clé service_role
+          # s'obtiennent avec le jeton Supabase déjà utilisé pour les déploiements.
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Sauvegarde impossible : ajoutez le secret GitHub BACKUP_PASSPHRASE (voir docs/SAUVEGARDES.md)."
             exit 1
           fi
           if [ "${#BACKUP_PASSPHRASE}" -lt 20 ]; then
             echo "::error::BACKUP_PASSPHRASE doit faire au moins 20 caractères."
+            exit 1
+          fi
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] && { [ -z "$SUPABASE_DB_URL$SUPABASE_DB_PASSWORD" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; }; then
+            echo "::error::Secret SUPABASE_ACCESS_TOKEN introuvable (celui des déploiements des fonctions edge)."
             exit 1
           fi
 
@@ -80,21 +82,8 @@ jobs:
             echo "::add-mask::$key"
             echo "SUPABASE_SERVICE_ROLE_KEY=$key" >> "$GITHUB_ENV"
           fi
-          # Adresse de la base : construite à partir du seul mot de passe.
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            pw="$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')"
-            echo "::add-mask::$pw"
-            for host in aws-0-us-east-2.pooler.supabase.com aws-1-us-east-2.pooler.supabase.com; do
-              url="postgresql://postgres.$SUPABASE_REF:$pw@$host:5432/postgres"
-              if psql "$url" -qtAXc "select 1" >/dev/null 2>&1; then
-                echo "::add-mask::$url"
-                echo "SUPABASE_DB_URL=$url" >> "$GITHUB_ENV"
-                found=1
-                break
-              fi
-            done
-            [ -n "${found:-}" ] || { echo "::error::Connexion à la base impossible : vérifiez le secret SUPABASE_DB_PASSWORD."; exit 1; }
-          fi
+          # Connexion à la base (mot de passe facultatif : sinon accès temporaire).
+          bash scripts/backup/connect.sh
 
       - name: Sauvegarder
         id: backup
@@ -145,10 +134,13 @@ jobs:
 
       - name: Journal (réussite)
         run: |
+          bash scripts/backup/connect.sh --refresh
+          fresh="$(sed -n 's/^SUPABASE_DB_URL=//p' "$GITHUB_ENV" | tail -1)"; DB="${fresh:-$SUPABASE_DB_URL}"
           source "$OUT_DIR/backup.env"
           source "$OUT_DIR/restore.env"
-          psql "$SUPABASE_DB_URL" -qX -v ON_ERROR_STOP=1 \
+          psql "$DB" -qX -v ON_ERROR_STOP=1 \
             -v id="$RUN_ID" -v tag="$TAG" -v detail="$RESTORE_DETAIL" -v tables="$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1]))["tables_after"]))' "$OUT_DIR/manifest.json")" <<'SQL'
+          set role postgres;
           update public.backup_runs
              set status = 'success', finished_at = now(), restore_ok = true,
                  restore_detail = :'detail', location = :'tag', tables = :'tables'::jsonb
@@ -159,15 +151,24 @@ jobs:
         if: failure() && steps.backup.outcome != 'skipped'
         run: |
           [ -f "$OUT_DIR/backup.env" ] || exit 0
+          bash scripts/backup/connect.sh --refresh || true
+          fresh="$(sed -n 's/^SUPABASE_DB_URL=//p' "$GITHUB_ENV" | tail -1)"; DB="${fresh:-$SUPABASE_DB_URL}"
           source "$OUT_DIR/backup.env"
           detail=""
           [ -f "$OUT_DIR/restore.env" ] && source "$OUT_DIR/restore.env" && detail="$RESTORE_DETAIL"
           fr() { case "$1" in success) echo "réussie";; failure) echo "en échec";; skipped) echo "non lancée";; cancelled) echo "annulée";; *) echo "$1";; esac; }
           msg="Sauvegarde $(fr ${{ steps.backup.outcome }}), publication $(fr ${{ steps.publish.outcome }}), restauration $(fr ${{ steps.restore.outcome }})"
-          psql "$SUPABASE_DB_URL" -qX -v id="$RUN_ID" -v msg="$msg" -v detail="$detail" -v tag="${TAG:-}" <<'SQL' || true
+          psql "$DB" -qX -v id="$RUN_ID" -v msg="$msg" -v detail="$detail" -v tag="${TAG:-}" <<'SQL' || true
+          set role postgres;
           update public.backup_runs
              set status = 'failed', finished_at = now(), error = coalesce(error, :'msg'),
                  restore_ok = case when :'detail' = '' then restore_ok else false end,
                  restore_detail = nullif(:'detail', ''), location = nullif(:'tag', '')
            where id = :id;
           SQL
+
+      - name: Retirer l'accès temporaire
+        if: always() && env.DB_ACCESS == 'temp'
+        run: |
+          curl -fsS -X DELETE -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_REF/cli/login-role" >/dev/null || true
