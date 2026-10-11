@@ -22,19 +22,29 @@ En cas d'échec, GitHub vous envoie un courriel et le back-office l'affiche en r
 
 ## Mise en place (une seule fois, 5 minutes)
 
-Dans GitHub : dépôt **Ooble-** → **Settings** → **Secrets and variables** → **Actions** →
-**New repository secret**. Ajoutez ces trois secrets. Ne les envoyez à personne, ni par
-courriel ni dans une conversation : ils vont directement dans GitHub.
+Deux secrets suffisent : la sauvegarde retrouve seule la clé `service_role` (avec le jeton
+Supabase déjà utilisé pour les déploiements) et l'adresse de la base.
 
-| Nom du secret | Où le trouver |
-|---|---|
-| `SUPABASE_DB_URL` | Supabase → bouton **Connect** (en haut) → **Session pooler** → copier l'URI, puis remplacer `[YOUR-PASSWORD]` par le mot de passe de la base. Mot de passe oublié : **Project Settings → Database → Reset database password** (rien d'autre dans Ooble n'utilise ce mot de passe). |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → **Project Settings → API Keys** → clé **service_role** (secrète) → Reveal → copier. |
-| `BACKUP_PASSPHRASE` | Une phrase que vous inventez, **au moins 20 caractères** (par exemple quatre ou cinq mots au hasard). Gardez-la dans votre gestionnaire de mots de passe **et** sur papier dans un endroit sûr. **Sans elle, les sauvegardes sont illisibles, pour tout le monde, nous compris.** |
+**1. Mot de passe de la base**
+1. Ouvrir https://supabase.com/dashboard/project/uukxacjjviiktmbikdwp/database/settings
+2. Section **Database password** → **Reset database password** → **Generate a password** →
+   **Copy** → **Reset password**. (Rien d'autre dans Ooble n'utilise ce mot de passe.)
+3. Ouvrir https://github.com/ooble27/Ooble-/settings/secrets/actions/new
+4. **Name** : `SUPABASE_DB_PASSWORD` · **Secret** : coller · **Add secret**.
 
-Puis lancez une première sauvegarde tout de suite : onglet **Actions** → **Sauvegarde
-nocturne** → **Run workflow**. Après 3 à 5 minutes, le back-office affiche « Dernière
-sauvegarde réussie ».
+**2. Phrase secrète de chiffrement**
+1. Inventer une phrase d'au moins 20 caractères (par exemple quatre ou cinq mots au hasard)
+   et l'écrire **sur papier** et dans votre gestionnaire de mots de passe. **Sans elle, les
+   sauvegardes sont illisibles, pour tout le monde.**
+2. Ouvrir https://github.com/ooble27/Ooble-/settings/secrets/actions/new
+3. **Name** : `BACKUP_PASSPHRASE` · **Secret** : la phrase · **Add secret**.
+
+**3. Première sauvegarde**
+Ouvrir https://github.com/ooble27/Ooble-/actions/workflows/backup.yml → **Run workflow** →
+**Run workflow**. Après 3 à 5 minutes, le back-office affiche « Dernière sauvegarde réussie ».
+
+Secrets facultatifs : `SUPABASE_DB_URL` (adresse complète, remplace le mot de passe) et
+`SUPABASE_SERVICE_ROLE_KEY` (si le jeton de déploiement change).
 
 ### Copie supplémentaire chez Cloudflare R2 (facultatif)
 

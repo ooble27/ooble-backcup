@@ -32,8 +32,11 @@ jobs:
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       SUPABASE_URL: https://uukxacjjviiktmbikdwp.supabase.co
+      SUPABASE_REF: uukxacjjviiktmbikdwp
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
       TEST_DB_URL: postgresql://postgres:restore-test@localhost:5432/postgres
       OUT_DIR: ${{ runner.temp }}/backup
@@ -46,8 +49,8 @@ jobs:
       - name: Vérifier les secrets
         run: |
           missing=""
-          [ -n "$SUPABASE_DB_URL" ] || missing="$missing SUPABASE_DB_URL"
-          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || missing="$missing SUPABASE_SERVICE_ROLE_KEY"
+          [ -n "$SUPABASE_DB_URL$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_SERVICE_ROLE_KEY"
           [ -n "$BACKUP_PASSPHRASE" ] || missing="$missing BACKUP_PASSPHRASE"
           if [ -n "$missing" ]; then
             echo "::error::Sauvegarde impossible : secrets GitHub manquants :$missing (voir docs/SAUVEGARDES.md)"
@@ -65,6 +68,33 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
           sudo apt-get install -y -qq postgresql-client-17 >/dev/null
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Préparer les accès
+        run: |
+          # Clé service_role : lue avec le jeton Supabase déjà utilisé pour les déploiements.
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            key="$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              "https://api.supabase.com/v1/projects/$SUPABASE_REF/api-keys?reveal=true" \
+              | python3 -c 'import json, sys; print(next(k["api_key"] for k in json.load(sys.stdin) if k.get("name") == "service_role"))')" \
+              || { echo "::error::Clé service_role introuvable : ajoutez le secret SUPABASE_SERVICE_ROLE_KEY."; exit 1; }
+            echo "::add-mask::$key"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$key" >> "$GITHUB_ENV"
+          fi
+          # Adresse de la base : construite à partir du seul mot de passe.
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            pw="$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')"
+            echo "::add-mask::$pw"
+            for host in aws-0-us-east-2.pooler.supabase.com aws-1-us-east-2.pooler.supabase.com; do
+              url="postgresql://postgres.$SUPABASE_REF:$pw@$host:5432/postgres"
+              if psql "$url" -qtAXc "select 1" >/dev/null 2>&1; then
+                echo "::add-mask::$url"
+                echo "SUPABASE_DB_URL=$url" >> "$GITHUB_ENV"
+                found=1
+                break
+              fi
+            done
+            [ -n "${found:-}" ] || { echo "::error::Connexion à la base impossible : vérifiez le secret SUPABASE_DB_PASSWORD."; exit 1; }
+          fi
 
       - name: Sauvegarder
         id: backup

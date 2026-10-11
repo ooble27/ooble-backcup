@@ -70,7 +70,7 @@ export default function BackupsCard() {
             : <AlertTriangle style={{ width: 15, height: 15, flexShrink: 0, marginTop: 2 }} strokeWidth={2} />}
           <span>
             {tone === "ok" && lastOk && <>Dernière sauvegarde réussie {ago(lastOk.finished_at ?? lastOk.started_at)}, {mb(lastOk.archive_bytes)} chiffrés. {lastOk.restore_detail}</>}
-            {tone === "warn" && <>Aucune sauvegarde réussie pour l'instant. Ajoutez les trois secrets GitHub du guide <b>docs/SAUVEGARDES.md</b> ; la première sauvegarde partira la nuit suivante.</>}
+            {tone === "warn" && <>Aucune sauvegarde réussie pour l'instant. Ajoutez les deux secrets GitHub du guide <b>docs/SAUVEGARDES.md</b>, puis lancez la première sauvegarde.</>}
             {tone === "danger" && lastOk && <>La dernière sauvegarde réussie date de {when(lastOk.finished_at ?? lastOk.started_at)}. Vérifiez le dernier échec ci-dessous.</>}
           </span>
         </div>
