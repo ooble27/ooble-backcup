@@ -5,7 +5,8 @@ import { nfCad } from "@/lib/adminOrders";
 import { regionName, countryName } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
 import { Button } from "./ui";
-import { Avatar, DataTable, EmptyState, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
+import { Avatar, DataTable, EmptyState, Pill, SearchField, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
+import { ClientsPopulation } from "./viz";
 
 /*
  * Back-office, onglet Clients : tous les inscrits, avec leur vérification,
@@ -95,7 +96,6 @@ export default function ClientsPanel({ onOpen }: { onOpen: (userId: string, name
 
   const all = rows ?? [];
   const clients = all.filter((c) => !c.is_staff);
-  const weekAgo = Date.now() - 7 * 86400000;
 
   const filters: { id: Filter; label: string; test: (c: Client) => boolean }[] = [
     { id: "all", label: "Tous", test: (c) => !c.is_staff },
@@ -169,13 +169,10 @@ export default function ClientsPanel({ onOpen }: { onOpen: (userId: string, name
 
   return (
     <div style={{ fontFamily: FONT }}>
-      <StatStrip items={[
-        { label: "Inscrits", value: rows ? clients.length : "…" },
-        { label: "Vérifiés", value: rows ? clients.filter((c) => verifOf(c) === "approved").length : "…", hint: rows && clients.length ? `${Math.round((clients.filter((c) => verifOf(c) === "approved").length / clients.length) * 100)} % des inscrits` : undefined },
-        { label: "Ont commandé", value: rows ? clients.filter((c) => c.orders > 0).length : "…" },
-        { label: "Cette semaine", value: rows ? clients.filter((c) => new Date(c.created_at).getTime() > weekAgo).length : "…", hint: "nouvelles inscriptions" },
-        { label: "Entreprises", value: rows ? clients.filter((c) => c.account_type === "business").length : "…" },
-      ]} />
+      <ClientsPopulation clients={rows ? clients.map((c) => ({
+        created_at: c.created_at, orders: c.orders, business: c.account_type === "business",
+        status: verifOf(c) === "approved" ? "approved" : verifOf(c) === "pending" ? "pending" : "other",
+      })) : null} />
 
       {err && <p style={{ margin: "16px 0 0", color: C.dangerText, fontSize: 13 }}>{err}</p>}
 

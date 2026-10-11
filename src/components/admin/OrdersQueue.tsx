@@ -3,7 +3,8 @@ import { Hand, Inbox } from "lucide-react";
 import { CURRENT_OPERATOR, nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
-import { Avatar, DataTable, EmptyState, StatStrip, Tabs, TwoLine, type Column } from "./layout";
+import { Avatar, DataTable, EmptyState, Tabs, TwoLine, type Column } from "./layout";
+import { QueueWait } from "./viz";
 import { OrderChannel, OrderStatusPill, ageShort, typeLabel } from "./orderBits";
 
 interface Props {
@@ -26,8 +27,6 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
   const unassigned = active.filter((o) => !o.assignedTo);
   const mine = active.filter((o) => o.assignedTo === CURRENT_OPERATOR);
   const others = active.filter((o) => o.assignedTo && o.assignedTo !== CURRENT_OPERATOR);
-  const paid = active.filter((o) => o.status === "recu");
-  const oldestPaid = paid.reduce((m, o) => Math.max(m, o.createdMinsAgo), 0);
 
   const list = tab === "queue" ? unassigned : tab === "mine" ? mine : others;
   const empty = {
@@ -60,12 +59,7 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
 
   return (
     <div>
-      <StatStrip items={[
-        { label: "À prendre", value: unassigned.length },
-        { label: "Payées, à traiter", value: paid.length, tone: paid.length ? "warn" : undefined, hint: paid.length ? `la plus ancienne attend depuis ${ageShort(oldestPaid)}` : "aucune" },
-        { label: "En charge par vous", value: mine.length },
-        { label: "Volume actif", value: `${nfCad.format(active.reduce((s, o) => s + o.cad, 0))} $` },
-      ]} />
+      <QueueWait orders={active} onOpen={onOpen} mine={mine.length} unassigned={unassigned.length} />
 
       <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
         { id: "queue", label: "À prendre", count: unassigned.length },

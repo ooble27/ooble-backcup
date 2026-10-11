@@ -3,7 +3,8 @@ import { Download, Inbox } from "lucide-react";
 import { STATUS_META, TYPE_META, nfCad, nfUsdt, type AdminOrder, type OrderStatus } from "@/lib/adminOrders";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
-import { Avatar, DataTable, EmptyState, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column } from "./layout";
+import { Avatar, DataTable, EmptyState, SearchField, Tabs, Toolbar, TwoLine, type Column } from "./layout";
+import { OrdersCalendar } from "./viz";
 import { OrderChannel, OrderStatusPill, dateOf, typeLabel } from "./orderBits";
 
 interface Props {
@@ -37,7 +38,6 @@ const OrdersList = ({ orders, onOpen }: Props) => {
       .filter((o) => !needle || `${o.ref} ${o.clientName} ${o.clientEmail} ${o.address ?? ""}`.toLowerCase().includes(needle));
   }, [base, q, status]);
 
-  const done = base.filter((o) => o.status === "termine");
   const exportCSV = () => {
     const head = ["Référence", "Client", "Courriel", "Type", "Montant CAD", "Montant USDT", "Statut"];
     const body = rows.map((o) => [o.ref, o.clientName, o.clientEmail, TYPE_META[o.type].label, o.cad.toFixed(2), o.usdt.toFixed(2), STATUS_META[o.status].label]);
@@ -61,12 +61,7 @@ const OrdersList = ({ orders, onOpen }: Props) => {
 
   return (
     <div>
-      <StatStrip items={[
-        { label: "Commandes", value: base.length },
-        { label: "Volume", value: `${nfCad.format(base.reduce((s, o) => s + o.cad, 0))} $` },
-        { label: "Terminées", value: done.length, hint: base.length ? `${Math.round((done.length / base.length) * 100)} % du total` : undefined },
-        { label: "Clients", value: new Set(base.map((o) => o.clientEmail)).size },
-      ]} />
+      <OrdersCalendar orders={orders} />
 
       <Tabs style={{ marginTop: 28 }} value={type} onChange={setType} items={[
         { id: "all", label: "Toutes", count: orders.length },

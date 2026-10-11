@@ -16,6 +16,7 @@ import {
 import { C, FONT } from "./adminTheme";
 import { FilterChips, Section, StatStrip } from "./layout";
 import OriginsCard from "./OriginsCard";
+import { HundredSignups, OrderFlow } from "./viz";
 
 interface KpiDashboardProps {
   orders: AdminOrder[];
@@ -129,12 +130,12 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
         <VolumeChart data={daily} />
       </Section>
 
-      <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-2">
-        <Section title="Commandes par statut" actions={<LinkButton onClick={() => onNavigate?.("orders")}>Toutes les commandes</LinkButton>}>
-          {statuses && <StatusBreakdown s={statuses} />}
+      <div className="grid grid-cols-1 gap-x-16 xl:grid-cols-2">
+        <Section title="Flux des commandes" actions={<LinkButton onClick={() => onNavigate?.("orders")}>Toutes les commandes</LinkButton>}>
+          {statuses && <OrderFlow s={statuses} />}
         </Section>
-        <Section title="Entonnoir client" description="De l'inscription au client fidèle.">
-          {funnel && <Funnel f={funnel} />}
+        <Section title="Parcours des inscrits">
+          {funnel && <HundredSignups f={funnel} />}
         </Section>
       </div>
 
@@ -217,65 +218,6 @@ function VolumeChart({ data }: { data: DailyVolumePoint[] }) {
         </div>
         <span style={{ position: "absolute", top: 4, left: 0, fontSize: 11.5, color: C.t3, fontVariantNumeric: "tabular-nums", background: C.bg, paddingRight: 6 }}>{money(nice.top)}</span>
       </div>
-    </div>
-  );
-}
-
-/* ─── Statuts ─── */
-
-function StatusBreakdown({ s }: { s: OrderStatusCounts }) {
-  const rows = [
-    { label: "En attente de paiement", n: s.awaiting_payment + s.created },
-    { label: "Payées, à traiter", n: s.payment_received, strong: true },
-    { label: "En cours d'envoi", n: s.settling },
-    { label: "Terminées", n: s.completed },
-    { label: "Annulées ou expirées", n: s.cancelled + s.expired },
-    { label: "Remboursées", n: s.refunded },
-  ];
-  const total = Math.max(1, rows.reduce((a, r) => a + r.n, 0));
-  return (
-    <div style={{ borderTop: `1px solid ${C.bds}` }}>
-      {rows.map((r) => (
-        <div key={r.label} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 120px 40px", gap: 14, alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
-          <span style={{ fontSize: 13.5, color: r.strong && r.n ? C.t1 : C.t2 }}>{r.label}</span>
-          <span style={{ height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
-            <span style={{ display: "block", height: "100%", width: `${(r.n / total) * 100}%`, background: r.strong && r.n ? C.coral : C.t3, borderRadius: 99 }} />
-          </span>
-          <span style={{ fontSize: 13.5, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.n}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ─── Entonnoir ─── */
-
-function Funnel({ f }: { f: CustomerFunnel }) {
-  const steps = [
-    { label: "Inscrits", n: f.total },
-    { label: "Identité vérifiée", n: f.verified },
-    { label: "Premier achat ou vente", n: f.firstOrder },
-    { label: "Clients récurrents", n: f.repeat },
-  ];
-  const base = Math.max(1, ...steps.map((s) => s.n));
-  return (
-    <div style={{ borderTop: `1px solid ${C.bds}` }}>
-      {steps.map((s, i) => {
-        const prev = i ? steps[i - 1].n : null;
-        const conv = prev ? Math.round((s.n / prev) * 100) : null;
-        return (
-          <div key={s.label} style={{ padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span style={{ flex: 1, fontSize: 13.5, color: C.t2 }}>{s.label}</span>
-              {conv !== null && <span style={{ fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{conv} % de l'étape précédente</span>}
-              <span style={{ fontSize: 13.5, minWidth: 32, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{s.n}</span>
-            </div>
-            <span style={{ display: "block", marginTop: 8, height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
-              <span style={{ display: "block", height: "100%", width: `${Math.max(1, (s.n / base) * 100)}%`, background: C.sage, borderRadius: 99, transition: "width .5s cubic-bezier(.22,1,.36,1)" }} />
-            </span>
-          </div>
-        );
-      })}
     </div>
   );
 }

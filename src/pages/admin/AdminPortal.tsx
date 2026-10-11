@@ -28,6 +28,7 @@ import CommandPalette from "@/components/admin/CommandPalette";
 import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG } from "@/components/admin/adminTheme";
 import { UI_CSS } from "@/components/admin/ui";
 import { LAYOUT_CSS, PageHeader, Section } from "@/components/admin/layout";
+import { VIZ_CSS } from "@/components/admin/viz";
 import ThemeToggle from "@/components/app/ThemeToggle";
 import { AutoSettle } from "@/components/admin/icons";
 import { prefetchAdmin } from "@/lib/adminData";
@@ -170,7 +171,7 @@ const AdminPortal = () => {
     const prevHtmlBg = html.style.backgroundColor;
     const prevBodyBg = body.style.backgroundColor;
     const style = document.createElement("style");
-    style.textContent = ADMIN_THEME_CSS + UI_CSS + LAYOUT_CSS + SHELL_CSS;
+    style.textContent = ADMIN_THEME_CSS + UI_CSS + LAYOUT_CSS + VIZ_CSS + SHELL_CSS;
     document.head.appendChild(style);
     const meta = document.querySelector('meta[name="theme-color"]');
     const prevTheme = meta?.getAttribute("content") ?? "";
