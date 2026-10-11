@@ -16,8 +16,8 @@ import { createPortal } from "react-dom";
 import {
   Megaphone, Send, Users, Sparkles, Check,
   Loader2, Smartphone, Monitor, ArrowLeft, ArrowRight, Building2, ShieldCheck,
-  Clock, ChevronRight, ChevronLeft, X, User, UserPlus, Target,
-  TrendingUp, Globe, AtSign, Plus, LayoutGrid, Image as ImageIcon, UserX,
+  Clock, ChevronRight, ChevronLeft, X, User, UserPlus,
+  Globe, AtSign, Plus, Image as ImageIcon, UserX,
   Search, Eye, Trash2, ArrowUp, ArrowDown, Maximize2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -35,10 +35,9 @@ import {
   type CampaignTemplate, type TemplateField, type TemplateValues, type EmailLang, type EmailImage,
 } from "@/lib/campaignTemplates";
 import { draftCampaign, isAIError, type DraftCampaignResult } from "@/lib/ai";
-import AdminHero from "./AdminHero";
-import { SubTabs } from "./AdminBits";
-import { C, FONT, card, sH, inputStyle, btnPrimary, btnGhost } from "./adminTheme";
-import { Button, Field, Group, Notice, SummaryRow, TextArea, TextInput, Workspace, fieldInput, type WorkspaceStep } from "./ui";
+import { C, FONT, sH, btnPrimary, btnGhost } from "./adminTheme";
+import { Button, Field, Group, Notice, SidePanel, SummaryRow, TextArea, TextInput, Workspace, fieldInput, type WorkspaceStep } from "./ui";
+import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column } from "./layout";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -160,8 +159,8 @@ const PANEL_CSS = `
 @keyframes cmp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes cmp-shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
 .cmp-rise { animation: cmp-rise 0.5s ${EASE} both; }
-.cmp-card { transition: transform 0.35s ${EASE}, box-shadow 0.35s ${EASE}, border-color 0.2s; }
-.cmp-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -18px rgba(0,0,0,0.35); border-color: var(--a-bd); }
+.cmp-card .cmp-thumb-wrap { transition: box-shadow 0.25s ${EASE}; box-shadow: 0 0 0 1px var(--a-bds); }
+.cmp-card:hover .cmp-thumb-wrap, .cmp-card:focus-within .cmp-thumb-wrap { box-shadow: 0 0 0 1px var(--a-bd), 0 14px 32px -18px rgba(0,0,0,0.45); }
 .cmp-thumb-inner { transition: transform 3.2s ${EASE}; }
 .cmp-card:hover .cmp-thumb-inner, .cmp-card:focus-within .cmp-thumb-inner { transform: translateY(var(--cmp-scroll, 0px)); }
 .cmp-overlay { opacity: 0; transform: translateY(6px); transition: opacity 0.25s, transform 0.3s ${EASE}; }
@@ -183,6 +182,7 @@ const PANEL_CSS = `
 .cmp-img-opt { transition: transform 0.25s ${EASE}, box-shadow 0.25s, outline-color 0.2s; }
 .cmp-img-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(0,0,0,0.4); }
 .cmp-row { transition: background 0.15s, border-color 0.15s; }
+@media (max-width: 520px) { .cmp-hide-sm { display: none } }
 @media (prefers-reduced-motion: reduce) {
   .cmp-rise, .cmp-skeleton { animation: none; }
   .cmp-card, .cmp-thumb-inner, .cmp-overlay, .cmp-dialog, .cmp-backdrop, .cmp-img-opt { transition: none; }
@@ -453,34 +453,27 @@ const CampaignsPanel = () => {
   const sent = useMemo(() => campaigns.reduce((n, c) => n + c.stats.ok, 0), [campaigns]);
   const english = useMemo(() => clients.filter((c) => c.lang === "en").length, [clients]);
 
-  const TABS = [
-    { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
-    { id: "history", label: "Historique", count: campaigns.length || undefined },
-  ];
-
   const openStudio = (id: string, lang: EmailLang) => setStudio({ templateId: id, lang });
 
   return (
-    <div className="space-y-4">
+    <div>
       <style>{PANEL_CSS}</style>
-      <div className="lg:max-w-[620px]">
-        <AdminHero
-          eyebrow="Campagnes"
-          value={campaigns.length}
-          unit={campaigns.length > 1 ? "campagnes" : "campagne"}
-          stats={[
-            { label: "Courriels envoyés", value: sent },
-            { label: "Modèles", value: `${CAMPAIGN_TEMPLATES.length} × 2 langues` },
-            { label: "Contacts", value: clientsLoading ? "…" : clients.length, hint: clientsLoading ? undefined : `${english} en anglais` },
-          ]}
-          actions={[
-            { label: "Nouvelle campagne", icon: Megaphone, primary: true, onClick: () => openStudio(CAMPAIGN_TEMPLATES[0].id, "fr") },
-            { label: "Voir les modèles", icon: LayoutGrid, onClick: () => setTab("templates") },
-          ]}
-        />
-      </div>
+      <StatStrip items={[
+        { label: "Campagnes envoyées", value: campaigns.length },
+        { label: "Courriels envoyés", value: sent },
+        { label: "Contacts", value: clientsLoading ? "…" : clients.length, hint: clientsLoading ? undefined : `${english} en anglais` },
+        { label: "Forfait d'envoi", value: `${DAILY_EMAIL_LIMIT} / jour`, hint: "commandes comprises" },
+      ]} />
 
-      <SubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as SubTab)} />
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 28, borderBottom: `1px solid ${C.bds}` }}>
+        <Tabs style={{ borderBottom: "none", flex: 1, minWidth: 0 }} value={tab} onChange={setTab} items={[
+          { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
+          { id: "history", label: "Historique", count: campaigns.length || undefined },
+        ]} />
+        <Button size="sm" variant="primary" icon={<Megaphone style={{ width: 14, height: 14 }} />} onClick={() => openStudio(CAMPAIGN_TEMPLATES[0].id, "fr")}>
+          Nouvelle<span className="cmp-hide-sm"> campagne</span>
+        </Button>
+      </div>
 
       {tab === "templates" && <TemplateGallery me={me} onUse={openStudio} />}
       {studio && (
@@ -549,60 +542,23 @@ function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lan
   ];
 
   return (
-    <div className="space-y-3" style={{ fontFamily: FONT }}>
-      {/* Barre d'outils */}
-      <div style={{ ...card, padding: 12, overflow: "visible" }} className="space-y-3">
-        <div className="flex items-center gap-2">
-          <label style={{ position: "relative", flex: 1, minWidth: 0 }}>
-            <Search aria-hidden style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: C.t3 }} strokeWidth={1.8} />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Chercher un modèle"
-              aria-label="Chercher un modèle"
-              style={{ ...inputStyle, paddingLeft: 34, height: 38 }}
-            />
-          </label>
-          <Segmented ariaLabel="Langue des aperçus" value={lang} onChange={setLang} options={[{ id: "fr", label: "FR" }, { id: "en", label: "EN" }]} />
-        </div>
-        <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {chips.map((c) => {
-            const on = category === c.id;
-            const n = counts[c.id] ?? 0;
-            if (!n) return null;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                className="cmp-chip"
-                onClick={() => setCategory(c.id)}
-                aria-pressed={on}
-                style={{
-                  height: 30, padding: "0 12px", borderRadius: 99, flexShrink: 0, cursor: "pointer", fontFamily: FONT, fontSize: 12,
-                  border: `1px solid ${on ? C.t1 : C.bds}`, background: on ? C.t1 : "transparent", color: on ? C.bg : C.t2,
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                }}
-              >
-                {c.label}
-                <span style={{ fontSize: 10.5, opacity: 0.65, fontVariantNumeric: "tabular-nums" }}>{n}</span>
-              </button>
-            );
-          })}
-        </div>
+    <div style={{ fontFamily: FONT }}>
+      <Toolbar>
+        <SearchField value={query} onChange={setQuery} placeholder="Chercher un modèle" width={320} />
+        <Segmented ariaLabel="Langue des aperçus" value={lang} onChange={setLang} options={[{ id: "fr", label: "FR" }, { id: "en", label: "EN" }]} />
+      </Toolbar>
+      <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "-2px 0 4px" }}>
+        <FilterChips value={category} onChange={setCategory} options={chips.filter((c) => counts[c.id]).map((c) => ({ id: c.id, label: c.label, count: counts[c.id] }))} />
       </div>
 
-      <div className="flex items-baseline justify-between gap-3 px-1">
-        <p style={{ margin: 0, fontSize: 12, color: C.t3 }}>
-          {list.length} modèle{list.length > 1 ? "s" : ""} · touchez un modèle pour l'ouvrir
-        </p>
-        <p className="hidden sm:block" style={{ margin: 0, fontSize: 11.5, color: C.t3 }}>Forfait Resend : {DAILY_EMAIL_LIMIT} courriels par jour, commandes comprises</p>
-      </div>
+      <p style={{ margin: "8px 0 16px", fontSize: 12.5, color: C.t3 }}>
+        {list.length} modèle{list.length > 1 ? "s" : ""} · touchez un modèle pour l'ouvrir
+      </p>
 
       {list.length === 0 ? (
-        <div style={{ ...card, padding: 40, textAlign: "center", color: C.t3, fontSize: 13 }}>Aucun modèle ne correspond à « {query} ».</div>
+        <EmptyState icon={Search} title="Aucun modèle" text={`Aucun modèle ne correspond à « ${query} ».`} />
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
           {list.map((t, i) => (
             <TemplateCard
               key={`${t.id}:${lang}`}
@@ -636,8 +592,8 @@ function TemplateCard({ delay, template: t, lang, onPreview, onUse }: {
 }) {
   const html = useMemo(() => previewHtml(t.id, {}, lang), [t.id, lang]);
   return (
-    <div className="cmp-card cmp-rise" style={{ ...card, display: "flex", flexDirection: "column", animationDelay: `${delay}ms` }}>
-      <div style={{ position: "relative", padding: "8px 8px 0", background: "#e9e6df" }}>
+    <div className="cmp-card cmp-rise" style={{ display: "flex", flexDirection: "column", animationDelay: `${delay}ms` }}>
+      <div className="cmp-thumb-wrap" style={{ position: "relative", padding: "8px 8px 0", background: "#e9e6df", borderRadius: 10, overflow: "hidden" }}>
         <button type="button" onClick={onPreview} aria-label={`Ouvrir le modèle ${t.name}`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "zoom-in" }}>
           <Thumb html={html} title={t.name} />
         </button>
@@ -655,7 +611,7 @@ function TemplateCard({ delay, template: t, lang, onPreview, onUse }: {
           </button>
         </div>
       </div>
-      <button type="button" onClick={onPreview} style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 3, border: "none", borderTop: `1px solid ${C.bds}`, background: "transparent", textAlign: "left", cursor: "pointer", fontFamily: FONT }}>
+      <button type="button" onClick={onPreview} style={{ padding: "10px 2px 0", display: "flex", flexDirection: "column", gap: 3, border: "none", background: "transparent", textAlign: "left", cursor: "pointer", fontFamily: FONT }}>
         <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <span aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: t.swatch[0], boxShadow: `inset 0 0 0 2.5px ${t.swatch[1]}`, flexShrink: 0 }} />
           <span style={{ color: C.t1, fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
@@ -1309,15 +1265,6 @@ function Dot() {
   return <span aria-label="modifié" style={{ width: 6, height: 6, borderRadius: 99, background: "currentColor", display: "inline-block", marginLeft: 2 }} />;
 }
 
-function LangStat({ label, value, muted }: { label: string; value: number; muted?: boolean }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6, padding: "6px 11px", borderRadius: 10, background: muted ? "transparent" : C.l3, border: `1px solid ${C.bds}` }}>
-      <span style={{ fontSize: 15, color: C.t1, fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{value}</span>
-      <span style={{ fontSize: 11.5, color: C.t3 }}>{label}</span>
-    </span>
-  );
-}
-
 // ─── Champs ─────────────────────────────────────────────────
 
 function TemplateFieldInput({ field, value, onChange }: { field: TemplateField; value: string; onChange: (v: string) => void }) {
@@ -1533,91 +1480,68 @@ function recordHtml(c: CampaignRecord, lang: EmailLang): string {
 function CampaignHistory({ campaigns }: { campaigns: CampaignRecord[] }) {
   const [selected, setSelected] = useState<CampaignRecord | null>(null);
   const [lang, setLang] = useState<EmailLang>("fr");
+  const rateOf = (c: CampaignRecord) => {
+    const reached = c.stats.total - (c.stats.skipped ?? 0);
+    return reached > 0 ? Math.round((c.stats.ok / reached) * 100) : 0;
+  };
 
-  if (campaigns.length === 0) {
-    return (
-      <div className="cmp-rise" style={{ ...card, padding: 48, textAlign: "center", fontFamily: FONT }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: C.l3, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-          <Megaphone style={{ width: 22, height: 22, color: C.t3 }} strokeWidth={1.6} />
-        </div>
-        <p style={{ fontSize: 13, color: C.t2, margin: 0 }}>Aucune campagne envoyée</p>
-        <p style={{ fontSize: 11.5, color: C.t3, margin: "4px 0 0" }}>Les campagnes apparaîtront ici avec leurs statistiques.</p>
-      </div>
-    );
-  }
-
-  if (selected) {
-    const reached = selected.stats.total - (selected.stats.skipped ?? 0);
-    const rate = reached > 0 ? Math.round((selected.stats.ok / reached) * 100) : 0;
-    return (
-      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,520px)]" style={{ fontFamily: FONT }}>
-        <div className="cmp-rise" style={{ ...card }}>
-          <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-            <IconButton label="Retour à l'historique" onClick={() => setSelected(null)}><ArrowLeft style={{ width: 14, height: 14 }} strokeWidth={1.8} /></IconButton>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: C.t1, fontSize: 14, fontWeight: 500 }}>{selected.name}</div>
-              <div style={{ color: C.t3, fontSize: 11, marginTop: 2 }}>
-                {dateFmt.format(new Date(selected.sentAt))} · {recordLabel(selected)} · {SEGMENT_LABEL[selected.segment]} · {selected.sentBy}
-              </div>
-            </div>
-          </div>
-          <div style={{ padding: "12px 18px", borderTop: `1px solid ${C.bds}`, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-            <Metric icon={Target} label="Cible" value={selected.stats.total} />
-            <Metric icon={Send} label="Envoyés" value={selected.stats.ok} />
-            <Metric icon={UserX} label="Désabonnés" value={selected.stats.skipped ?? 0} />
-            <Metric icon={TrendingUp} label="Réussite" value={`${rate}%`} />
-          </div>
-          {(selected.stats.fr !== undefined || selected.stats.en !== undefined) && (
-            <div style={{ padding: "12px 18px", borderTop: `1px solid ${C.bds}`, display: "flex", gap: 6 }}>
-              <LangStat label="En français" value={selected.stats.fr ?? 0} />
-              <LangStat label="En anglais" value={selected.stats.en ?? 0} />
-            </div>
-          )}
-        </div>
-        <div className="cmp-rise" style={{ ...card }}>
-          {selected.valuesByLang && (
-            <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.bds}` }}>
-              <Segmented ariaLabel="Langue" size="sm" value={lang} onChange={setLang} options={[{ id: "fr", label: "Français" }, { id: "en", label: "English" }]} />
-            </div>
-          )}
-          <div style={{ background: "#d9d5cc", padding: 14 }}>
-            <DevicePreview html={recordHtml(selected, lang)} device="desktop" title="Courriel envoyé" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const columns: Column<CampaignRecord>[] = [
+    { key: "name", header: "Campagne", render: (c) => {
+      const t = c.templateId ? getTemplate(c.templateId) : null;
+      return <TwoLine lead={<span aria-hidden style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, background: t ? t.swatch[0] : C.l3, boxShadow: t ? `inset 0 0 0 3px ${t.swatch[1]}` : `inset 0 0 0 1px ${C.bds}` }} />}
+        primary={c.name} secondary={recordLabel(c)} />;
+    } },
+    { key: "segment", header: "Audience", hideBelow: 1000, render: (c) => <span style={{ color: C.t2 }}>{SEGMENT_LABEL[c.segment]}</span> },
+    { key: "sent", header: "Envoyés", align: "right", sort: (c) => c.stats.ok, render: (c) => <span>{c.stats.ok}<span style={{ color: C.t3 }}> / {c.stats.total}</span></span> },
+    { key: "rate", header: "Réussite", align: "right", sort: (c) => rateOf(c), render: (c) => <Pill tone={c.stats.failed === 0 ? "ok" : "danger"}>{rateOf(c)} %</Pill> },
+    { key: "date", header: "Date", align: "right", sort: (c) => c.sentAt, hideBelow: 760, render: (c) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(c.sentAt))}</span> },
+  ];
 
   return (
-    <div className="cmp-rise" style={{ ...card, fontFamily: FONT }}>
-      {campaigns.map((c, i) => {
-        const reached = c.stats.total - (c.stats.skipped ?? 0);
-        const rate = reached > 0 ? Math.round((c.stats.ok / reached) * 100) : 0;
-        const t = c.templateId ? getTemplate(c.templateId) : null;
-        return (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => setSelected(c)}
-            style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, padding: "14px 18px", textAlign: "left", borderBottom: i < campaigns.length - 1 ? `1px solid ${C.bds}` : "none", background: "transparent", border: "none", cursor: "pointer", fontFamily: FONT }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = C.hover1; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, background: t ? t.swatch[0] : C.l3, boxShadow: t ? `inset 0 0 0 4px ${t.swatch[1]}` : `inset 0 0 0 1px ${C.bds}` }} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
-              <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>
-                {c.stats.ok}/{c.stats.total} · {recordLabel(c)} · {dateFmt.format(new Date(c.sentAt))}
-              </div>
-            </div>
-            <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500, fontVariantNumeric: "tabular-nums", flexShrink: 0, background: c.stats.failed === 0 ? C.successBg : C.dangerBg, color: c.stats.failed === 0 ? C.successText : C.dangerText }}>
-              {rate}%
-            </span>
-            <ChevronRight style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} strokeWidth={1.5} />
-          </button>
-        );
-      })}
-    </div>
+    <>
+      <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Campagnes envoyées depuis cet appareil, avec leurs résultats.</p>
+      <DataTable
+        rows={campaigns}
+        columns={columns}
+        rowKey={(c) => c.id}
+        onRowClick={setSelected}
+        selectedKey={selected?.id}
+        initialSort={{ key: "date", dir: "desc" }}
+        empty={<EmptyState icon={Megaphone} title="Aucune campagne envoyée" text="Les campagnes apparaîtront ici avec leurs statistiques." />}
+        mobile={(c) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={c.name} secondary={`${c.stats.ok}/${c.stats.total} · ${dateFmt.format(new Date(c.sentAt))}`} /></div>
+            <Pill tone={c.stats.failed === 0 ? "ok" : "danger"}>{rateOf(c)} %</Pill>
+          </div>
+        )}
+      />
+
+      {selected && (
+        <SidePanel title={selected.name} subtitle={`${dateFmt.format(new Date(selected.sentAt))} · ${selected.sentBy}`} onClose={() => setSelected(null)} width={720}>
+          <StatStrip items={[
+            { label: "Cible", value: selected.stats.total },
+            { label: "Envoyés", value: selected.stats.ok },
+            { label: "Désabonnés", value: selected.stats.skipped ?? 0 },
+            { label: "Réussite", value: `${rateOf(selected)} %`, tone: selected.stats.failed ? "danger" : "ok" },
+          ]} />
+          <div style={{ marginTop: 20 }}>
+            <KeyValues items={[
+              ["Modèle", recordLabel(selected)],
+              ["Audience", SEGMENT_LABEL[selected.segment]],
+              ...((selected.stats.fr !== undefined || selected.stats.en !== undefined)
+                ? [["Langues", `${selected.stats.fr ?? 0} en français · ${selected.stats.en ?? 0} en anglais`] as [string, string]] : []),
+            ]} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0 10px" }}>
+            <span style={{ flex: 1, fontSize: 12.5, color: C.t3 }}>Courriel envoyé</span>
+            {selected.valuesByLang && <Segmented ariaLabel="Langue" size="sm" value={lang} onChange={setLang} options={[{ id: "fr", label: "Français" }, { id: "en", label: "English" }]} />}
+          </div>
+          <div style={{ background: "#d9d5cc", padding: 12, borderRadius: 10 }}>
+            <DevicePreview html={recordHtml(selected, lang)} device="desktop" title="Courriel envoyé" />
+          </div>
+        </SidePanel>
+      )}
+    </>
   );
 }
 
@@ -1870,29 +1794,6 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove, 
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-
-function Metric({ icon: Icon, label, value }: { icon: typeof Target; label: string; value: string | number }) {
-  return (
-    <div>
-      <div style={{
-        fontSize: 10, color: C.t3, letterSpacing: "0.12em",
-        textTransform: "uppercase", fontFamily: FONT, marginBottom: 4,
-        display: "flex", alignItems: "center", gap: 4,
-      }}>
-        <Icon style={{ width: 9, height: 9 }} strokeWidth={1.5} />
-        {label}
-      </div>
-      <div style={{
-        color: C.t1, fontSize: 20, fontWeight: 300,
-        letterSpacing: "-0.01em", fontFamily: FONT,
-        fontVariantNumeric: "tabular-nums",
-      }}>
-        {value}
-      </div>
     </div>
   );
 }
