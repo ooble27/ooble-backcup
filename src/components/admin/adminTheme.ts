@@ -12,7 +12,7 @@
 
 const DARK = {
   /** Fond sur lequel est posé l'écrin (barre latérale comprise). */
-  ground:         "#212124",
+  ground:         "#171717",
   /** Couleur de marque (élément actif du menu). */
   brand:          "#3FD49A",
   bg:             "#1a1a1a",

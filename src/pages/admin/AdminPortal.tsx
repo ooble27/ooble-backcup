@@ -80,6 +80,7 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
 const SHELL_CSS = `
 .sh-nav { transition: background .12s, color .12s }
 .sh-nav:hover { background: var(--a-hover2); color: var(--a-t1) }
+.admin-scope, .admin-scope * { -webkit-tap-highlight-color: transparent }
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 .sh-icon:hover { background: var(--a-hover2); color: var(--a-t1) }
 .sh-search:hover { border-color: var(--a-bd); color: var(--a-t2) }
@@ -275,11 +276,10 @@ const AdminPortal = () => {
                       ...(compact
                         ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
                         : { width: "100%", height: 38, padding: "0 12px", borderRadius: 10, marginBottom: 1 }),
-                      background: on ? C.bg : "transparent",
-                      boxShadow: on ? `0 0 0 1px ${C.bds}, 0 1px 2px rgba(0,0,0,.12)` : "none",
-                      color: on ? C.t1 : C.t2, fontSize: 14.5,
+                      background: on ? C.hover4 : "transparent",
+                      color: on ? C.t1 : C.t2, fontSize: 14.5, fontWeight: on ? 500 : 400,
                     }}>
-                    <Icon style={{ width: compact ? 23 : 18, height: compact ? 23 : 18, flexShrink: 0, color: on ? C.brand : "currentColor" }} strokeWidth={on ? 2 : 1.75} />
+                    <Icon style={{ width: compact ? 23 : 18, height: compact ? 23 : 18, flexShrink: 0 }} strokeWidth={on ? 2 : 1.75} />
                     {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>}
                     {!!n && (compact
                       ? <span style={{ position: "absolute", top: 1, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums", boxShadow: `0 0 0 2px ${C.ground}` }}>{n}</span>
@@ -340,7 +340,7 @@ const AdminPortal = () => {
           <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
             <header style={panel
               ? { flexShrink: 0, background: C.bg }
-              : { position: "sticky", top: 0, zIndex: 20, background: C.bg, borderBottom: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+              : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "env(safe-area-inset-top, 0px)" }}>
               <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
                 {mode === "drawer" && (
                   <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
@@ -421,7 +421,7 @@ const AdminPortal = () => {
         <div style={{ minWidth: 0 }}>
         <header style={panel
           ? { flexShrink: 0, background: C.bg }
-          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, borderBottom: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
             {mode === "drawer" && (
               <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
