@@ -1,9 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft,
-  BadgeCheck, UserRound, Megaphone, Headphones, ShieldCheck, ScrollText,
-  LayoutDashboard, Bell, Mail, Zap, Power, BookUser,
+  Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
+  LayoutDashboard, Bell, Mail, Zap, Power, BookUser, Menu, PanelLeftClose, PanelLeftOpen, Search, X, ChevronRight,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { type AdminOrder } from "@/lib/adminOrders";
@@ -26,26 +25,46 @@ import CampaignsPanel from "@/components/admin/CampaignsPanel";
 import PlatformPanel from "@/components/admin/PlatformPanel";
 import ClientsPanel from "@/components/admin/ClientsPanel";
 import AIFloatingChat from "@/components/admin/AIFloatingChat";
+import CommandPalette from "@/components/admin/CommandPalette";
 import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG } from "@/components/admin/adminTheme";
+import { UI_CSS } from "@/components/admin/ui";
+import { LAYOUT_CSS, PageHeader, Section } from "@/components/admin/layout";
 import ThemeToggle from "@/components/app/ThemeToggle";
 
-type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform";
+export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform";
 
-const NAV: { id: TabId; label: string; desc: string; icon: typeof Inbox }[] = [
-  { id: "dashboard",  label: "Tableau de bord", desc: "Vue d'ensemble : volumes, marge, alertes et actions à traiter.", icon: LayoutDashboard },
-  { id: "queue",      label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour l'équipe.", icon: Inbox },
-  { id: "orders",     label: "Commandes",      desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
-  { id: "clients",    label: "Clients",        desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: BookUser },
-  { id: "kyc",        label: "KYC",            desc: "Vérifiez l'identité des clients avant leurs transactions.", icon: ScanFace },
-  { id: "accounting",  label: "Comptabilité",   desc: "Revenus, marges et volumes traités.", icon: Calculator },
-  { id: "compliance",  label: "Conformité",     desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: ShieldCheck },
-  { id: "settlement",  label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: Zap },
-  { id: "mailbox",     label: "Messagerie",     desc: "Envoyer un e-mail à un client à partir d'un template, historique des envois, boîte de réception.", icon: Mail },
-  { id: "campaigns",   label: "Campagnes",      desc: "Campagnes marketing bien designées avec segmentation, aperçu live et historique.", icon: Megaphone },
-  { id: "announcements", label: "Bannière et maintenance", desc: "Message affiché en haut du site pour tous les clients, et mode maintenance qui suspend les commandes.", icon: Bell },
-  { id: "team",        label: "Équipe",         desc: "Membres, rôles et permissions, et le journal de toutes les actions de l'équipe.", icon: Users },
-  { id: "platform",    label: "Plateforme",     desc: "Réinitialiser les commandes de test (comptes et vérifications gardés), puis démarrer les activités.", icon: Power },
+interface NavItem { id: TabId; label: string; desc: string; icon: typeof Inbox }
+interface NavGroup { label: string | null; items: NavItem[] }
+
+const GROUPS: NavGroup[] = [
+  { label: null, items: [
+    { id: "dashboard", label: "Tableau de bord", desc: "Volumes, marge, alertes et actions à traiter.", icon: LayoutDashboard },
+  ] },
+  { label: "Opérations", items: [
+    { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
+    { id: "orders", label: "Commandes", desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
+    { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: Zap },
+  ] },
+  { label: "Clients", items: [
+    { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: BookUser },
+    { id: "kyc", label: "Vérifications", desc: "Identité des particuliers et des entreprises, avant leurs transactions.", icon: ScanFace },
+  ] },
+  { label: "Finance et conformité", items: [
+    { id: "accounting", label: "Comptabilité", desc: "Revenus, marges et volumes traités.", icon: Calculator },
+    { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: ShieldCheck },
+  ] },
+  { label: "Communication", items: [
+    { id: "mailbox", label: "Messagerie", desc: "Écrire à un client à partir d'un modèle, historique des envois, boîte de réception.", icon: Mail },
+    { id: "campaigns", label: "Campagnes", desc: "Courriels marketing en français et en anglais, envoyés dans la langue de chaque client.", icon: Megaphone },
+    { id: "announcements", label: "Bannière et maintenance", desc: "Message en haut du site pour tous les clients, et mode maintenance qui suspend les commandes.", icon: Bell },
+  ] },
+  { label: "Administration", items: [
+    { id: "team", label: "Équipe", desc: "Membres, rôles et permissions, et le journal de toutes les actions de l'équipe.", icon: Users },
+    { id: "platform", label: "Plateforme", desc: "Lancement, données de test et sauvegardes.", icon: Power },
+  ] },
 ];
+const NAV = GROUPS.flatMap((g) => g.items);
+const GROUP_OF = new Map(GROUPS.flatMap((g) => g.items.map((i) => [i.id, g.label] as const)));
 
 const ROLE_TABS: Record<AppRole, TabId[]> = {
   admin:        ["dashboard", "queue", "orders", "clients", "kyc", "accounting", "compliance", "settlement", "mailbox", "campaigns", "announcements", "team", "platform"],
@@ -56,73 +75,108 @@ const ROLE_TABS: Record<AppRole, TabId[]> = {
 };
 
 const ROLE_LABEL: Partial<Record<AppRole, string>> = {
-  admin: "Admin",
-  operator: "Opérateur",
-  kyc_reviewer: "KYC",
-  support: "Support",
-  marketing: "Marketing",
+  admin: "Administrateur", operator: "Opérateur", kyc_reviewer: "Vérification", support: "Support", marketing: "Marketing",
 };
 
-const ROLE_ICON: Record<AppRole, typeof BadgeCheck> = {
-  admin: BadgeCheck,
-  operator: UserRound,
-  kyc_reviewer: ScanFace,
-  support: Headphones,
-  marketing: Megaphone,
-};
+const SHELL_CSS = `
+.sh-nav { transition: background .12s, color .12s }
+.sh-nav:hover { background: var(--a-hover2); color: var(--a-t1) }
+.sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
+.sh-icon:hover { background: var(--a-hover2); color: var(--a-t1) }
+.sh-search:hover { border-color: var(--a-bd); color: var(--a-t2) }
+@keyframes sh-drawer { from { transform: translateX(-24px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes sh-page { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+.sh-page { animation: sh-page .28s cubic-bezier(.22,1,.36,1) }
+@media (prefers-reduced-motion: reduce) { .sh-page { animation: none } }
+`;
+
+function useViewport() {
+  const [w, setW] = useState(() => (typeof window === "undefined" ? 1280 : window.innerWidth));
+  useEffect(() => {
+    const on = () => setW(window.innerWidth);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return w;
+}
+
+const readTab = () => new URLSearchParams(window.location.search).get("tab") as TabId | null;
 
 const AdminPortal = () => {
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
+  const [drawer, setDrawer] = useState(false);
+  const [palette, setPalette] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem("ooble.admin.rail") === "1"; } catch { return false; }
+  });
+  const vw = useViewport();
+  const mode: "full" | "rail" | "drawer" = vw < 768 ? "drawer" : vw < 1180 || collapsed ? "rail" : "full";
 
   const allowedTabs = useMemo(() => {
     const set = new Set<TabId>();
-    for (const r of roles) {
-      for (const t of ROLE_TABS[r] ?? []) set.add(t);
-    }
+    for (const r of roles) for (const t of ROLE_TABS[r] ?? []) set.add(t);
     return set;
   }, [roles]);
-
+  const visibleGroups = useMemo(
+    () => GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => allowedTabs.has(i.id)) })).filter((g) => g.items.length),
+    [allowedTabs],
+  );
   const visibleNav = useMemo(() => NAV.filter((n) => allowedTabs.has(n.id)), [allowedTabs]);
-  const [tab, setTab] = useState<TabId>(() => {
-    const wanted = new URLSearchParams(window.location.search).get("tab") as TabId | null;
-    return wanted && visibleNav.some((n) => n.id === wanted) ? wanted : visibleNav[0]?.id ?? "queue";
-  });
 
+  const [tab, setTabState] = useState<TabId>(() => readTab() ?? "dashboard");
   useEffect(() => {
-    if (visibleNav.length > 0 && !allowedTabs.has(tab)) {
-      setTab(visibleNav[0].id);
-    }
+    if (visibleNav.length > 0 && !allowedTabs.has(tab)) setTabState(visibleNav[0].id);
   }, [visibleNav, allowedTabs, tab]);
+
+  // L'onglet suit l'adresse (?tab=) : le bouton « retour » du navigateur fonctionne.
+  const setTab = useCallback((id: TabId) => {
+    setTabState(id);
+    setSelected(null);
+    setClientView(null);
+    setDrawer(false);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", id);
+    window.history.pushState({ tab: id }, "", url);
+    window.scrollTo({ top: 0 });
+  }, []);
+  useEffect(() => {
+    const on = () => { const t = readTab(); if (t) { setTabState(t); setSelected(null); setClientView(null); } };
+    window.addEventListener("popstate", on);
+    return () => window.removeEventListener("popstate", on);
+  }, []);
+
+  // ⌘K / Ctrl+K : recherche universelle.
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((v) => !v); }
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
 
   useLayoutEffect(() => {
     const html = document.documentElement;
     const body = document.body;
     const prevHtmlBg = html.style.backgroundColor;
     const prevBodyBg = body.style.backgroundColor;
-
     const style = document.createElement("style");
-    style.textContent = ADMIN_THEME_CSS;
+    style.textContent = ADMIN_THEME_CSS + UI_CSS + LAYOUT_CSS + SHELL_CSS;
     document.head.appendChild(style);
-
     const meta = document.querySelector('meta[name="theme-color"]');
     const prevTheme = meta?.getAttribute("content") ?? "";
-
     const sync = () => {
-      const isDark = html.classList.contains("dark");
-      const bg = isDark ? ADMIN_BG.dark : ADMIN_BG.light;
+      const bg = html.classList.contains("dark") ? ADMIN_BG.dark : ADMIN_BG.light;
       html.style.backgroundColor = bg;
       body.style.backgroundColor = bg;
       meta?.setAttribute("content", bg);
     };
     sync();
-
     const obs = new MutationObserver(sync);
     obs.observe(html, { attributes: true, attributeFilter: ["class"] });
-
     return () => {
       obs.disconnect();
       document.head.removeChild(style);
@@ -132,13 +186,8 @@ const AdminPortal = () => {
     };
   }, []);
 
-  const topRole = roles.includes("admin") ? "admin" : roles[0];
-  const badgeLabel = ROLE_LABEL[topRole] ?? "Staff";
-  const BadgeIcon = ROLE_ICON[topRole] ?? BadgeCheck;
-
   const refresh = () => fetchAdminOrders().then((rows) => {
     setOrders(rows);
-    // La commande ouverte suit aussi les changements faits côté serveur.
     setSelected((s) => (s ? rows.find((r) => r.id === s.id) ?? s : s));
     setLoading(false);
   });
@@ -165,150 +214,180 @@ const AdminPortal = () => {
   };
 
   const active = visibleNav.find((n) => n.id === tab) ?? visibleNav[0];
-  if (!active) return null;
-  const ActiveIcon = active.icon;
-  const openOrder = (o: AdminOrder) => setSelected(o);
+  const toProcess = orders.filter((o) => o.status === "recu").length;
+  const badges: Partial<Record<TabId, number>> = { queue: toProcess };
 
-  const showClient = (userId: string) => {
-    const name = selected?.clientName ?? "Client";
-    setClientView({ userId, name });
-  };
-
+  const openOrder = (o: AdminOrder) => { setClientView(null); setSelected(o); window.scrollTo({ top: 0 }); };
+  const openClient = (userId: string, name: string) => { setSelected(null); setClientView({ userId, name }); window.scrollTo({ top: 0 }); };
+  const showClient = (userId: string) => openClient(userId, selected?.clientName ?? "Client");
   const openOrderById = (orderId: string) => {
     const o = orders.find((x) => x.id === orderId);
-    if (o) {
-      setClientView(null);
-      setSelected(o);
-    }
+    if (o) openOrder(o);
   };
+  const navigateTab = (target: "queue" | "orders" | "compliance") => { if (allowedTabs.has(target)) setTab(target); };
 
-  const navigateTab = (target: "queue" | "orders" | "compliance") => {
-    if (allowedTabs.has(target)) setTab(target);
-  };
+  if (!active) return null;
 
-  return (
-    <div
-      className="admin-scope"
-      style={{ background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}
-    >
-      {/* Barre du haut — sombre Terex */}
-      {/* Barre du haut — plus de filet sous la barre : la respiration seule
-          suffit à séparer visuellement l'en-tête des pastilles. */}
-      <div style={{ background: C.bg }}>
-        <div
-          className="mx-auto flex max-w-[1200px] items-center gap-3 px-5 md:px-8"
-          style={{ paddingTop: "max(16px, env(safe-area-inset-top, 0px))", paddingBottom: 16 }}
-        >
-          <Link
-            to="/app"
-            aria-label="Retour à l'app"
-            style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: C.l1, border: `1px solid ${C.bds}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: C.t2, transition: "all 0.15s", flexShrink: 0,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = C.t1; e.currentTarget.style.borderColor = C.bd; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = C.t2; e.currentTarget.style.borderColor = C.bds; }}
-          >
-            <ArrowLeft style={{ width: 18, height: 18 }} />
-          </Link>
-          <div className="min-w-0 flex-1">
-            <h1 style={{ fontSize: 18, fontWeight: 400, color: C.t1, margin: 0, letterSpacing: "-0.01em" }}>
-              Administration
-            </h1>
-            <p style={{ fontSize: 11.5, color: C.t3, margin: "2px 0 0", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-              Pilotez la plateforme Ooble
-            </p>
-          </div>
-          <ThemeToggle />
-          <span
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              background: C.l1, border: `1px solid ${C.bds}`, borderRadius: 999,
-              padding: "6px 12px", fontSize: 11, fontWeight: 400, color: C.t2, flexShrink: 0,
-            }}
-          >
-            <BadgeIcon style={{ width: 12, height: 12 }} /> {badgeLabel}
-          </span>
+  const topRole = roles.includes("admin") ? "admin" : roles[0];
+  const crumbs: { label: string; onClick?: () => void }[] = [];
+  const group = GROUP_OF.get(active.id);
+  if (group && group !== active.label) crumbs.push({ label: group });
+  crumbs.push({ label: active.label, onClick: selected || clientView ? () => { setSelected(null); setClientView(null); } : undefined });
+  if (selected) crumbs.push({ label: `Commande ${selected.ref}` });
+  if (clientView) crumbs.push({ label: clientView.name });
+
+  const rail = mode === "rail";
+  const sidebar = (inDrawer: boolean) => {
+    const compact = rail && !inDrawer;
+    return (
+      <nav aria-label="Navigation du back-office" style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: FONT }}>
+        <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: compact ? "0 14px" : "0 16px", borderBottom: `1px solid ${C.bds}`, flexShrink: 0 }}>
+          <img src="/icons/icon-192.png" alt="" width={26} height={26} style={{ borderRadius: 7, flexShrink: 0 }} />
+          {!compact && (
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 14, color: C.t1, lineHeight: 1.2 }}>Ooble</p>
+              <p style={{ margin: 0, fontSize: 11.5, color: C.t3, lineHeight: 1.3 }}>Administration</p>
+            </div>
+          )}
+          {inDrawer && (
+            <button type="button" className="sh-icon" aria-label="Fermer le menu" onClick={() => setDrawer(false)}
+              style={{ width: 34, height: 34, borderRadius: 8, border: "none", background: "transparent", color: C.t2, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <X style={{ width: 18, height: 18 }} />
+            </button>
+          )}
         </div>
-      </div>
-
-      <div className="mx-auto max-w-[1200px] px-5 py-6 md:px-8">
-        {clientView ? (
-          <ClientProfile
-            userId={clientView.userId}
-            clientName={clientView.name}
-            onBack={() => setClientView(null)}
-            onOpenOrder={openOrderById}
-          />
-        ) : selected ? (
-          <div>
-            {/* Pastilles de navigation — masquées quand une commande est ouverte */}
-            <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} />
-          </div>
-        ) : (
-          <>
-            {/* Pastilles de navigation — texture Ooble d'origine, défilables */}
-            <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
-              {visibleNav.map(({ id, label, icon: Icon }) => {
-                const on = id === tab;
+        <div style={{ flex: 1, overflowY: "auto", padding: compact ? "10px 8px" : "10px 10px 20px" }}>
+          {visibleGroups.map((g, gi) => (
+            <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 18) : 0 }}>
+              {g.label && !compact && <p style={{ margin: "0 10px 6px", fontSize: 11.5, color: C.t3 }}>{g.label}</p>}
+              {g.label && compact && <div style={{ height: 1, background: C.bds, margin: "0 8px 10px" }} />}
+              {g.items.map((it) => {
+                const on = it.id === tab;
+                const Icon = it.icon;
+                const n = badges[it.id];
                 return (
-                  <button
-                    key={id}
-                    onClick={() => { setTab(id); setSelected(null); }}
-                    className="flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-[13px] font-medium transition-colors"
-                    style={on
-                      ? { borderColor: C.accent, background: C.accent, color: "var(--a-btnPrimaryText)" }
-                      : { borderColor: C.bds, background: C.l1, color: C.t2 }
-                    }
-                    onMouseEnter={(e) => { if (!on) { e.currentTarget.style.background = C.l2; e.currentTarget.style.color = C.t1; } }}
-                    onMouseLeave={(e) => { if (!on) { e.currentTarget.style.background = C.l1; e.currentTarget.style.color = C.t2; } }}
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={on ? 2 : 1.7} />
-                    {label}
+                  <button key={it.id} type="button" className="sh-nav" onClick={() => setTab(it.id)} aria-current={on ? "page" : undefined}
+                    title={compact ? it.label : undefined}
+                    style={{
+                      position: "relative", width: "100%", display: "flex", alignItems: "center", gap: 10, height: 36, marginBottom: 2,
+                      padding: compact ? 0 : "0 10px", justifyContent: compact ? "center" : "flex-start", borderRadius: 8, border: "none",
+                      background: on ? C.l2 : "transparent", color: on ? C.t1 : C.t2, fontFamily: FONT, fontSize: 13.5, cursor: "pointer", textAlign: "left",
+                    }}>
+                    <Icon style={{ width: 16, height: 16, flexShrink: 0 }} strokeWidth={on ? 2 : 1.7} />
+                    {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>}
+                    {!!n && (compact
+                      ? <span style={{ position: "absolute", top: 6, right: 8, width: 7, height: 7, borderRadius: 99, background: C.t1 }} />
+                      : <span style={{ fontSize: 11.5, minWidth: 20, height: 20, padding: "0 6px", borderRadius: 99, background: C.t1, color: C.bg, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
                   </button>
                 );
               })}
             </div>
-
-            {/* Titre de section — masqué pour le tableau de bord (en-tête propre) */}
-            {tab !== "dashboard" && (
-              <div style={{ marginTop: 26, display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{
-                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                  background: C.l1, border: `1px solid ${C.bds}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: C.t2,
-                }}>
-                  <ActiveIcon style={{ width: 18, height: 18 }} strokeWidth={1.8} />
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 400, color: C.t1, margin: 0, letterSpacing: "-0.015em" }}>
-                    {active.label}
-                  </h2>
-                  <p style={{ fontSize: 11.5, color: C.t3, margin: "2px 0 0" }}>
-                    {active.desc}
-                  </p>
-                </div>
+          ))}
+        </div>
+        <div style={{ borderTop: `1px solid ${C.bds}`, padding: compact ? "10px 8px" : "12px 12px", display: "grid", gap: 8, flexShrink: 0 }}>
+          {!compact && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <span style={{ width: 28, height: 28, borderRadius: 99, background: C.l3, color: C.t2, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {(user?.email ?? "?")[0].toUpperCase()}
+              </span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
+                <p style={{ margin: 0, fontSize: 11.5, color: C.t3 }}>{ROLE_LABEL[topRole] ?? "Équipe"}</p>
               </div>
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexDirection: compact ? "column" : "row" }}>
+            <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
+              style={{ height: 32, padding: compact ? 0 : "0 10px", width: compact ? 36 : undefined, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, color: C.t2, fontSize: 12.5, textDecoration: "none", whiteSpace: "nowrap" }}>
+              <ArrowLeft style={{ width: 15, height: 15 }} />{!compact && "L'app"}
+            </Link>
+            <span style={{ flex: compact ? undefined : 1 }} />
+            {!compact && <ThemeToggle />}
+            {!inDrawer && vw >= 768 && (
+              <button type="button" className="sh-icon" onClick={() => { const v = !collapsed; setCollapsed(v); try { localStorage.setItem("ooble.admin.rail", v ? "1" : "0"); } catch { /* ignoré */ } }}
+                aria-label={rail ? "Déplier le menu" : "Replier le menu"} title={rail ? "Déplier le menu" : "Replier le menu"}
+                style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "transparent", color: C.t3, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                {rail ? <PanelLeftOpen style={{ width: 16, height: 16 }} /> : <PanelLeftClose style={{ width: 16, height: 16 }} />}
+              </button>
             )}
+          </div>
+        </div>
+      </nav>
+    );
+  };
 
-            {/* Vue active */}
-            <div style={{ marginTop: tab === "dashboard" ? 26 : 22 }}>
+  const sideWidth = mode === "full" ? 248 : mode === "rail" ? 64 : 0;
+
+  return (
+    <div className="admin-scope" style={{ background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
+      {mode !== "drawer" && (
+        <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, borderRight: `1px solid ${C.bds}`, background: C.bg, zIndex: 30, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          {sidebar(false)}
+        </aside>
+      )}
+
+      {drawer && mode === "drawer" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60 }}>
+          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: C.overlay }} />
+          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "min(300px, 86vw)", background: C.bg, borderRight: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
+            {sidebar(true)}
+          </aside>
+        </div>
+      )}
+
+      <div style={{ marginLeft: sideWidth, minWidth: 0 }}>
+        <header style={{ position: "sticky", top: 0, zIndex: 20, background: C.bg, borderBottom: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
+            {mode === "drawer" && (
+              <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
+                style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "transparent", color: C.t1, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                <Menu style={{ width: 19, height: 19 }} />
+              </button>
+            )}
+            <ol aria-label="Fil d'Ariane" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1, fontSize: 13.5 }}>
+              {crumbs.map((c, i) => {
+                const last = i === crumbs.length - 1;
+                const hideOnPhone = mode === "drawer" && i < crumbs.length - 1;
+                return (
+                  <li key={i} style={{ display: hideOnPhone ? "none" : "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                    {i > 0 && mode !== "drawer" && <ChevronRight style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />}
+                    {c.onClick
+                      ? <button type="button" onClick={c.onClick} style={{ all: "unset", cursor: "pointer", color: C.t3, whiteSpace: "nowrap" }}>{c.label}</button>
+                      : <span style={{ color: last ? C.t1 : C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>}
+                  </li>
+                );
+              })}
+            </ol>
+            <button type="button" className="sh-search" onClick={() => setPalette(true)} aria-label="Rechercher (⌘K)"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: mode === "drawer" ? 0 : "0 10px 0 12px",
+                width: mode === "drawer" ? 36 : 260, justifyContent: mode === "drawer" ? "center" : "flex-start",
+                borderRadius: 9, border: `1px solid ${mode === "drawer" ? "transparent" : C.bds}`, background: mode === "drawer" ? "transparent" : "var(--a-inputBg)",
+                color: C.t3, fontFamily: FONT, fontSize: 13, cursor: "pointer", flexShrink: 0,
+              }}>
+              <Search style={{ width: 15, height: 15 }} />
+              {mode !== "drawer" && <><span style={{ flex: 1, textAlign: "left" }}>Rechercher</span><kbd style={{ fontFamily: FONT, fontSize: 11, padding: "2px 6px", borderRadius: 5, border: `1px solid ${C.bds}`, color: C.t3 }}>⌘K</kbd></>}
+            </button>
+          </div>
+        </header>
+
+        <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
+          style={{ maxWidth: 1320, margin: "0 auto", padding: mode === "drawer" ? "24px 16px 96px" : "32px 32px 96px" }}>
+          {clientView ? (
+            <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
+          ) : selected ? (
+            <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} />
+          ) : (
+            <>
+              {tab !== "dashboard" && <PageHeader title={active.label} description={active.desc} />}
               {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
-                <div style={{
-                  ...{ background: C.l1, border: `1px solid ${C.bds}`, borderRadius: 14 },
-                  padding: "60px 20px", textAlign: "center", fontSize: 12.5, color: C.t3,
-                }}>
-                  Chargement des commandes…
-                </div>
+                <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
               ) : (
                 <>
                   {tab === "dashboard" && <KpiDashboard orders={orders} onNavigate={navigateTab} />}
                   {tab === "queue" && <OrdersQueue orders={orders} onOpen={openOrder} onPatch={patch} />}
                   {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}
-                  {tab === "clients" && <ClientsPanel onOpen={(userId, name) => setClientView({ userId, name })} />}
+                  {tab === "clients" && <ClientsPanel onOpen={openClient} />}
                   {tab === "kyc" && <KycPanel />}
                   {tab === "accounting" && <AccountingPanel orders={orders} />}
                   {tab === "compliance" && <CompliancePanel orders={orders} />}
@@ -317,25 +396,32 @@ const AdminPortal = () => {
                   {tab === "campaigns" && <CampaignsPanel />}
                   {tab === "announcements" && <AnnouncementsPanel />}
                   {tab === "team" && (
-                    <div style={{ display: "grid", gap: 28 }}>
+                    <>
                       <TeamPanel />
-                      {/* Journal d'audit : chaque action de l'équipe, non modifiable (CANAFE). */}
-                      <section aria-label="Journal d'audit" style={{ display: "grid", gap: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <ScrollText style={{ width: 14, height: 14, color: C.t3 }} />
-                          <span style={{ color: C.t3, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}>Journal d'audit</span>
-                        </div>
+                      <Section title="Journal d'audit" description="Chaque action de l'équipe, horodatée et non modifiable (exigence CANAFE).">
                         <AuditLogPanel />
-                      </section>
-                    </div>
+                      </Section>
+                    </>
                   )}
                   {tab === "platform" && <PlatformPanel />}
                 </>
               )}
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </main>
       </div>
+
+      {palette && (
+        <CommandPalette
+          nav={visibleNav.map((n) => ({ id: n.id, label: n.label, group: GROUP_OF.get(n.id) ?? "", icon: n.icon }))}
+          orders={orders}
+          onClose={() => setPalette(false)}
+          onTab={(id) => { setPalette(false); setTab(id as TabId); }}
+          onOrder={(o) => { setPalette(false); openOrder(o); }}
+          onClient={(id, name) => { setPalette(false); openClient(id, name); }}
+          canSeeClients={allowedTabs.has("clients")}
+        />
+      )}
       <AIFloatingChat />
     </div>
   );

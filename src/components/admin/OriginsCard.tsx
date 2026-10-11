@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin } from "lucide-react";
-import { T } from "@/lib/i18n";
 import { fetchOrigins, regionName, countryName, type SignupOrigin } from "@/lib/origin";
-import { C, card, cardHeader, sH, numeric } from "./adminTheme";
+import { C, numeric } from "./adminTheme";
+import { FilterChips } from "./layout";
 
 /*
  * Tableau de bord : d'où viennent les inscrits. Deux listes, lieux (province
@@ -42,56 +41,32 @@ const OriginsCard = () => {
   ];
 
   return (
-    <div style={card}>
-      <div style={{ ...cardHeader, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <MapPin style={{ width: 12, height: 12, color: C.t3 }} />
-          <span style={sH}><T en="Where signups come from">Origine des inscriptions</T></span>
-        </div>
-        <div role="group" aria-label="Vue" style={{ display: "inline-flex", gap: 2, padding: 2, borderRadius: 8, background: C.l3 }}>
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              style={{
-                height: 24, padding: "0 9px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 11,
-                background: tab === t.id ? C.l1 : "transparent", color: tab === t.id ? C.t1 : C.t3,
-              }}
-            >
-              <T en={t.en}>{t.fr}</T>
-            </button>
-          ))}
-        </div>
-      </div>
+    <div>
+      <FilterChips value={tab} onChange={setTab} options={tabs.map((t) => ({ id: t.id, label: t.fr }))} />
       {!rows ? (
-        <p style={{ fontSize: 12, color: C.t3, margin: 0, padding: "32px 20px", textAlign: "center" }}>…</p>
+        <p style={{ fontSize: 13, color: C.t3, margin: 0, padding: "24px 0" }}>Chargement…</p>
       ) : total === 0 ? (
-        <p style={{ fontSize: 12, color: C.t3, margin: 0, padding: "32px 20px", textAlign: "center", lineHeight: 1.6 }}>
-          <T en="No data yet: each new signup is recorded from now on.">
-            Pas encore de données : chaque nouvelle inscription est enregistrée à partir de maintenant.
-          </T>
+        <p style={{ fontSize: 13, color: C.t3, margin: 0, padding: "24px 0", lineHeight: 1.6 }}>
+          Pas encore de données : chaque nouvelle inscription est enregistrée à partir de maintenant.
         </p>
       ) : (
-        <div style={{ padding: "14px 20px 18px", display: "flex", flexDirection: "column", gap: 11 }}>
-          {list.map(([label, n]) => {
-            const pct = (n / total) * 100;
-            return (
-              <div key={label} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12.5 }}>
-                  <span style={{ color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-                  <span style={{ color: C.t3, ...numeric }}>{n} · {pct.toFixed(0)} %</span>
+        <>
+          <div className="grid grid-cols-1 gap-x-12 md:grid-cols-2" style={{ marginTop: 12, borderTop: `1px solid ${C.bds}` }}>
+            {list.map(([label, n]) => {
+              const pct = (n / total) * 100;
+              return (
+                <div key={label} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 110px 76px", gap: 14, alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
+                  <span style={{ fontSize: 13.5, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                  <span style={{ height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
+                    <span style={{ display: "block", height: "100%", width: `${Math.max(2, pct)}%`, background: C.t1, borderRadius: 99 }} />
+                  </span>
+                  <span style={{ fontSize: 13, color: C.t2, textAlign: "right", ...numeric }}>{n} · {pct.toFixed(0)} %</span>
                 </div>
-                <div style={{ height: 6, borderRadius: 99, background: C.l3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${Math.max(2, pct)}%`, background: C.accent, borderRadius: 99 }} />
-                </div>
-              </div>
-            );
-          })}
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: C.t3 }}>
-            {total} <T en="signups with a known origin">inscriptions dont l'origine est connue</T>
-          </p>
-        </div>
+              );
+            })}
+          </div>
+          <p style={{ margin: "10px 0 0", fontSize: 12, color: C.t3 }}>{total} inscriptions dont l'origine est connue.</p>
+        </>
       )}
     </div>
   );

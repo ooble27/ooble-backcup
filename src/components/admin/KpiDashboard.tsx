@@ -1,32 +1,20 @@
 /**
- * Tableau de bord KPI du back-office Ooble.
- *
- * Design monochrome sombre inspiré du back-office Terex : fond `#1a1a1a`,
- * cartes `#212121`, séparateurs subtils, texte en trois niveaux de gris.
- *
- * Typographie : Poppins partout (la police de la plateforme), les chiffres
- * s'alignent via `tabular-nums` sans changer de famille. Aucun accent coloré
- * (vert/rouge/orange) : les tendances sont de simples flèches monochromes.
+ * Tableau de bord : ce qu'il faut faire maintenant, les chiffres de la
+ * période, le volume jour par jour, les commandes par statut, l'entonnoir
+ * client et l'origine des inscriptions. Surfaces plates, aucun encadré.
  */
-import { useCallback, useEffect, useState } from "react";
-import {
-  TrendingUp, TrendingDown, Send,
-  Users2, ShieldCheck, ClipboardList,
-} from "lucide-react";
-import { T } from "@/lib/i18n";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronRight, Inbox, ShieldAlert, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import {
-  getVolumeMetrics, getMarginMetrics, getOrderStatusCounts,
+  getVolumeMetrics, getMarginMetrics, getOrderStatusCounts, getDailyVolume,
   getCustomerFunnel, getComplianceAlertsCount, getPendingActionsCount,
   type VolumeMetrics, type MarginMetrics, type OrderStatusCounts,
-  type CustomerFunnel, type ComplianceAlertsCount,
+  type CustomerFunnel, type ComplianceAlertsCount, type DailyVolumePoint,
 } from "@/lib/kpi";
-import {
-  C, FONT, card, sH, cardHeader, numeric,
-  listRowStyle, listRowHoverIn, listRowHoverOut, pillSmall,
-} from "./adminTheme";
-import AdminHero from "./AdminHero";
+import { C, FONT } from "./adminTheme";
+import { FilterChips, PageHeader, Section, StatStrip } from "./layout";
 import OriginsCard from "./OriginsCard";
 
 interface KpiDashboardProps {
@@ -34,163 +22,43 @@ interface KpiDashboardProps {
   onNavigate?: (target: "queue" | "orders" | "compliance") => void;
 }
 
-type Period = 1 | 7 | 30;
+type Period = "1" | "7" | "30";
+const PERIODS: { id: Period; label: string }[] = [{ id: "1", label: "24 h" }, { id: "7", label: "7 jours" }, { id: "30", label: "30 jours" }];
 
-const PERIOD_LABELS: Record<Period, { fr: string; en: string }> = {
-  1:  { fr: "24 h", en: "24h" },
-  7:  { fr: "7 j",  en: "7d"  },
-  30: { fr: "30 j", en: "30d" },
-};
+const money = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toLocaleString("fr-CA", { maximumFractionDigits: 1 })} M $`
+    : n >= 10_000 ? `${(n / 1000).toLocaleString("fr-CA", { maximumFractionDigits: 1 })} k $`
+      : `${nfCad.format(n)} $`;
 
-// ────────────────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────────────────
-
-const compact = (n: number): string =>
-  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)} M`
-  : n >= 10_000  ? `${(n / 1000).toFixed(1)} k`
-  : nfCad.format(n);
-
-const signedPct = (p: number | null): string | null => {
-  if (p === null || !Number.isFinite(p)) return null;
-  const sign = p >= 0 ? "+" : "";
-  return `${sign}${p.toFixed(1)} %`;
-};
-
-// ────────────────────────────────────────────────────────────
-// Blocs UI
-// ────────────────────────────────────────────────────────────
-
-function Trend({ value }: { value: number | null }) {
-  const txt = signedPct(value);
-  if (txt === null || value === null || value === 0) return null;
-  const Icon = value > 0 ? TrendingUp : TrendingDown;
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      fontSize: 11, color: C.t2, ...numeric,
-    }}>
-      <Icon style={{ width: 11, height: 11 }} strokeWidth={2} />
-      {txt}
-    </span>
-  );
-}
-
-interface StatTileProps {
-  label: React.ReactNode;
-  value: React.ReactNode;
-  sub?: React.ReactNode;
-  trend?: number | null;
-  onClick?: () => void;
-}
-
-function StatTile({ label, value, sub, trend, onClick }: StatTileProps) {
-  const clickable = !!onClick;
-  return (
-    <button
-      onClick={onClick}
-      disabled={!clickable}
-      style={{
-        ...card,
-        padding: "16px 18px",
-        textAlign: "left",
-        cursor: clickable ? "pointer" : "default",
-        fontFamily: FONT,
-        transition: "border-color 0.15s, background 0.15s",
-      }}
-      onMouseEnter={(e) => {
-        if (!clickable) return;
-        (e.currentTarget as HTMLButtonElement).style.borderColor = C.bdh;
-      }}
-      onMouseLeave={(e) => {
-        if (!clickable) return;
-        (e.currentTarget as HTMLButtonElement).style.borderColor = C.bds;
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ ...sH, fontSize: 10 }}>{label}</span>
-        {typeof trend === "number" && <Trend value={trend} />}
-      </div>
-      <p style={{
-        marginTop: 8, marginBottom: 0,
-        ...numeric, fontSize: 26, fontWeight: 300, color: C.t1,
-        letterSpacing: "-0.02em", lineHeight: 1,
-      }}>
-        {value}
-      </p>
-      {sub && (
-        <p style={{ marginTop: 6, marginBottom: 0, fontSize: 11, color: C.t3, lineHeight: 1.4 }}>
-          {sub}
-        </p>
-      )}
-    </button>
-  );
-}
-
-function SkeletonTile() {
-  return (
-    <div style={{ ...card, padding: "16px 18px" }}>
-      <div style={{ height: 10, width: "40%", background: C.l3, borderRadius: 3 }} />
-      <div style={{ marginTop: 12, height: 26, width: "60%", background: C.l3, borderRadius: 4 }} />
-      <div style={{ marginTop: 8, height: 10, width: "70%", background: C.l3, borderRadius: 3 }} />
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Sélecteur de période — segmented dark
-// ────────────────────────────────────────────────────────────
-
-function PeriodSwitcher({ value, onChange }: { value: Period; onChange: (v: Period) => void }) {
-  const periods: Period[] = [1, 7, 30];
-  return (
-    <div style={{ display: "inline-flex", gap: 4 }}>
-      {periods.map((p) => (
-        <button key={p} onClick={() => onChange(p)} style={pillSmall(value === p)}>
-          {PERIOD_LABELS[p].fr}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Composant principal
-// ────────────────────────────────────────────────────────────
+const pct = (p: number | null) => (p === null || !Number.isFinite(p) ? null : `${p >= 0 ? "+" : ""}${p.toFixed(1)} %`);
 
 const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
-  const [period, setPeriod] = useState<Period>(7);
+  const [period, setPeriod] = useState<Period>("7");
   const [loading, setLoading] = useState(true);
   const [volume, setVolume] = useState<VolumeMetrics | null>(null);
   const [margin, setMargin] = useState<MarginMetrics | null>(null);
   const [statuses, setStatuses] = useState<OrderStatusCounts | null>(null);
   const [pending, setPending] = useState(0);
   const [funnel, setFunnel] = useState<CustomerFunnel | null>(null);
+  const [daily, setDaily] = useState<DailyVolumePoint[]>([]);
+  const [compliance, setCompliance] = useState<ComplianceAlertsCount>({ open: 0, critical: 0 });
 
-  const [complianceCount, setComplianceCount] = useState<ComplianceAlertsCount>({ open: 0, critical: 0 });
-
+  const days = Number(period);
   const load = useCallback(async () => {
-    setLoading(true);
-    const [v, m, s, p, f, c] = await Promise.all([
-      getVolumeMetrics({ periodDays: period }),
-      getMarginMetrics({ periodDays: period }),
+    const [v, m, s, p, f, c, d] = await Promise.all([
+      getVolumeMetrics({ periodDays: days }),
+      getMarginMetrics({ periodDays: days }),
       getOrderStatusCounts(),
       getPendingActionsCount(),
       getCustomerFunnel(),
       getComplianceAlertsCount(),
+      getDailyVolume({ days: Math.max(14, days) }),
     ]);
-    setVolume(v);
-    setMargin(m);
-    setStatuses(s);
-    setPending(p);
-    setFunnel(f);
-    setComplianceCount(c);
+    setVolume(v); setMargin(m); setStatuses(s); setPending(p); setFunnel(f); setCompliance(c); setDaily(d);
     setLoading(false);
-  }, [period]);
+  }, [days]);
 
   useEffect(() => { void load(); }, [load]);
-
-  // Live refresh via subscription.
   useEffect(() => {
     const channel = supabase
       .channel("kpi-dashboard")
@@ -200,264 +68,209 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
     return () => { supabase.removeChannel(channel); };
   }, [load]);
 
-  const periodLabel = PERIOD_LABELS[period].fr;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
   const today = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" });
+  const label = PERIODS.find((p) => p.id === period)!.label;
+
+  const todo = [
+    pending > 0 && { icon: Inbox, text: `${pending} commande${pending > 1 ? "s" : ""} payée${pending > 1 ? "s" : ""} à traiter`, sub: "Prenez-les en charge dans la file d'attente.", go: "queue" as const, tone: "warn" },
+    compliance.open > 0 && { icon: ShieldAlert, text: `${compliance.open} alerte${compliance.open > 1 ? "s" : ""} de conformité ouverte${compliance.open > 1 ? "s" : ""}`, sub: compliance.critical ? `${compliance.critical} critique${compliance.critical > 1 ? "s" : ""}, avec une échéance CANAFE.` : "À examiner et classer.", go: "compliance" as const, tone: compliance.critical ? "danger" : "warn" },
+  ].filter(Boolean) as { icon: typeof Inbox; text: string; sub: string; go: "queue" | "compliance"; tone: string }[];
 
   return (
     <div style={{ fontFamily: FONT, color: C.t1 }}>
+      <PageHeader
+        title={greeting}
+        description={<span style={{ textTransform: "none" }}>{today.charAt(0).toUpperCase() + today.slice(1)} · les chiffres se mettent à jour en direct.</span>}
+        actions={<FilterChips value={period} onChange={setPeriod} options={PERIODS} />}
+      />
 
-      {/* ══════════════════ En-tête ══════════════════ */}
-      <div style={{
-        display: "flex", alignItems: "flex-end", justifyContent: "space-between",
-        flexWrap: "wrap", gap: 12, marginBottom: 18,
-      }}>
-        <div>
-          <p style={{ ...sH, marginBottom: 6 }}><T en="Overview">Vue d'ensemble</T></p>
-          <h2 style={{
-            fontSize: 24, fontWeight: 400, color: C.t1, margin: 0,
-            letterSpacing: "-0.02em", lineHeight: 1.1,
-          }}>
-            <T en={`Business snapshot · ${periodLabel}`}>{`Activité · ${periodLabel}`}</T>
-          </h2>
-          <p style={{ fontSize: 12, color: C.t3, margin: "6px 0 0", textTransform: "capitalize" }}>
-            {today}
+      {/* À faire maintenant */}
+      <section aria-label="À faire" style={{ marginBottom: 28 }}>
+        {todo.length === 0 ? (
+          <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, color: C.t2 }}>
+            <ShieldCheck style={{ width: 16, height: 16, color: C.successText }} />
+            Rien d'urgent : aucune commande payée en attente, aucune alerte ouverte.
           </p>
-        </div>
-        <PeriodSwitcher value={period} onChange={setPeriod} />
+        ) : (
+          <div style={{ borderTop: `1px solid ${C.bds}` }}>
+            {todo.map((t) => (
+              <button key={t.go} type="button" className="ui-row" onClick={() => onNavigate?.(t.go)}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "14px 4px", border: "none", borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, fontFamily: FONT, textAlign: "left", cursor: "pointer" }}>
+                <span style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: t.tone === "danger" ? C.dangerBg : C.warnBg, color: t.tone === "danger" ? C.dangerText : C.warnText }}>
+                  <t.icon style={{ width: 16, height: 16 }} />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 14 }}>{t.text}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 1 }}>{t.sub}</span>
+                </span>
+                <ChevronRight style={{ width: 16, height: 16, color: C.t3 }} />
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <StatStrip items={[
+        { label: `Volume · ${label}`, value: loading || !volume ? "…" : money(volume.totalCad), hint: volume ? `${nfUsdt.format(volume.totalUsdt)} USDT${pct(volume.changePct) ? ` · ${pct(volume.changePct)}` : ""}` : undefined },
+        { label: "Achats", value: loading || !volume ? "…" : money(volume.period.buyCad), hint: volume ? `${volume.period.buyCount} commande${volume.period.buyCount > 1 ? "s" : ""}` : undefined },
+        { label: "Ventes", value: loading || !volume ? "…" : money(volume.period.sellCad), hint: volume ? `${volume.period.sellCount} commande${volume.period.sellCount > 1 ? "s" : ""}` : undefined },
+        { label: "Marge brute", value: loading || !margin ? "…" : money(margin.marginCad), hint: margin ? `${margin.completedCount} terminée${margin.completedCount > 1 ? "s" : ""}${pct(margin.changePct) ? ` · ${pct(margin.changePct)}` : ""}` : undefined },
+        { label: "À traiter", value: loading ? "…" : pending, tone: pending ? "warn" : undefined, hint: "payées, pas encore réglées" },
+      ]} />
+
+      <Section title="Volume par jour" description={`Les ${daily.length} derniers jours, en dollars canadiens.`}>
+        <VolumeChart data={daily} />
+      </Section>
+
+      <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-2">
+        <Section title="Commandes par statut" actions={<LinkButton onClick={() => onNavigate?.("orders")}>Toutes les commandes</LinkButton>}>
+          {statuses && <StatusBreakdown s={statuses} />}
+        </Section>
+        <Section title="Entonnoir client" description="De l'inscription au client fidèle.">
+          {funnel && <Funnel f={funnel} />}
+        </Section>
       </div>
 
-      {/* ══════════════════ Grille principale ══════════════════ */}
-      {/* Grille en classes Tailwind uniquement : un `gridTemplateColumns`
-          inline écraserait la variante `lg:` et la 2ᵉ colonne ne sortirait
-          jamais. */}
-      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[3fr_2fr] lg:items-start">
-
-        {/* ─── Colonne gauche : héro, tuiles, entonnoir client ─── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-          {/* Héro — volume total */}
-          <AdminHero
-            eyebrow={<T en={`Volume · last ${periodLabel}`}>{`Volume · ${periodLabel}`}</T>}
-            loading={loading || !volume}
-            value={volume ? compact(volume.totalCad) : "N/D"}
-            unit="CAD"
-            stats={volume ? [
-              { label: "USDT", value: nfUsdt.format(volume.totalUsdt) },
-              { label: <T en="Orders">Commandes</T>, value: volume.count },
-              {
-                label: <T en="Variation">Variation</T>,
-                value: signedPct(volume.changePct) ?? "N/D",
-              },
-            ] : []}
-            actions={[
-              {
-                label: <T en="All orders">Toutes les commandes</T>,
-                icon: ClipboardList,
-                onClick: () => onNavigate?.("orders"),
-              },
-              {
-                label: <T en="Open queue">File d'attente</T>,
-                icon: Send,
-                primary: true,
-                onClick: () => onNavigate?.("queue"),
-              },
-            ]}
-          />
-
-          {/* Tuiles KPI secondaires */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {loading || !volume || !margin ? (
-              <>
-                <SkeletonTile />
-                <SkeletonTile />
-              </>
-            ) : (
-              <>
-                <StatTile
-                  label={<T en="Buy volume">Volume achats</T>}
-                  value={<>{compact(volume.period.buyCad)} <span style={{ color: C.t3, fontSize: 14, fontWeight: 400 }}>CAD</span></>}
-                  sub={<T en={`${volume.period.buyCount} orders`}>{`${volume.period.buyCount} commande${volume.period.buyCount > 1 ? "s" : ""}`}</T>}
-                />
-                <StatTile
-                  label={<T en="Sell volume">Volume ventes</T>}
-                  value={<>{compact(volume.period.sellCad)} <span style={{ color: C.t3, fontSize: 14, fontWeight: 400 }}>CAD</span></>}
-                  sub={<T en={`${volume.period.sellCount} orders`}>{`${volume.period.sellCount} commande${volume.period.sellCount > 1 ? "s" : ""}`}</T>}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Marge + Taux en deux tuiles côte à côte */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {loading || !margin ? (
-              <>
-                <SkeletonTile />
-                <SkeletonTile />
-              </>
-            ) : (
-              <>
-                <StatTile
-                  label={<T en="Gross margin">Marge brute</T>}
-                  value={<>{compact(margin.marginCad)} <span style={{ color: C.t3, fontSize: 14, fontWeight: 400 }}>CAD</span></>}
-                  sub={<T en={`${margin.completedCount} completed · 2% markup`}>{`${margin.completedCount} terminée${margin.completedCount > 1 ? "s" : ""} · marge 2 %`}</T>}
-                  trend={margin.changePct}
-                />
-                <StatTile
-                  label={<T en="Pending actions">À traiter</T>}
-                  value={pending}
-                  sub={<T en="orders needing action">commandes en attente</T>}
-                  onClick={() => onNavigate?.("queue")}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Funnel clients */}
-          <div style={card}>
-            <div style={cardHeader}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Users2 style={{ width: 12, height: 12, color: C.t3 }} />
-                <span style={sH}><T en="Customer funnel">Entonnoir client</T></span>
-              </div>
-            </div>
-            {loading || !funnel ? (
-              <div style={{ padding: "40px 20px", textAlign: "center" }}>
-                <p style={{ fontSize: 12, color: C.t3, margin: 0 }}>N/D</p>
-              </div>
-            ) : (() => {
-              const steps: Array<{ label: string; en: string; count: number }> = [
-                { label: "Inscriptions",       en: "Signups",      count: funnel.total },
-                { label: "KYC vérifié",        en: "KYC verified", count: funnel.verified },
-                { label: "1er ordre",          en: "First order",  count: funnel.firstOrder },
-                { label: "Clients récurrents", en: "Repeat",       count: funnel.repeat },
-              ];
-              const base = steps[0].count || 1;
-              return (
-                <div style={{ padding: "18px 20px 20px" }}>
-                  {steps.map((s, i) => {
-                    const pctFromBase = (s.count / base) * 100;
-                    const prev = i === 0 ? null : steps[i - 1].count;
-                    const conversion = prev != null && prev > 0 ? (s.count / prev) * 100 : null;
-                    return (
-                      <div key={s.label} style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr auto",
-                        columnGap: 14,
-                        alignItems: "baseline",
-                        marginTop: i === 0 ? 0 : 14,
-                      }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
-                            <span style={{ fontSize: 12.5, color: C.t1 }}>
-                              <T en={s.en}>{s.label}</T>
-                            </span>
-                            {conversion !== null && (
-                              <span style={{
-                                fontSize: 10.5, color: C.t3,
-                                letterSpacing: "0.06em",
-                                ...numeric,
-                              }}>
-                                {conversion.toFixed(0)} % ↓
-                              </span>
-                            )}
-                          </div>
-                          <div style={{
-                            position: "relative", height: 26, background: C.l3,
-                            borderRadius: 4, overflow: "hidden",
-                          }}>
-                            <div style={{
-                              position: "absolute", inset: 0,
-                              width: `${Math.max(2, pctFromBase)}%`,
-                              background: C.accent,
-                              transition: "width 0.5s cubic-bezier(0.22,1,0.36,1)",
-                            }} />
-                            <span style={{
-                              position: "absolute", left: 10, top: "50%",
-                              transform: "translateY(-50%)",
-                              fontSize: 11, color: "#111",
-                              mixBlendMode: "difference",
-                              filter: "invert(1)",
-                              ...numeric,
-                            }}>
-                              {pctFromBase.toFixed(0)} %
-                            </span>
-                          </div>
-                        </div>
-                        <span style={{
-                          ...numeric,
-                          fontSize: 20, fontWeight: 300, color: C.t1,
-                          letterSpacing: "-0.02em", lineHeight: 1,
-                          minWidth: 44, textAlign: "right",
-                        }}>
-                          {s.count}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* ─── Colonne droite : statuts, conformité, origine des inscriptions ─── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-          {/* Statuts */}
-          <div style={card}>
-            <div style={cardHeader}>
-              <span style={sH}><T en="By status">Par statut</T></span>
-            </div>
-            {loading || !statuses ? (
-              <div style={{ padding: "40px 20px", textAlign: "center" }}>
-                <p style={{ fontSize: 12, color: C.t3, margin: 0 }}>N/D</p>
-              </div>
-            ) : (() => {
-              const rows: Array<{ label: string; en: string; count: number }> = [
-                { label: "En attente",        en: "Awaiting",     count: statuses.awaiting_payment + statuses.created },
-                { label: "Paiement reçu",     en: "Paid",         count: statuses.payment_received },
-                { label: "En traitement",     en: "Processing",   count: statuses.settling },
-                { label: "Terminées",         en: "Completed",    count: statuses.completed },
-                { label: "Annulées / expirées", en: "Cancelled / expired", count: statuses.cancelled + statuses.expired },
-              ];
-              return rows.map((r, i) => (
-                <div
-                  key={r.label}
-                  style={{ ...listRowStyle(i === rows.length - 1), justifyContent: "space-between" }}
-                  onMouseEnter={(e) => listRowHoverIn(e.currentTarget)}
-                  onMouseLeave={(e) => listRowHoverOut(e.currentTarget)}
-                >
-                  <span style={{ fontSize: 12.5, color: C.t2 }}><T en={r.en}>{r.label}</T></span>
-                  <span style={{ fontSize: 13, fontWeight: 400, color: C.t1, ...numeric }}>
-                    {r.count}
-                  </span>
-                </div>
-              ));
-            })()}
-          </div>
-
-          {/* Conformité */}
-          <StatTile
-            label={<><ShieldCheck style={{ width: 11, height: 11, display: "inline", verticalAlign: "-1px", marginRight: 6 }} /><T en="Compliance">Conformité</T></>}
-            value={complianceCount.open}
-            sub={<T en="unresolved alerts">alertes non résolues</T>}
-            onClick={() => onNavigate?.("compliance")}
-          />
-
-          <OriginsCard />
-        </div>
-      </div>
-
-      {/* Note bas de page */}
-      <p style={{
-        marginTop: 18, fontSize: 11, color: C.t3, textAlign: "center", fontFamily: FONT,
-      }}>
-        <T en="Live · updates automatically when orders or profiles change.">
-          En direct · se met à jour automatiquement à chaque changement de commande ou de client.
-        </T>
-      </p>
+      <Section title="Origine des inscriptions">
+        <OriginsCard />
+      </Section>
     </div>
   );
 };
 
 export default KpiDashboard;
+
+function LinkButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" className="ui-btn ui-btn-ghost" onClick={onClick}
+      style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 30, padding: "0 8px", borderRadius: 8, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
+      {children}<ChevronRight style={{ width: 14, height: 14 }} />
+    </button>
+  );
+}
+
+/* ─── Volume quotidien : barres empilées achats / ventes ─── */
+
+function VolumeChart({ data }: { data: DailyVolumePoint[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const max = Math.max(1, ...data.map((d) => d.totalCad));
+  const nice = useMemo(() => {
+    const p = Math.pow(10, Math.floor(Math.log10(max)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * p).find((s) => max / s <= 4) ?? p * 10;
+    return { top: Math.ceil(max / step) * step, step };
+  }, [max]);
+  const W = 1000; const H = 220; const padL = 0; const padB = 22;
+  // (le haut de l'échelle est écrit en haut à gauche, sur la première ligne)
+  const bw = data.length ? (W - padL) / data.length : 0;
+  const y = (v: number) => (H - padB) * (1 - v / nice.top);
+  const ticks: number[] = [];
+  for (let v = 0; v <= nice.top + 1e-9; v += nice.step) ticks.push(v);
+  const total = data.reduce((s, d) => s + d.totalCad, 0);
+  const h = hover !== null ? data[hover] : null;
+  const dayLabel = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "short" });
+
+  if (!data.length) return <p style={{ fontSize: 13, color: C.t3 }}>Chargement…</p>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 18, flexWrap: "wrap", marginBottom: 14, fontSize: 12.5, color: C.t2 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.t1 }} />Achats</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.t3 }} />Ventes</span>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontVariantNumeric: "tabular-nums", color: h ? C.t1 : C.t3 }}>
+          {h ? <>{dayLabel(h.date)} · {money(h.totalCad)} <span style={{ color: C.t3 }}>({money(h.buyCad)} achats, {money(h.sellCad)} ventes)</span></> : <>Total {money(total)} · survolez une barre</>}
+        </span>
+      </div>
+      <div style={{ position: "relative" }} onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: 220, display: "block", overflow: "visible" }} role="img"
+          aria-label={`Volume quotidien, total ${money(total)}`}>
+          {ticks.map((t) => (
+            <line key={t} x1={0} x2={W} y1={y(t)} y2={y(t)} stroke="var(--a-bds)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          ))}
+          {data.map((d, i) => {
+            const x = padL + i * bw + bw * 0.18;
+            const w = bw * 0.64;
+            const buyH = (H - padB) - y(d.buyCad);
+            const sellH = (H - padB) - y(d.sellCad);
+            const base = H - padB;
+            const dim = hover !== null && hover !== i;
+            return (
+              <g key={d.date} opacity={dim ? 0.45 : 1} style={{ transition: "opacity .15s" }}>
+                {d.buyCad > 0 && <rect x={x} y={base - buyH} width={w} height={Math.max(1, buyH)} rx={3} fill="var(--a-t1)" />}
+                {d.sellCad > 0 && <rect x={x} y={base - buyH - sellH - (d.buyCad > 0 ? 2 : 0)} width={w} height={Math.max(1, sellH)} rx={3} fill="var(--a-t3)" />}
+                <rect x={padL + i * bw} y={0} width={bw} height={H} fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} />
+              </g>
+            );
+          })}
+        </svg>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: C.t3, marginTop: 6, fontVariantNumeric: "tabular-nums" }}>
+          <span>{dayLabel(data[0].date)}</span>
+          <span>{dayLabel(data[Math.floor(data.length / 2)].date)}</span>
+          <span>Aujourd'hui</span>
+        </div>
+        <span style={{ position: "absolute", top: 4, left: 0, fontSize: 11.5, color: C.t3, fontVariantNumeric: "tabular-nums", background: C.bg, paddingRight: 6 }}>{money(nice.top)}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Statuts ─── */
+
+function StatusBreakdown({ s }: { s: OrderStatusCounts }) {
+  const rows = [
+    { label: "En attente de paiement", n: s.awaiting_payment + s.created },
+    { label: "Payées, à traiter", n: s.payment_received, strong: true },
+    { label: "En cours d'envoi", n: s.settling },
+    { label: "Terminées", n: s.completed },
+    { label: "Annulées ou expirées", n: s.cancelled + s.expired },
+    { label: "Remboursées", n: s.refunded },
+  ];
+  const total = Math.max(1, rows.reduce((a, r) => a + r.n, 0));
+  return (
+    <div style={{ borderTop: `1px solid ${C.bds}` }}>
+      {rows.map((r) => (
+        <div key={r.label} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 120px 40px", gap: 14, alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
+          <span style={{ fontSize: 13.5, color: r.strong && r.n ? C.t1 : C.t2 }}>{r.label}</span>
+          <span style={{ height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
+            <span style={{ display: "block", height: "100%", width: `${(r.n / total) * 100}%`, background: r.strong && r.n ? C.t1 : C.t3, borderRadius: 99 }} />
+          </span>
+          <span style={{ fontSize: 13.5, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.n}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Entonnoir ─── */
+
+function Funnel({ f }: { f: CustomerFunnel }) {
+  const steps = [
+    { label: "Inscrits", n: f.total },
+    { label: "Identité vérifiée", n: f.verified },
+    { label: "Premier achat ou vente", n: f.firstOrder },
+    { label: "Clients récurrents", n: f.repeat },
+  ];
+  const base = Math.max(1, ...steps.map((s) => s.n));
+  return (
+    <div style={{ borderTop: `1px solid ${C.bds}` }}>
+      {steps.map((s, i) => {
+        const prev = i ? steps[i - 1].n : null;
+        const conv = prev ? Math.round((s.n / prev) * 100) : null;
+        return (
+          <div key={s.label} style={{ padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+              <span style={{ flex: 1, fontSize: 13.5, color: C.t2 }}>{s.label}</span>
+              {conv !== null && <span style={{ fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{conv} % de l'étape précédente</span>}
+              <span style={{ fontSize: 13.5, minWidth: 32, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{s.n}</span>
+            </div>
+            <span style={{ display: "block", marginTop: 8, height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
+              <span style={{ display: "block", height: "100%", width: `${Math.max(1, (s.n / base) * 100)}%`, background: C.t1, borderRadius: 99, transition: "width .5s cubic-bezier(.22,1,.36,1)" }} />
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

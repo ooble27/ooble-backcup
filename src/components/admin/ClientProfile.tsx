@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Copy, Check, Coins, HandCoins, ChevronRight, Wand2, Loader2, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Check, Copy, Loader2, ShoppingCart, Wand2 } from "lucide-react";
 import { nfCad } from "@/lib/adminOrders";
 import { orderRef } from "@/lib/orders";
 import {
@@ -8,13 +7,15 @@ import {
   type ClientProfile as ClientProfileData, type ClientOrder,
 } from "@/lib/adminClient";
 import { summarizeClient, isAIError, toAIClientContext, toAIOrderSummaries } from "@/lib/ai";
-import { C, FONT, card, heroCard, heroNumber, heroUnit, sH } from "./adminTheme";
-import ClientNotes from "./ClientNotes";
 import { useAuth } from "@/lib/auth";
 import { resetKyb } from "@/lib/adminKyb";
+import { fetchOrigin, placeLabel, type SignupOrigin } from "@/lib/origin";
+import { C, FONT } from "./adminTheme";
+import { Button, Notice } from "./ui";
+import { Avatar, DataTable, EmptyState, KeyValues, Pill, StatStrip, TwoLine, type Column, type Tone } from "./layout";
+import ClientNotes from "./ClientNotes";
 import ClientTimeline from "./ClientTimeline";
 import RiskScoreCard from "./RiskScoreCard";
-import { fetchOrigin, placeLabel, type SignupOrigin } from "@/lib/origin";
 
 interface Props {
   userId: string;
@@ -23,28 +24,70 @@ interface Props {
   onOpenOrder?: (orderId: string) => void;
 }
 
-const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 const dateFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric" });
-const dateFmtShort = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short" });
-const nf = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+const dateShort = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric" });
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
 
-const STATUS_FR: Record<string, string> = {
-  created: "Créée",
-  awaiting_payment: "En attente",
-  payment_received: "À traiter",
-  settling: "En cours",
-  completed: "Terminée",
-  cancelled: "Annulée",
-  expired: "Expirée",
+const ORDER_STATUS: Record<string, [string, Tone]> = {
+  created: ["Créée", "neutral"], awaiting_payment: ["En attente", "neutral"], payment_received: ["Payée · à traiter", "warn"],
+  settling: ["En cours", "info"], completed: ["Terminée", "ok"], cancelled: ["Annulée", "danger"], expired: ["Expirée", "neutral"], refunded: ["Remboursée", "neutral"],
 };
+const KYC_TONE: Record<string, Tone> = { approved: "ok", pending: "warn", rejected: "danger", not_started: "neutral" };
 
-const ClientProfile = ({ userId, clientName, onBack, onOpenOrder }: Props) => {
+function Block({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section style={{ marginTop: 32 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
+        <h2 style={{ margin: 0, flex: 1, fontSize: 15, fontWeight: 500 }}>{title}</h2>
+        {right}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
+  const { isAdmin } = useAuth();
   const [profile, setProfile] = useState<ClientProfileData | null>(null);
   const [origin, setOrigin] = useState<SignupOrigin | null>(null);
-  const { isAdmin } = useAuth();
+  const [orders, setOrders] = useState<ClientOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
   const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
   const [resetMsg, setResetMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    Promise.all([fetchClientProfile(userId), fetchClientOrders(userId), fetchOrigin(userId)]).then(([p, o, g]) => {
+      if (!active) return;
+      setProfile(p); setOrders(o); setOrigin(g); setLoading(false);
+    });
+    return () => { active = false; };
+  }, [userId]);
+
+  const copy = (value: string, key: string) => {
+    navigator.clipboard?.writeText(value).catch(() => {});
+    setCopied(key);
+    setTimeout(() => setCopied((c) => (c === key ? null : c)), 1200);
+  };
+  const copyable = (value: string | null | undefined, key: string, mono = false) => value ? (
+    <button type="button" onClick={() => copy(value, key)} title="Copier"
+      style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, wordBreak: "break-all", fontFamily: mono ? "ui-monospace, Menlo, monospace" : FONT, fontSize: mono ? 12.5 : 13.5 }}>
+      {value}{copied === key ? <Check style={{ width: 14, height: 14, color: C.successText }} /> : <Copy style={{ width: 13, height: 13, color: C.t3 }} />}
+    </button>
+  ) : <span style={{ color: C.t3 }}>—</span>;
+
+  const runSummary = async () => {
+    if (!profile || aiBusy) return;
+    setAiBusy(true); setAiError(null);
+    const res = await summarizeClient({ client: toAIClientContext(profile), orders: toAIOrderSummaries(orders) });
+    setAiBusy(false);
+    if (isAIError(res)) setAiError(res.error); else setAiSummary(res.summary);
+  };
 
   const doReset = async () => {
     if (!profile) return;
@@ -55,346 +98,113 @@ const ClientProfile = ({ userId, clientName, onBack, onOpenOrder }: Props) => {
     setProfile((p) => (p ? { ...p, businessStatus: "not_started" } : p));
     setResetMsg({ ok: true, text: "Vérification réinitialisée : le client repart d'un dossier vide." });
   };
-  const [orders, setOrders] = useState<ClientOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState<string | null>(null);
-
-  // Résumé IA — chargé à la demande sur clic du bouton « Résumer ».
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-
-  const runSummary = async () => {
-    if (!profile || aiBusy) return;
-    setAiBusy(true);
-    setAiError(null);
-    const res = await summarizeClient({
-      client: toAIClientContext(profile),
-      orders: toAIOrderSummaries(orders),
-    });
-    setAiBusy(false);
-    if (isAIError(res)) setAiError(res.error);
-    else setAiSummary(res.summary);
-  };
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    Promise.all([fetchClientProfile(userId), fetchClientOrders(userId), fetchOrigin(userId)]).then(([p, o, g]) => {
-      if (!active) return;
-      setProfile(p);
-      setOrders(o);
-      setOrigin(g);
-      setLoading(false);
-    });
-    return () => { active = false; };
-  }, [userId]);
-
-  const copy = (value: string, key: string) => {
-    navigator.clipboard?.writeText(value).catch(() => {});
-    setCopied(key);
-    setTimeout(() => setCopied((c) => (c === key ? null : c)), 1200);
-  };
-
-  const Row = ({ label, value, mono, copyKey }: { label: string; value?: string | null; mono?: boolean; copyKey?: string }) => (
-    <div className="flex items-start justify-between gap-4 px-5 py-3.5">
-      <span className="shrink-0 text-[14px] text-muted-foreground">{label}</span>
-      <span className="flex min-w-0 items-center gap-2">
-        <span className={cn("break-all text-right text-[14px] font-medium", mono && "font-mono text-[12px]")}>{value || "N/D"}</span>
-        {copyKey && value && (
-          <button onClick={() => copy(value, copyKey)} className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" aria-label="Copier">
-            {copied === copyKey ? <Check className="h-[14px] w-[14px] text-primary" /> : <Copy className="h-[14px] w-[14px]" />}
-          </button>
-        )}
-      </span>
-    </div>
-  );
 
   const name = profile?.fullName ?? clientName;
+  if (loading) return <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement de la fiche…</p>;
+
+  const completed = orders.filter((o) => o.status === "completed");
+  const columns: Column<ClientOrder>[] = [
+    { key: "op", header: "Opération", render: (o) => <TwoLine primary={`${o.side === "buy" ? "Achat" : "Vente"} · ${nfUsdt.format(o.usdtAmount)} USDT`} secondary={orderRef(o.id)} /> },
+    { key: "status", header: "Statut", render: (o) => { const s = ORDER_STATUS[o.status] ?? [o.status, "neutral" as Tone]; return <Pill tone={s[1]} dot>{s[0]}</Pill>; } },
+    { key: "amount", header: "Montant", align: "right", sort: (o) => o.cadAmount, render: (o) => `${nfCad.format(o.cadAmount)} $` },
+    { key: "date", header: "Date", align: "right", sort: (o) => o.createdAt, hideBelow: 700, render: (o) => <span style={{ color: C.t2 }}>{dateShort.format(new Date(o.createdAt))}</span> },
+  ];
 
   return (
-    <div className="w-full space-y-4">
-      {/* En-tête */}
-      <div className="flex items-start gap-3">
-        <button
-          onClick={onBack}
-          aria-label="Retour"
-          className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors hover:bg-secondary active:scale-95"
-        >
-          <ArrowLeft className="h-[18px] w-[18px]" />
-        </button>
-        <div className="min-w-0">
-          <p className="text-[15px] font-semibold">Fiche client</p>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">Informations complètes du client</p>
+    <div>
+      <header style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginBottom: 24 }}>
+        <Avatar name={name} size={52} />
+        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em" }}>{profile?.accountType === "business" && profile.businessName ? profile.businessName : name}</h1>
+            {profile && <Pill tone={KYC_TONE[profile.kycStatus] ?? "neutral"} dot>{KYC_LABEL[profile.kycStatus]}</Pill>}
+            {profile?.accountType === "business" && <Pill>Entreprise</Pill>}
+          </div>
+          <p style={{ margin: "4px 0 0", fontSize: 13.5, color: C.t3 }}>
+            {profile?.email ?? "—"}{profile?.createdAt && <> · client depuis le {dateFmt.format(new Date(profile.createdAt))}</>}
+          </p>
         </div>
-      </div>
+        <Button icon={aiBusy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Wand2 style={{ width: 15, height: 15 }} />} onClick={runSummary} disabled={aiBusy || !profile}>
+          {aiBusy ? "Analyse…" : aiSummary ? "Régénérer le résumé" : "Résumé par l'assistant"}
+        </Button>
+      </header>
 
-      {loading ? (
-        <div className="rounded-2xl border border-border bg-card py-16 text-center text-[13px] text-muted-foreground">
-          Chargement…
+      {(aiSummary || aiError) && (
+        <div style={{ marginBottom: 24 }}>
+          {aiError ? <Notice tone="err">{aiError}</Notice> : (
+            <div style={{ padding: "14px 0", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, fontSize: 13.5, lineHeight: 1.7, whiteSpace: "pre-wrap", color: C.t1 }}>{aiSummary}</div>
+          )}
         </div>
-      ) : (
-        <>
-          {/* Héro client — volume mis en avant, identité en bandeau */}
-          <div style={{ ...heroCard, fontFamily: FONT }}>
-            {/* Bandeau identité */}
-            <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 22 }}>
-              <span style={{
-                width: 40, height: 40, borderRadius: 11, flexShrink: 0,
-                background: C.hover4, border: `1px solid ${C.bds}`,
-                color: C.t1, display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 14, fontWeight: 400,
-              }}>
-                {initials(name)}
-              </span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{
-                  color: C.t1, fontSize: 15, fontWeight: 400, margin: 0,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
-                  {name}
-                </p>
-                <p style={{
-                  color: C.t3, fontSize: 11.5, margin: "2px 0 0",
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
-                  {profile?.email || "N/D"}
-                </p>
-              </div>
-              {profile?.accountType === "business" && (
-                <span style={{
-                  flexShrink: 0, borderRadius: 999, padding: "4px 10px",
-                  background: C.hover4, border: `1px solid ${C.bds}`,
-                  color: C.t2, fontSize: 10.5,
-                }}>
-                  Entreprise
-                </span>
-              )}
-            </div>
+      )}
 
-            {/* Volume — le grand chiffre */}
-            <p style={{ ...sH, marginBottom: 10 }}>Volume traité</p>
-            <p style={heroNumber(40)}>
-              {profile ? nfCad.format(profile.totalCad) : "N/D"}
-              <span style={heroUnit}>CAD</span>
-            </p>
+      <StatStrip items={[
+        { label: "Volume traité", value: `${nfCad.format(profile?.totalCad ?? 0)} $` },
+        { label: "Commandes", value: Math.max(profile?.orderCount ?? 0, orders.length), hint: `${completed.length} terminée${completed.length > 1 ? "s" : ""}` },
+        { label: "Limite quotidienne", value: profile ? `${nfCad.format(profile.dailyLimitCad)} $` : "—" },
+        { label: "Dernière commande", value: orders[0] ? dateShort.format(new Date(orders[0].createdAt)) : "Aucune" },
+      ]} />
 
-            {profile && (
-              <div style={{ display: "flex", flexWrap: "wrap", marginTop: 22 }}>
-                {[
-                  { label: "Commandes", value: String(profile.orderCount) },
-                  { label: "KYC", value: KYC_LABEL[profile.kycStatus] },
-                  { label: "Client depuis", value: dateFmt.format(new Date(profile.createdAt)) },
-                ].map((s, i) => (
-                  <div key={s.label} style={{ display: "flex", alignItems: "stretch" }}>
-                    {i > 0 && <div style={{ width: 1, background: C.bds, marginRight: 20 }} />}
-                    <div style={{ paddingRight: 20 }}>
-                      <p style={{ ...sH, fontSize: 10, letterSpacing: "0.14em", marginBottom: 5 }}>
-                        {s.label}
-                      </p>
-                      <p style={{
-                        color: C.t2, fontSize: 15, fontWeight: 400, margin: 0,
-                        fontVariantNumeric: "tabular-nums",
-                      }}>
-                        {s.value}
-                      </p>
+      <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div style={{ minWidth: 0 }}>
+          <Block title={`Commandes (${orders.length})`}>
+            <DataTable rows={orders} columns={columns} rowKey={(o) => o.id} onRowClick={(o) => onOpenOrder?.(o.id)} initialSort={{ key: "date", dir: "desc" }}
+              empty={<EmptyState icon={ShoppingCart} title="Aucune commande" text="Ce client n'a encore rien acheté ni vendu." />}
+              mobile={(o) => { const s = ORDER_STATUS[o.status] ?? [o.status, "neutral" as Tone]; return (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={`${o.side === "buy" ? "Achat" : "Vente"} · ${nfCad.format(o.cadAmount)} $`} secondary={`${orderRef(o.id)} · ${dateShort.format(new Date(o.createdAt))}`} /></div>
+                  <Pill tone={s[1]} dot>{s[0]}</Pill>
+                </div>
+              ); }} />
+          </Block>
+          {profile && <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block>}
+        </div>
+
+        <aside style={{ minWidth: 0 }}>
+          <Block title="Coordonnées">
+            <KeyValues items={[
+              ["Nom", name],
+              ["Courriel", copyable(profile?.email, "email")],
+              ["Téléphone", copyable(profile?.phone, "phone")],
+              [origin?.late ? "Lieu (connexion)" : "Lieu d'inscription", placeLabel(origin) ?? <span style={{ color: C.t3 }}>Pas encore connu</span>],
+              ["Source", origin?.source ? [origin.source, origin.campaign].filter(Boolean).join(" · ") : <span style={{ color: C.t3 }}>Pas encore connue</span>],
+              ...(profile?.interacQuestion ? [["Question Interac", profile.interacQuestion] as [string, React.ReactNode]] : []),
+              ...(profile?.interacAnswer ? [["Réponse Interac", copyable(profile.interacAnswer, "ans")] as [string, React.ReactNode]] : []),
+              ["Identifiant", copyable(userId, "uid", true)],
+            ]} />
+          </Block>
+
+          {profile?.accountType === "business" && (
+            <Block title="Entreprise">
+              <KeyValues items={[
+                ["Raison sociale", profile.businessName ?? "—"],
+                ["Vérification", { not_started: "Non commencée", pending: "En attente", approved: "Vérifiée", rejected: "Refusée" }[profile.businessStatus] ?? profile.businessStatus],
+                ...(profile.businessNumber ? [["NEQ / BN", copyable(profile.businessNumber, "neq")] as [string, React.ReactNode]] : []),
+                ...(profile.businessAddress ? [["Adresse", profile.businessAddress] as [string, React.ReactNode]] : []),
+                ...(profile.businessPhone ? [["Téléphone", profile.businessPhone] as [string, React.ReactNode]] : []),
+              ]} />
+              {isAdmin && (profile.businessStatus !== "not_started" || resetMsg) && (
+                <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+                  {resetMsg && <Notice tone={resetMsg.ok ? "ok" : "err"}>{resetMsg.text}</Notice>}
+                  {profile.businessStatus !== "not_started" && (resetStep === "confirm" ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <span style={{ fontSize: 13, color: C.t2, flex: "1 1 160px" }}>Supprimer son dossier et le faire recommencer ?</span>
+                      <Button size="sm" variant="ghost" onClick={() => setResetStep("idle")}>Annuler</Button>
+                      <Button size="sm" variant="danger" onClick={doReset}>Réinitialiser</Button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Informations — grille 2 colonnes sur desktop */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="px-5 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Informations personnelles</p>
-              </div>
-              <Row label="Nom complet" value={name} />
-              <Row label="E-mail" value={profile?.email} mono copyKey="email" />
-              <Row label="Téléphone" value={profile?.phone} />
-              <Row label="ID utilisateur" value={userId.slice(0, 12) + "…" + userId.slice(-4)} mono copyKey="uid" />
-            </div>
-
-            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="px-5 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Compte</p>
-              </div>
-              <Row label="Type" value={profile?.accountType === "business" ? "Entreprise" : "Individuel"} />
-              <Row label="Statut KYC" value={profile ? KYC_LABEL[profile.kycStatus] : "N/D"} />
-              <Row label="Limite quotidienne" value={profile ? `${nfCad.format(profile.dailyLimitCad)} CAD` : "N/D"} />
-              <Row
-                label={origin?.late ? "Lieu (connexion)" : "Lieu d'inscription"}
-                value={placeLabel(origin) ?? "Pas encore connu"}
-              />
-              <Row
-                label="Source"
-                value={origin?.source ? [origin.source, origin.campaign].filter(Boolean).join(" · ") : "Pas encore connue"}
-              />
-              {profile?.interacQuestion && <Row label="Question Interac" value={profile.interacQuestion} />}
-              {profile?.interacAnswer && <Row label="Réponse Interac" value={profile.interacAnswer} />}
-            </div>
-
-            {profile?.accountType === "business" && (
-              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card md:col-span-2">
-                <div className="px-5 py-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Entreprise</p>
-                </div>
-                <div className="grid divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
-                  <div className="divide-y divide-border">
-                    <Row label="Raison sociale" value={profile.businessName} />
-                    <Row label="Vérification" value={{ not_started: "Non commencée", pending: "En attente", approved: "Vérifiée", rejected: "Refusée" }[profile.businessStatus]} />
-                    {profile.businessNumber && <Row label="NEQ / BN" value={profile.businessNumber} mono />}
-                  </div>
-                  <div className="divide-y divide-border">
-                    {profile.businessAddress && <Row label="Adresse" value={profile.businessAddress} />}
-                    {profile.businessPhone && <Row label="Téléphone" value={profile.businessPhone} />}
-                  </div>
-                </div>
-                {isAdmin && (profile.businessStatus !== "not_started" || resetMsg) && (
-                  <div className="flex flex-wrap items-center justify-end gap-3 px-5 py-3">
-                    {resetMsg && (
-                      <p className={cn("mr-auto text-[12.5px]", resetMsg.ok ? "text-muted-foreground" : "text-destructive")}>{resetMsg.text}</p>
-                    )}
-                    {profile.businessStatus !== "not_started" && (resetStep === "confirm" ? (
-                      <>
-                        <span className="text-[12.5px] text-muted-foreground">Supprimer son dossier et le faire recommencer ?</span>
-                        <button type="button" onClick={() => setResetStep("idle")} className="rounded-[9px] px-3 py-[7px] text-[12.5px] font-medium text-muted-foreground hover:text-foreground">
-                          Annuler
-                        </button>
-                        <button type="button" onClick={doReset} className="rounded-[9px] bg-destructive px-3 py-[7px] text-[12.5px] font-semibold text-destructive-foreground hover:opacity-90">
-                          Réinitialiser
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={resetStep === "busy"}
-                        onClick={() => { setResetMsg(null); setResetStep("confirm"); }}
-                        className="rounded-[9px] border border-border px-3 py-[7px] text-[12.5px] font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                      >
-                        {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification"}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Résumé IA — carte au-dessus des autres pour un contexte immédiat. */}
-          {profile && (
-            <div style={{ ...card, padding: 16, fontFamily: FONT }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: aiSummary || aiError || aiBusy ? 12 : 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Wand2 style={{ width: 15, height: 15, color: C.t2 }} strokeWidth={1.7} />
-                  <span style={sH}>Résumé assistant</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={runSummary}
-                  disabled={aiBusy}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    height: 30, padding: "0 12px", borderRadius: 8, border: `1px solid ${C.bd}`,
-                    background: aiBusy ? C.l3 : "transparent",
-                    color: aiBusy ? C.t3 : C.t1, fontSize: 12, fontFamily: FONT,
-                    cursor: aiBusy ? "default" : "pointer",
-                    transition: "border-color 0.12s, color 0.12s",
-                  }}
-                  onMouseEnter={(e) => { if (!aiBusy) { e.currentTarget.style.borderColor = C.accentBd; e.currentTarget.style.color = C.accent; } }}
-                  onMouseLeave={(e) => { if (!aiBusy) { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.color = C.t1; } }}
-                >
-                  {aiBusy
-                    ? <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} />
-                    : <Wand2 style={{ width: 13, height: 13 }} strokeWidth={1.7} />}
-                  {aiBusy ? "Analyse…" : aiSummary ? "Régénérer" : "Résumer"}
-                </button>
-              </div>
-              {aiError && (
-                <div style={{
-                  padding: "8px 12px", borderRadius: 8,
-                  background: C.dangerBg, border: `1px solid ${C.dangerBd}`,
-                  color: C.dangerText, fontSize: 12, display: "flex", alignItems: "center", gap: 8,
-                }}>
-                  <AlertTriangle style={{ width: 13, height: 13 }} strokeWidth={2} />
-                  {aiError}
+                  ) : (
+                    <Button size="sm" variant="ghost" disabled={resetStep === "busy"} onClick={() => { setResetMsg(null); setResetStep("confirm"); }}>
+                      {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification d'entreprise"}
+                    </Button>
+                  ))}
                 </div>
               )}
-              {aiSummary && !aiError && (
-                <div style={{
-                  fontSize: 13.5, lineHeight: 1.65, color: C.t1,
-                  whiteSpace: "pre-wrap",
-                }}>
-                  {aiSummary}
-                </div>
-              )}
-              {!aiSummary && !aiError && !aiBusy && (
-                <p style={{ fontSize: 12, color: C.t3, margin: 0, lineHeight: 1.5 }}>
-                  Cliquez sur « Résumer » pour générer un aperçu du dossier en 4-6 puces (profil, volume, KYC, points d'attention).
-                </p>
-              )}
-            </div>
+            </Block>
           )}
 
-          {/* Score de risque calculé — visible juste après l'identité */}
-          {profile && <RiskScoreCard profile={profile} />}
-
-          {/* Notes internes staff (localStorage V1) */}
-          <ClientNotes userId={userId} />
-
-          {/* Chronologie unifiée : inscription + KYC + commandes + notes */}
-          {profile && <ClientTimeline profile={profile} orders={orders} userId={userId} />}
-
-          {/* Historique des commandes */}
-          <div>
-            <p className="mb-2.5 px-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Historique des commandes ({orders.length})
-            </p>
-            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              {orders.length === 0 ? (
-                <div className="py-10 text-center text-[13px] text-muted-foreground">
-                  Aucune commande pour ce client.
-                </div>
-              ) : (
-                orders.map((o) => {
-                  const buy = o.side === "buy";
-                  return (
-                    <button
-                      key={o.id}
-                      type="button"
-                      onClick={() => onOpenOrder?.(o.id)}
-                      className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-secondary/30 active:bg-secondary/50"
-                    >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground/70">
-                        {buy
-                          ? <Coins className="h-[18px] w-[18px]" strokeWidth={1.7} />
-                          : <HandCoins className="h-[18px] w-[18px]" strokeWidth={1.7} />}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-medium">
-                          {buy ? "Achat" : "Vente"} · {nfUsdt.format(o.usdtAmount)} USDT
-                        </p>
-                        <p className="truncate text-[12px] text-muted-foreground">
-                          {orderRef(o.id)} · {STATUS_FR[o.status] ?? o.status}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-[14px] font-semibold">{nf.format(o.cadAmount)} <span className="text-[12px] font-medium">CAD</span></p>
-                        <p className="text-[11.5px] text-muted-foreground">
-                          {dateFmtShort.format(new Date(o.createdAt))}
-                        </p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </>
-      )}
+          {profile && <Block title="Score de risque"><RiskScoreCard profile={profile} /></Block>}
+          <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
+        </aside>
+      </div>
     </div>
   );
 };

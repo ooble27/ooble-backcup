@@ -9,10 +9,10 @@
  * back-office monochrome.
  */
 import { useMemo, useState } from "react";
-import { ChevronDown, ShieldAlert } from "lucide-react";
-import { assessClient, RISK_LEVEL, type RiskLevel } from "@/lib/riskScore";
+import { ChevronDown } from "lucide-react";
+import { assessClient, type RiskLevel } from "@/lib/riskScore";
 import type { ClientProfile } from "@/lib/adminClient";
-import { C, FONT, card, cardHeader, sH } from "./adminTheme";
+import { C, FONT } from "./adminTheme";
 
 /** Étiquette courte du niveau, à côté du grand chiffre. */
 const LEVEL_LABEL: Record<RiskLevel, string> = {
@@ -30,30 +30,14 @@ const RiskScoreCard = ({ profile }: { profile: ClientProfile }) => {
   const levelLabel = LEVEL_LABEL[assessment.level];
 
   return (
-    <div style={{ ...card, fontFamily: FONT }}>
-      <div style={{
-        ...cardHeader,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ShieldAlert style={{ width: 12, height: 12, color: C.t3 }} strokeWidth={1.7} />
-          <span style={sH}>Score de risque</span>
-        </div>
-        <span style={{
-          fontSize: 10.5, color: C.t2,
-          letterSpacing: "0.14em", textTransform: "uppercase",
-        }}>
-          v1
-        </span>
-      </div>
-
+    <div style={{ fontFamily: FONT, borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>
       {/* Grand chiffre + niveau */}
-      <div style={{ padding: "22px 20px 16px" }}>
+      <div style={{ padding: "16px 0 12px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
           <p style={{
             fontFamily: FONT,
             fontVariantNumeric: "tabular-nums",
-            fontSize: 52,
+            fontSize: 40,
             fontWeight: 300,
             letterSpacing: "-0.03em",
             lineHeight: 1,
@@ -132,7 +116,7 @@ const RiskScoreCard = ({ profile }: { profile: ClientProfile }) => {
 
       {expanded && (
         <div>
-          {assessment.factors.map((f, i) => (
+          {assessment.factors.map((f) => (
             <div key={f.label} style={{
               padding: "12px 20px",
               borderTop: `1px solid ${C.bds}`,

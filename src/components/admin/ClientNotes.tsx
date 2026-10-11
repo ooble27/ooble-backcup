@@ -10,7 +10,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, StickyNote } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { C, FONT, card, cardHeader, sH, inputStyle, chipAction, iconButton, iconButtonHoverIn, iconButtonHoverOut } from "./adminTheme";
+import { C, FONT, inputStyle, chipAction, iconButton, iconButtonHoverIn, iconButtonHoverOut } from "./adminTheme";
 
 interface Note {
   id: string;
@@ -40,8 +40,8 @@ const dateFmt = new Intl.DateTimeFormat("fr-CA", {
 });
 
 const ClientNotes = ({ userId }: { userId: string }) => {
-  const { session } = useAuth();
-  const authorEmail = session?.user?.email ?? "staff";
+  const { user } = useAuth();
+  const authorEmail = user?.email ?? "staff";
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
@@ -69,12 +69,12 @@ const ClientNotes = ({ userId }: { userId: string }) => {
   };
 
   return (
-    <div style={{ ...card, fontFamily: FONT }}>
+    <div style={{ fontFamily: FONT, borderTop: `1px solid ${C.bds}` }}>
       <div style={{
-        ...cardHeader,
+        padding: "10px 0", borderBottom: `1px solid ${C.bds}`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <span style={sH}>Notes internes</span>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>Visibles uniquement par l'équipe, sur cet appareil.</span>
         {!adding && (
           <button
             style={chipAction}
@@ -88,7 +88,7 @@ const ClientNotes = ({ userId }: { userId: string }) => {
       </div>
 
       {adding && (
-        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.bds}` }}>
+        <div style={{ padding: "14px 0", borderBottom: `1px solid ${C.bds}` }}>
           <textarea
             autoFocus
             rows={3}
@@ -140,12 +140,12 @@ const ClientNotes = ({ userId }: { userId: string }) => {
         </div>
       )}
 
-      {notes.map((n, i) => (
+      {notes.map((n) => (
         <div
           key={n.id}
           style={{
-            padding: "14px 18px",
-            borderBottom: i < notes.length - 1 ? `1px solid ${C.bds}` : "none",
+            padding: "14px 0",
+            borderBottom: `1px solid ${C.bds}`,
             display: "flex", gap: 12,
           }}
         >

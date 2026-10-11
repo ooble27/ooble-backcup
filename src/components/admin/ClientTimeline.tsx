@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { orderRef } from "@/lib/orders";
 import { KYC_LABEL, type ClientOrder, type ClientProfile } from "@/lib/adminClient";
-import { C, FONT, card, cardHeader, sH, pillSmall } from "./adminTheme";
+import { C, FONT, pillSmall } from "./adminTheme";
 
 // ────────────────────────────────────────────────────────────
 // Modèle interne d'un événement de timeline
@@ -181,13 +181,12 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
   const availableFilters: Array<"all" | EventKind> = ["all", "order", "kyc", "note", "signup"];
 
   return (
-    <div style={{ ...card, fontFamily: FONT }}>
+    <div style={{ fontFamily: FONT }}>
       <div style={{
-        ...cardHeader,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 0 10px", borderBottom: `1px solid ${C.bds}`,
+        display: "flex", alignItems: "center", justifyContent: "flex-end",
         flexWrap: "wrap", gap: 10,
       }}>
-        <span style={sH}>Chronologie</span>
         <div style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
           {availableFilters.map((k) => (
             <button
@@ -208,7 +207,7 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
           </p>
         </div>
       ) : (
-        <div style={{ padding: "14px 20px 20px" }}>
+        <div style={{ padding: "14px 0 0" }}>
           {groups.map((g) => (
             <div key={g.day} style={{ marginBottom: 12 }}>
               <p style={{

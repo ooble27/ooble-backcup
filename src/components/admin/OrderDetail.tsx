@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { ArrowLeft, ArrowRight, Copy, Check, Hand, Ban, RotateCcw, ChevronRight, Banknote } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  CURRENT_OPERATOR, STATUS_META, TYPE_META, nfCad, nfUsdt, timeAgo,
-  type AdminOrder,
-} from "@/lib/adminOrders";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowRight, Ban, Banknote, Check, ChevronRight, Copy, ExternalLink, Hand, RotateCcw, Send, Trash2 } from "lucide-react";
+import { CURRENT_OPERATOR, TYPE_META, nfCad, nfUsdt, timeAgo, type AdminOrder } from "@/lib/adminOrders";
 import { fetchOrderEvents, type OrderEvent } from "@/lib/adminOrderEvents";
 import { sendRefundEmail } from "@/lib/email";
 import { useAuth } from "@/lib/auth";
-import { StatusBadge } from "./AdminBits";
 import { NETWORKS } from "@/components/app/networks";
-import { Trash2, Send, ExternalLink } from "lucide-react";
 import { fetchDeposits, fetchPayouts, sendPayout, txUrl, type ChainDeposit, type UsdtPayout } from "@/lib/settlement";
-import { DEPOSIT, PAYOUT, Pill } from "./SettlementPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { C, FONT } from "./adminTheme";
+import { Button, Notice } from "./ui";
+import { Avatar, KeyValues, Pill } from "./layout";
+import { DEPOSIT_PILL, OrderChannel, OrderStatusPill, PAYOUT_PILL } from "./orderBits";
 
 interface Props {
   order: AdminOrder;
@@ -26,109 +22,52 @@ interface Props {
   onRefresh?: () => void;
 }
 
-type SectionId = "client" | "transaction" | "paiement" | "destination" | "historique";
-
-const dateFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const dateFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const timeFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
 const EVENT_LABEL: Record<string, string> = {
-  created: "Commande créée",
-  awaiting_payment: "En attente de paiement",
-  payment_received: "Fonds reçus",
-  settling: "Prise en charge",
-  completed: "Terminée",
-  cancelled: "Annulée",
-  expired: "Expirée",
+  created: "Commande créée", awaiting_payment: "En attente de paiement", payment_received: "Fonds reçus",
+  settling: "Prise en charge", completed: "Terminée", cancelled: "Annulée", expired: "Expirée", refunded: "Remboursée",
 };
 
-const Timeline = ({ order, events }: { order: AdminOrder; events: OrderEvent[] | null }) => {
-  const steps: { label: string; actor?: string; hint: string; done: boolean }[] = [
-    { label: "Commande créée", hint: timeAgo(order.createdMinsAgo), done: true },
-    ...(events ?? []).map((e) => ({
-      label: EVENT_LABEL[e.status] ?? e.status,
-      actor: e.actor,
-      hint: timeFmt.format(new Date(e.createdAt)),
-      done: true,
-    })),
-  ];
-
-  return (
-    <div className="px-5 py-4">
-      {events === null ? (
-        <p className="text-[13px] text-muted-foreground">Chargement de l'historique…</p>
-      ) : (
-        <ol>
-          {steps.map((st, i) => (
-            <li key={i} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-foreground" />
-                {i < steps.length - 1 && <span className="w-px flex-1 bg-foreground/30" />}
-              </div>
-              <div className={cn(i < steps.length - 1 ? "pb-5" : "pb-0")}>
-                <p className="text-[13px] font-medium text-foreground">
-                  {st.label}
-                  {st.actor && <span className="font-normal text-muted-foreground"> · {st.actor}</span>}
-                </p>
-                {st.hint && <p className="mt-0.5 text-[12px] text-muted-foreground">{st.hint}</p>}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-};
-
-const SegmentedTabs = ({ sections, active, onSelect }: { sections: { id: SectionId; label: string }[]; active: SectionId; onSelect: (id: SectionId) => void }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
-
-  const activeIdx = sections.findIndex((s) => s.id === active);
-
-  const measure = useCallback(() => {
-    const el = btnRefs.current[activeIdx];
-    if (!el) return;
-    setPill({ left: el.offsetLeft, width: el.offsetWidth, ready: true });
-  }, [activeIdx]);
-
-  useEffect(() => { requestAnimationFrame(measure); }, [measure]);
-
-  return (
-    <div ref={containerRef} className="relative flex gap-0.5 overflow-x-auto rounded-xl bg-secondary p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {pill.ready && (
-        <div
-          className="absolute top-1 h-[calc(100%-8px)] rounded-[9px] bg-card transition-[left,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-          style={{ left: pill.left, width: pill.width }}
-        />
-      )}
-      {sections.map((s, i) => (
-        <button
-          key={s.id}
-          ref={(el) => { btnRefs.current[i] = el; }}
-          onClick={() => onSelect(s.id)}
-          className={cn(
-            "relative z-10 flex-1 whitespace-nowrap rounded-[9px] px-3.5 py-2 text-[13.5px] transition-colors duration-200",
-            s.id === active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {s.label}
-        </button>
-      ))}
-    </div>
-  );
-};
-
-/**
- * Envoi des USDT d'un achat depuis le portefeuille chaud (fonction usdt-payout).
- * Le bouton n'apparaît qu'à « paiement reçu » et sans envoi déjà en cours :
- * la base refuse de toute façon un second envoi pour le même ordre.
- */
 /** Réseaux où l'envoi des USDT part du portefeuille d'envoi (Solana : à la main). */
 const AUTO_NETWORKS = new Set(["trx", "bnb", "matic", "avax", "eth"]);
 
-const PayoutBox = ({ order, list, onChanged }: { order: AdminOrder; list: UsdtPayout[] | null; onChanged: () => void }) => {
+function useCopy() {
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = (v: string, k: string) => {
+    navigator.clipboard?.writeText(v).catch(() => {});
+    setCopied(k);
+    setTimeout(() => setCopied((c) => (c === k ? null : c)), 1200);
+  };
+  return { copied, copy };
+}
+
+function CopyValue({ value, k, copy, copied, mono }: { value?: string | null; k: string; copy: (v: string, k: string) => void; copied: string | null; mono?: boolean }) {
+  if (!value) return <span style={{ color: C.t3 }}>—</span>;
+  return (
+    <button type="button" onClick={() => copy(value, k)} title="Copier"
+      style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, maxWidth: "100%", wordBreak: "break-all", fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : FONT, fontSize: mono ? 12.5 : 13.5 }}>
+      <span>{value}</span>
+      {copied === k ? <Check style={{ width: 14, height: 14, color: C.successText, flexShrink: 0 }} /> : <Copy style={{ width: 13, height: 13, color: C.t3, flexShrink: 0 }} />}
+    </button>
+  );
+}
+
+function Block({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <section style={{ marginTop: 32 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
+        <h2 style={{ margin: 0, flex: 1, fontSize: 15, fontWeight: 500 }}>{title}</h2>
+        {right}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/* ─── Envoi des USDT (achat) ─── */
+function PayoutStep({ order, list, onChanged }: { order: AdminOrder; list: UsdtPayout[] | null; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; url?: string } | null>(null);
   const active = (list ?? []).find((p) => p.status !== "failed");
@@ -148,49 +87,39 @@ const PayoutBox = ({ order, list, onChanged }: { order: AdminOrder; list: UsdtPa
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card px-5 py-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[13px] font-medium">Envoi des USDT</p>
+    <Block title="Envoi des USDT">
+      <div style={{ borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, padding: "16px 0", display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 280px", minWidth: 0, fontSize: 13.5, lineHeight: 1.55, color: C.t2 }}>
           {last ? (
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-              <Pill m={PAYOUT[last.status]} />
+            <span style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+              <Pill tone={PAYOUT_PILL[last.status]?.tone}>{PAYOUT_PILL[last.status]?.label ?? last.status}</Pill>
               {last.trigger === "auto" ? "Envoyé automatiquement" : "Lancé par l'équipe"}
               {last.tx_hash && txUrl(last.network, last.tx_hash) && (
-                <a href={txUrl(last.network, last.tx_hash)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline">
-                  Voir la transaction <ExternalLink className="h-3 w-3" />
+                <a href={txUrl(last.network, last.tx_hash)} target="_blank" rel="noreferrer" style={{ color: C.t1, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  Voir la transaction <ExternalLink style={{ width: 12, height: 12 }} />
                 </a>
               )}
-            </p>
+            </span>
           ) : (
-            <p className="mt-1 text-[12px] text-muted-foreground">{nfUsdt.format(order.usdt)} USDT vers l'adresse du client, depuis le portefeuille d'envoi. Vérifiez d'abord le dépôt dans le compte bancaire.</p>
+            <>{nfUsdt.format(order.usdt)} USDT vers l'adresse du client, depuis le portefeuille d'envoi. Vérifiez d'abord le dépôt Interac dans le compte bancaire.</>
           )}
-          {last?.error && <p className="mt-1 text-[12px] text-muted-foreground">{last.error}</p>}
+          {last?.error && <span style={{ display: "block", marginTop: 6, color: C.t3 }}>{last.error}</span>}
         </div>
         {canSend && (
-          <Button variant="appSolid" shape="rounded" className="h-auto gap-2 rounded-[10px] px-4 py-[11px] text-sm font-bold" disabled={busy} onClick={go}>
-            <Send className="h-[16px] w-[16px]" /> {busy ? "Envoi en cours…" : "Envoyer les USDT"}
+          <Button variant="primary" size="lg" disabled={busy} onClick={go} icon={<Send style={{ width: 16, height: 16 }} />}>
+            {busy ? "Envoi en cours…" : `Envoyer ${nfUsdt.format(order.usdt)} USDT`}
           </Button>
         )}
       </div>
-      {msg && (
-        <p className={cn("mt-3 text-[12.5px]", msg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-destructive")}>
-          {msg.text}
-          {msg.url && <> · <a href={msg.url} target="_blank" rel="noreferrer" className="underline">transaction</a></>}
-        </p>
-      )}
-    </div>
+      {msg && <div style={{ marginTop: 12 }}><Notice tone={msg.ok ? "ok" : "err"}>{msg.text}{msg.url && <> · <a href={msg.url} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>transaction</a></>}</Notice></div>}
+    </Block>
   );
-};
+}
 
-/**
- * Vente : USDT reçus (lus sur la blockchain toutes les 2 minutes) et virement
- * Interac à envoyer, avec toutes les informations à copier dans la banque.
- */
-const SellBox = ({ order }: { order: AdminOrder }) => {
+/* ─── Vente : USDT reçus et virement Interac à envoyer ─── */
+function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string, k: string) => void; copied: string | null }) {
   const [deps, setDeps] = useState<ChainDeposit[] | null>(null);
   const [qa, setQa] = useState<{ q: string | null; a: string | null } | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
   useEffect(() => {
     fetchDeposits({ orderId: order.id, limit: 5 }).then(setDeps);
     if (order.userId) {
@@ -199,77 +128,57 @@ const SellBox = ({ order }: { order: AdminOrder }) => {
     }
   }, [order.id, order.userId, order.status]);
   const dep = (deps ?? []).find((d) => d.status === "matched") ?? deps?.[0];
-  const copy = (v: string, k: string) => { void navigator.clipboard?.writeText(v); setCopied(k); setTimeout(() => setCopied(null), 1200); };
   const solana = order.network === "sol";
-  const toPay = order.status === "recu";
-
-  const Line = ({ k, label, value }: { k: string; label: string; value: string | null | undefined }) => (
-    <div className="flex items-center justify-between gap-4 py-2.5">
-      <span className="text-[13px] text-muted-foreground">{label}</span>
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="break-all text-right text-[14px] font-medium">{value || "N/D"}</span>
-        {value && (
-          <button type="button" onClick={() => copy(value, k)} className="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Copier">
-            {copied === k ? <Check className="h-[14px] w-[14px]" /> : <Copy className="h-[14px] w-[14px]" />}
-          </button>
-        )}
-      </span>
-    </div>
-  );
 
   return (
-    <div className="rounded-2xl border border-border bg-card px-5 py-4">
-      <p className="text-[13px] font-medium">USDT du client</p>
-      {dep ? (
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-          <Pill m={DEPOSIT[dep.status]} />
-          {nfUsdt.format(Number(dep.usdt_amount))} USDT reçus
-          {txUrl(dep.network, dep.tx_hash) && (
-            <a href={txUrl(dep.network, dep.tx_hash)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline">
-              Voir la transaction <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
-          {dep.status !== "matched" && dep.reason && <span>· {dep.reason}</span>}
-        </p>
-      ) : (
-        <p className="mt-1 text-[12px] text-muted-foreground">
-          {solana
+    <>
+      <Block title="USDT du client">
+        <p style={{ margin: 0, padding: "14px 0", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, fontSize: 13.5, lineHeight: 1.6, color: C.t2, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          {dep ? (
+            <>
+              <Pill tone={DEPOSIT_PILL[dep.status]?.tone}>{DEPOSIT_PILL[dep.status]?.label ?? dep.status}</Pill>
+              {nfUsdt.format(Number(dep.usdt_amount))} USDT reçus
+              {txUrl(dep.network, dep.tx_hash) && (
+                <a href={txUrl(dep.network, dep.tx_hash)} target="_blank" rel="noreferrer" style={{ color: C.t1, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  Voir la transaction <ExternalLink style={{ width: 12, height: 12 }} />
+                </a>
+              )}
+              {dep.status !== "matched" && dep.reason && <span>· {dep.reason}</span>}
+            </>
+          ) : solana
             ? "Solana n'est pas surveillé : vérifiez l'arrivée des USDT dans le portefeuille de dépôt, puis « Marquer les USDT reçus »."
             : order.status === "attente"
-              ? `En attente de ${nfUsdt.format(order.usdt)} USDT sur l'adresse de dépôt. Lecture automatique toutes les 2 minutes ; la commande passe seule à « À traiter » dès leur arrivée.`
+              ? `En attente de ${nfUsdt.format(order.usdt)} USDT sur l'adresse de dépôt. Lecture automatique toutes les 2 minutes : la commande passe seule à « À traiter » dès leur arrivée.`
               : "Aucun dépôt lu automatiquement pour cette vente."}
         </p>
-      )}
-
-      {toPay && (
-        <div className="mt-4 rounded-xl border border-foreground/15 bg-secondary/40 px-4 py-2">
-          <p className="pt-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Virement Interac à envoyer</p>
-          <div className="divide-y divide-border">
-            <Line k="mail" label="Destinataire" value={order.interacEmail} />
-            <Line k="amt" label="Montant" value={nfCad.format(order.cad)} />
-            <Line k="q" label="Question de sécurité" value={qa?.q} />
-            <Line k="a" label="Réponse" value={qa?.a} />
-            <Line k="msg" label="Message" value={order.ref} />
-          </div>
-          <p className="pb-2 pt-1 text-[12px] leading-relaxed text-muted-foreground">
-            Envoyez le virement depuis le compte d'Ooble, puis cliquez « Virement Interac envoyé » ci-dessous : le client reçoit son courriel de fin.
+      </Block>
+      {order.status === "recu" && (
+        <Block title="Virement Interac à envoyer">
+          <KeyValues items={[
+            ["Destinataire", <CopyValue key="m" value={order.interacEmail} k="mail" copy={copy} copied={copied} />],
+            ["Montant", <CopyValue key="a" value={nfCad.format(order.cad)} k="amt" copy={copy} copied={copied} />],
+            ["Question de sécurité", <CopyValue key="q" value={qa?.q} k="q" copy={copy} copied={copied} />],
+            ["Réponse", <CopyValue key="r" value={qa?.a} k="a" copy={copy} copied={copied} />],
+            ["Message", <CopyValue key="g" value={order.ref} k="msg" copy={copy} copied={copied} />],
+          ]} />
+          <p style={{ margin: "10px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.55 }}>
+            Envoyez le virement depuis le compte d'Ooble, puis « Virement Interac envoyé » : le client reçoit son courriel de fin.
           </p>
-        </div>
+        </Block>
       )}
-    </div>
+    </>
   );
-};
+}
 
-const OrderDetail = ({ order, onBack, onPatch, onDelete, onShowClient, onRefresh }: Props) => {
+const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Props) => {
   const { isAdmin } = useAuth();
+  const { copied, copy } = useCopy();
   const [payouts, setPayouts] = useState<UsdtPayout[] | null>(null);
   const loadPayouts = useCallback(() => {
     if (order.type !== "buy") { setPayouts([]); return; }
     fetchPayouts(order.id, 5).then(setPayouts);
   }, [order.id, order.type]);
   useEffect(() => { loadPayouts(); }, [loadPayouts, order.status]);
-  const [section, setSection] = useState<SectionId>("client");
-  const [copied, setCopied] = useState<string | null>(null);
   const [events, setEvents] = useState<OrderEvent[] | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
@@ -284,304 +193,189 @@ const OrderDetail = ({ order, onBack, onPatch, onDelete, onShowClient, onRefresh
     return () => { active = false; };
   }, [order.id, order.status, order.assignedTo]);
 
-  const copy = (value: string, key: string) => {
-    navigator.clipboard?.writeText(value).catch(() => {});
-    setCopied(key);
-    setTimeout(() => setCopied((c) => (c === key ? null : c)), 1200);
-  };
-
   // De l'argent est parti (ou part) vers le client : la commande est figée.
   const activePayout = (payouts ?? []).find((p) => p.status !== "failed");
   const finished = order.status === "termine" || order.status === "rembourse";
   const locked = !!activePayout || finished;
   // Suppression : seulement une commande sans aucun mouvement d'argent.
   const canDelete = (order.status === "attente" || order.status === "annule") && (payouts ?? []).length === 0;
-
-  const refundAmount = order.type === "buy"
-    ? `${nfCad.format(order.cad)} CAD`
-    : `${nfUsdt.format(order.usdt)} USDT`;
+  const refundAmount = order.type === "buy" ? `${nfCad.format(order.cad)} CAD` : `${nfUsdt.format(order.usdt)} USDT`;
 
   const handleRefund = async () => {
     setRefunding(true);
     setRefundError(null);
-    const { error } = await sendRefundEmail({
-      to: order.clientEmail,
-      clientName: order.clientName,
-      ref: order.ref,
-      amount: refundAmount,
-    });
-    if (error) {
-      setRefundError(error);
-      setRefunding(false);
-      return;
-    }
+    const { error } = await sendRefundEmail({ to: order.clientEmail, clientName: order.clientName, ref: order.ref, amount: refundAmount });
+    if (error) { setRefundError(error); setRefunding(false); return; }
     onPatch(order.id, { status: "rembourse" });
     setConfirmRefund(false);
     setRefunding(false);
   };
 
-  const Row = ({ label, value, mono, copyKey }: { label: string; value?: string | null; mono?: boolean; copyKey?: string }) => (
-    <div className="flex items-start justify-between gap-4 px-5 py-3.5">
-      <span className="shrink-0 text-[14px] text-muted-foreground">{label}</span>
-      <span className="flex min-w-0 items-center gap-2">
-        <span className={cn("break-all text-right text-[14px] font-medium", mono && "font-mono text-[12px]")}>{value || "N/D"}</span>
-        {copyKey && value && (
-          <button onClick={() => copy(value, copyKey)} className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" aria-label="Copier">
-            {copied === copyKey ? <Check className="h-[14px] w-[14px] text-primary" /> : <Copy className="h-[14px] w-[14px]" />}
-          </button>
-        )}
-      </span>
-    </div>
+  const sends = order.type === "buy" ? `${nfCad.format(order.cad)} $` : `${nfUsdt.format(order.usdt)} USDT`;
+  const receives = order.type === "buy" ? `${nfUsdt.format(order.usdt)} USDT` : `${nfCad.format(order.cad)} $`;
+  const createdAt = dateFmt.format(new Date(Date.now() - order.createdMinsAgo * 60000));
+  const net = NETWORKS.find((x) => x.id === order.network);
+
+  /*
+    Règles des actions :
+    • des USDT sont partis (ou en cours) ou la commande est terminée / remboursée → aucune action ;
+    • en attente → marquer le paiement reçu, ou annuler ;
+    • paiement reçu → envoyer (achat, bloc dédié), terminer à la main (vente, ou réseau sans
+      envoi automatique), ou rembourser ; plus d'annulation : l'argent est là, on rembourse ;
+    • annulée → rouvrir.
+  */
+  const actions = lockedByOther ? null : (
+    <>
+      {!finished && !order.assignedTo && (order.status === "recu" || order.status === "attente") && (
+        <Button icon={<Hand style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { assignedTo: CURRENT_OPERATOR })}>Prendre en charge</Button>
+      )}
+      {!finished && order.assignedTo === CURRENT_OPERATOR && <Button variant="ghost" onClick={() => onPatch(order.id, { assignedTo: null })}>Libérer</Button>}
+      {!locked && (order.status === "attente" || order.status === "cours") && (
+        <Button variant="ghost" icon={<Ban style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { status: "annule" })}>Annuler</Button>
+      )}
+      {!locked && order.status === "annule" && (
+        <Button icon={<RotateCcw style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { status: "attente", assignedTo: null })}>Rouvrir</Button>
+      )}
+      {!locked && order.status === "recu" && (
+        <Button variant="danger" icon={<Banknote style={{ width: 15, height: 15 }} />} onClick={() => setConfirmRefund(true)}>Rembourser</Button>
+      )}
+      {!locked && (order.status === "attente" || order.status === "cours") && (
+        <Button variant="primary" icon={<Check style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { status: "recu" })}>
+          {order.type === "buy" ? "Marquer le paiement reçu" : "Marquer les USDT reçus"}
+        </Button>
+      )}
+      {!locked && order.status === "recu" && (order.type === "sell" || !AUTO_NETWORKS.has(order.network ?? "")) && (
+        <Button variant="primary" icon={<Check style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { status: "termine" })}>
+          {order.type === "sell" ? "Virement Interac envoyé" : "Marquer terminé (envoi à la main)"}
+        </Button>
+      )}
+    </>
   );
 
-  const SECTIONS = useMemo(() => {
-    const base: { id: SectionId; label: string }[] = [
-      { id: "client", label: "Client" },
-      { id: "transaction", label: "Transaction" },
-      { id: "paiement", label: "Paiement" },
-    ];
-    if (order.type === "buy") base.push({ id: "destination", label: "Destination" });
-    base.push({ id: "historique", label: "Historique" });
-    return base;
-  }, [order.type]);
-  const active = SECTIONS.some((s) => s.id === section) ? section : "client";
-
-  const sends = order.type === "buy" ? `${nfCad.format(order.cad)} CAD` : `${nfUsdt.format(order.usdt)} USDT`;
-  const receives = order.type === "buy" ? `${nfUsdt.format(order.usdt)} USDT` : `${nfCad.format(order.cad)} CAD`;
-  const createdAt = dateFmt.format(new Date(Date.now() - order.createdMinsAgo * 60000));
+  const steps = [
+    { label: "Commande créée", hint: timeAgo(order.createdMinsAgo), actor: undefined as string | undefined },
+    ...(events ?? []).map((e) => ({ label: EVENT_LABEL[e.status] ?? e.status, actor: e.actor, hint: timeFmt.format(new Date(e.createdAt)) })),
+  ];
 
   return (
-    <div className="mx-auto w-full max-w-[980px] space-y-4">
+    <div>
       {/* En-tête */}
-      <div className="flex items-start gap-3">
-        <button
-          onClick={onBack}
-          aria-label="Retour"
-          className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors hover:bg-secondary active:scale-95"
-        >
-          <ArrowLeft className="h-[18px] w-[18px]" />
-        </button>
-        <div className="min-w-0">
-          <p className="text-[15px] font-semibold">
-            {TYPE_META[order.type].label} USDT <span className="text-muted-foreground">·</span> <StatusBadge status={order.status} className="align-baseline" />
-          </p>
-          <button onClick={() => copy(order.ref, "ref")} className="mt-0.5 inline-flex items-center gap-1.5 font-mono text-[12px] text-muted-foreground transition-colors hover:text-foreground">
-            {order.ref} {copied === "ref" ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Carte client + montants */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-[14px] font-semibold text-foreground/70">
-            {initials(order.clientName)}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-[15px] font-semibold">{order.clientName}</p>
-            <p className="text-[12px] text-muted-foreground">{createdAt}</p>
+      <header style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 28 }}>
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em" }}>{TYPE_META[order.type].label} de USDT</h1>
+            <OrderStatusPill status={order.status} />
           </div>
-        </div>
-
-        <div className="mt-5 flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">Le client envoie</p>
-            <p className="mt-1 truncate font-display text-[22px] font-semibold tracking-tight">{sends}</p>
-          </div>
-          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-          <div className="min-w-0 text-right">
-            <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">Le client reçoit</p>
-            <p className="mt-1 truncate font-display text-[22px] font-semibold tracking-tight">{receives}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Onglets de section — contrôle segmenté avec pill glissante */}
-      <SegmentedTabs sections={SECTIONS} active={active} onSelect={(id) => setSection(id)} />
-
-      {/* Contenu de section */}
-      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-        {active === "client" && (
-          <>
-            <Row label="Nom complet" value={order.clientName} />
-            <Row label="E-mail" value={order.clientEmail} mono copyKey="email" />
-            <Row label="Téléphone" value={null} />
-            <Row label="ID utilisateur" value={order.userId ? order.userId.slice(0, 12) + "…" + order.userId.slice(-4) : "N/D"} mono copyKey="uid" />
-            <button
-              onClick={() => order.userId && onShowClient?.(order.userId)}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-secondary/40"
-            >
-              <span className="text-[14px] font-medium">Voir la fiche complète du client</span>
-              <ChevronRight className="h-[18px] w-[18px] text-muted-foreground" />
-            </button>
-          </>
-        )}
-        {active === "transaction" && (
-          <>
-            <Row label="Type" value={`${TYPE_META[order.type].label} USDT`} />
-            <Row label="Montant CAD" value={`${nfCad.format(order.cad)} CAD`} />
-            <Row label="Montant USDT" value={`${nfUsdt.format(order.usdt)} USDT`} />
-            <Row label="Taux" value={`1 USDT = ${nfCad.format(order.rate)} CAD`} />
-            <Row label="Créée le" value={createdAt} />
-            <Row label="Référence" value={order.ref} mono copyKey="tref" />
-          </>
-        )}
-        {active === "paiement" && (
-          order.type === "buy" ? (
-            <>
-              <Row label="Moyen" value="Interac e-Transfer (entrant)" />
-              <Row label="Le client paie" value={`${nfCad.format(order.cad)} CAD`} />
-              <Row label="Référence" value={order.ref} mono copyKey="pref" />
-            </>
-          ) : (
-            <>
-              <Row label="Moyen" value="Interac e-Transfer (sortant)" />
-              <Row label="À verser au client" value={`${nfCad.format(order.cad)} CAD`} />
-              <Row label="E-mail Interac" value={order.interacEmail} mono copyKey="interac" />
-            </>
-          )
-        )}
-        {active === "destination" && order.type === "buy" && (
-          <>
-            <Row label="Réseau" value={(() => { const n = NETWORKS.find((x) => x.id === order.network); return n ? `${n.name} · ${n.tag}` : "N/D"; })()} />
-            <Row label="Adresse de réception" value={order.address} mono copyKey="addr" />
-          </>
-        )}
-        {active === "historique" && <Timeline order={order} events={events} />}
-      </div>
-
-      {order.type === "buy" && <PayoutBox order={order} list={payouts} onChanged={() => { loadPayouts(); onRefresh?.(); }} />}
-      {order.type === "sell" && <SellBox order={order} />}
-
-      {/* Barre d'actions */}
-      {lockedByOther ? (
-        <div className="rounded-2xl border border-border bg-secondary/50 px-5 py-4 text-center">
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
-            Cette commande est en cours de traitement par <span className="font-semibold text-foreground">{order.assignedTo}</span>.<br/>
-            Elle doit être libérée avant que vous puissiez la traiter.
+          <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t3, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <CopyValue value={order.ref} k="ref" copy={copy} copied={copied} />
+            <span>·</span><span>{createdAt}</span>
           </p>
         </div>
-      ) : (
-        <div className="flex flex-wrap gap-2.5">
-          {/*
-            Règles :
-            • des USDT sont partis (ou en cours d'envoi) ou la commande est
-              terminée / remboursée → aucune action : rien à marquer, rien à
-              rembourser, rien à rouvrir ;
-            • en attente → marquer le paiement reçu, ou annuler ;
-            • paiement reçu → envoyer (achat, bloc ci-dessus), terminer à la
-              main (vente, ou réseau sans envoi automatique), ou rembourser ;
-              plus d'annulation : l'argent est là, on rembourse ;
-            • annulée → rouvrir, par erreur d'annulation.
-          */}
-          {!locked && (order.status === "attente" || order.status === "cours") && (
-            <Button variant="appSolid" shape="rounded" className="h-auto gap-2 rounded-[10px] px-4 py-[11px] text-sm font-bold" onClick={() => onPatch(order.id, { status: "recu" })}>
-              <Check className="h-[17px] w-[17px]" /> {order.type === "buy" ? "Marquer le paiement reçu" : "Marquer les USDT reçus"}
-            </Button>
-          )}
-          {!locked && order.status === "recu" && (order.type === "sell" || !AUTO_NETWORKS.has(order.network ?? "")) && (
-            <Button variant="appSolid" shape="rounded" className="h-auto gap-2 rounded-[10px] px-4 py-[11px] text-sm font-bold" onClick={() => onPatch(order.id, { status: "termine" })}>
-              <Check className="h-[17px] w-[17px]" /> {order.type === "sell" ? "Virement Interac envoyé" : "Marquer terminé (envoi fait à la main)"}
-            </Button>
-          )}
-          {!locked && order.status === "recu" && (
-            <Button
-              variant="appOutline"
-              shape="rounded"
-              className="h-auto gap-2 rounded-[10px] border-amber-500/30 px-4 py-[11px] text-sm text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
-              onClick={() => setConfirmRefund(true)}
-            >
-              <Banknote className="h-[17px] w-[17px]" /> Rembourser
-            </Button>
-          )}
-          {!locked && (order.status === "attente" || order.status === "cours") && (
-            <Button variant="appOutline" shape="rounded" className="h-auto gap-2 rounded-[10px] px-4 py-[11px] text-sm" onClick={() => onPatch(order.id, { status: "annule" })}>
-              <Ban className="h-[17px] w-[17px]" /> Annuler
-            </Button>
-          )}
-          {!locked && order.status === "annule" && (
-            <Button variant="appOutline" shape="rounded" className="h-auto gap-2 rounded-[10px] px-4 py-[11px] text-sm" onClick={() => onPatch(order.id, { status: "attente", assignedTo: null })}>
-              <RotateCcw className="h-[17px] w-[17px]" /> Rouvrir
-            </Button>
-          )}
-          {!finished && order.assignedTo === CURRENT_OPERATOR && (
-            <Button variant="appOutline" shape="rounded" className="h-auto gap-2 rounded-[10px] px-4 py-[11px] text-sm" onClick={() => onPatch(order.id, { assignedTo: null })}>
-              Libérer
-            </Button>
-          )}
-        </div>
-      )}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{actions}</div>
+      </header>
+
+      {lockedByOther && <div style={{ marginBottom: 20 }}><Notice tone="info">Cette commande est traitée par <b>{order.assignedTo}</b>. Elle doit être libérée avant que vous puissiez agir.</Notice></div>}
 
       {confirmRefund && (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
-          <p className="text-[14px] font-medium">
-            Confirmer le remboursement de <span className="font-bold">{refundAmount}</span> à {order.clientName} ?
-          </p>
-          <p className="mt-1.5 text-[12.5px] text-muted-foreground">
-            Un courriel sera envoyé au client à {order.clientEmail}.
-          </p>
-          {refundError && (
-            <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12.5px] text-destructive">
-              {refundError}
-            </p>
-          )}
-          <div className="mt-4 flex gap-2.5">
-            <Button
-              shape="rounded"
-              className="h-auto gap-2 rounded-[10px] border border-amber-500 bg-amber-500 px-4 py-2.5 text-[12.5px] font-bold text-white hover:opacity-90"
-              onClick={handleRefund}
-              disabled={refunding}
-            >
-              <Banknote className="h-[14px] w-[14px]" />
-              {refunding ? "Envoi…" : "Confirmer le remboursement"}
-            </Button>
-            <Button
-              variant="ghost"
-              shape="rounded"
-              className="h-auto rounded-[10px] px-3.5 py-2.5 text-[12.5px]"
-              onClick={() => { setConfirmRefund(false); setRefundError(null); }}
-              disabled={refunding}
-            >
-              Annuler
-            </Button>
+        <div style={{ marginBottom: 20, padding: "16px 0", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>
+          <p style={{ margin: 0, fontSize: 14 }}>Rembourser <b>{refundAmount}</b> à {order.clientName} ?</p>
+          <p style={{ margin: "4px 0 0", fontSize: 12.5, color: C.t3 }}>Un courriel sera envoyé à {order.clientEmail}.</p>
+          {refundError && <div style={{ marginTop: 10 }}><Notice tone="err">{refundError}</Notice></div>}
+          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+            <Button variant="danger" onClick={handleRefund} disabled={refunding} icon={<Banknote style={{ width: 15, height: 15 }} />}>{refunding ? "Envoi…" : "Confirmer le remboursement"}</Button>
+            <Button variant="ghost" onClick={() => { setConfirmRefund(false); setRefundError(null); }} disabled={refunding}>Annuler</Button>
           </div>
         </div>
       )}
 
-      <p className="pt-1 text-center text-[13px] text-muted-foreground">
-        Cette commande est <span className="text-foreground">{STATUS_META[order.status].label.toLowerCase()}</span>.
-        {activePayout && !finished && " Les USDT sont partis : la commande se termine seule à la confirmation."}
-      </p>
+      <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div style={{ minWidth: 0 }}>
+          {/* Montants */}
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", alignItems: "center", gap: 16, padding: "20px 0", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Le client envoie</p>
+              <p style={{ margin: "6px 0 0", fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sends}</p>
+            </div>
+            <ArrowRight style={{ width: 18, height: 18, color: C.t3 }} />
+            <div style={{ minWidth: 0, textAlign: "right" }}>
+              <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Le client reçoit</p>
+              <p style={{ margin: "6px 0 0", fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receives}</p>
+            </div>
+          </div>
 
-      {/* Zone admin : suppression définitive (jamais une commande payée : registres à conserver) */}
-      {isAdmin && canDelete && (
-        <div className="mt-2 flex items-center justify-center gap-2.5 border-t border-border pt-4">
-          {confirmDel ? (
-            <>
-              <span className="text-[12.5px] text-muted-foreground">Supprimer définitivement ?</span>
-              <Button
-                shape="rounded"
-                className="h-auto gap-1.5 rounded-[10px] border border-destructive bg-destructive px-3.5 py-2 text-[12.5px] font-bold text-destructive-foreground hover:opacity-90"
-                onClick={() => onDelete(order.id)}
-              >
-                <Trash2 className="h-[14px] w-[14px]" /> Confirmer
-              </Button>
-              <Button variant="ghost" shape="rounded" className="h-auto rounded-[10px] px-3.5 py-2 text-[12.5px]" onClick={() => setConfirmDel(false)}>
-                Annuler
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="ghost"
-              shape="rounded"
-              className="h-auto gap-1.5 rounded-[10px] px-3.5 py-2 text-[12.5px] text-destructive hover:bg-destructive/10"
-              onClick={() => setConfirmDel(true)}
-            >
-              <Trash2 className="h-[14px] w-[14px]" /> Supprimer la commande
-            </Button>
+          {order.type === "buy" && <PayoutStep order={order} list={payouts} onChanged={() => { loadPayouts(); onRefresh?.(); }} />}
+          {order.type === "sell" && <SellStep order={order} copy={copy} copied={copied} />}
+
+          <Block title="Détails">
+            <KeyValues items={[
+              ["Opération", `${TYPE_META[order.type].label} de USDT`],
+              ["Taux", `1 USDT = ${nfCad.format(order.rate)} $`],
+              ["Montant en dollars", `${nfCad.format(order.cad)} $`],
+              ["Montant en USDT", `${nfUsdt.format(order.usdt)} USDT`],
+              ["Paiement", order.type === "buy" ? "Interac, du client vers Ooble" : "Interac, d'Ooble vers le client"],
+              ...(order.type === "sell" ? [["Courriel Interac", <CopyValue key="i" value={order.interacEmail} k="interac" copy={copy} copied={copied} />] as [string, React.ReactNode]] : []),
+              ...(order.type === "buy" ? [
+                ["Réseau", net ? <OrderChannel key="n" order={order} /> : "—"] as [string, React.ReactNode],
+                ["Adresse de réception", <CopyValue key="ad" value={order.address} k="addr" copy={copy} copied={copied} mono />] as [string, React.ReactNode],
+              ] : []),
+              ["Créée le", createdAt],
+              ["Référence", <CopyValue key="r" value={order.ref} k="ref2" copy={copy} copied={copied} />],
+            ]} />
+          </Block>
+
+          {activePayout && !finished && (
+            <p style={{ margin: "20px 0 0", fontSize: 13, color: C.t3 }}>Les USDT sont partis : la commande se termine seule à la confirmation.</p>
           )}
         </div>
-      )}
+
+        {/* Colonne de droite */}
+        <aside style={{ minWidth: 0 }}>
+          <Block title="Client">
+            <button type="button" className="ui-row" onClick={() => order.userId && onShowClient?.(order.userId)} disabled={!order.userId}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 4px", border: "none", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, fontFamily: FONT, textAlign: "left", cursor: order.userId ? "pointer" : "default" }}>
+              <Avatar name={order.clientName} size={38} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14 }}>{order.clientName}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{order.clientEmail}</span>
+              </span>
+              {order.userId && <ChevronRight style={{ width: 16, height: 16, color: C.t3 }} />}
+            </button>
+          </Block>
+
+          <Block title="Historique">
+            {events === null ? <p style={{ margin: 0, fontSize: 13, color: C.t3 }}>Chargement…</p> : (
+              <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {steps.map((st, i) => (
+                  <li key={i} style={{ display: "flex", gap: 12 }}>
+                    <span style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <span style={{ width: 9, height: 9, borderRadius: 99, marginTop: 5, background: i === steps.length - 1 ? C.t1 : C.t3, flexShrink: 0 }} />
+                      {i < steps.length - 1 && <span style={{ width: 1, flex: 1, background: C.bd }} />}
+                    </span>
+                    <span style={{ paddingBottom: i < steps.length - 1 ? 18 : 0 }}>
+                      <span style={{ display: "block", fontSize: 13.5 }}>{st.label}{st.actor && <span style={{ color: C.t3 }}> · {st.actor}</span>}</span>
+                      <span style={{ display: "block", fontSize: 12, color: C.t3, marginTop: 1 }}>{st.hint}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Block>
+
+          {isAdmin && canDelete && (
+            <Block title="Zone sensible">
+              <p style={{ margin: "0 0 10px", fontSize: 12.5, color: C.t3, lineHeight: 1.5 }}>Possible seulement sans aucun mouvement d'argent : les commandes payées restent dans les registres.</p>
+              {confirmDel ? (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Button variant="danger" size="sm" icon={<Trash2 style={{ width: 14, height: 14 }} />} onClick={() => onDelete(order.id)}>Supprimer définitivement</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setConfirmDel(false)}>Annuler</Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" icon={<Trash2 style={{ width: 14, height: 14 }} />} onClick={() => setConfirmDel(true)}>Supprimer la commande</Button>
+              )}
+            </Block>
+          )}
+        </aside>
+      </div>
     </div>
   );
 };
