@@ -357,7 +357,7 @@ function footer(ctx: RenderCtx, o: FooterOpts): string {
 <p style="margin:0 0 10px;">${links}</p>
 ${o.note ? `<p style="margin:0 0 10px;">${o.note}</p>` : ""}
 <p style="margin:0;">${tr("Vous recevez ce courriel parce que vous êtes inscrit sur ooble.ca.", "You're receiving this email because you signed up at ooble.ca.")} <a href="${esc(ctx.unsubscribeUrl)}" style="color:${o.color};text-decoration:underline;">${tr("Se désabonner", "Unsubscribe")}</a> · Ooble · Canada</p>
-<p style="margin:6px 0 0;">${tr(`Entreprise de services monétaires inscrite auprès du CANAFE, n° ${FINTRAC_MSB_NUMBER}.`, `Money services business registered with FINTRAC, no. ${FINTRAC_MSB_NUMBER}.`)}</p>
+<p style="margin:6px 0 0;">FINTRAC ${FINTRAC_MSB_NUMBER}</p>
 </td></tr>`;
 }
 

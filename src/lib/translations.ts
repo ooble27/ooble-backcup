@@ -26,12 +26,6 @@ const dict = {
     en: "Buy and sell USDT in Canadian dollars, settled via Interac e-Transfer. Non-custodial: your funds never sit with us.",
   },
   "footer.paymentAccepted": { fr: "Moyen de paiement accepté", en: "Accepted payment method" },
-  "footer.msb": {
-    fr: "Ooble est inscrite auprès du CANAFE comme entreprise de services monétaires",
-    en: "Ooble is registered with FINTRAC as a money services business",
-  },
-  "footer.msbNumber": { fr: "N° d'inscription", en: "Registration no." },
-  "footer.msbCheck": { fr: "Vérifier au registre public", en: "Check the public registry" },
   "footer.risk": {
     fr: "Les cryptoactifs comportent des risques ; leur valeur peut fluctuer. Ooble règle chaque ordre individuellement et ne conserve aucun fonds client.",
     en: "Crypto assets carry risks; their value can fluctuate. Ooble settles each order individually and does not hold any client funds.",

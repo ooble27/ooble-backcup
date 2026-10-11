@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
-import { useLang, useT } from "@/lib/i18n";
-import { FINTRAC_MSB_NUMBER, FINTRAC_REGISTRY_URL } from "@/lib/legal";
+import { useT } from "@/lib/i18n";
+import { FINTRAC_MSB_NUMBER } from "@/lib/legal";
 import Logo from "./Logo";
-import { InteracLogo } from "./marks";
+import { CanadaFlag, InteracLogo } from "./marks";
 
 const Footer = () => {
   const t = useT();
-  const [lang] = useLang();
 
   const columns = [
     {
@@ -67,19 +66,11 @@ const Footer = () => {
           ))}
         </div>
 
-        <div className="flex flex-col gap-1.5 border-b py-6 text-xs leading-relaxed text-muted-foreground sm:flex-row sm:items-center sm:gap-3">
-          <p>
-            {t("footer.msb")} · {t("footer.msbNumber")}{" "}
-            <span className="font-medium tabular-nums text-foreground/80">{FINTRAC_MSB_NUMBER}</span>
-          </p>
-          <a
-            href={FINTRAC_REGISTRY_URL[lang]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-2 transition-colors hover:text-foreground sm:ml-auto"
-          >
-            {t("footer.msbCheck")}
-          </a>
+        <div className="flex items-center gap-2.5 border-b py-5 text-xs text-muted-foreground">
+          <CanadaFlag className="h-3.5 w-7 shrink-0 rounded-[2px] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]" />
+          <span>
+            FINTRAC <span className="font-medium tabular-nums text-foreground/80">{FINTRAC_MSB_NUMBER}</span>
+          </span>
         </div>
 
         <div className="flex flex-col gap-4 py-8 sm:flex-row sm:items-start sm:justify-between">

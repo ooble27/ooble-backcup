@@ -122,7 +122,7 @@ function renderFooter(year: number): string {
   // disponible. Tant qu'on n'est pas enregistré, silence : on n'annonce
   // pas dans chaque mail qu'on ne l'est pas encore.
   const complianceLine = COMPANY.license
-    ? `${escape(COMPANY.legal)} est inscrite auprès du CANAFE comme entreprise de services monétaires, n<sup>o</sup> ${escape(COMPANY.license)}.`
+    ? `FINTRAC ${escape(COMPANY.license)}`
     : "";
 
   return `

@@ -6,7 +6,7 @@ import { RATE_LOCK_MINUTES } from "@/lib/rates";
 import { OOBLE_INTERAC_EMAIL } from "@/lib/config";
 import { useLang } from "@/lib/i18n";
 
-const LAST_UPDATED = { fr: "2 août 2026", en: "August 2, 2026" };
+const LAST_UPDATED = { fr: "11 octobre 2026", en: "October 11, 2026" };
 
 const Kicker = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[12px] uppercase tracking-[0.16em] text-muted-foreground">{children}</p>
@@ -14,12 +14,6 @@ const Kicker = ({ children }: { children: React.ReactNode }) => (
 
 /** Espace réservé à compléter avant publication — bien visible dans le code
     comme à l'écran, pour qu'il ne parte jamais en production par erreur. */
-const Fill = ({ children }: { children: React.ReactNode }) => (
-  <span className="rounded-[4px] bg-amber-100 px-1.5 py-0.5 font-mono text-[0.92em] text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
-    {children}
-  </span>
-);
-
 const P = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[15px] leading-[1.75] text-muted-foreground">{children}</p>
 );
@@ -63,9 +57,9 @@ const PARTS: Part[] = [
           <P>
             Les présentes conditions d'utilisation (les « Conditions ») régissent l'accès et
             l'utilisation de la plateforme Ooble, exploitée par{" "}
-            <Fill>[raison sociale complète, ex. Ooble Technologies Inc.]</Fill>, société{" "}
-            <Fill>[constituée en vertu de la loi de : province ou fédérale]</Fill>, dont le siège
-            est situé à <Fill>[adresse complète]</Fill> (« Ooble », « nous »). Ooble permet
+            Ooble Technologies Inc., société constituée en vertu de la{" "}
+            <em>Loi canadienne sur les sociétés par actions</em>, dont le siège est situé à
+            Québec (Québec), Canada (« Ooble », « nous »). Ooble permet
             l'achat et la vente de Tether (USDT) contre des dollars canadiens (CAD), réglés
             directement vers le portefeuille numérique ou le compte bancaire du client par virement
             Interac.
@@ -105,9 +99,9 @@ const PARTS: Part[] = [
           <P>
             These terms of use (the "Terms") govern access to and use of the Ooble platform,
             operated by{" "}
-            <Fill>[full corporate name, e.g. Ooble Technologies Inc.]</Fill>, a corporation{" "}
-            <Fill>[incorporated under the laws of: province or federal]</Fill>, with its head
-            office located at <Fill>[full address]</Fill> ("Ooble," "we"). Ooble enables the
+            Ooble Technologies Inc., a corporation incorporated under the{" "}
+            <em>Canada Business Corporations Act</em>, with its head office located in Québec
+            City, Quebec, Canada ("Ooble," "we"). Ooble enables the
             purchase and sale of Tether (USDT) against Canadian dollars (CAD), settled directly to
             the customer's digital wallet or bank account via Interac transfer.
           </P>
@@ -842,19 +836,17 @@ const PARTS: Part[] = [
     body: {
       fr: (
         <P>
-          Les présentes Conditions sont régies par les lois applicables dans{" "}
-          <Fill>[province : ex. la province de Québec]</Fill> et les lois fédérales du Canada qui
-          s'y appliquent. Tout litige relève de la compétence exclusive des tribunaux de{" "}
-          <Fill>[province]</Fill>, sous réserve des pouvoirs d'enquête et de sanction reconnus à
+          Les présentes Conditions sont régies par les lois applicables dans la province de
+          Québec et les lois fédérales du Canada qui s'y appliquent. Tout litige relève de la
+          compétence exclusive des tribunaux du Québec, sous réserve des pouvoirs d'enquête et de sanction reconnus à
           CANAFE et aux autres autorités de réglementation compétentes.
         </P>
       ),
       en: (
         <P>
-          These Terms are governed by the laws applicable in{" "}
-          <Fill>[province: e.g. the Province of Quebec]</Fill> and the federal laws of Canada
-          that apply there. Any dispute is subject to the exclusive jurisdiction of the courts of{" "}
-          <Fill>[province]</Fill>, subject to the powers of investigation and sanction recognized
+          These Terms are governed by the laws applicable in the Province of Quebec and the
+          federal laws of Canada that apply there. Any dispute is subject to the exclusive
+          jurisdiction of the courts of Quebec, subject to the powers of investigation and sanction recognized
           for FINTRAC and other competent regulatory authorities.
         </P>
       ),
@@ -874,7 +866,7 @@ const PARTS: Part[] = [
           <Ul>
             <li>Courriel : support@ooble.ca</li>
             <li>Interac e-Transfer (paiements) : {OOBLE_INTERAC_EMAIL}</li>
-            <li>Adresse postale : <Fill>[adresse complète de l'entreprise]</Fill></li>
+            <li>Siège : Ooble Technologies Inc., Québec (Québec), Canada</li>
           </Ul>
         </>
       ),
@@ -887,7 +879,7 @@ const PARTS: Part[] = [
           <Ul>
             <li>Email: support@ooble.ca</li>
             <li>Interac e-Transfer (payments): {OOBLE_INTERAC_EMAIL}</li>
-            <li>Postal address: <Fill>[full company address]</Fill></li>
+            <li>Head office: Ooble Technologies Inc., Québec City, Quebec, Canada</li>
           </Ul>
         </>
       ),
