@@ -25,14 +25,16 @@ function env(key: string, fallback: string): string {
 
 const COMPANY = {
   legal:    env("COMPANY_LEGAL",    "Ooble Technologies Inc."),
-  address:  env("COMPANY_ADDRESS",  "8580, avenue Lesperance"),
-  locality: env("COMPANY_LOCALITY", "Québec (Québec) G2K 1M3"),
+  // Courriels automatiques (commandes, vérification…) : ville seulement.
+  address:  env("COMPANY_ADDRESS",  ""),
+  locality: env("COMPANY_LOCALITY", "Québec"),
   country:  env("COMPANY_COUNTRY",  "Canada"),
   email:    env("COMPANY_EMAIL",    ""),                    // à définir dès qu'une adresse de contact existe
   phone:    env("COMPANY_PHONE",    ""),                    // « +1 418 000-0000 »
   website:  env("COMPANY_WEBSITE",  "https://ooble.ca"),
-  // Numéro d'inscription CANAFE (entreprise de services monétaires), depuis le 6 octobre 2026.
-  license:  env("COMPANY_LICENSE",  "N300001729"),
+  // Numéro CANAFE : affiché sur le site et dans les campagnes, pas dans les
+  // courriels automatiques (laisser vide ; COMPANY_LICENSE pour l'afficher).
+  license:  env("COMPANY_LICENSE",  ""),
 };
 
 const WEB_HOST = COMPANY.website.replace(/^https?:\/\//, "").replace(/\/$/, "");
