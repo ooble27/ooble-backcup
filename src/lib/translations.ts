@@ -26,6 +26,12 @@ const dict = {
     en: "Buy and sell USDT in Canadian dollars, settled via Interac e-Transfer. Non-custodial: your funds never sit with us.",
   },
   "footer.paymentAccepted": { fr: "Moyen de paiement accepté", en: "Accepted payment method" },
+  "footer.msb": {
+    fr: "Ooble est inscrite auprès du CANAFE comme entreprise de services monétaires",
+    en: "Ooble is registered with FINTRAC as a money services business",
+  },
+  "footer.msbNumber": { fr: "N° d'inscription", en: "Registration no." },
+  "footer.msbCheck": { fr: "Vérifier au registre public", en: "Check the public registry" },
   "footer.risk": {
     fr: "Les cryptoactifs comportent des risques ; leur valeur peut fluctuer. Ooble règle chaque ordre individuellement et ne conserve aucun fonds client.",
     en: "Crypto assets carry risks; their value can fluctuate. Ooble settles each order individually and does not hold any client funds.",
@@ -545,6 +551,11 @@ const dict = {
   "faqp.8a": {
     fr: "Non. Aucun solde client, aucun portefeuille interne. Chaque ordre est réglé individuellement, puis clos.",
     en: "No. No client balance, no internal wallet. Each order is settled individually, then closed.",
+  },
+  "faqp.msbQ": { fr: "Ooble est-elle inscrite auprès du CANAFE ?", en: "Is Ooble registered with FINTRAC?" },
+  "faqp.msbA": {
+    fr: "Oui. Ooble est inscrite auprès du CANAFE comme entreprise de services monétaires depuis le 6 octobre 2026, sous le numéro N300001729. Vous pouvez le vérifier dans le registre public du CANAFE. Comme toute entreprise inscrite, Ooble vérifie l'identité de ses clients, conserve les dossiers exigés et déclare les opérations prévues par la loi.",
+    en: "Yes. Ooble has been registered with FINTRAC as a money services business since October 6, 2026, under number N300001729. You can check it in FINTRAC's public registry. Like every registered business, Ooble verifies its clients' identity, keeps the required records and reports the transactions required by law.",
   },
   "faqp.scamQ": { fr: "Quelqu'un me demande d'acheter des USDT pour lui", en: "Someone is asking me to buy USDT for them" },
   "faqp.scamA": {

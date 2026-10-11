@@ -114,6 +114,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     videos: ["votre-securite"],
     items: [
       item("fonds", "8q", "8a"),
+      item("canafe", "msbQ", "msbA"),
       item("arnaques", "scamQ", "scamA"),
       item("codes", "contactQ", "contactA"),
     ],

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FINTRAC_MSB_NUMBER } from "@/lib/legal";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { OOBLE_SUPPORT_EMAIL } from "@/lib/config";
@@ -76,7 +77,8 @@ const PARTS: Part[] = [
             personnels dans le cadre d'activités commerciales.
           </P>
           <P>
-            En tant qu'entreprise de services monétaires (EMSC), Ooble est également assujettie à la{" "}
+            En tant qu'entreprise de services monétaires (EMSC) inscrite auprès de CANAFE sous le
+            numéro {FINTRAC_MSB_NUMBER}, Ooble est également assujettie à la{" "}
             <em>Loi sur le recyclage des produits de la criminalité et le financement des activités
             terroristes</em> (LRPCFAT), qui impose des obligations spécifiques de collecte, de
             vérification d'identité et de conservation de dossiers, détaillées dans nos{" "}
@@ -96,7 +98,8 @@ const PARTS: Part[] = [
             commercial activities.
           </P>
           <P>
-            As a money services business (MSB), Ooble is also subject to the{" "}
+            As a money services business (MSB) registered with FINTRAC under number{" "}
+            {FINTRAC_MSB_NUMBER}, Ooble is also subject to the{" "}
             <em>Proceeds of Crime (Money Laundering) and Terrorist Financing Act</em> (PCMLTFA), which
             imposes specific obligations regarding collection, identity verification, and
             record-keeping, detailed in our{" "}

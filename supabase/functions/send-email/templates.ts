@@ -23,7 +23,7 @@ export const TEMPLATES: Record<string, string> = {
     heading("Bienvenue sur Ooble, {{firstName}}") +
     lead("Votre compte est créé. Vous pouvez acheter et vendre de l'USDT en dollars canadiens, réglé par Interac e-Transfer, de façon simple, rapide et non-custodial.") +
     dataRows([
-      ["USDT",       "6 réseaux au choix"],
+      ["USDT",       "4 réseaux au choix"],
       ["Paiement",   "Interac e-Transfer"],
       ["Modèle",     "Non-custodial"],
     ]) +

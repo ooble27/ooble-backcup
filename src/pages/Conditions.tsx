@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FINTRAC_MSB_NUMBER, FINTRAC_REGISTRY_URL } from "@/lib/legal";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { RATE_LOCK_MINUTES } from "@/lib/rates";
@@ -85,13 +86,17 @@ const PARTS: Part[] = [
             opérations et déclarations financières du Canada (CANAFE) et aux obligations décrites
             dans les présentes Conditions.{" "}
             <strong className="text-foreground/80">
-              Statut d'inscription : la demande d'inscription d'Ooble à titre d'EMSC auprès de
-              CANAFE est en cours de traitement
-            </strong>{" "}
-            ; le numéro d'inscription sera publié ici et sur le registre public de CANAFE dès sa
-            confirmation. Ooble se conforme dès aujourd'hui à l'ensemble des obligations
-            d'identification, de tenue de dossiers, de déclaration et de programme de conformité
-            applicables, indépendamment de la date de confirmation de l'inscription.
+              Statut d'inscription : Ooble est inscrite auprès de CANAFE à titre d'EMSC depuis le
+              6 octobre 2026, sous le numéro {FINTRAC_MSB_NUMBER}
+            </strong>
+            . Cette inscription peut être vérifiée dans le{" "}
+            <a href={FINTRAC_REGISTRY_URL.fr} target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2">
+              registre public des entreprises de services monétaires
+            </a>{" "}
+            de CANAFE. L'inscription n'est ni un permis ni une approbation de CANAFE : elle atteste
+            qu'Ooble a satisfait aux exigences d'inscription prévues par la loi. Ooble applique
+            l'ensemble des obligations d'identification, de tenue de dossiers, de déclaration et de
+            programme de conformité qui en découlent.
           </P>
         </>
       ),
@@ -121,13 +126,17 @@ const PARTS: Part[] = [
             oversight by the Financial Transactions and Reports Analysis Centre of Canada (FINTRAC)
             and to the obligations described in these Terms.{" "}
             <strong className="text-foreground/80">
-              Registration status: Ooble's application to register as an MSB with FINTRAC is
-              currently being processed
-            </strong>{" "}
-            ; the registration number will be published here and on FINTRAC's public registry as
-            soon as it is confirmed. Ooble complies today with all applicable identification,
-            record-keeping, reporting, and compliance program obligations, regardless of the date
-            the registration is confirmed.
+              Registration status: Ooble has been registered with FINTRAC as an MSB since
+              October 6, 2026, under number {FINTRAC_MSB_NUMBER}
+            </strong>
+            . This registration can be verified in FINTRAC's{" "}
+            <a href={FINTRAC_REGISTRY_URL.en} target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2">
+              public money services business registry
+            </a>
+            . Registration is neither a licence nor an approval from FINTRAC: it confirms that
+            Ooble has met the registration requirements set out in the law. Ooble applies all the
+            resulting identification, record-keeping, reporting, and compliance program
+            obligations.
           </P>
         </>
       ),
@@ -913,8 +922,8 @@ const Conditions = () => {
         </h1>
         <p className="mt-6 max-w-[560px] text-[15px] leading-[1.7] text-muted-foreground">
           {lang === "en"
-            ? "Ooble is a money services business subject to the obligations of the Proceeds of Crime (Money Laundering) and Terrorist Financing Act, administered by FINTRAC. These Terms detail, without omission, what this means for you."
-            : "Ooble est une entreprise de services monétaires soumise aux obligations de la Loi sur le recyclage des produits de la criminalité et le financement des activités terroristes, administrée par CANAFE. Les présentes Conditions détaillent, sans rien omettre, ce que cela signifie pour vous."}
+            ? `Ooble is a money services business registered with FINTRAC (no. ${FINTRAC_MSB_NUMBER}) and subject to the obligations of the Proceeds of Crime (Money Laundering) and Terrorist Financing Act. These Terms detail, without omission, what this means for you.`
+            : `Ooble est une entreprise de services monétaires inscrite auprès de CANAFE (n° ${FINTRAC_MSB_NUMBER}) et soumise aux obligations de la Loi sur le recyclage des produits de la criminalité et le financement des activités terroristes. Les présentes Conditions détaillent, sans rien omettre, ce que cela signifie pour vous.`}
         </p>
         <p className="mt-4 text-[13px] text-muted-foreground/70">
           {lang === "en" ? "Last updated: " : "Dernière mise à jour : "}{LAST_UPDATED[lang]}

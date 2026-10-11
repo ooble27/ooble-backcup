@@ -31,9 +31,8 @@ const COMPANY = {
   email:    env("COMPANY_EMAIL",    ""),                    // à définir dès qu'une adresse de contact existe
   phone:    env("COMPANY_PHONE",    ""),                    // « +1 418 000-0000 »
   website:  env("COMPANY_WEBSITE",  "https://ooble.ca"),
-  // Vide tant que l'inscription CANAFE n'est pas finalisée : quand elle
-  // le sera, mettre p.ex. « MSB M25000000 » dans COMPANY_LICENSE.
-  license:  env("COMPANY_LICENSE",  ""),
+  // Numéro d'inscription CANAFE (entreprise de services monétaires), depuis le 6 octobre 2026.
+  license:  env("COMPANY_LICENSE",  "N300001729"),
 };
 
 const WEB_HOST = COMPANY.website.replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -123,7 +122,7 @@ function renderFooter(year: number): string {
   // disponible. Tant qu'on n'est pas enregistré, silence : on n'annonce
   // pas dans chaque mail qu'on ne l'est pas encore.
   const complianceLine = COMPANY.license
-    ? `${escape(COMPANY.legal)} est enregistrée auprès de CANAFE sous le n<sup>o</sup> ${escape(COMPANY.license)}.`
+    ? `${escape(COMPANY.legal)} est inscrite auprès du CANAFE comme entreprise de services monétaires, n<sup>o</sup> ${escape(COMPANY.license)}.`
     : "";
 
   return `

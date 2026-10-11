@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FINTRAC_MSB_NUMBER } from "@/lib/legal";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, FileText, Landmark, ShieldCheck, Wallet } from "lucide-react";
 import Header from "@/components/Header";
@@ -75,8 +76,8 @@ const FAQ: { q: Bi; a: Bi }[] = [
   {
     q: { fr: "Pourquoi demander l'origine des fonds ?", en: "Why ask for the source of funds?" },
     a: {
-      fr: "Comme toute entreprise de services monétaires au Canada, nous vérifions l'identité de nos clients et l'origine des fonds, et déclarons à CANAFE les opérations prévues par la loi.",
-      en: "Like every money services business in Canada, we verify our clients' identity and the source of funds, and report to FINTRAC the transactions required by law.",
+      fr: `Entreprise de services monétaires inscrite auprès de CANAFE (n° ${FINTRAC_MSB_NUMBER}), nous vérifions l'identité de nos clients et l'origine des fonds, et déclarons à CANAFE les opérations prévues par la loi.`,
+      en: `As a money services business registered with FINTRAC (no. ${FINTRAC_MSB_NUMBER}), we verify our clients' identity and the source of funds, and report to FINTRAC the transactions required by law.`,
     },
   },
 ];
@@ -239,8 +240,8 @@ const OTC = () => {
                 <H2 className="mt-4">{L({ fr: "Ce qu'il faut préparer.", en: "What to prepare." })}</H2>
                 <p className="mt-6 max-w-[360px] text-[13.5px] leading-[1.7] text-muted-foreground">
                   {L({
-                    fr: "Comme toute entreprise de services monétaires au Canada, nous vérifions l'identité et l'origine des fonds, et déclarons à CANAFE les opérations prévues par la loi.",
-                    en: "Like every money services business in Canada, we verify identity and the source of funds, and report to FINTRAC the transactions required by law.",
+                    fr: `Entreprise de services monétaires inscrite auprès de CANAFE (n° ${FINTRAC_MSB_NUMBER}), nous vérifions l'identité et l'origine des fonds, et déclarons à CANAFE les opérations prévues par la loi.`,
+                    en: `As a money services business registered with FINTRAC (no. ${FINTRAC_MSB_NUMBER}), we verify identity and the source of funds, and report to FINTRAC the transactions required by law.`,
                   })}
                 </p>
               </Reveal>
