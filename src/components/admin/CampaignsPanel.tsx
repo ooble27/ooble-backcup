@@ -14,11 +14,11 @@
 import { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  Megaphone, Send, Users, Sparkles, Check, AlertTriangle,
+  Megaphone, Send, Users, Sparkles, Check,
   Loader2, Smartphone, Monitor, ArrowLeft, ArrowRight, Building2, ShieldCheck,
   Clock, ChevronRight, ChevronLeft, X, User, UserPlus, Target,
-  TrendingUp, Globe, AtSign, Plus, LayoutGrid, FlaskConical, Image as ImageIcon, UserX,
-  Search, Eye, Trash2, ArrowUp, ArrowDown, Languages, Inbox, Maximize2,
+  TrendingUp, Globe, AtSign, Plus, LayoutGrid, Image as ImageIcon, UserX,
+  Search, Eye, Trash2, ArrowUp, ArrowDown, Maximize2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { sendCampaignEmail } from "@/lib/email";
@@ -38,10 +38,11 @@ import { draftCampaign, isAIError, type DraftCampaignResult } from "@/lib/ai";
 import AdminHero from "./AdminHero";
 import { SubTabs } from "./AdminBits";
 import { C, FONT, card, sH, inputStyle, btnPrimary, btnGhost } from "./adminTheme";
+import { Button, Field, Group, Notice, SummaryRow, TextArea, TextInput, Workspace, fieldInput, type WorkspaceStep } from "./ui";
 
 // ─── Types ──────────────────────────────────────────────────
 
-type SubTab = "templates" | "compose" | "history";
+type SubTab = "templates" | "history";
 
 interface Recipient {
   id?: string;
@@ -434,8 +435,7 @@ const CampaignsPanel = () => {
   const { user } = useAuth();
   const myEmail = user?.email ?? "";
   const [tab, setTab] = useState<SubTab>("templates");
-  const [templateId, setTemplateId] = useState(CAMPAIGN_TEMPLATES[0].id);
-  const [startLang, setStartLang] = useState<EmailLang>("fr");
+  const [studio, setStudio] = useState<{ templateId: string; lang: EmailLang } | null>(null);
   const [clients, setClients] = useState<ClientDirectoryEntry[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
@@ -455,11 +455,10 @@ const CampaignsPanel = () => {
 
   const TABS = [
     { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
-    { id: "compose", label: "Composer" },
     { id: "history", label: "Historique", count: campaigns.length || undefined },
   ];
 
-  const use = (id: string, lang: EmailLang) => { setTemplateId(id); setStartLang(lang); setTab("compose"); };
+  const openStudio = (id: string, lang: EmailLang) => setStudio({ templateId: id, lang });
 
   return (
     <div className="space-y-4">
@@ -475,7 +474,7 @@ const CampaignsPanel = () => {
             { label: "Contacts", value: clientsLoading ? "…" : clients.length, hint: clientsLoading ? undefined : `${english} en anglais` },
           ]}
           actions={[
-            { label: "Nouvelle campagne", icon: Megaphone, primary: true, onClick: () => setTab("compose") },
+            { label: "Nouvelle campagne", icon: Megaphone, primary: true, onClick: () => openStudio(CAMPAIGN_TEMPLATES[0].id, "fr") },
             { label: "Voir les modèles", icon: LayoutGrid, onClick: () => setTab("templates") },
           ]}
         />
@@ -483,17 +482,18 @@ const CampaignsPanel = () => {
 
       <SubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as SubTab)} />
 
-      {tab === "templates" && <TemplateGallery me={me} onUse={use} />}
-      {tab === "compose" && (
+      {tab === "templates" && <TemplateGallery me={me} onUse={openStudio} />}
+      {studio && (
         <CampaignComposer
-          key={`${templateId}:${startLang}`}
-          templateId={templateId}
-          startLang={startLang}
-          onChangeTemplate={() => setTab("templates")}
+          key={`${studio.templateId}:${studio.lang}`}
+          templateId={studio.templateId}
+          startLang={studio.lang}
+          onClose={() => setStudio(null)}
+          onChangeTemplate={() => { setStudio(null); setTab("templates"); }}
           me={me}
           clients={clients}
           clientsLoading={clientsLoading}
-          onSent={() => { setCampaigns(loadCampaigns()); setTab("history"); }}
+          onSent={() => { setCampaigns(loadCampaigns()); setStudio(null); setTab("history"); }}
         />
       )}
       {tab === "history" && <CampaignHistory campaigns={campaigns} />}
@@ -785,6 +785,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
 interface ComposerProps {
   templateId: string;
   startLang: EmailLang;
+  onClose: () => void;
   onChangeTemplate: () => void;
   me: Recipient;
   clients: ClientDirectoryEntry[];
@@ -792,11 +793,33 @@ interface ComposerProps {
   onSent: () => void;
 }
 
-function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients, clientsLoading, onSent }: ComposerProps) {
+type StudioStep = "content" | "audience" | "send";
+
+/** Hauteur de la fenêtre ≥ largeur donnée (pour basculer en mise en page sur une colonne). */
+function useWide(min: number) {
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.innerWidth >= min);
+  useEffect(() => {
+    const on = () => setWide(window.innerWidth >= min);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [min]);
+  return wide;
+}
+
+/**
+ * Studio de campagne en plein écran, en trois étapes :
+ * 1. Contenu : textes (FR et EN) à gauche, aperçu réel à droite ;
+ * 2. Audience : ajout de clients ou de groupes, langue d'envoi, liste ;
+ * 3. Envoi : récapitulatif, test, envoi.
+ */
+function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me, clients, clientsLoading, onSent }: ComposerProps) {
   const { user } = useAuth();
   const author = user?.email ?? "staff";
   const template = getTemplate(templateId);
+  const wide = useWide(1024);
 
+  const [step, setStep] = useState<StudioStep>("content");
+  const [mobilePane, setMobilePane] = useState<"edit" | "preview">("edit");
   const [name, setName] = useState("");
   const [editLang, setEditLang] = useState<EmailLang>(startLang);
   const [byLang, setByLang] = useState<ByLang>({ fr: defaultsFor(templateId, "fr"), en: defaultsFor(templateId, "en") });
@@ -839,9 +862,9 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
   const [confirming, setConfirming] = useState(false);
   const [fullPreview, setFullPreview] = useState(false);
 
-  const [aiOpen, setAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiNote, setAiNote] = useState<null | { kind: "ok" | "err"; text: string }>(null);
 
   const debounced = useDebounced(values, 280);
   const sample = editLang === "en" ? "Sarah" : "Awa";
@@ -850,20 +873,28 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
 
   const fieldKeys = new Set(template.fields.map((f) => f.key));
   const contentFields = template.fields.filter((f) => f.key !== "subject" && f.key !== "preheader");
-  const canSend = (byLang.fr.subject ?? "").trim().length > 0 && (byLang.en.subject ?? "").trim().length > 0 && recipients.length > 0;
+  const subjectsOk = (byLang.fr.subject ?? "").trim().length > 0 && (byLang.en.subject ?? "").trim().length > 0;
+  const canSend = subjectsOk && recipients.length > 0;
+  const dirty = edited("fr") || edited("en") || recipients.length > 0 || name.trim().length > 0;
+
+  const close = () => {
+    if (busy) return;
+    if (dirty && !window.confirm("Quitter sans envoyer ? Les textes modifiés et les destinataires seront perdus.")) return;
+    onClose();
+  };
 
   const generateWithAI = async () => {
     const prompt = aiPrompt.trim();
     if (!prompt || aiLoading) return;
     setAiLoading(true);
-    setFeedback(null);
+    setAiNote(null);
     const res = await draftCampaign({
       intention: editLang === "en" ? `${prompt}\n\nÉcris tous les textes en anglais (anglais canadien).` : prompt,
       segment: recipients.length > 0 ? `${recipients.length} destinataires sélectionnés` : "audience générale",
       design: template.name,
     });
     setAiLoading(false);
-    if (isAIError(res)) { setFeedback({ kind: "err", text: res.error }); return; }
+    if (isAIError(res)) { setAiNote({ kind: "err", text: res.error }); return; }
     const r = res as DraftCampaignResult;
     const next: TemplateValues = {};
     const put = (k: string, v: string) => { if (fieldKeys.has(k) && v) next[k] = v; };
@@ -872,7 +903,7 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
     put("eyebrow", r.eyebrow); put("label", r.eyebrow); put("badge", r.eyebrow);
     setByLang((s) => ({ ...s, [editLang]: { ...s[editLang], ...next } }));
     if (!name.trim()) setName(prompt.slice(0, 60));
-    setFeedback({ kind: "ok", text: `Textes proposés (${LANG_LABEL[editLang]}) : ${Object.keys(next).length} champs remplis. Relisez avant d'envoyer.` });
+    setAiNote({ kind: "ok", text: `${Object.keys(next).length} champs remplis en ${editLang === "fr" ? "français" : "anglais"}. Relisez avant d'envoyer.` });
   };
 
   const sendTest = async (langs: EmailLang[]) => {
@@ -888,7 +919,7 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
         const res = await sendTemplate(templateId, byLang[l], l, r, map.get(to.toLowerCase())?.token, `[Test ${l.toUpperCase()}] `);
         if (res.error) errors.push(res.error);
       }
-      setTestState(errors.length ? { kind: "err", text: errors[0] } : { kind: "ok", text: `Test${langs.length > 1 ? "s" : ""} envoyé${langs.length > 1 ? "s" : ""} à ${to} (${langs.map((l) => l.toUpperCase()).join(" + ")})` });
+      setTestState(errors.length ? { kind: "err", text: errors[0] } : { kind: "ok", text: `Test${langs.length > 1 ? "s" : ""} envoyé${langs.length > 1 ? "s" : ""} à ${to} (${langs.map((l) => l.toUpperCase()).join(" + ")}).` });
     } catch (e) {
       setTestState({ kind: "err", text: (e as Error).message });
     }
@@ -943,7 +974,7 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
     const langText = ` (${perLang.fr} en français, ${perLang.en} en anglais)`;
     if (failed === 0) {
       setFeedback({ kind: "ok", text: `Campagne envoyée à ${ok} destinataire${ok > 1 ? "s" : ""}${langText}.${skippedText}` });
-      onSent();
+      setTimeout(onSent, 1400);
     } else if (ok === 0) {
       setFeedback({ kind: "err", text: (lastError ?? "Échec de tous les envois.") + skippedText });
     } else {
@@ -951,189 +982,261 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
     }
   };
 
-  const langTabs = [
-    { id: "fr" as const, label: <>Français{edited("fr") && <Dot />}</> },
-    { id: "en" as const, label: <>English{edited("en") && <Dot />}</> },
+  const steps: WorkspaceStep[] = [
+    { id: "content", label: "Contenu", done: subjectsOk && step !== "content" },
+    { id: "audience", label: "Audience", badge: recipients.length || undefined, done: recipients.length > 0 && step === "send" },
+    { id: "send", label: "Envoi" },
   ];
+  const order: StudioStep[] = ["content", "audience", "send"];
+  const at = order.indexOf(step);
+  const go = (s: StudioStep) => setStep(s);
 
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
-      {/* ─── Colonne gauche ─── */}
-      <div className="space-y-4" style={{ fontFamily: FONT, minWidth: 0 }}>
-        {/* Modèle */}
-        <div className="cmp-rise" style={{ ...card, padding: 16, display: "flex", alignItems: "center", gap: 14 }}>
-          <button type="button" onClick={() => setFullPreview(true)} aria-label="Aperçu plein écran" style={{ width: 54, height: 54, borderRadius: 14, flexShrink: 0, border: "none", cursor: "zoom-in", background: template.swatch[0], boxShadow: `inset 0 0 0 5px ${template.swatch[1]}` }} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ ...sH, fontSize: 10 }}>{template.category}</p>
-            <p style={{ margin: "3px 0 0", color: C.t1, fontSize: 15, fontWeight: 500 }}>{template.name}</p>
-            <p className="hidden sm:block" style={{ margin: "2px 0 0", color: C.t3, fontSize: 12, lineHeight: 1.45 }}>{template.description}</p>
-          </div>
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <IconButton label="Aperçu plein écran" onClick={() => setFullPreview(true)}><Maximize2 style={{ width: 14, height: 14 }} strokeWidth={1.8} /></IconButton>
-            <button type="button" onClick={onChangeTemplate} style={{ ...btnGhost, height: 34 }}>
-              <LayoutGrid style={{ width: 12, height: 12 }} strokeWidth={1.7} />
-              <span className="hidden sm:inline">Changer</span>
-            </button>
-          </div>
+  const langSwitch = (
+    <Segmented ariaLabel="Langue des textes" size="sm" value={editLang} onChange={setEditLang}
+      options={[
+        { id: "fr", label: <>FR{edited("fr") && <Dot />}</>, title: "Textes en français" },
+        { id: "en", label: <>EN{edited("en") && <Dot />}</>, title: "Textes en anglais" },
+      ]} />
+  );
+
+  const nav = (
+    <>
+      {at > 0 && <Button variant="ghost" size="sm" onClick={() => go(order[at - 1])} icon={<ArrowLeft style={{ width: 14, height: 14 }} />}><span className="hidden sm:inline">Retour</span></Button>}
+      {at < 2 && (
+        <Button variant="primary" size="sm" onClick={() => go(order[at + 1])}>
+          <span className="hidden sm:inline">{step === "content" ? "Audience" : "Vérifier et envoyer"}</span>
+          <span className="sm:hidden">Suivant</span>
+          <ArrowRight style={{ width: 14, height: 14 }} />
+        </Button>
+      )}
+    </>
+  );
+
+  /* ── Étape 1 : contenu ── */
+  const editor = (
+    <div style={{ padding: wide ? "24px 28px 80px" : "20px 16px 80px", maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 13, color: C.t1 }}>Textes en {editLang === "fr" ? "français" : "anglais"}</p>
+          <p style={{ margin: "2px 0 0", fontSize: 12, color: C.t3, lineHeight: 1.5 }}>Chaque client reçoit la version de sa langue.</p>
         </div>
+        {langSwitch}
+      </div>
 
-        {/* Langue en cours d'édition */}
-        <div className="cmp-rise" style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", animationDelay: "40ms" }}>
-          <Languages style={{ width: 15, height: 15, color: C.t3 }} strokeWidth={1.7} />
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <p style={{ margin: 0, fontSize: 13, color: C.t1 }}>Textes en {editLang === "fr" ? "français" : "anglais"}</p>
-            <p style={{ margin: "1px 0 0", fontSize: 11.5, color: C.t3 }}>Chaque client reçoit la version de sa langue. Les deux sont prêtes, modifiez celle que vous voulez.</p>
-          </div>
-          <Segmented ariaLabel="Langue des textes" value={editLang} onChange={setEditLang} options={langTabs} />
-        </div>
+      <Group first title="Boîte de réception">
+        <Field label="Objet"><TextInput value={values.subject ?? ""} onChange={(e) => setField("subject", e.target.value)} /></Field>
+        <Field label="Préentête" hint="Le petit texte gris affiché après l'objet.">
+          <TextInput value={values.preheader ?? ""} onChange={(e) => setField("preheader", e.target.value)} />
+        </Field>
+      </Group>
 
-        {/* Boîte de réception */}
-        <Section icon={Inbox} title="Boîte de réception" delay={80}>
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)" }}>
-            <EditField label="Objet" value={values.subject ?? ""} onChange={(v) => setField("subject", v)} />
-            <EditField label="Préentête (le petit texte gris après l'objet)" value={values.preheader ?? ""} onChange={(v) => setField("preheader", v)} />
-            <InboxRow subject={inbox.subject} preheader={inbox.preheader} />
-          </div>
-        </Section>
-
-        {/* Contenu */}
-        <Section icon={Sparkles} title="Contenu" delay={120} right={
-          <button type="button" onClick={() => setByLang((s) => ({ ...s, [editLang]: defaultsFor(templateId, editLang) }))} style={{ background: "none", border: "none", padding: 0, color: C.t3, textDecoration: "underline", cursor: "pointer", fontSize: 11.5, fontFamily: FONT }}>
-            Textes d'origine
+      <Group title="Contenu" right={
+        edited(editLang) ? (
+          <button type="button" className="ui-btn" onClick={() => setByLang((s) => ({ ...s, [editLang]: defaultsFor(templateId, editLang) }))}
+            style={{ background: "none", border: "none", padding: 0, color: C.t3, cursor: "pointer", fontSize: 12.5, fontFamily: FONT }}>
+            Rétablir les textes d'origine
           </button>
-        }>
-          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)" }}>
-            <EditField label="Nom interne de la campagne" value={name} onChange={setName} placeholder={byLang.fr.subject || template.name} />
-            {contentFields.map((f) => (
-              <TemplateFieldInput key={`${editLang}:${f.key}`} field={f} value={values[f.key] ?? ""} onChange={(v) => setField(f.key, v)} />
-            ))}
-            <p style={{ margin: 0, color: C.t3, fontSize: 11.5, lineHeight: 1.55 }}>
-              <strong style={{ color: C.t2, fontWeight: 500 }}>{"{{prenom}}"}</strong> insère le prénom du destinataire ·{" "}
-              <strong style={{ color: C.t2, fontWeight: 500 }}>**mot**</strong> met en gras.
-            </p>
-            <div style={{ borderTop: `1px solid ${C.bds}`, paddingTop: 14 }}>
-              {!aiOpen ? (
-                <button type="button" onClick={() => setAiOpen(true)} style={{ ...btnGhost, height: 32 }}>
-                  <Sparkles style={{ width: 12, height: 12 }} strokeWidth={1.7} />
-                  Rédiger les textes avec l'IA ({editLang.toUpperCase()})
-                </button>
-              ) : (
-                <div style={{ display: "grid", gap: 8 }}>
-                  <textarea value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} rows={2} placeholder="Décrivez le message (ex. : rappeler aux clients non vérifiés de terminer leur vérification avant la fin du mois)." style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }} />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button type="button" onClick={generateWithAI} disabled={!aiPrompt.trim() || aiLoading} style={{ ...btnPrimary, height: 32, opacity: !aiPrompt.trim() || aiLoading ? 0.6 : 1 }}>
-                      {aiLoading ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <Sparkles style={{ width: 12, height: 12 }} strokeWidth={1.8} />}
-                      {aiLoading ? "Rédaction…" : "Proposer les textes"}
-                    </button>
-                    <button type="button" onClick={() => setAiOpen(false)} style={{ ...btnGhost, height: 32 }}>Fermer</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </Section>
+        ) : undefined
+      } description={<><b style={{ color: C.t2, fontWeight: 500 }}>{"{{prenom}}"}</b> insère le prénom du client · <b style={{ color: C.t2, fontWeight: 500 }}>**mot**</b> met en gras.</>}>
+        {contentFields.map((f) => (
+          <TemplateFieldInput key={`${editLang}:${f.key}`} field={f} value={values[f.key] ?? ""} onChange={(v) => setField(f.key, v)} />
+        ))}
+      </Group>
 
-        {/* Test */}
-        <Section icon={FlaskConical} title="Envoyer un test" delay={160}>
-          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "minmax(0, 1fr)" }}>
-            <input type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="votre@adresse.ca" aria-label="Adresse du test" style={inputStyle} />
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <button type="button" onClick={() => sendTest([editLang])} disabled={testState?.kind === "busy"} style={{ ...btnGhost }}>
-                {testState?.kind === "busy" ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 12, height: 12 }} strokeWidth={1.7} />}
-                Test en {editLang === "fr" ? "français" : "anglais"}
+      <Group title="Rédaction assistée" description={`Décrivez le message : l'IA propose les textes en ${editLang === "fr" ? "français" : "anglais"}, vous relisez.`}>
+        <div style={{ display: "grid", gap: 8 }}>
+          <TextArea value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} rows={2}
+            placeholder="Ex. : rappeler aux clients non vérifiés de terminer leur vérification avant la fin du mois." />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <Button size="sm" onClick={generateWithAI} disabled={!aiPrompt.trim() || aiLoading}
+              icon={aiLoading ? <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} /> : <Sparkles style={{ width: 13, height: 13 }} />}>
+              {aiLoading ? "Rédaction…" : "Proposer les textes"}
+            </Button>
+            {aiNote && <span style={{ fontSize: 12.5, color: aiNote.kind === "ok" ? C.successText : C.dangerText }}>{aiNote.text}</span>}
+          </div>
+        </div>
+      </Group>
+    </div>
+  );
+
+  const preview = (
+    <div style={{ minHeight: "100%", background: "var(--a-l2)", display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "var(--a-l2)", borderBottom: `1px solid ${C.bds}` }}>
+        <span style={{ fontSize: 12.5, color: C.t3, flex: 1 }}>Aperçu · {LANG_LABEL[editLang]} · prénom d'exemple « {sample} »</span>
+        <Segmented ariaLabel="Appareil" size="sm" value={device} onChange={setDevice}
+          options={[
+            { id: "desktop", label: <Monitor style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Ordinateur" },
+            { id: "mobile", label: <Smartphone style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Téléphone" },
+          ]} />
+        <Button variant="ghost" size="sm" aria-label="Plein écran" title="Plein écran" onClick={() => setFullPreview(true)} icon={<Maximize2 style={{ width: 14, height: 14 }} />} />
+      </div>
+      <div style={{ padding: wide ? "28px 32px 60px" : "16px 12px 60px" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto 18px" }}><InboxRow subject={inbox.subject} preheader={inbox.preheader} /></div>
+        <DevicePreview html={html} device={device} title="Aperçu du courriel" />
+      </div>
+    </div>
+  );
+
+  const contentStep = wide ? (
+    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(380px, 480px) minmax(0, 1fr)" }}>
+      <div style={{ overflowY: "auto", borderRight: `1px solid ${C.bds}` }}>{editor}</div>
+      <div style={{ overflowY: "auto" }}>{preview}</div>
+    </div>
+  ) : (
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.bds}`, display: "flex", justifyContent: "center" }}>
+        <Segmented ariaLabel="Affichage" value={mobilePane} onChange={setMobilePane}
+          options={[{ id: "edit", label: "Modifier" }, { id: "preview", label: <><Eye style={{ width: 13, height: 13 }} /> Aperçu</> }]} />
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>{mobilePane === "edit" ? editor : preview}</div>
+    </div>
+  );
+
+  /* ── Étape 2 : audience ── */
+  const audienceSide = (
+    <div style={{ padding: wide ? "24px 28px 60px" : "20px 16px 24px" }}>
+      <Group first title="Ajouter des destinataires" description="Cherchez un client par son nom, ou tapez une adresse puis Entrée.">
+        <CampaignRecipientPicker bare selected={recipients} clients={clients} loading={clientsLoading} onAdd={addRecipient} onRemove={removeRecipient} />
+      </Group>
+      <Group title="Ajouter un groupe">
+        <div style={{ borderTop: `1px solid ${C.bds}`, marginTop: -4 }}>
+          {SEGMENTS.map(({ id: s, icon: Icon, label }) => {
+            const n = clientsLoading ? null : filterBySegment(clients, s).length;
+            return (
+              <button key={s} type="button" className="ui-row" onClick={() => addSegment(s)} disabled={!n}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 4px", border: "none", borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, fontFamily: FONT, fontSize: 13.5, cursor: n ? "pointer" : "default", textAlign: "left" }}>
+                <Icon style={{ width: 15, height: 15, color: C.t3 }} strokeWidth={1.7} />
+                <span style={{ flex: 1 }}>{label}</span>
+                <span style={{ fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{n ?? "…"}</span>
+                <Plus style={{ width: 14, height: 14, color: C.t3 }} />
               </button>
-              <button type="button" onClick={() => sendTest(["fr", "en"])} disabled={testState?.kind === "busy"} style={{ ...btnGhost }}>
-                <Languages style={{ width: 12, height: 12 }} strokeWidth={1.7} />
-                Les deux langues
-              </button>
-            </div>
-            {testState && testState.kind !== "busy" && (
-              <p style={{ margin: 0, fontSize: 12, color: testState.kind === "ok" ? C.successText : C.dangerText }}>{testState.text}</p>
-            )}
-          </div>
-        </Section>
+            );
+          })}
+        </div>
+      </Group>
+      <Group title="Langue d'envoi">
+        <Segmented ariaLabel="Langue d'envoi" value={sendLang} onChange={setSendLang}
+          options={[{ id: "client", label: "Celle du client" }, { id: "fr", label: "Français" }, { id: "en", label: "English" }]} />
+        {sendLang === "client" && (
+          <Field label="Si la langue du client est inconnue">
+            <select value={unknownLang} onChange={(e) => setUnknownLang(e.target.value as UnknownLang)} className="ui-input" style={{ ...fieldInput, height: 40 }}>
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+              <option value="province">Selon la province (Québec : français, ailleurs : anglais)</option>
+            </select>
+          </Field>
+        )}
+      </Group>
+    </div>
+  );
 
-        {/* Destinataires + envoi */}
-        <Section icon={Target} title="Destinataires" delay={200} flush>
-          <div style={{ padding: "12px 18px" }}>
-            <CampaignRecipientPicker selected={recipients} clients={clients} loading={clientsLoading} onAdd={addRecipient} onRemove={removeRecipient} />
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.bds}` }}>
-              <span style={{ fontSize: 11, color: C.t3, marginRight: 2, lineHeight: "28px" }}>Ajouter un groupe :</span>
-              {SEGMENTS.map(({ id: s, icon: Icon, label }) => (
-                <button key={s} type="button" className="cmp-chip" onClick={() => addSegment(s)} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 10px", borderRadius: 99, background: "transparent", border: `1px solid ${C.bds}`, color: C.t2, fontSize: 11.5, fontFamily: FONT, cursor: "pointer" }}>
-                  <Plus style={{ width: 10, height: 10 }} strokeWidth={2} />
-                  <Icon style={{ width: 11, height: 11 }} strokeWidth={1.7} />
-                  {label}
-                  <span style={{ fontSize: 10.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{clientsLoading ? "…" : filterBySegment(clients, s).length}</span>
-                </button>
-              ))}
-              {recipients.length > 0 && (
-                <button type="button" onClick={() => setRecipients([])} style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 99, background: "transparent", border: `1px solid ${C.dangerBd}`, color: C.dangerText, fontSize: 11.5, fontFamily: FONT, cursor: "pointer" }}>
-                  <X style={{ width: 10, height: 10 }} strokeWidth={2} />
-                  Vider
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Langue d'envoi */}
-          <div style={{ padding: "14px 18px", borderTop: `1px solid ${C.bds}`, display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12.5, color: C.t1 }}>Langue d'envoi</span>
-              <Segmented
-                ariaLabel="Langue d'envoi"
-                size="sm"
-                value={sendLang}
-                onChange={setSendLang}
-                options={[{ id: "client", label: "Celle du client" }, { id: "fr", label: "Français" }, { id: "en", label: "English" }]}
-              />
-            </div>
-            {sendLang === "client" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 11.5, color: C.t3 }}>Si la langue du client n'est pas connue</span>
-                <select value={unknownLang} onChange={(e) => setUnknownLang(e.target.value as UnknownLang)} aria-label="Langue si inconnue" style={{ ...inputStyle, width: "auto", height: 30, padding: "0 10px", fontSize: 12 }}>
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                  <option value="province">Selon la province (Québec : français)</option>
-                </select>
+  const audienceList = (
+    <div style={{ padding: wide ? "24px 32px 60px" : "8px 16px 60px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 500, letterSpacing: "-0.015em", flex: 1 }}>
+          {recipients.length} destinataire{recipients.length > 1 ? "s" : ""}
+        </h2>
+        {recipients.length > 0 && <Button variant="ghost" size="sm" onClick={() => setRecipients([])}>Tout retirer</Button>}
+      </div>
+      {recipients.length > 0 && (
+        <p style={{ margin: "4px 0 0", fontSize: 13, color: C.t3, fontVariantNumeric: "tabular-nums" }}>
+          {split.fr} en français · {split.en} en anglais{sendLang === "client" && split.unknown > 0 ? ` · ${split.unknown} sans langue connue` : ""}
+        </p>
+      )}
+      {recipients.length === 0 ? (
+        <div style={{ marginTop: 40, textAlign: "center", color: C.t3, fontSize: 13.5, lineHeight: 1.6 }}>
+          <Users style={{ width: 28, height: 28, marginBottom: 10 }} strokeWidth={1.4} />
+          <p style={{ margin: 0 }}>Personne pour l'instant.<br />Ajoutez des clients ou un groupe.</p>
+        </div>
+      ) : (
+        <div style={{ marginTop: 18, borderTop: `1px solid ${C.bds}` }}>
+          {recipients.slice(0, 300).map((r) => {
+            const l = langFor(r, sendLang, unknownLang);
+            return (
+              <div key={r.email} className="ui-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 4px", borderBottom: `1px solid ${C.bds}` }}>
+                <span style={{ width: 30, height: 30, borderRadius: 99, background: C.l3, color: C.t2, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {(r.firstName || r.email)[0]?.toUpperCase()}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.fullName || r.email}</span>
+                  <span style={{ display: "block", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.email}{r.region ? ` · ${r.region}` : ""}</span>
+                </span>
+                <span title={r.lang ? "Langue choisie par le client" : "Langue déduite"} style={{ fontSize: 11.5, padding: "3px 8px", borderRadius: 99, background: C.hover2, color: r.lang || sendLang !== "client" ? C.t2 : C.t3, fontVariantNumeric: "tabular-nums" }}>
+                  {l.toUpperCase()}{!r.lang && sendLang === "client" ? " ?" : ""}
+                </span>
+                <Button variant="ghost" size="sm" aria-label={`Retirer ${r.email}`} title="Retirer" onClick={() => removeRecipient(r.email)} icon={<X style={{ width: 14, height: 14 }} />} />
               </div>
-            )}
-            {recipients.length > 0 && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <LangStat label="En français" value={split.fr} />
-                <LangStat label="En anglais" value={split.en} />
-                {sendLang === "client" && split.unknown > 0 && <LangStat label="Langue inconnue" value={split.unknown} muted />}
-              </div>
-            )}
+            );
+          })}
+          {recipients.length > 300 && <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.t3 }}>… et {recipients.length - 300} autres.</p>}
+        </div>
+      )}
+    </div>
+  );
+
+  const audienceStep = wide ? (
+    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(360px, 440px) minmax(0, 1fr)" }}>
+      <div style={{ overflowY: "auto", borderRight: `1px solid ${C.bds}` }}>{audienceSide}</div>
+      <div style={{ overflowY: "auto" }}>{audienceList}</div>
+    </div>
+  ) : (
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>{audienceSide}<div style={{ borderTop: `1px solid ${C.bds}` }}>{audienceList}</div></div>
+  );
+
+  /* ── Étape 3 : envoi ── */
+  const heavy = recipients.length > DAILY_EMAIL_LIMIT * 0.6;
+  const sendStep = (
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div className="ui-in" style={{ maxWidth: 720, margin: "0 auto", padding: wide ? "40px 28px 80px" : "24px 16px 80px" }}>
+        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em" }}>Vérifier et envoyer</h2>
+        <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t3 }}>Relisez, envoyez-vous un test, puis lancez la campagne.</p>
+
+        <div style={{ marginTop: 24, borderTop: `1px solid ${C.bds}` }}>
+          <SummaryRow label="Nom interne">
+            <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder={byLang.fr.subject || template.name} style={{ minHeight: 36, padding: "6px 10px" }} />
+          </SummaryRow>
+          <SummaryRow label="Modèle" action={<Button variant="ghost" size="sm" onClick={onChangeTemplate}>Changer</Button>}>{template.name}</SummaryRow>
+          <SummaryRow label="Objet (français)" action={<Button variant="ghost" size="sm" onClick={() => { setEditLang("fr"); go("content"); }}>Modifier</Button>}>
+            {byLang.fr.subject || <span style={{ color: C.dangerText }}>Manquant</span>}
+          </SummaryRow>
+          <SummaryRow label="Objet (anglais)" action={<Button variant="ghost" size="sm" onClick={() => { setEditLang("en"); go("content"); }}>Modifier</Button>}>
+            {byLang.en.subject || <span style={{ color: C.dangerText }}>Manquant</span>}
+          </SummaryRow>
+          <SummaryRow label="Destinataires" action={<Button variant="ghost" size="sm" onClick={() => go("audience")}>Modifier</Button>}>
+            {recipients.length === 0
+              ? <span style={{ color: C.dangerText }}>Aucun</span>
+              : <span style={{ fontVariantNumeric: "tabular-nums" }}>{recipients.length} · {split.fr} en français, {split.en} en anglais</span>}
+          </SummaryRow>
+          <SummaryRow label="Désabonnés">Ignorés automatiquement (loi anti-pourriel)</SummaryRow>
+        </div>
+
+        {recipients.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <Notice tone={heavy ? "warn" : "info"}>
+              Forfait Resend : {DAILY_EMAIL_LIMIT} courriels par jour au total, confirmations de commande comprises. Cette campagne en utilisera {recipients.length}.
+              {heavy && " Envoyez-la en plusieurs fois, sur plusieurs jours, pour ne pas bloquer les courriels des commandes."}
+            </Notice>
           </div>
+        )}
 
-          {recipients.length > 0 && (
-            <div style={{
-              margin: "0 18px 12px", padding: "10px 12px", borderRadius: 9, fontSize: 12, lineHeight: 1.5,
-              display: "flex", gap: 8, alignItems: "flex-start",
-              background: recipients.length > DAILY_EMAIL_LIMIT * 0.6 ? C.warnBg : C.hover2,
-              border: `1px solid ${recipients.length > DAILY_EMAIL_LIMIT * 0.6 ? C.warnBd : C.bds}`,
-              color: recipients.length > DAILY_EMAIL_LIMIT * 0.6 ? C.warnText : C.t2,
-            }}>
-              <AlertTriangle style={{ width: 13, height: 13, flexShrink: 0, marginTop: 2 }} strokeWidth={1.8} />
-              <span>
-                Forfait Resend : {DAILY_EMAIL_LIMIT} courriels par jour au total, confirmations de commande comprises.
-                Cette campagne en utilisera {recipients.length}.
-                {recipients.length > DAILY_EMAIL_LIMIT * 0.6 && " Envoyez-la en plusieurs fois, sur plusieurs jours, pour ne pas bloquer les courriels des commandes."}
-              </span>
-            </div>
-          )}
+        <Group title="Envoyer un test d'abord" description="Un seul courriel par clic : vérifiez le rendu dans votre boîte avant d'envoyer à tout le monde.">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <TextInput type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="votre@adresse.ca" aria-label="Adresse du test" style={{ flex: "1 1 220px", width: "auto" }} />
+            <Button onClick={() => sendTest([editLang])} disabled={testState?.kind === "busy"}
+              icon={testState?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 14, height: 14 }} />}>
+              Test {editLang.toUpperCase()}
+            </Button>
+            <Button variant="ghost" onClick={() => sendTest(["fr", "en"])} disabled={testState?.kind === "busy"}>FR + EN</Button>
+          </div>
+          {testState && testState.kind !== "busy" && <Notice tone={testState.kind === "ok" ? "ok" : "err"}>{testState.text}</Notice>}
+        </Group>
 
-          {feedback && (
-            <div style={{ margin: "0 18px 12px", padding: "9px 12px", borderRadius: 9, background: feedback.kind === "ok" ? C.successBg : C.dangerBg, border: `1px solid ${feedback.kind === "ok" ? C.successBd : C.dangerBd}`, color: feedback.kind === "ok" ? C.successText : C.dangerText, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              {feedback.kind === "ok" ? <Check style={{ width: 12, height: 12, flexShrink: 0 }} strokeWidth={2.5} /> : <AlertTriangle style={{ width: 12, height: 12, flexShrink: 0 }} strokeWidth={2} />}
-              {feedback.text}
-            </div>
-          )}
+        <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.bds}`, display: "grid", gap: 14 }}>
+          {feedback && <Notice tone={feedback.kind === "ok" ? "ok" : "err"}>{feedback.text}</Notice>}
           {progress && (
-            <div style={{ margin: "0 18px 12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: C.t2, marginBottom: 5 }}>
-                <span>Envoi en cours…</span>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: C.t2, marginBottom: 6 }}>
+                <span>Envoi en cours… ne fermez pas cette page.</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>{progress.done} / {progress.total}</span>
               </div>
               <div style={{ height: 4, background: C.l3, borderRadius: 2, overflow: "hidden" }}>
@@ -1141,56 +1244,40 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
               </div>
             </div>
           )}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" style={{ padding: "14px 18px", borderTop: `1px solid ${C.bds}` }}>
-            <span style={{ fontSize: 12, color: C.t3, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Users style={{ width: 12, height: 12 }} strokeWidth={1.6} />
-              {recipients.length > 0 ? `${recipients.length} destinataire${recipients.length > 1 ? "s" : ""}` : "Aucun destinataire"}
-            </span>
-            {confirming ? (
-              <div style={{ display: "flex", gap: 6 }}>
-                <button type="button" onClick={() => setConfirming(false)} disabled={busy} style={{ ...btnGhost, height: 36 }}>Annuler</button>
-                <button type="button" onClick={send} disabled={busy} style={{ ...btnPrimary, height: 36 }}>
-                  {busy ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 12, height: 12 }} strokeWidth={2} />}
-                  Confirmer l'envoi ({recipients.length})
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => setConfirming(true)} disabled={!canSend} style={{ ...btnPrimary, height: 38, opacity: canSend ? 1 : 0.5, cursor: canSend ? "pointer" : "default" }}>
-                <Send style={{ width: 13, height: 13 }} strokeWidth={2} />
-                Envoyer la campagne
-              </button>
-            )}
-          </div>
-        </Section>
-      </div>
-
-      {/* ─── Colonne droite : aperçu ─── */}
-      <div className="xl:sticky xl:top-4" style={{ fontFamily: FONT, minWidth: 0 }}>
-        <div style={{ ...card, padding: 0 }}>
-          <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.bds}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: C.t2 }}>
-              <Eye style={{ width: 13, height: 13 }} strokeWidth={1.7} />
-              Aperçu · {LANG_LABEL[editLang]}
-            </span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <Segmented
-                ariaLabel="Appareil"
-                size="sm"
-                value={device}
-                onChange={setDevice}
-                options={[
-                  { id: "desktop", label: <Monitor style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Ordinateur" },
-                  { id: "mobile", label: <Smartphone style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Téléphone" },
-                ]}
-              />
-              <IconButton label="Plein écran" onClick={() => setFullPreview(true)}><Maximize2 style={{ width: 13, height: 13 }} strokeWidth={1.8} /></IconButton>
+          {confirming ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ flex: "1 1 200px", fontSize: 13.5, color: C.t1 }}>Envoyer maintenant à {recipients.length} personne{recipients.length > 1 ? "s" : ""} ?</span>
+              <Button variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>Annuler</Button>
+              <Button variant="primary" onClick={send} disabled={busy}
+                icon={busy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 15, height: 15 }} />}>
+                Oui, envoyer
+              </Button>
             </div>
-          </div>
-          <div style={{ background: "#d9d5cc", padding: device === "mobile" ? "14px 0 0" : 14, maxHeight: "calc(100vh - 110px)", overflowY: "auto" }}>
-            <DevicePreview html={html} device={device} title="Aperçu du courriel" />
-          </div>
+          ) : (
+            <Button variant="primary" size="lg" onClick={() => setConfirming(true)} disabled={!canSend || feedback?.kind === "ok"} icon={<Send style={{ width: 16, height: 16 }} />}>
+              {recipients.length > 0 ? `Envoyer à ${recipients.length} destinataire${recipients.length > 1 ? "s" : ""}` : "Ajoutez des destinataires pour envoyer"}
+            </Button>
+          )}
         </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <Workspace
+      title={name.trim() || template.name}
+      subtitle={`${template.category} · nouvelle campagne`}
+      onClose={close}
+      closeLabel="Quitter"
+      steps={steps}
+      step={step}
+      onStep={(s) => go(s as StudioStep)}
+      actions={nav}
+    >
+      <div key={step} className="ui-in" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {step === "content" && contentStep}
+        {step === "audience" && audienceStep}
+        {step === "send" && sendStep}
       </div>
 
       <Modal open={fullPreview} onClose={() => setFullPreview(false)} variant="full" label="Aperçu plein écran">
@@ -1214,12 +1301,12 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
           <DevicePreview html={html} device={device} title="Aperçu plein écran" />
         </div>
       </Modal>
-    </div>
+    </Workspace>
   );
 }
 
 function Dot() {
-  return <span aria-label="modifié" style={{ width: 6, height: 6, borderRadius: 99, background: C.t1, display: "inline-block" }} />;
+  return <span aria-label="modifié" style={{ width: 6, height: 6, borderRadius: 99, background: "currentColor", display: "inline-block", marginLeft: 2 }} />;
 }
 
 function LangStat({ label, value, muted }: { label: string; value: number; muted?: boolean }) {
@@ -1228,21 +1315,6 @@ function LangStat({ label, value, muted }: { label: string; value: number; muted
       <span style={{ fontSize: 15, color: C.t1, fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{value}</span>
       <span style={{ fontSize: 11.5, color: C.t3 }}>{label}</span>
     </span>
-  );
-}
-
-function Section({ icon: Icon, title, children, right, delay = 0, flush }: {
-  icon: typeof Users; title: string; children: React.ReactNode; right?: React.ReactNode; delay?: number; flush?: boolean;
-}) {
-  return (
-    <section className="cmp-rise" style={{ ...card, padding: 0, animationDelay: `${delay}ms`, overflow: "visible" }}>
-      <header style={{ padding: "12px 18px", display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${C.bds}` }}>
-        <Icon style={{ width: 13, height: 13, color: C.t3 }} strokeWidth={1.7} />
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 500, color: C.t1, flex: 1 }}>{title}</h3>
-        {right}
-      </header>
-      {flush ? children : <div style={{ padding: "16px 18px" }}>{children}</div>}
-    </section>
   );
 }
 
@@ -1267,7 +1339,7 @@ function TemplateFieldInput({ field, value, onChange }: { field: TemplateField; 
 
 function FieldLabel({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 11.5, color: C.t3, marginBottom: 6, fontFamily: FONT, display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ fontSize: 12.5, color: C.t2, marginBottom: 6, fontFamily: FONT, display: "flex", alignItems: "baseline", gap: 6 }}>
       <span style={{ flex: 1 }}>{children}</span>
       {right}
     </div>
@@ -1277,17 +1349,12 @@ function FieldLabel({ children, right }: { children: React.ReactNode; right?: Re
 function EditField({ label, value, onChange, multiline, rows = 3, hint, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; multiline?: boolean; rows?: number; hint?: string; placeholder?: string;
 }) {
-  const shared: React.CSSProperties = { ...inputStyle, fontSize: 13.5 };
   return (
-    <label style={{ display: "block" }}>
-      <FieldLabel>{label}</FieldLabel>
-      {multiline ? (
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} style={{ ...shared, resize: "vertical", lineHeight: 1.55 }} />
-      ) : (
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={shared} />
-      )}
-      {hint && <div style={{ fontSize: 11, color: C.t3, marginTop: 5, lineHeight: 1.45 }}>{hint}</div>}
-    </label>
+    <Field label={label} hint={hint}>
+      {multiline
+        ? <TextArea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} />
+        : <TextInput type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />}
+    </Field>
   );
 }
 
@@ -1303,8 +1370,8 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="cmp-row"
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: 8, borderRadius: 12, border: `1px solid ${C.bd}`, background: "var(--a-inputBg)", cursor: "pointer", textAlign: "left", fontFamily: FONT }}
+        className="cmp-row ui-input"
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: 6, borderRadius: 10, border: `1px solid ${C.bds}`, background: "var(--a-inputBg)", cursor: "pointer", textAlign: "left", fontFamily: FONT }}
       >
         <span style={{ width: 112, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: "#f3efe6", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <img src={current.url} alt="" style={{ width: "100%", height: "100%", objectFit: current.group === "guide" ? "cover" : "contain" }} />
@@ -1313,8 +1380,8 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
           <span style={{ display: "block", fontSize: 13.5, color: C.t1 }}>{current.label}</span>
           <span style={{ display: "block", fontSize: 11.5, color: C.t3, marginTop: 2 }}>{current.group === "guide" ? "Vignette de guide vidéo · s'adapte à la langue" : "Illustration"}</span>
         </span>
-        <span style={{ ...btnGhost, height: 30, pointerEvents: "none" }}>
-          <ImageIcon style={{ width: 12, height: 12 }} strokeWidth={1.7} />
+        <span style={{ fontSize: 12.5, color: C.t3, padding: "0 8px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <ImageIcon style={{ width: 13, height: 13 }} strokeWidth={1.7} />
           Changer
         </span>
       </button>
@@ -1405,17 +1472,17 @@ function LinesEditor({ field, value, onChange }: { field: TemplateField; value: 
   return (
     <div>
       <FieldLabel right={<span style={{ fontSize: 11, color: C.t3 }}>{rows.length} ligne{rows.length > 1 ? "s" : ""}</span>}>{field.label}</FieldLabel>
-      <div style={{ display: "grid", gap: 8 }}>
+      <div style={{ display: "grid", borderTop: `1px solid ${C.bds}` }}>
         {rows.map((r, ri) => (
-          <div key={ri} className="cmp-row" style={{ display: "flex", gap: 10, padding: 10, borderRadius: 12, border: `1px solid ${C.bds}`, background: C.hover1 }}>
+          <div key={ri} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: `1px solid ${C.bds}` }}>
             <span style={{ width: 22, height: 22, borderRadius: 7, background: C.l3, color: C.t2, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{ri + 1}</span>
             <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 6, alignContent: "start" }}>
               {cols.map((c, ci) => {
                 const long = ci === cols.length - 1;
                 return long ? (
-                  <textarea key={ci} aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} rows={cols.length > 1 ? 2 : Math.min(3, Math.max(1, Math.ceil(r[ci].length / 34)))} onChange={(e) => set(ri, ci, e.target.value)} style={{ ...inputStyle, fontSize: 13, resize: "vertical", lineHeight: 1.5, padding: "7px 10px" }} />
+                  <TextArea key={ci} aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} rows={cols.length > 1 ? 2 : Math.min(3, Math.max(1, Math.ceil(r[ci].length / 34)))} onChange={(e) => set(ri, ci, e.target.value)} style={{ fontSize: 13.5, minHeight: 0, padding: "7px 10px" }} />
                 ) : (
-                  <input key={ci} aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} onChange={(e) => set(ri, ci, e.target.value)} style={{ ...inputStyle, fontSize: 13, padding: "7px 10px", fontWeight: ci === 0 && cols.length > 1 ? 500 : 400 }} />
+                  <TextInput key={ci} aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} onChange={(e) => set(ri, ci, e.target.value)} style={{ fontSize: 13.5, minHeight: 36, padding: "6px 10px", fontWeight: ci === 0 && cols.length > 1 ? 500 : 400 }} />
                 );
               })}
             </div>
@@ -1429,7 +1496,7 @@ function LinesEditor({ field, value, onChange }: { field: TemplateField; value: 
         <button
           type="button"
           onClick={() => commit([...rows, cols.map((c, i) => (i === 0 ? (cols.length > 1 ? c : "Nouveau point") : ""))])}
-          style={{ height: 36, borderRadius: 10, border: `1px dashed ${C.bd}`, background: "transparent", color: C.t2, fontSize: 12.5, fontFamily: FONT, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          style={{ marginTop: 8, height: 34, justifySelf: "start", padding: "0 10px", borderRadius: 8, border: "none", background: "transparent", color: C.t2, fontSize: 13, fontFamily: FONT, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           <Plus style={{ width: 13, height: 13 }} strokeWidth={1.8} />
           Ajouter une ligne
@@ -1562,9 +1629,11 @@ interface CampaignPickerProps {
   loading: boolean;
   onAdd: (r: Recipient) => void;
   onRemove: (email: string) => void;
+  /** Masque l'en-tête et les pastilles (quand la liste est affichée ailleurs). */
+  bare?: boolean;
 }
 
-function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove }: CampaignPickerProps) {
+function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove, bare }: CampaignPickerProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -1594,7 +1663,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove }
 
   return (
     <div style={{ position: "relative" }}>
-      <div style={{
+      {!bare && <div style={{
         display: "flex", alignItems: "center", gap: 6, marginBottom: 6,
       }}>
         <AtSign style={{ width: 10, height: 10, color: C.t3 }} strokeWidth={1.7} />
@@ -1611,13 +1680,14 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove }
             {selected.length}
           </span>
         )}
-      </div>
+      </div>}
 
-      <div style={{
+      <div className={bare ? "ui-input" : undefined} style={bare ? { ...fieldInput, display: "flex", alignItems: "center", gap: 8, padding: "0 12px" } : {
         display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center",
         minHeight: 32,
       }}>
-        {selected.slice(0, 20).map((r) => (
+        {bare && <Search style={{ width: 15, height: 15, color: C.t3, flexShrink: 0 }} />}
+        {!bare && selected.slice(0, 20).map((r) => (
           <span
             key={r.email}
             title={r.email}
@@ -1657,7 +1727,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove }
           </span>
         ))}
 
-        {selected.length > 20 && (
+        {!bare && selected.length > 20 && (
           <span style={{
             fontSize: 10.5, color: C.t3, fontFamily: FONT,
             padding: "3px 8px", borderRadius: 999,
@@ -1680,7 +1750,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove }
               onRemove(selected[selected.length - 1].email);
             }
           }}
-          placeholder={selected.length === 0 ? "Chercher un client ou taper un e-mail…" : "Ajouter…"}
+          placeholder={bare || selected.length === 0 ? "Nom du client ou adresse courriel" : "Ajouter…"}
           spellCheck={false}
           autoCapitalize="none"
           style={{
