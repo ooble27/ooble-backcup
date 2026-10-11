@@ -87,7 +87,10 @@ const AdminPortal = () => {
   }, [roles]);
 
   const visibleNav = useMemo(() => NAV.filter((n) => allowedTabs.has(n.id)), [allowedTabs]);
-  const [tab, setTab] = useState<TabId>(visibleNav[0]?.id ?? "queue");
+  const [tab, setTab] = useState<TabId>(() => {
+    const wanted = new URLSearchParams(window.location.search).get("tab") as TabId | null;
+    return wanted && visibleNav.some((n) => n.id === wanted) ? wanted : visibleNav[0]?.id ?? "queue";
+  });
 
   useEffect(() => {
     if (visibleNav.length > 0 && !allowedTabs.has(tab)) {

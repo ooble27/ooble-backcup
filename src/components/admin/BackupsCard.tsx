@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Check, ChevronDown, DatabaseBackup, KeyRound, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { C, FONT, btnGhost, card, cardHeaderRow, cardTitle, cardSubtitle, listRowStyle, numeric } from "@/components/admin/adminTheme";
-import BackupOpener from "@/components/admin/BackupOpener";
+import { Link } from "react-router-dom";
+import { TABLE_LABELS } from "@/lib/backupLabels";
 
 /*
  * Sauvegardes nocturnes (workflow GitHub « Sauvegarde nocturne ») :
@@ -30,38 +31,6 @@ interface Run {
 const mb = (b: number | null) => (b == null ? "—" : `${(b / 1048576).toLocaleString("fr-CA", { maximumFractionDigits: 1 })} Mo`);
 const when = (s: string) => new Date(s).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" });
 
-// Noms lisibles des tables principales ; les autres gardent leur nom technique.
-const TABLE_LABELS: Record<string, string> = {
-  profiles: "Clients (profils)",
-  orders: "Commandes",
-  order_events: "Historique des commandes",
-  kyc_verifications: "Vérifications d'identité",
-  business_verifications: "Vérifications d'entreprise",
-  saved_recipients: "Adresses de portefeuille enregistrées",
-  payment_confirmations: "Confirmations de paiement",
-  interac_receipts: "Virements Interac reçus",
-  usdt_payouts: "Envois USDT",
-  blockchain_transactions: "Transactions blockchain",
-  chain_deposits: "Dépôts USDT reçus",
-  compliance_alerts: "Alertes de conformité",
-  compliance_flags: "Signalements de conformité",
-  compliance_declarations: "Déclarations CANAFE",
-  compliance_checklist: "Liste de conformité",
-  account_closures: "Comptes fermés",
-  admin_audit_log: "Journal des actions de l'équipe",
-  user_roles: "Rôles de l'équipe",
-  signup_origins: "Origine des inscriptions",
-  marketing_optout: "Désabonnements courriels",
-  push_subscriptions: "Abonnements aux notifications",
-  mail_threads: "Messagerie (conversations)",
-  mail_messages: "Messagerie (messages)",
-  exchange_rates: "Historique des taux",
-  treasury_addresses: "Adresses de trésorerie",
-  treasury_movements: "Mouvements de trésorerie",
-  announcements: "Annonces",
-  backup_runs: "Journal des sauvegardes",
-};
-
 function ago(s: string): string {
   const h = (Date.now() - new Date(s).getTime()) / 3600000;
   if (h < 1) return "il y a moins d'une heure";
@@ -72,7 +41,6 @@ function ago(s: string): string {
 export default function BackupsCard() {
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [open, setOpen] = useState<number | null>(null);
-  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     supabase.from("backup_runs" as never).select("*").order("started_at", { ascending: false }).limit(10)
@@ -112,15 +80,13 @@ export default function BackupsCard() {
         </div>
       )}
 
-      {testing
-        ? <BackupOpener onClose={() => setTesting(false)} />
-        : lastOk && (
-          <div style={{ margin: "0 16px 16px" }}>
-            <button type="button" onClick={() => setTesting(true)} style={{ ...btnGhost, width: "100%", justifyContent: "center", height: 40 }}>
-              <KeyRound style={{ width: 14, height: 14 }} /> Tester une sauvegarde (fichier + phrase secrète)
-            </button>
-          </div>
-        )}
+      {lastOk && (
+        <div style={{ margin: "0 16px 16px" }}>
+          <Link to="/admin/sauvegarde" style={{ ...btnGhost, width: "100%", justifyContent: "center", height: 40, textDecoration: "none", boxSizing: "border-box" }}>
+            <KeyRound style={{ width: 14, height: 14 }} /> Ouvrir une sauvegarde
+          </Link>
+        </div>
+      )}
 
       {!runs && (
         <div style={{ padding: 18, display: "flex", alignItems: "center", gap: 8, color: C.t3, fontSize: 13 }}>

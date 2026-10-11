@@ -35,6 +35,7 @@ import Entreprise from "./pages/app/Entreprise";
 import BusinessGate from "./components/app/BusinessGate";
 import AdminPortal from "./pages/admin/AdminPortal";
 import AdminAI from "./pages/admin/AdminAI";
+import BackupExplorer from "./pages/admin/BackupExplorer";
 import RequireAuth from "./components/app/RequireAuth";
 import RequireStaff from "./components/app/RequireStaff";
 import NotFound from "./pages/NotFound";
@@ -109,6 +110,7 @@ export const AppRoutes = () => (
         {/* Back-office — réservé à l'équipe (rôles dans user_roles) */}
         <Route path="/admin" element={<RequireStaff><AdminPortal /></RequireStaff>} />
         <Route path="/admin/ai" element={<RequireStaff><AdminAI /></RequireStaff>} />
+        <Route path="/admin/sauvegarde" element={<RequireStaff><BackupExplorer /></RequireStaff>} />
 
           <Route path="*" element={<NotFound />} />
           </Routes>

@@ -8,6 +8,7 @@
 #   db/storage-data.sql   index des fichiers (storage.buckets, storage.objects)
 #   db/cron-jobs.sql      tâches planifiées (cron.job)
 #   storage/<bucket>/…    les fichiers eux-mêmes (pièces d'identité, documents)
+#   lisible/<table>.csv   chaque table en CSV (+ auth_users.csv, sans mots de passe)
 #   manifest.json         date, nombre de lignes par table, nombre de fichiers
 #   SHA256SUMS            empreintes de chaque fichier
 #
@@ -62,6 +63,26 @@ pg_dump "$DB" --role=postgres -Fp --data-only --no-owner --no-privileges \
   -t storage.buckets -t storage.objects -f "$WORK/db/storage-data.sql"
 pg_dump "$DB" --role=postgres -Fp --data-only --no-owner --no-privileges -t cron.job -f "$WORK/db/cron-jobs.sql"
 
+echo "→ Export lisible (une feuille CSV par table)"
+# Pour consulter une sauvegarde sans base de données (back-office → Ouvrir une sauvegarde).
+mkdir -p "$WORK/lisible"
+psql_q > "$WORK/tables.txt" <<'SQL'
+select table_name from information_schema.tables
+ where table_schema = 'public' and table_type = 'BASE TABLE' order by 1;
+SQL
+while IFS= read -r t; do
+  [ -z "$t" ] && continue
+  psql_q > "$WORK/lisible/$t.csv" <<SQL
+copy (select * from public."$t") to stdout with (format csv, header);
+SQL
+done < "$WORK/tables.txt"
+rm -f "$WORK/tables.txt"
+# Comptes de connexion, sans les mots de passe.
+psql_q > "$WORK/lisible/auth_users.csv" <<'SQL'
+copy (select id, email, phone, created_at, email_confirmed_at, last_sign_in_at, banned_until
+        from auth.users order by created_at) to stdout with (format csv, header);
+SQL
+
 echo "→ Comptage des lignes (après)"
 count_tables > "$WORK/counts-after.json"
 
@@ -79,6 +100,7 @@ while IFS= read -r path; do
     "$SUPABASE_URL/storage/v1/object/$enc" -o "$WORK/storage/$path"
   FILES=$((FILES + 1))
 done < "$WORK/files.txt"
+rm -f "$WORK/files.txt"
 
 DB_BYTES="$(du -sb "$WORK/db" | cut -f1)"
 FILES_BYTES="$(du -sb "$WORK/storage" | cut -f1)"
