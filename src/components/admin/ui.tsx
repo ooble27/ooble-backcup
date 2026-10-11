@@ -102,6 +102,30 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   return <textarea {...props} className={`ui-input ${props.className ?? ""}`} style={{ ...fieldInput, resize: "vertical", ...props.style }} />;
 }
 
+/** Interrupteur (réglage oui/non), avec libellé et aide à droite. */
+export function Switch({ checked, onChange, disabled, label, hint }: {
+  checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; label: React.ReactNode; hint?: React.ReactNode;
+}) {
+  return (
+    <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1 }}>
+      <button type="button" role="switch" aria-checked={checked} disabled={disabled} className="ui-btn" onClick={() => onChange(!checked)}
+        style={{
+          position: "relative", flexShrink: 0, width: 36, height: 20, marginTop: 1, borderRadius: 99, border: "none", padding: 0,
+          background: checked ? C.accent : C.l3, cursor: "inherit", transition: `background .18s ${UI_EASE}`,
+        }}>
+        <span style={{
+          position: "absolute", top: 2, left: checked ? 18 : 2, width: 16, height: 16, borderRadius: 99,
+          background: checked ? C.btnText : C.t2, transition: `left .18s ${UI_EASE}`,
+        }} />
+      </button>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13.5, color: C.t1, lineHeight: 1.45 }}>{label}</span>
+        {hint && <span style={{ display: "block", marginTop: 3, fontSize: 12.5, color: C.t3, lineHeight: 1.5 }}>{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
 /** Groupe de champs : titre discret, filet au-dessus, pas de carte. */
 export function Group({ title, description, right, children, first }: {
   title: string; description?: React.ReactNode; right?: React.ReactNode; children: React.ReactNode; first?: boolean;

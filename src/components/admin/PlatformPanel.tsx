@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Eraser, Lock, Power, RotateCcw } from "lucide-react";
+import { Check, Lock, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import AdminHero from "@/components/admin/AdminHero";
 import BackupsCard from "@/components/admin/BackupsCard";
-import {
-  C, FONT, card, cardHeaderRow, cardTitle, cardSubtitle, btnPrimary, inputStyle, sH, listRowStyle,
-} from "@/components/admin/adminTheme";
+import { C, FONT } from "@/components/admin/adminTheme";
+import { Button, Notice, Switch, TextInput } from "@/components/admin/ui";
+import { Section, StatStrip } from "@/components/admin/layout";
 
 /*
  * Plateforme : remettre à zéro les commandes de test, puis démarrer les
@@ -48,41 +47,16 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 
-/** Interrupteur (case à cocher). */
-const Switch = ({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={on}
-    aria-label={label}
-    onClick={() => onChange(!on)}
-    style={{
-      width: 36, height: 20, borderRadius: 99, border: "none", padding: 2, cursor: "pointer", flexShrink: 0,
-      background: on ? C.accent : C.l4, transition: "background 0.15s",
-    }}
-  >
-    <span style={{
-      display: "block", width: 16, height: 16, borderRadius: 99, background: on ? C.btnText : C.t2,
-      transform: `translateX(${on ? 16 : 0}px)`, transition: "transform 0.15s",
-    }} />
-  </button>
+/** Ligne de liste à plat : libellé, détail, valeur à droite. */
+const Line = ({ children, right, muted }: { children: React.ReactNode; right?: React.ReactNode; muted?: boolean }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 13.5, color: muted ? C.t3 : C.t1 }}>
+    <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+    {right}
+  </div>
 );
 
 const Num = ({ n }: { n: number }) => (
-  <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 13, color: n ? C.t1 : C.t3, minWidth: 28, textAlign: "right" }}>{n}</span>
-);
-
-/** Étape numérotée de la mise en route (vraie séquence : remise à zéro, puis lancement). */
-const Step = ({ n, done, children }: { n: number; done: boolean; children: React.ReactNode }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: done ? C.t1 : C.t2 }}>
-    <span style={{
-      width: 22, height: 22, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      background: done ? C.accent : "transparent", color: done ? C.btnText : C.t3, border: done ? "none" : `1px solid ${C.bd}`, fontSize: 11,
-    }}>
-      {done ? <Check style={{ width: 12, height: 12 }} strokeWidth={2.5} /> : n}
-    </span>
-    {children}
-  </div>
+  <span style={{ fontVariantNumeric: "tabular-nums", color: n ? C.t1 : C.t3 }}>{n}</span>
 );
 
 /** Champ de confirmation : le mot à taper, puis le bouton. */
@@ -92,21 +66,12 @@ const Confirm = ({ word, value, onChange, onSubmit, disabled, busy, label, dange
 }) => {
   const ready = plain(value) === plain(word) && !disabled && !busy;
   return (
-    <form onSubmit={(e) => { e.preventDefault(); if (ready) onSubmit(); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <input
+    <form onSubmit={(e) => { e.preventDefault(); if (ready) onSubmit(); }} style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: 560 }}>
+      <TextInput
         value={value} onChange={(e) => onChange(e.target.value)} placeholder={`Tapez ${word}`} aria-label={`Tapez ${word} pour confirmer`}
-        autoComplete="off" spellCheck={false}
-        style={{ ...inputStyle, flex: "1 1 200px", height: 36, padding: "0 12px", letterSpacing: "0.06em" }}
+        autoComplete="off" spellCheck={false} style={{ flex: "1 1 220px", width: "auto", letterSpacing: "0.06em" }}
       />
-      <button
-        type="submit" disabled={!ready}
-        style={{
-          ...btnPrimary, ...(danger ? { background: C.dangerText, color: "#fff" } : {}),
-          opacity: ready ? 1 : 0.35, cursor: ready ? "pointer" : "default",
-        }}
-      >
-        {busy ? "Un instant…" : label}
-      </button>
+      <Button type="submit" variant={danger ? "danger" : "primary"} disabled={!ready}>{busy ? "Un instant…" : label}</Button>
     </form>
   );
 };
@@ -138,138 +103,102 @@ export default function PlatformPanel() {
   const total = p ? sum(p.core) + (mail ? sum(p.mail) : 0) + (logs ? sum(p.logs) : 0) : 0;
 
   return (
-    <div style={{ display: "grid", gap: 16, fontFamily: FONT, maxWidth: 980 }}>
-      <AdminHero
-        eyebrow="État"
-        loading={!p}
-        value={launched ? "Activités démarrées" : "En test"}
-        size={34}
-        stats={p ? (launched
-          ? [{ label: "Depuis le", value: fmtDate(p.launchedAt!) }]
-          : [
-            { label: "Commandes", value: orders },
-            { label: "Remise à zéro", value: p.lastResetAt ? new Date(p.lastResetAt).toLocaleDateString("fr-CA", { day: "numeric", month: "short" }) : "Jamais" },
-          ]) : []}
-      />
+    <div style={{ fontFamily: FONT }}>
+      <StatStrip items={!p ? [{ label: "État", value: "…" }] : launched ? [
+        { label: "État", value: "Activités démarrées", tone: "ok" },
+        { label: "Depuis le", value: fmtDate(p.launchedAt!) },
+        { label: "Conservation", value: "5 ans", hint: "registre des opérations (CANAFE)" },
+      ] : [
+        { label: "État", value: "En test", tone: "warn" },
+        { label: "Commandes de test", value: orders },
+        { label: "Remise à zéro", value: p.lastResetAt ? new Date(p.lastResetAt).toLocaleDateString("fr-CA", { day: "numeric", month: "short" }) : "Jamais" },
+      ]} />
 
-      {err && (
-        <div style={{ ...card, padding: "12px 16px", borderColor: C.dangerBd, background: C.dangerBg, color: C.dangerText, fontSize: 13 }}>{err}</div>
-      )}
+      {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
 
       {result && (
-        <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, borderColor: C.successBd, background: C.successBg }}>
-          <Check style={{ width: 16, height: 16, color: C.successText, flexShrink: 0 }} strokeWidth={2.2} />
-          <p style={{ margin: 0, fontSize: 13, color: C.successText, flex: 1 }}>
-            {result.tables.orders ?? 0} commandes de test effacées.
-            {result.keptOrders > 0 && ` ${result.keptOrders} gardée(s), citée(s) par le registre de conformité.`}
-          </p>
-          <button type="button" onClick={() => window.location.reload()}
-            style={{ background: "none", border: "none", color: C.successText, fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: FONT }}>
-            <RotateCcw style={{ width: 12, height: 12 }} /> Recharger
-          </button>
+        <div style={{ marginTop: 16 }}>
+          <Notice tone="ok">
+            <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <Check style={{ width: 15, height: 15 }} strokeWidth={2.2} />
+              <span style={{ flex: 1 }}>
+                {result.tables.orders ?? 0} commandes de test effacées.
+                {result.keptOrders > 0 && ` ${result.keptOrders} gardée(s), citée(s) par le registre de conformité.`}
+              </span>
+              <Button size="sm" variant="ghost" icon={<RotateCcw style={{ width: 13, height: 13 }} />} onClick={() => window.location.reload()}>Recharger</Button>
+            </span>
+          </Notice>
         </div>
       )}
 
       {p && !launched && (
-        <div style={card}>
-          <div style={cardHeaderRow}>
+        <Section title="Remettre les commandes à zéro" description="Pour partir propre au lancement. Autant de fois que vous voulez d'ici là.">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "8px 48px" }}>
             <div>
-              <p style={cardTitle}>Remettre les commandes à zéro</p>
-              <p style={cardSubtitle}>Pour partir propre au lancement. Autant de fois que vous voulez d'ici là.</p>
-            </div>
-            <Eraser style={{ width: 16, height: 16, color: C.t3 }} strokeWidth={1.8} />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
-            {/* Effacé */}
-            <div style={{ borderRight: `1px solid ${C.bds}` }}>
-              <p style={{ ...sH, padding: "16px 18px 8px" }}>Effacé</p>
-              <div style={{ ...listRowStyle(false), display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ flex: 1, fontSize: 13, color: C.t1 }}>Commandes et leur historique</span>
-                <Num n={orders} />
-              </div>
-              <div style={{ ...listRowStyle(false), display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ flex: 1, fontSize: 13, color: C.t1 }}>
-                  Virements reçus, envois USDT, dépôts reçus
-                </span>
-                <Num n={linked} />
-              </div>
-              <div style={{ ...listRowStyle(false), display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ flex: 1 }}>
-                  <span style={{ display: "block", fontSize: 13, color: mail ? C.t1 : C.t3 }}>Messagerie</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: C.t3, marginTop: 2 }}>{sum(p.mail)} conversations. Décochez si un vrai contact y figure.</span>
-                </span>
-                <Switch on={mail} onChange={setMail} label="Effacer aussi la messagerie" />
-              </div>
-              <div style={{ ...listRowStyle(true), display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ flex: 1 }}>
-                  <span style={{ display: "block", fontSize: 13, color: logs ? C.t1 : C.t3 }}>Journaux</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: C.t3, marginTop: 2 }}>{sum(p.logs)} entrées : activité de l'équipe, assistant IA.</span>
-                </span>
-                <Switch on={logs} onChange={setLogs} label="Effacer aussi les journaux" />
+              <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>Effacé</p>
+              <div style={{ borderTop: `1px solid ${C.bds}` }}>
+                <Line right={<Num n={orders} />}>Commandes et leur historique</Line>
+                <Line right={<Num n={linked} />}>Virements reçus, envois USDT, dépôts reçus</Line>
+                <Line>
+                  <Switch checked={mail} onChange={setMail} label="Messagerie"
+                    hint={`${sum(p.mail)} conversations. Décochez si un vrai contact y figure.`} />
+                </Line>
+                <Line>
+                  <Switch checked={logs} onChange={setLogs} label="Journaux"
+                    hint={`${sum(p.logs)} entrées : activité de l'équipe, assistant IA.`} />
+                </Line>
               </div>
             </div>
-
-            {/* Gardé */}
             <div>
-              <p style={{ ...sH, padding: "16px 18px 8px" }}>Toujours gardé</p>
-              {KEPT.map((k, i) => (
-                <div key={k} style={{ ...listRowStyle(i === KEPT.length - 1), display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: C.t2 }}>
-                  <Lock style={{ width: 13, height: 13, color: C.t3, flexShrink: 0 }} strokeWidth={1.8} />
-                  {k}
-                </div>
-              ))}
+              <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>Toujours gardé</p>
+              <div style={{ borderTop: `1px solid ${C.bds}` }}>
+                {KEPT.map((k) => (
+                  <Line key={k} muted>
+                    <span style={{ display: "flex", alignItems: "center", gap: 10, color: C.t2 }}>
+                      <Lock style={{ width: 13, height: 13, color: C.t3, flexShrink: 0 }} strokeWidth={1.8} />{k}
+                    </span>
+                  </Line>
+                ))}
+              </div>
             </div>
           </div>
-
-          <div style={{ padding: "16px 18px", borderTop: `1px solid ${C.bds}`, display: "grid", gap: 10 }}>
-            <p style={{ margin: 0, fontSize: 12, color: C.t3 }}>
-              {total} éléments seront effacés. Cette action ne peut pas être annulée.
-              {p.keptOrders > 0 && ` ${p.keptOrders} commande(s) citée(s) par le registre de conformité seront gardées.`}
-            </p>
-            <Confirm
-              word="RÉINITIALISER" value={typed} onChange={setTyped} busy={busy} disabled={total === 0} danger
-              label="Remettre à zéro"
-              onSubmit={() => run({ action: "reset", confirm: typed, mail, logs }, (r) => { setResult(r as ResetResult); setTyped(""); })}
-            />
-          </div>
-        </div>
+          <p style={{ margin: "20px 0 10px", fontSize: 12.5, color: C.t3 }}>
+            {total} éléments seront effacés. Cette action ne peut pas être annulée.
+            {p.keptOrders > 0 && ` ${p.keptOrders} commande(s) citée(s) par le registre de conformité seront gardées.`}
+          </p>
+          <Confirm
+            word="RÉINITIALISER" value={typed} onChange={setTyped} busy={busy} disabled={total === 0} danger
+            label="Remettre à zéro"
+            onSubmit={() => run({ action: "reset", confirm: typed, mail, logs }, (r) => { setResult(r as ResetResult); setTyped(""); })}
+          />
+        </Section>
       )}
 
       {p && (
-        <div style={card}>
-          <div style={cardHeaderRow}>
-            <div>
-              <p style={cardTitle}>Démarrer les activités</p>
-              <p style={cardSubtitle}>Une seule fois, le jour où les vrais clients arrivent.</p>
-            </div>
-            <Power style={{ width: 16, height: 16, color: C.t3 }} strokeWidth={1.8} />
-          </div>
-          <div style={{ padding: "16px 18px", display: "grid", gap: 14 }}>
-            {launched ? (
-              <p style={{ margin: 0, fontSize: 13, color: C.t2, lineHeight: 1.6 }}>
-                Lancée le {fmtDate(p.launchedAt!)}. Chaque commande fait maintenant partie du registre des opérations et se
-                conserve au moins 5 ans (CANAFE) : la remise à zéro n'existe plus.
+        <Section title="Démarrer les activités" description={launched ? undefined : "Une seule fois, le jour où les vrais clients arrivent."}>
+          {launched ? (
+            <p style={{ margin: 0, fontSize: 13.5, color: C.t2, lineHeight: 1.65, maxWidth: 680 }}>
+              Lancée le {fmtDate(p.launchedAt!)}. Chaque commande fait maintenant partie du registre des opérations et se
+              conserve au moins 5 ans (CANAFE) : la remise à zéro n'existe plus.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gap: 14 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, listStyle: "decimal", fontSize: 13.5, lineHeight: 1.8, color: C.t2 }}>
+                <li style={{ color: orders === 0 ? C.t1 : C.t2 }}>Remettre les commandes de test à zéro {orders === 0 && <Check style={{ width: 13, height: 13, verticalAlign: -2, color: C.successText }} />}</li>
+                <li>Démarrer les activités</li>
+              </ol>
+              <p style={{ margin: 0, fontSize: 12.5, color: C.t3, lineHeight: 1.6, maxWidth: 640 }}>
+                Après ce clic, la remise à zéro disparaît pour toujours et plus personne, serveur compris, ne peut effacer
+                une commande payée.
               </p>
-            ) : (
-              <>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <Step n={1} done={orders === 0}>Remettre les commandes de test à zéro</Step>
-                  <Step n={2} done={false}>Démarrer les activités</Step>
-                </div>
-                <p style={{ margin: 0, fontSize: 12, color: C.t3, lineHeight: 1.6 }}>
-                  Après ce clic, la remise à zéro disparaît pour toujours et plus personne, serveur compris, ne peut effacer
-                  une commande payée.
-                </p>
-                <Confirm
-                  word="DÉMARRER" value={launchTyped} onChange={setLaunchTyped} busy={busy} disabled={false}
-                  label="Démarrer les activités"
-                  onSubmit={() => run({ action: "launch", confirm: launchTyped }, () => setLaunchTyped(""))}
-                />
-              </>
-            )}
-          </div>
-        </div>
+              <Confirm
+                word="DÉMARRER" value={launchTyped} onChange={setLaunchTyped} busy={busy} disabled={false}
+                label="Démarrer les activités"
+                onSubmit={() => run({ action: "launch", confirm: launchTyped }, () => setLaunchTyped(""))}
+              />
+            </div>
+          )}
+        </Section>
       )}
 
       <BackupsCard />

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, ExternalLink, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ArrowUpRight, Check, Copy, Inbox, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
   attachDeposit, fetchDeposits, fetchPayouts, fetchPendingSells, fetchReceipts, fetchScanState, fetchWallets,
   ignoreDeposit, reconcilePayouts, scanDeposits, txUrl, updateSettings,
   type ChainDeposit, type InteracReceipt, type SettlementSettings, type UsdtPayout, type WalletState,
 } from "@/lib/settlement";
-import { SubTabs } from "./AdminBits";
-import AdminHero from "./AdminHero";
+import { C } from "./adminTheme";
+import { Button, Field, Notice, SidePanel, Switch, TextInput, fieldInput } from "./ui";
+import { DataTable, EmptyState, KeyValues, Pill, Section, StatStrip, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
+import { DEPOSIT_PILL, PAYOUT_PILL } from "./orderBits";
 
 /*
  * Règlement des achats et des ventes : portefeuille d'envoi (soldes par
@@ -24,33 +24,43 @@ import AdminHero from "./AdminHero";
 const dateFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const nf = (n: number, d = 2) => new Intl.NumberFormat("fr-CA", { maximumFractionDigits: d }).format(n);
 const ref = (id: string | null) => (id ? `OOB-${id.slice(0, 8).toUpperCase()}` : "N/D");
-const inputCn = "w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] outline-none focus:border-foreground";
+const short = (a: string) => (a.length > 18 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
+const mono: React.CSSProperties = { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12.5 };
 
-const RECEIPT: Record<InteracReceipt["status"], { label: string; cls: string }> = {
-  matched: { label: "Rapproché", cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
-  unmatched: { label: "Sans ordre", cls: "bg-amber-500/20 text-amber-700 dark:text-amber-300" },
-  mismatch: { label: "À vérifier", cls: "bg-destructive/15 text-destructive" },
-  duplicate: { label: "Doublon", cls: "bg-secondary text-muted-foreground" },
-  ignored: { label: "Ignoré", cls: "bg-secondary text-muted-foreground" },
+const RECEIPT: Record<InteracReceipt["status"], { label: string; tone: Tone }> = {
+  matched: { label: "Rapproché", tone: "ok" },
+  unmatched: { label: "Sans commande", tone: "warn" },
+  mismatch: { label: "À vérifier", tone: "danger" },
+  duplicate: { label: "Doublon", tone: "neutral" },
+  ignored: { label: "Ignoré", tone: "neutral" },
 };
-export const PAYOUT: Record<UsdtPayout["status"], { label: string; cls: string }> = {
-  sending: { label: "Envoi…", cls: "bg-secondary text-foreground" },
-  broadcast: { label: "Diffusé", cls: "bg-secondary text-foreground" },
-  confirmed: { label: "Confirmé", cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
-  failed: { label: "Échoué", cls: "bg-amber-500/20 text-amber-700 dark:text-amber-300" },
-  review: { label: "À vérifier", cls: "bg-destructive/15 text-destructive" },
-};
-export const DEPOSIT: Record<ChainDeposit["status"], { label: string; cls: string }> = {
-  new: { label: "En attente d'une vente", cls: "bg-secondary text-foreground" },
-  matched: { label: "Rapproché", cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
-  review: { label: "À vérifier", cls: "bg-destructive/15 text-destructive" },
-  unmatched: { label: "Sans vente", cls: "bg-amber-500/20 text-amber-700 dark:text-amber-300" },
-  ignored: { label: "Écarté", cls: "bg-secondary text-muted-foreground" },
-};
-const NET_NAME: Record<string, string> = { trc20: "Tron", bep20: "BNB Chain", polygon: "Polygon", avalanche: "Avalanche", erc20: "Ethereum" };
+const NET_NAME: Record<string, string> = { trc20: "Tron", bep20: "BNB Chain", polygon: "Polygon", avalanche: "Avalanche", erc20: "Ethereum", spl: "Solana" };
+const netName = (n: string) => NET_NAME[n] ?? n.toUpperCase();
+
+function CopyBtn({ value }: { value: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button type="button" aria-label="Copier l'adresse" title="Copier" className="ui-btn ui-btn-ghost"
+      onClick={(e) => { e.stopPropagation(); void navigator.clipboard.writeText(value); setOk(true); setTimeout(() => setOk(false), 1200); }}
+      style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: ok ? C.successText : C.t3, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      {ok ? <Check style={{ width: 13, height: 13 }} /> : <Copy style={{ width: 13, height: 13 }} />}
+    </button>
+  );
+}
+
+function TxLink({ network, hash, label = "Voir la transaction" }: { network: string; hash: string | null; label?: string }) {
+  const url = hash ? txUrl(network, hash) : "";
+  if (!url) return null;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+      style={{ display: "inline-flex", alignItems: "center", gap: 3, color: C.t1, fontSize: 13, textDecoration: "underline", textUnderlineOffset: 3, textDecorationColor: C.bd }}>
+      {label} <ArrowUpRight style={{ width: 13, height: 13 }} />
+    </a>
+  );
+}
 
 /** Rattacher un dépôt à une vente en attente, ou l'écarter avec un motif. */
-const DepositActions = ({ d, onDone }: { d: ChainDeposit; onDone: () => void }) => {
+function DepositActions({ d, onDone }: { d: ChainDeposit; onDone: () => void }) {
   const [sells, setSells] = useState<{ id: string; usdt_amount: number; created_at: string }[] | null>(null);
   const [pick, setPick] = useState(d.order_id ?? "");
   const [why, setWhy] = useState("");
@@ -62,46 +72,26 @@ const DepositActions = ({ d, onDone }: { d: ChainDeposit; onDone: () => void }) 
     if (r.error) setMsg(r.error); else onDone();
   };
   return (
-    <div className="mt-3 grid gap-3 sm:grid-cols-2">
-      <div className="space-y-2">
-        <p className="font-medium text-foreground">Rattacher à une vente</p>
-        <select className={inputCn} value={pick} onChange={(e) => setPick(e.target.value)}>
-          <option value="">{sells === null ? "Chargement…" : sells.length ? "Choisir la vente…" : "Aucune vente en attente sur ce réseau"}</option>
-          {(sells ?? []).map((o) => <option key={o.id} value={o.id}>{ref(o.id)} · {nf(Number(o.usdt_amount))} USDT · {dateFmt.format(new Date(o.created_at))}</option>)}
-        </select>
-        <Button variant="appSolid" shape="rounded" className="h-auto px-3.5 py-2 text-[12.5px]" disabled={!pick} onClick={() => run(() => attachDeposit(d.id, pick))}>
-          Rattacher
-        </Button>
+    <div style={{ display: "grid", gap: 24 }}>
+      <div style={{ display: "grid", gap: 10 }}>
+        <Field label="Rattacher à une vente" hint="Ventes du même réseau qui attendent encore les USDT du client.">
+          <select className="ui-input" style={fieldInput} value={pick} onChange={(e) => setPick(e.target.value)}>
+            <option value="">{sells === null ? "Chargement…" : sells.length ? "Choisir la vente…" : "Aucune vente en attente sur ce réseau"}</option>
+            {(sells ?? []).map((o) => <option key={o.id} value={o.id}>{ref(o.id)} · {nf(Number(o.usdt_amount))} USDT · {dateFmt.format(new Date(o.created_at))}</option>)}
+          </select>
+        </Field>
+        <div><Button variant="primary" size="sm" disabled={!pick} onClick={() => run(() => attachDeposit(d.id, pick))}>Rattacher</Button></div>
       </div>
-      <div className="space-y-2">
-        <p className="font-medium text-foreground">Écarter</p>
-        <input className={inputCn} placeholder="Motif : test interne, remboursé…" value={why} onChange={(e) => setWhy(e.target.value)} />
-        <Button variant="appOutline" shape="rounded" className="h-auto px-3.5 py-2 text-[12.5px]" disabled={!why.trim()} onClick={() => run(() => ignoreDeposit(d.id, why))}>
-          Écarter ce dépôt
-        </Button>
+      <div style={{ display: "grid", gap: 10, paddingTop: 20, borderTop: `1px solid ${C.bds}` }}>
+        <Field label="Écarter ce dépôt" hint="Le motif reste dans le registre.">
+          <TextInput placeholder="Test interne, remboursé…" value={why} onChange={(e) => setWhy(e.target.value)} />
+        </Field>
+        <div><Button size="sm" disabled={!why.trim()} onClick={() => run(() => ignoreDeposit(d.id, why))}>Écarter</Button></div>
       </div>
-      {msg && <p className="text-destructive sm:col-span-2">{msg}</p>}
+      {msg && <Notice tone="err">{msg}</Notice>}
     </div>
   );
-};
-
-export const Pill = ({ m }: { m: { label: string; cls: string } }) => (
-  <span className={cn("inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium", m.cls)}>{m.label}</span>
-);
-
-const CopyBtn = ({ value }: { value: string }) => {
-  const [ok, setOk] = useState(false);
-  return (
-    <button
-      type="button"
-      aria-label="Copier"
-      className="text-muted-foreground hover:text-foreground"
-      onClick={() => { void navigator.clipboard.writeText(value); setOk(true); setTimeout(() => setOk(false), 1200); }}
-    >
-      {ok ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-    </button>
-  );
-};
+}
 
 type Tab = "wallet" | "receipts" | "payouts" | "deposits";
 
@@ -118,7 +108,9 @@ const SettlementPanel = () => {
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [open, setOpen] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [receipt, setReceipt] = useState<InteracReceipt | null>(null);
+  const [deposit, setDeposit] = useState<ChainDeposit | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -143,14 +135,19 @@ const SettlementPanel = () => {
       daily_payout_max_usdt: Number(draft.daily_payout_max_usdt),
     });
     setSaving(false);
-    if (res.error) setErr(res.error); else void load();
+    if (res.error) setErr(res.error);
+    else { setSaved(true); setTimeout(() => setSaved(false), 2000); void load(); }
   };
 
-  const configured = (wallets ?? []).filter((w) => w.configured);
+  const all = wallets ?? [];
+  const configured = all.filter((w) => w.configured);
+  const ready = configured.filter((w) => !w.error);
+  const lowGas = (w: WalletState) => w.configured && !w.error && (w.gas ?? 0) < (w.minGas ?? 0);
   const total = configured.reduce((s, w) => s + (w.usdt ?? 0), 0);
-  const toReview = receipts.filter((r) => r.status === "mismatch" || r.status === "unmatched").length
-    + payouts.filter((p) => p.status === "review").length
-    + deposits.filter((d) => d.status === "review" || d.status === "unmatched").length;
+  const receiptsToCheck = receipts.filter((r) => r.status === "mismatch" || r.status === "unmatched").length;
+  const payoutsToCheck = payouts.filter((p) => p.status === "review" || p.status === "failed").length;
+  const depositsToCheck = deposits.filter((d) => d.status === "review" || d.status === "unmatched").length;
+  const toReview = receiptsToCheck + payoutsToCheck + depositsToCheck;
   const scanNow = async () => {
     setScanMsg("Lecture des blockchains…");
     const r = await scanDeposits();
@@ -158,199 +155,256 @@ const SettlementPanel = () => {
     void load();
   };
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
+  const refresh = (
+    <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void reconcilePayouts().then(load); }}
+      icon={<RefreshCw style={{ width: 14, height: 14, animation: busy ? "spin 1s linear infinite" : undefined }} />}>
+      {busy ? "Actualisation…" : "Actualiser"}
+    </Button>
+  );
+
+  /* ─── Colonnes ─── */
+  const walletCols: Column<WalletState>[] = [
+    { key: "net", header: "Réseau", render: (w) => <TwoLine primary={w.label} secondary={w.gasSymbol ? `Frais en ${w.gasSymbol}` : undefined} /> },
+    { key: "addr", header: "Adresse d'envoi", hideBelow: 900, render: (w) => w.address
+      ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.t2, ...mono }} title={w.address}>{short(w.address)}<CopyBtn value={w.address} /></span>
+      : <span style={{ color: C.t3 }}>Non configurée</span> },
+    { key: "usdt", header: "USDT", align: "right", sort: (w) => w.usdt ?? -1, render: (w) => (w.configured && !w.error ? nf(w.usdt ?? 0) : <span style={{ color: C.t3 }}>N/D</span>) },
+    { key: "gas", header: "Frais", align: "right", render: (w) => (w.configured && !w.error
+      ? <span style={{ color: lowGas(w) ? C.dangerText : C.t2 }}>{nf(w.gas ?? 0, 4)} {w.gasSymbol}</span>
+      : <span style={{ color: C.t3 }}>N/D</span>) },
+    { key: "state", header: "État", align: "right", render: (w) => !w.configured ? <Pill>Clé absente</Pill>
+      : w.error ? <span title={w.error}><Pill tone="danger" dot>Erreur réseau</Pill></span>
+        : lowGas(w) ? <span title={`Minimum ${w.minGas} ${w.gasSymbol}`}><Pill tone="warn" dot>Frais bas</Pill></span>
+          : <Pill tone="ok" dot>Prêt</Pill> },
+  ];
+
+  const receiptCols: Column<InteracReceipt>[] = [
+    { key: "who", header: "Expéditeur", sort: (r) => r.sender_name ?? "", render: (r) => <TwoLine primary={r.sender_name || "Expéditeur inconnu"} secondary={r.order_ref ?? "Sans référence"} /> },
+    { key: "status", header: "État", render: (r) => <Pill tone={RECEIPT[r.status].tone}>{RECEIPT[r.status].label}</Pill> },
+    { key: "reason", header: "Détail", hideBelow: 1100, render: (r) => <span style={{ color: C.t3, display: "block", maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.reason ?? ""}</span> },
+    { key: "amt", header: "Montant", align: "right", sort: (r) => r.amount_cad ?? 0, render: (r) => (r.amount_cad != null ? `${nf(r.amount_cad)} $` : "N/D") },
+    { key: "date", header: "Reçu", align: "right", sort: (r) => r.received_at, hideBelow: 760, render: (r) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(r.received_at))}</span> },
+  ];
+
+  const payoutCols: Column<UsdtPayout>[] = [
+    { key: "order", header: "Commande", sort: (p) => p.order_id, render: (p) => <TwoLine primary={ref(p.order_id)} secondary={p.trigger === "auto" ? "Envoi automatique" : "Envoyé par l'équipe"} /> },
+    { key: "status", header: "État", render: (p) => <Pill tone={PAYOUT_PILL[p.status]?.tone}>{PAYOUT_PILL[p.status]?.label ?? p.status}</Pill> },
+    { key: "to", header: "Destination", hideBelow: 1000, render: (p) => p.error
+      ? <span style={{ color: C.dangerText, display: "block", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.error}>{p.error}</span>
+      : <span style={{ color: C.t2, ...mono }} title={p.to_address}>{short(p.to_address)}</span> },
+    { key: "amt", header: "Montant", align: "right", sort: (p) => Number(p.usdt_amount), render: (p) => <TwoLine primary={`${nf(Number(p.usdt_amount))} USDT`} secondary={netName(p.network)} /> },
+    { key: "tx", header: "", align: "right", hideBelow: 760, render: (p) => <TxLink network={p.network} hash={p.tx_hash} label="Transaction" /> },
+    { key: "date", header: "Date", align: "right", sort: (p) => p.created_at, hideBelow: 760, render: (p) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(p.created_at))}</span> },
+  ];
+
+  const depositCols: Column<ChainDeposit>[] = [
+    { key: "amt", header: "Montant", sort: (d) => Number(d.usdt_amount), render: (d) => <TwoLine primary={`${nf(Number(d.usdt_amount))} USDT`} secondary={netName(d.network)} /> },
+    { key: "status", header: "État", render: (d) => <Pill tone={DEPOSIT_PILL[d.status]?.tone}>{DEPOSIT_PILL[d.status]?.label ?? d.status}</Pill> },
+    { key: "order", header: "Vente", hideBelow: 900, render: (d) => (d.order_id ? ref(d.order_id) : <span style={{ color: C.t3 }}>Aucune</span>) },
+    { key: "reason", header: "Détail", hideBelow: 1180, render: (d) => <span style={{ color: C.t3, display: "block", maxWidth: 340, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.reason ?? "En attente d'une vente du même montant"}</span> },
+    { key: "date", header: "Reçu", align: "right", sort: (d) => d.block_time, render: (d) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(d.block_time))}</span> },
+  ];
+
+  const mobileRow = (primary: React.ReactNode, secondary: React.ReactNode, right: React.ReactNode, pill: React.ReactNode) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={primary} secondary={secondary} /></div>
+      <div style={{ textAlign: "right", display: "grid", gap: 4, justifyItems: "end" }}>
+        <span style={{ fontSize: 13.5, fontVariantNumeric: "tabular-nums" }}>{right}</span>{pill}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="lg:max-w-[620px]">
-        <AdminHero
-          eyebrow="Portefeuille chaud"
-          loading={wallets === null && !err}
-          value={nf(total)}
-          unit="USDT"
-          stats={[
-            { label: "Envoi", value: settings?.auto_payout ? "Automatique" : "Manuel", hint: settings?.auto_payout ? `≤ ${nf(settings.auto_payout_max_cad, 0)} $` : undefined },
-            { label: "Réseaux prêts", value: `${configured.filter((w) => !w.error).length} / ${(wallets ?? []).length || 5}` },
-            { label: "À vérifier", value: toReview },
-          ]}
-          actions={[
-            { label: busy ? "Actualisation…" : "Actualiser", icon: RefreshCw, primary: true, onClick: () => { void reconcilePayouts().then(load); } },
-          ]}
-        />
-      </div>
+    <div>
+      {err && <div style={{ marginBottom: 16 }}><Notice tone="err">{err}</Notice></div>}
 
-      {err && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{err}</p>}
+      <StatStrip items={[
+        { label: "Portefeuille d'envoi", value: wallets === null && !err ? "…" : `${nf(total)} USDT`, hint: `${ready.length} réseau(x) sur ${all.length || 5} prêts` },
+        { label: "Envoi des USDT", value: settings?.auto_payout ? "Automatique" : "Manuel", hint: settings?.auto_payout ? `jusqu'à ${nf(settings.auto_payout_max_cad, 0)} $ par commande` : "l'équipe clique « Envoyer »" },
+        { label: "Plafond sur 24 h", value: settings ? `${nf(settings.daily_payout_max_usdt, 0)} USDT` : "…" },
+        { label: "À vérifier", value: toReview, tone: toReview ? "warn" : undefined, hint: toReview ? "avis, envois ou dépôts" : "rien en suspens" },
+      ]} />
 
-      <SubTabs
-        tabs={[
-          { id: "wallet", label: "Portefeuille et réglages" },
-          { id: "receipts", label: "Avis Interac", count: receipts.length },
-          { id: "payouts", label: "Envois USDT", count: payouts.length },
-          { id: "deposits", label: "Dépôts USDT (ventes)", count: deposits.filter((d) => d.status === "review" || d.status === "unmatched" || d.status === "new").length || undefined },
-        ]}
-        active={tab}
-        onChange={(id) => setTab(id as Tab)}
-      />
+      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+        { id: "wallet", label: "Portefeuille et réglages" },
+        { id: "receipts", label: "Avis Interac", count: receipts.length, tone: receiptsToCheck ? "warn" : undefined },
+        { id: "payouts", label: "Envois USDT", count: payouts.length, tone: payoutsToCheck ? "danger" : undefined },
+        { id: "deposits", label: "Dépôts des ventes", count: deposits.length, tone: depositsToCheck ? "warn" : undefined },
+      ]} />
 
       {tab === "wallet" && (
-        <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            {(wallets ?? []).map((w, i) => {
-              const lowGas = w.configured && !w.error && (w.gas ?? 0) < (w.minGas ?? 0);
-              return (
-                <div key={w.network} className={cn("px-5 py-4", i > 0 && "border-t border-border")}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[14px] font-medium">{w.label}</p>
-                    {!w.configured ? (
-                      <span className="text-[12px] text-muted-foreground">Clé non configurée</span>
-                    ) : w.error ? (
-                      <span className="text-[12px] text-destructive">Erreur réseau</span>
-                    ) : (
-                      <p className="text-right text-[13px] tabular-nums">
-                        <span className="font-medium">{nf(w.usdt ?? 0)} USDT</span>
-                        <span className={cn("ml-3", lowGas ? "text-destructive" : "text-muted-foreground")}>
-                          {nf(w.gas ?? 0, 4)} {w.gasSymbol}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                  {w.address && (
-                    <p className="mt-1.5 flex items-center gap-2 font-mono text-[11.5px] text-muted-foreground">
-                      <span className="truncate">{w.address}</span>
-                      <CopyBtn value={w.address} />
-                    </p>
-                  )}
-                  {lowGas && <p className="mt-1.5 text-[12px] text-destructive">Frais insuffisants : minimum {w.minGas} {w.gasSymbol}.</p>}
-                  {w.error && <p className="mt-1.5 text-[12px] text-muted-foreground">{w.error}</p>}
-                </div>
-              );
-            })}
-            <p className="border-t border-border bg-secondary/40 px-5 py-3 text-[12px] leading-relaxed text-muted-foreground">
-              Solana reste manuel pour l'instant. Approvisionnez chaque adresse en USDT et en jeton de frais
-              (TRX, BNB, POL, AVAX ou ETH) depuis votre réserve. Gardez-y seulement le nécessaire aux envois du moment.
+        <div className="st-grid">
+          <div style={{ minWidth: 0 }}>
+            <Toolbar right={refresh}>
+              <span style={{ fontSize: 12.5, color: C.t3 }}>Soldes lus en direct sur chaque réseau.</span>
+            </Toolbar>
+            <DataTable
+              rows={all}
+              columns={walletCols}
+              rowKey={(w) => w.network}
+              empty={<EmptyState title={wallets === null ? "Chargement des soldes…" : "Aucun réseau"} />}
+              mobile={(w) => mobileRow(w.label, w.address ? short(w.address) : "Non configurée",
+                w.configured && !w.error ? `${nf(w.usdt ?? 0)} USDT` : "N/D",
+                !w.configured ? <Pill>Clé absente</Pill> : w.error ? <Pill tone="danger">Erreur</Pill> : lowGas(w) ? <Pill tone="warn">Frais bas</Pill> : <Pill tone="ok">Prêt</Pill>)}
+            />
+            <p style={{ margin: "14px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 640 }}>
+              Solana reste manuel pour l'instant. Approvisionnez chaque adresse en USDT et en jeton de frais (TRX, BNB ou POL)
+              depuis votre réserve. Gardez-y seulement le nécessaire aux envois du moment.
             </p>
           </div>
 
           {draft && (
-            <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
-              <p className="text-[14px] font-medium">Envoi automatique</p>
-              <label className="flex items-start gap-3 text-[13px]">
-                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[hsl(var(--foreground))]" disabled={!isAdmin} checked={draft.auto_payout} onChange={(e) => setDraft({ ...draft, auto_payout: e.target.checked })} />
-                <span>Envoyer les USDT dès qu'un virement Interac est reçu et rapproché d'un achat, sans clic de l'équipe.</span>
-              </label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-[12px] font-medium">
-                  Maximum par commande (CAD)
-                  <input className={cn(inputCn, "mt-1.5")} type="number" min={0} disabled={!isAdmin} value={draft.auto_payout_max_cad} onChange={(e) => setDraft({ ...draft, auto_payout_max_cad: Number(e.target.value) })} />
-                </label>
-                <label className="block text-[12px] font-medium">
-                  Plafond sur 24 h (USDT)
-                  <input className={cn(inputCn, "mt-1.5")} type="number" min={0} disabled={!isAdmin} value={draft.daily_payout_max_usdt} onChange={(e) => setDraft({ ...draft, daily_payout_max_usdt: Number(e.target.value) })} />
-                </label>
+            <aside className="st-aside">
+              <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 500 }}>Envoi automatique</h2>
+              <p style={{ margin: "0 0 20px", fontSize: 12.5, color: C.t3, lineHeight: 1.55 }}>Pour les achats payés par Interac.</p>
+              <div style={{ display: "grid", gap: 20 }}>
+                <Switch
+                  checked={draft.auto_payout}
+                  disabled={!isAdmin}
+                  onChange={(v) => setDraft({ ...draft, auto_payout: v })}
+                  label="Envoyer les USDT sans clic de l'équipe"
+                  hint="Dès qu'un virement Interac est reçu et rapproché d'un achat."
+                />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <Field label="Maximum par commande">
+                    <TextInput type="number" min={0} inputMode="decimal" disabled={!isAdmin} value={draft.auto_payout_max_cad}
+                      onChange={(e) => setDraft({ ...draft, auto_payout_max_cad: Number(e.target.value) })} />
+                  </Field>
+                  <Field label="Plafond sur 24 h">
+                    <TextInput type="number" min={0} inputMode="decimal" disabled={!isAdmin} value={draft.daily_payout_max_usdt}
+                      onChange={(e) => setDraft({ ...draft, daily_payout_max_usdt: Number(e.target.value) })} />
+                  </Field>
+                </div>
+                <p style={{ margin: "-10px 0 0", fontSize: 12, color: C.t3 }}>En dollars canadiens, puis en USDT.</p>
+                <div>
+                  <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t2 }}>L'envoi part seul seulement si</p>
+                  <div style={{ display: "grid", gap: 5 }}>
+                    {["L'avis Interac est authentique (signature d'Interac)", "Référence, montant exact et nom du client concordent", "Le client est vérifié", "Le montant est sous le maximum par commande"].map((t) => (
+                      <div key={t} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: C.t3 }}>
+                        <Check style={{ width: 13, height: 13, marginTop: 3, flexShrink: 0, color: C.t2 }} />{t}
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>
+                    Sinon, l'achat reste « paiement reçu » et l'équipe clique « Envoyer les USDT » dans sa fiche ; la raison est notée dans l'historique.
+                    Le plafond sur 24 h s'applique à tous les envois.
+                  </p>
+                </div>
+                {isAdmin ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Button variant="primary" disabled={!dirty || saving} onClick={save}>{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+                    {dirty && !saving && <Button variant="ghost" onClick={() => setDraft(settings)}>Annuler</Button>}
+                    {saved && <span style={{ fontSize: 12.5, color: C.successText }}>Enregistré</span>}
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Seul un administrateur peut modifier ces réglages.</p>
+                )}
               </div>
-              <ul className="space-y-1.5 text-[12px] leading-relaxed text-muted-foreground">
-                <li>L'envoi part seul seulement si : l'avis Interac est authentique (signature d'Interac), la référence, le montant exact et le nom du client concordent, le client est vérifié, et le montant est sous le maximum par commande.</li>
-                <li>Sinon, l'achat reste « paiement reçu » et l'équipe clique « Envoyer les USDT » dans sa fiche. La raison est notée dans l'historique de la commande.</li>
-                <li>Le plafond sur 24 h s'applique à tous les envois, automatiques ou non. Décochez la case pour tout repasser en manuel.</li>
-              </ul>
-              {isAdmin ? (
-                <Button variant="appSolid" shape="rounded" className="h-auto px-4 py-2.5 text-[13px]" disabled={!dirty || saving} onClick={save}>
-                  {saving ? "Enregistrement…" : "Enregistrer"}
-                </Button>
-              ) : (
-                <p className="text-[12px] text-muted-foreground">Seul un administrateur peut modifier ces réglages.</p>
-              )}
-            </div>
+            </aside>
           )}
         </div>
       )}
 
       {tab === "receipts" && (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          {receipts.length === 0 && <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">Aucun avis reçu pour l'instant sur interac@ooble.ca.</p>}
-          {receipts.map((r, i) => (
-            <div key={r.id} className={cn(i > 0 && "border-t border-border")}>
-              <button type="button" className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-secondary/40" onClick={() => setOpen(open === r.id ? null : r.id)}>
-                <Pill m={RECEIPT[r.status]} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium">{r.sender_name || "Expéditeur inconnu"} · {r.amount_cad != null ? `${nf(r.amount_cad)} $` : "N/D"}</span>
-                  <span className="block truncate text-[12px] text-muted-foreground">{r.order_ref ?? "Sans référence"} · {r.reason}</span>
-                </span>
-                <span className="shrink-0 text-[12px] text-muted-foreground">{dateFmt.format(new Date(r.received_at))}</span>
-              </button>
-              {open === r.id && (
-                <div className="space-y-2 border-t border-border bg-secondary/30 px-5 py-4 text-[12px]">
-                  <p><span className="text-muted-foreground">Réf. Interac :</span> {r.interac_ref ?? "N/D"} · <span className="text-muted-foreground">Avis authentifié :</span> {r.authenticated ? "oui" : "non"}</p>
-                  <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-[12px] text-muted-foreground">{r.body_text}</pre>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === "deposits" && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-[12.5px] text-muted-foreground">
-            <span>
-              Lu toutes les 2 minutes sur Tron, BNB Chain, Polygon, Avalanche et Ethereum (Solana : à vérifier à la main).
-              {lastScan && <> Dernière lecture : {dateFmt.format(new Date(lastScan))}.</>}
-            </span>
-            <button type="button" onClick={scanNow} className="inline-flex items-center gap-1.5 font-medium text-foreground underline-offset-4 hover:underline">
-              <RefreshCw className="h-3.5 w-3.5" /> Lire maintenant
-            </button>
-          </div>
-          {scanMsg && <p className="px-1 text-[12.5px]">{scanMsg}</p>}
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            {deposits.length === 0 && <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">Aucun dépôt d'USDT lu pour l'instant.</p>}
-            {deposits.map((d, i) => (
-              <div key={d.id} className={cn(i > 0 && "border-t border-border")}>
-                <button type="button" className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-secondary/40" onClick={() => setOpen(open === d.id ? null : d.id)}>
-                  <Pill m={DEPOSIT[d.status]} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium">{nf(Number(d.usdt_amount))} USDT · {NET_NAME[d.network] ?? d.network}{d.order_id ? ` · ${ref(d.order_id)}` : ""}</span>
-                    <span className="block truncate text-[12px] text-muted-foreground">{d.reason ?? "En attente d'une vente du même montant (le client clique « J'ai envoyé mes USDT » après l'envoi)."}</span>
-                  </span>
-                  <span className="shrink-0 text-[12px] text-muted-foreground">{dateFmt.format(new Date(d.block_time))}</span>
-                </button>
-                {open === d.id && (
-                  <div className="border-t border-border bg-secondary/30 px-5 py-4 text-[12px] text-muted-foreground">
-                    <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span>Expéditeur : <span className="font-mono text-foreground">{d.from_address ?? "N/D"}</span></span>
-                      {txUrl(d.network, d.tx_hash) && (
-                        <a href={txUrl(d.network, d.tx_hash)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline">
-                          Voir la transaction <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </p>
-                    {d.status !== "matched" && d.status !== "ignored" && <DepositActions d={d} onDone={() => { setOpen(null); void load(); }} />}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <>
+          <Toolbar right={refresh}>
+            <span style={{ fontSize: 12.5, color: C.t3 }}>Avis reçus sur interac@ooble.ca, rapprochés des achats par référence, montant et nom.</span>
+          </Toolbar>
+          <DataTable
+            rows={receipts}
+            columns={receiptCols}
+            rowKey={(r) => r.id}
+            onRowClick={setReceipt}
+            selectedKey={receipt?.id}
+            initialSort={{ key: "date", dir: "desc" }}
+            empty={<EmptyState icon={Inbox} title="Aucun avis" text="Aucun avis reçu pour l'instant sur interac@ooble.ca." />}
+            mobile={(r) => mobileRow(r.sender_name || "Expéditeur inconnu", `${r.order_ref ?? "Sans référence"} · ${dateFmt.format(new Date(r.received_at))}`,
+              r.amount_cad != null ? `${nf(r.amount_cad)} $` : "N/D", <Pill tone={RECEIPT[r.status].tone}>{RECEIPT[r.status].label}</Pill>)}
+          />
+        </>
       )}
 
       {tab === "payouts" && (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          {payouts.length === 0 && <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">Aucun envoi pour l'instant.</p>}
-          {payouts.map((p, i) => (
-            <div key={p.id} className={cn("flex items-center gap-3 px-5 py-3.5", i > 0 && "border-t border-border")}>
-              <Pill m={PAYOUT[p.status]} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-medium">{ref(p.order_id)} · {nf(Number(p.usdt_amount))} USDT · {p.network.toUpperCase()}</span>
-                <span className="block truncate font-mono text-[11.5px] text-muted-foreground">{p.error ?? p.to_address}</span>
-              </span>
-              {p.tx_hash && txUrl(p.network, p.tx_hash) && (
-                <a href={txUrl(p.network, p.tx_hash)} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 text-[12px] underline-offset-4 hover:underline">
-                  Transaction <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-              <span className="shrink-0 text-[12px] text-muted-foreground">{p.trigger === "auto" ? "Auto" : "Équipe"} · {dateFmt.format(new Date(p.created_at))}</span>
-            </div>
-          ))}
-        </div>
+        <>
+          <Toolbar right={refresh}>
+            <span style={{ fontSize: 12.5, color: C.t3 }}>Les 30 derniers envois d'USDT depuis le portefeuille.</span>
+          </Toolbar>
+          <DataTable
+            rows={payouts}
+            columns={payoutCols}
+            rowKey={(p) => p.id}
+            initialSort={{ key: "date", dir: "desc" }}
+            empty={<EmptyState icon={Inbox} title="Aucun envoi" text="Aucun envoi d'USDT pour l'instant." />}
+            mobile={(p) => mobileRow(ref(p.order_id), <>{netName(p.network)} · {dateFmt.format(new Date(p.created_at))}{p.tx_hash && <> · <TxLink network={p.network} hash={p.tx_hash} label="Transaction" /></>}</>,
+              `${nf(Number(p.usdt_amount))} USDT`, <Pill tone={PAYOUT_PILL[p.status]?.tone}>{PAYOUT_PILL[p.status]?.label ?? p.status}</Pill>)}
+          />
+        </>
       )}
+
+      {tab === "deposits" && (
+        <>
+          <Toolbar right={<Button size="sm" variant="ghost" onClick={scanNow} icon={<RefreshCw style={{ width: 14, height: 14 }} />}>Lire maintenant</Button>}>
+            <span style={{ fontSize: 12.5, color: C.t3 }}>
+              {scanMsg ?? <>Lu toutes les 2 minutes sur Tron, BNB Chain et Polygon (Solana : à la main).{lastScan && <> Dernière lecture : {dateFmt.format(new Date(lastScan))}.</>}</>}
+            </span>
+          </Toolbar>
+          <DataTable
+            rows={deposits}
+            columns={depositCols}
+            rowKey={(d) => d.id}
+            onRowClick={setDeposit}
+            selectedKey={deposit?.id}
+            initialSort={{ key: "date", dir: "desc" }}
+            empty={<EmptyState icon={Inbox} title="Aucun dépôt" text="Aucun dépôt d'USDT lu pour l'instant." />}
+            mobile={(d) => mobileRow(`${nf(Number(d.usdt_amount))} USDT`, `${netName(d.network)} · ${dateFmt.format(new Date(d.block_time))}`,
+              d.order_id ? ref(d.order_id) : "", <Pill tone={DEPOSIT_PILL[d.status]?.tone}>{DEPOSIT_PILL[d.status]?.label ?? d.status}</Pill>)}
+          />
+        </>
+      )}
+
+      {receipt && (
+        <SidePanel title={receipt.sender_name || "Expéditeur inconnu"} subtitle={`Avis Interac · ${dateFmt.format(new Date(receipt.received_at))}`} onClose={() => setReceipt(null)}>
+          <div style={{ marginBottom: 16 }}><Pill tone={RECEIPT[receipt.status].tone}>{RECEIPT[receipt.status].label}</Pill></div>
+          <KeyValues items={[
+            ["Montant", receipt.amount_cad != null ? `${nf(receipt.amount_cad)} $` : "N/D"],
+            ["Référence de commande", receipt.order_ref ?? "Aucune"],
+            ["Référence Interac", receipt.interac_ref ?? "N/D"],
+            ["Avis authentifié", receipt.authenticated ? "Oui (signature d'Interac)" : "Non"],
+            ["Détail", receipt.reason ?? ""],
+          ]} />
+          {receipt.body_text && (
+            <Section title="Texte de l'avis" style={{ marginTop: 24 }}>
+              <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.6, color: C.t2 }}>{receipt.body_text}</pre>
+            </Section>
+          )}
+        </SidePanel>
+      )}
+
+      {deposit && (
+        <SidePanel title={`${nf(Number(deposit.usdt_amount))} USDT`} subtitle={`${netName(deposit.network)} · ${dateFmt.format(new Date(deposit.block_time))}`} onClose={() => setDeposit(null)}>
+          <div style={{ marginBottom: 16 }}><Pill tone={DEPOSIT_PILL[deposit.status]?.tone}>{DEPOSIT_PILL[deposit.status]?.label ?? deposit.status}</Pill></div>
+          <KeyValues items={[
+            ["Expéditeur", deposit.from_address ? <span style={mono}>{deposit.from_address}</span> : "N/D"],
+            ["Vente", deposit.order_id ? ref(deposit.order_id) : "Aucune"],
+            ["Détail", deposit.reason ?? "En attente d'une vente du même montant (le client clique « J'ai envoyé mes USDT » après l'envoi)."],
+            ["Transaction", <TxLink key="tx" network={deposit.network} hash={deposit.tx_hash} />],
+          ]} />
+          {deposit.status !== "matched" && deposit.status !== "ignored" && (
+            <div style={{ marginTop: 28 }}>
+              <DepositActions d={deposit} onDone={() => { setDeposit(null); void load(); }} />
+            </div>
+          )}
+        </SidePanel>
+      )}
+
+      <style>{`
+        .st-grid { display: grid; gap: 40px; grid-template-columns: minmax(0, 1fr); }
+        .st-aside { padding-top: 8px; }
+        @media (min-width: 1180px) {
+          .st-grid { grid-template-columns: minmax(0, 1fr) 360px; }
+          .st-aside { padding: 20px 0 0 32px; border-left: 1px solid ${C.bds}; margin-top: 16px; }
+        }
+      `}</style>
     </div>
   );
 };
