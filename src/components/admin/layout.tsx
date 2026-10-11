@@ -62,7 +62,7 @@ export function Tabs<T extends string>({ items, value, onChange, style }: {
 
 /* ─── Statistiques à plat ─────────────────────────────────── */
 
-export interface Stat { label: string; value: React.ReactNode; hint?: React.ReactNode; tone?: "ok" | "warn" | "danger" }
+export interface Stat { label: string; value: React.ReactNode; hint?: React.ReactNode; tone?: "ok" | "warn" | "danger"; /** Couleur libre du chiffre (prioritaire sur tone). */ color?: string }
 
 export function StatStrip({ items, style }: { items: Stat[]; style?: React.CSSProperties }) {
   return (
@@ -75,7 +75,7 @@ export function StatStrip({ items, style }: { items: Stat[]; style?: React.CSSPr
           <dt style={{ fontSize: 12.5, color: C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</dt>
           <dd style={{
             margin: "6px 0 0", fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1.15,
-            color: s.tone === "danger" ? C.dangerText : s.tone === "warn" ? C.warnText : s.tone === "ok" ? C.successText : C.t1,
+            color: s.color ? s.color : s.tone === "danger" ? C.dangerText : s.tone === "warn" ? C.warnText : s.tone === "ok" ? C.successText : C.t1,
           }}>{s.value}</dd>
           {s.hint && <dd style={{ margin: "4px 0 0", fontSize: 12, color: C.t3 }}>{s.hint}</dd>}
         </div>

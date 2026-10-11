@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowUpRight, Check, Copy, Inbox, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, Copy, Inbox, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
   attachDeposit, fetchDeposits, fetchPayouts, fetchPendingSells, fetchReceipts, fetchScanState, fetchWallets,
@@ -100,32 +100,33 @@ function DepositActions({ d, onDone }: { d: ChainDeposit; onDone: () => void }) 
   );
 }
 
-/** Montant : libellé à gauche, champ de même largeur à droite (tous alignés), unité dans le champ. */
-function AmountRow({ label, hint, unit, value, onChange, disabled }: {
-  label: string; hint: string; unit: string; value: number; onChange: (v: number) => void; disabled?: boolean;
+/** Montants proposés (le montant actuel est ajouté s'il n'y figure pas). */
+const MAX_ORDER_CHOICES = [250, 500, 1000, 1500, 2000, 3000, 5000, 7500, 10000];
+const DAILY_CHOICES = [1000, 2500, 5000, 10000, 15000, 20000, 30000, 50000];
+
+/**
+ * Choix d'un montant dans une liste : une tuile avec le libellé et le montant en grand ;
+ * le menu natif (sélecteur iOS, liste du navigateur) s'ouvre au toucher.
+ */
+function AmountPicker({ label, unit, value, choices, onChange, disabled }: {
+  label: string; unit: string; value: number; choices: number[]; onChange: (v: number) => void; disabled?: boolean;
 }) {
-  const [focus, setFocus] = useState(false);
-  const [raw, setRaw] = useState("");
-  const shown = focus ? raw : nf(Number(value) || 0, 0);
+  const list = [...new Set([...choices, Number(value) || 0])].filter((n) => n > 0).sort((a, b) => a - b);
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-      <span style={{ flex: "1 1 150px", minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 13.5, color: C.t1 }}>{label}</span>
-        <span style={{ display: "block", marginTop: 2, fontSize: 12, color: C.t3 }}>{hint}</span>
+    <label className="st-pick" style={{
+      position: "relative", display: "block", minWidth: 0, padding: "12px 40px 12px 14px", borderRadius: 14,
+      background: C.l1, boxShadow: `inset 0 0 0 1px ${C.bds}`, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1,
+    }}>
+      <span style={{ display: "block", fontSize: 12.5, color: C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
+        <span style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.02em", color: C.t1, fontVariantNumeric: "tabular-nums" }}>{nf(Number(value) || 0, 0)}</span>
+        <span style={{ fontSize: 13, color: C.t2 }}>{unit}</span>
       </span>
-      <span className="st-amount" style={{
-        flex: "0 0 176px", width: 176, minWidth: 0, boxSizing: "border-box", display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 6px 0 14px", borderRadius: 12,
-        background: C.l1, boxShadow: `inset 0 0 0 1px ${focus ? C.bd : C.bds}`, opacity: disabled ? 0.6 : 1, transition: "box-shadow .15s",
-      }}>
-        <input
-          type="text" inputMode="numeric" disabled={disabled} value={shown} aria-label={label}
-          onFocus={() => { setRaw(String(value ?? "")); setFocus(true); }}
-          onBlur={() => setFocus(false)}
-          onChange={(e) => { const v = e.target.value.replace(/[^\d]/g, ""); setRaw(v); onChange(Number(v) || 0); }}
-          style={{ all: "unset", flex: 1, minWidth: 0, width: "100%", textAlign: "right", fontSize: 17, fontWeight: 500, color: C.t1, fontVariantNumeric: "tabular-nums", fontFamily: "inherit" }}
-        />
-        <span style={{ flexShrink: 0, height: 30, padding: "0 9px", borderRadius: 8, background: C.hover3, color: C.t2, fontSize: 12, display: "inline-flex", alignItems: "center" }}>{unit}</span>
-      </span>
+      <ChevronDown aria-hidden style={{ position: "absolute", right: 14, top: "50%", width: 16, height: 16, marginTop: -8, color: C.t3 }} />
+      <select aria-label={label} disabled={disabled} value={String(Number(value) || 0)} onChange={(e) => onChange(Number(e.target.value))}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "inherit", fontSize: 16 }}>
+        {list.map((n) => <option key={n} value={n}>{nf(n, 0)} {unit}</option>)}
+      </select>
     </label>
   );
 }
@@ -302,12 +303,13 @@ const SettlementPanel = () => {
                   label="Envoyer les USDT sans clic de l'équipe"
                   hint="Dès qu'un virement Interac est reçu et rapproché d'un achat."
                 />
-                <div style={{ display: "grid", gap: 12 }}>
-                  <AmountRow label="Maximum par commande" hint="Au-delà, l'équipe valide l'envoi." unit="$ CA"
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10 }}>
+                  <AmountPicker label="Par commande" unit="$ CA" choices={MAX_ORDER_CHOICES}
                     value={draft.auto_payout_max_cad} disabled={!isAdmin} onChange={(v) => setDraft({ ...draft, auto_payout_max_cad: v })} />
-                  <AmountRow label="Plafond sur 24 h" hint="Total de tous les envois." unit="USDT"
+                  <AmountPicker label="Sur 24 heures" unit="USDT" choices={DAILY_CHOICES}
                     value={draft.daily_payout_max_usdt} disabled={!isAdmin} onChange={(v) => setDraft({ ...draft, daily_payout_max_usdt: v })} />
                 </div>
+                <p style={{ margin: "-8px 0 0", fontSize: 12, color: C.t3 }}>Au-delà du maximum par commande, l'équipe valide l'envoi. Le plafond sur 24 heures compte tous les envois.</p>
                 <div>
                   <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t2 }}>L'envoi part seul seulement si</p>
                   <div style={{ display: "grid", gap: 5 }}>
@@ -433,7 +435,8 @@ const SettlementPanel = () => {
       <style>{`
         .st-grid { display: grid; gap: 40px; grid-template-columns: minmax(0, 1fr); }
         .st-aside { padding-top: 8px; }
-        @media (max-width: 560px) { .st-amount { flex: 1 1 100% !important; width: auto !important } }
+        .st-pick { transition: box-shadow .15s }
+        .st-pick:hover, .st-pick:focus-within { box-shadow: inset 0 0 0 1px ${C.bd} !important }
         @media (min-width: 1180px) {
           .st-grid { grid-template-columns: minmax(0, 1fr) 360px; }
           .st-aside { padding: 20px 0 0 32px; border-left: 1px solid ${C.bds}; margin-top: 16px; }

@@ -15,6 +15,10 @@ const DARK = {
   ground:         "#171717",
   /** Couleur de marque (élément actif du menu). */
   brand:          "#3FD49A",
+  /** Couleurs Ooble (pages publiques) pour les titres et chiffres qui donnent de la vie. */
+  coral:          "#ff7a59",
+  sun:            "#ffc94d",
+  sage:           "#7cc4a6",
   bg:             "#1a1a1a",
   l1:             "#212121",
   l2:             "#282828",
@@ -63,6 +67,9 @@ const DARK = {
 const LIGHT = {
   ground:         "#e9e9e5",
   brand:          "#0B8A5F",
+  coral:          "#f2613d",
+  sun:            "#c98a00",
+  sage:           "#0f5c45",
   bg:             "#f5f5f3",
   l1:             "#ffffff",
   l2:             "#f0f0ee",
@@ -128,6 +135,9 @@ export const ADMIN_THEME_CSS = `
 export const C = {
   ground:        "var(--a-ground)",
   brand:         "var(--a-brand)",
+  coral:         "var(--a-coral)",
+  sun:           "var(--a-sun)",
+  sage:          "var(--a-sage)",
   bg:            "var(--a-bg)",
   l1:            "var(--a-l1)",
   l2:            "var(--a-l2)",

@@ -4,7 +4,7 @@
  * client et l'origine des inscriptions. Surfaces plates, aucun encadré.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronRight, Inbox, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import {
@@ -14,7 +14,7 @@ import {
   type CustomerFunnel, type ComplianceAlertsCount, type DailyVolumePoint,
 } from "@/lib/kpi";
 import { C, FONT } from "./adminTheme";
-import { FilterChips, PageHeader, Section, StatStrip } from "./layout";
+import { FilterChips, Section, StatStrip } from "./layout";
 import OriginsCard from "./OriginsCard";
 
 interface KpiDashboardProps {
@@ -74,51 +74,56 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
   const label = PERIODS.find((p) => p.id === period)!.label;
 
   const todo = [
-    pending > 0 && { icon: Inbox, text: `${pending} commande${pending > 1 ? "s" : ""} payée${pending > 1 ? "s" : ""} à traiter`, sub: "Prenez-les en charge dans la file d'attente.", go: "queue" as const, tone: "warn" },
-    compliance.open > 0 && { icon: ShieldAlert, text: `${compliance.open} alerte${compliance.open > 1 ? "s" : ""} de conformité ouverte${compliance.open > 1 ? "s" : ""}`, sub: compliance.critical ? `${compliance.critical} critique${compliance.critical > 1 ? "s" : ""}, avec une échéance CANAFE.` : "À examiner et classer.", go: "compliance" as const, tone: compliance.critical ? "danger" : "warn" },
-  ].filter(Boolean) as { icon: typeof Inbox; text: string; sub: string; go: "queue" | "compliance"; tone: string }[];
+    pending > 0 && { n: pending, text: `commande${pending > 1 ? "s" : ""} payée${pending > 1 ? "s" : ""} à traiter`, sub: "dans la file d'attente", go: "queue" as const, tone: "danger" },
+    compliance.open > 0 && { n: compliance.open, text: `alerte${compliance.open > 1 ? "s" : ""} de conformité ouverte${compliance.open > 1 ? "s" : ""}`, sub: compliance.critical ? `dont ${compliance.critical} critique${compliance.critical > 1 ? "s" : ""}` : "à examiner", go: "compliance" as const, tone: "warn" },
+  ].filter(Boolean) as { n: number; text: string; sub: string; go: "queue" | "compliance"; tone: string }[];
 
   return (
     <div style={{ fontFamily: FONT, color: C.t1 }}>
-      <PageHeader
-        title={greeting}
-        description={<span style={{ textTransform: "none" }}>{today.charAt(0).toUpperCase() + today.slice(1)} · les chiffres se mettent à jour en direct.</span>}
-        actions={<FilterChips value={period} onChange={setPeriod} options={PERIODS} />}
-      />
+      {/* Ouverture : grande typographie, chiffres aux couleurs d'Ooble. */}
+      <header style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 420px", minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 14, color: C.coral }}>{today.charAt(0).toUpperCase() + today.slice(1)} · en direct</p>
+          <h1 className="kd-title">
+            {greeting}.<br />
+            <span style={{ color: C.sun }}>{loading || !volume ? "…" : money(volume.totalCad)}</span>{" "}
+            <span style={{ color: C.t3 }}>échangés{period === "1" ? " en 24 h" : period === "7" ? " cette semaine" : " ce mois-ci"}.</span>
+          </h1>
+        </div>
+        <FilterChips value={period} onChange={setPeriod} options={PERIODS} />
+      </header>
 
-      {/* À faire maintenant */}
-      <section aria-label="À faire" style={{ marginBottom: 28 }}>
+      {/* À faire : des phrases, le chiffre en couleur. */}
+      <section aria-label="À faire" style={{ margin: "26px 0 34px", display: "grid", gap: 6 }}>
         {todo.length === 0 ? (
-          <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, color: C.t2 }}>
-            <ShieldCheck style={{ width: 16, height: 16, color: C.successText }} />
+          <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 10, fontSize: 16, color: C.t2 }}>
+            <ShieldCheck style={{ width: 18, height: 18, color: C.sage }} />
             Rien d'urgent : aucune commande payée en attente, aucune alerte ouverte.
           </p>
-        ) : (
-          <div style={{ borderTop: `1px solid ${C.bds}` }}>
-            {todo.map((t) => (
-              <button key={t.go} type="button" className="ui-row" onClick={() => onNavigate?.(t.go)}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "14px 4px", border: "none", borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, fontFamily: FONT, textAlign: "left", cursor: "pointer" }}>
-                <span style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: t.tone === "danger" ? C.dangerBg : C.warnBg, color: t.tone === "danger" ? C.dangerText : C.warnText }}>
-                  <t.icon style={{ width: 16, height: 16 }} />
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 14 }}>{t.text}</span>
-                  <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 1 }}>{t.sub}</span>
-                </span>
-                <ChevronRight style={{ width: 16, height: 16, color: C.t3 }} />
-              </button>
-            ))}
-          </div>
-        )}
+        ) : todo.map((t) => (
+          <button key={t.go} type="button" className="kd-todo" onClick={() => onNavigate?.(t.go)}>
+            <span style={{ color: t.tone === "danger" ? C.coral : C.sun, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{t.n}</span>
+            <span>{t.text}</span>
+            <span style={{ fontSize: 14, color: C.t3 }}>{t.sub}</span>
+            <ChevronRight className="kd-go" style={{ width: 18, height: 18 }} />
+          </button>
+        ))}
       </section>
 
       <StatStrip items={[
-        { label: `Volume · ${label}`, value: loading || !volume ? "…" : money(volume.totalCad), hint: volume ? `${nfUsdt.format(volume.totalUsdt)} USDT${pct(volume.changePct) ? ` · ${pct(volume.changePct)}` : ""}` : undefined },
-        { label: "Achats", value: loading || !volume ? "…" : money(volume.period.buyCad), hint: volume ? `${volume.period.buyCount} commande${volume.period.buyCount > 1 ? "s" : ""}` : undefined },
-        { label: "Ventes", value: loading || !volume ? "…" : money(volume.period.sellCad), hint: volume ? `${volume.period.sellCount} commande${volume.period.sellCount > 1 ? "s" : ""}` : undefined },
-        { label: "Marge brute", value: loading || !margin ? "…" : money(margin.marginCad), hint: margin ? `${margin.completedCount} terminée${margin.completedCount > 1 ? "s" : ""}${pct(margin.changePct) ? ` · ${pct(margin.changePct)}` : ""}` : undefined },
-        { label: "À traiter", value: loading ? "…" : pending, tone: pending ? "warn" : undefined, hint: "payées, pas encore réglées" },
+        { label: "Achats", color: C.sage, value: loading || !volume ? "…" : money(volume.period.buyCad), hint: volume ? `${volume.period.buyCount} commande${volume.period.buyCount > 1 ? "s" : ""}${pct(volume.changePct) ? ` · volume ${pct(volume.changePct)}` : ""}` : undefined },
+        { label: "Ventes", color: C.coral, value: loading || !volume ? "…" : money(volume.period.sellCad), hint: volume ? `${volume.period.sellCount} commande${volume.period.sellCount > 1 ? "s" : ""}` : undefined },
+        { label: "Marge brute", color: C.sun, value: loading || !margin ? "…" : money(margin.marginCad), hint: margin ? `${margin.completedCount} terminée${margin.completedCount > 1 ? "s" : ""}${pct(margin.changePct) ? ` · ${pct(margin.changePct)}` : ""}` : undefined },
+        { label: "USDT échangés", value: loading || !volume ? "…" : nfUsdt.format(volume.totalUsdt), hint: label },
       ]} />
+
+      <style>{`
+        .kd-title { margin: 12px 0 0; font-size: clamp(34px, 4.4vw, 58px); line-height: 1.02; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+        .kd-todo { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 22px; letter-spacing: -0.02em; color: var(--a-t1); padding: 4px 0; }
+        .kd-todo .kd-go { align-self: center; color: var(--a-t3); transition: transform .25s cubic-bezier(.22,1,.36,1), color .2s; }
+        .kd-todo:hover .kd-go { transform: translateX(4px); color: var(--a-t1); }
+        .kd-todo:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 4px; border-radius: 6px; }
+      `}</style>
 
       <Section title="Volume par jour" description={`Les ${daily.length} derniers jours, en dollars canadiens.`}>
         <VolumeChart data={daily} />
@@ -176,8 +181,8 @@ function VolumeChart({ data }: { data: DailyVolumePoint[] }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 18, flexWrap: "wrap", marginBottom: 14, fontSize: 12.5, color: C.t2 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.t1 }} />Achats</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.t3 }} />Ventes</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.sage }} />Achats</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.coral }} />Ventes</span>
         <span style={{ flex: 1 }} />
         <span style={{ fontVariantNumeric: "tabular-nums", color: h ? C.t1 : C.t3 }}>
           {h ? <>{dayLabel(h.date)} · {money(h.totalCad)} <span style={{ color: C.t3 }}>({money(h.buyCad)} achats, {money(h.sellCad)} ventes)</span></> : <>Total {money(total)} · survolez une barre</>}
@@ -198,8 +203,8 @@ function VolumeChart({ data }: { data: DailyVolumePoint[] }) {
             const dim = hover !== null && hover !== i;
             return (
               <g key={d.date} opacity={dim ? 0.45 : 1} style={{ transition: "opacity .15s" }}>
-                {d.buyCad > 0 && <rect x={x} y={base - buyH} width={w} height={Math.max(1, buyH)} rx={3} fill="var(--a-t1)" />}
-                {d.sellCad > 0 && <rect x={x} y={base - buyH - sellH - (d.buyCad > 0 ? 2 : 0)} width={w} height={Math.max(1, sellH)} rx={3} fill="var(--a-t3)" />}
+                {d.buyCad > 0 && <rect x={x} y={base - buyH} width={w} height={Math.max(1, buyH)} rx={3} fill="var(--a-sage)" />}
+                {d.sellCad > 0 && <rect x={x} y={base - buyH - sellH - (d.buyCad > 0 ? 2 : 0)} width={w} height={Math.max(1, sellH)} rx={3} fill="var(--a-coral)" />}
                 <rect x={padL + i * bw} y={0} width={bw} height={H} fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} />
               </g>
             );
@@ -234,7 +239,7 @@ function StatusBreakdown({ s }: { s: OrderStatusCounts }) {
         <div key={r.label} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 120px 40px", gap: 14, alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
           <span style={{ fontSize: 13.5, color: r.strong && r.n ? C.t1 : C.t2 }}>{r.label}</span>
           <span style={{ height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
-            <span style={{ display: "block", height: "100%", width: `${(r.n / total) * 100}%`, background: r.strong && r.n ? C.t1 : C.t3, borderRadius: 99 }} />
+            <span style={{ display: "block", height: "100%", width: `${(r.n / total) * 100}%`, background: r.strong && r.n ? C.coral : C.t3, borderRadius: 99 }} />
           </span>
           <span style={{ fontSize: 13.5, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.n}</span>
         </div>
@@ -266,7 +271,7 @@ function Funnel({ f }: { f: CustomerFunnel }) {
               <span style={{ fontSize: 13.5, minWidth: 32, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{s.n}</span>
             </div>
             <span style={{ display: "block", marginTop: 8, height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
-              <span style={{ display: "block", height: "100%", width: `${Math.max(1, (s.n / base) * 100)}%`, background: C.t1, borderRadius: 99, transition: "width .5s cubic-bezier(.22,1,.36,1)" }} />
+              <span style={{ display: "block", height: "100%", width: `${Math.max(1, (s.n / base) * 100)}%`, background: C.sage, borderRadius: 99, transition: "width .5s cubic-bezier(.22,1,.36,1)" }} />
             </span>
           </div>
         );

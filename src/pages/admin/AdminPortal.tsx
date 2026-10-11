@@ -323,7 +323,7 @@ const AdminPortal = () => {
     <div className="admin-scope" style={{ background: panel ? C.ground : C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {/* Bande pleine derrière la barre d'état (iPhone, iPad) : iOS reprend sa couleur au lieu de flouter
           le haut de la page, et le voile du menu ouvert ne la grise pas. */}
-      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: "max(env(safe-area-inset-top, 0px), 1px)", background: panel ? C.ground : C.bg, zIndex: 70, pointerEvents: "none" }} />
+      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: "calc(env(safe-area-inset-top, 0px) + 8px)", background: panel ? C.ground : C.bg, zIndex: 70 }} />
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "env(safe-area-inset-top, 0px)" }}>
           {sidebar(false)}
@@ -389,7 +389,7 @@ const AdminPortal = () => {
                   <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} />
                 ) : (
                   <>
-                    {tab !== "dashboard" && <PageHeader title={active.label} description={active.desc} />}
+                    {tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}
                     {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
                       <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
                     ) : (
@@ -469,7 +469,7 @@ const AdminPortal = () => {
             <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} />
           ) : (
             <>
-              {tab !== "dashboard" && <PageHeader title={active.label} description={active.desc} />}
+              {tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}
               {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
                 <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
               ) : (

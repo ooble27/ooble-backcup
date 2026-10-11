@@ -183,8 +183,14 @@ const PANEL_CSS = `
 .cmp-img-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(0,0,0,0.4); }
 .cmp-row { transition: background 0.15s, border-color 0.15s; }
 @media (max-width: 520px) { .cmp-hide-sm { display: none } }
+@keyframes cmp-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)) } 50% { transform: translateY(-8px) rotate(var(--r, 0deg)) } }
+.cmp-float { animation: cmp-float 7s ease-in-out infinite; }
+.cmp-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; padding: 8px 0 4px; }
+.cmp-hero-title { margin: 14px 0 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 0.98; font-weight: 600; letter-spacing: -0.05em; color: var(--a-t1); text-wrap: balance; }
+.cmp-hero-art { display: none; position: relative; height: 260px; }
+@media (min-width: 1100px) { .cmp-hero { grid-template-columns: minmax(0, 1fr) 380px; } .cmp-hero-art { display: block; } }
 @media (prefers-reduced-motion: reduce) {
-  .cmp-rise, .cmp-skeleton { animation: none; }
+  .cmp-rise, .cmp-skeleton, .cmp-float { animation: none; }
   .cmp-card, .cmp-thumb-inner, .cmp-overlay, .cmp-dialog, .cmp-backdrop, .cmp-img-opt { transition: none; }
   .cmp-card:hover .cmp-thumb-inner { transform: none; }
 }
@@ -356,7 +362,7 @@ function ScaledFrame({ html, frameWidth, maxHeight, interactive = true, title, o
 }
 
 /** Vignette de galerie : le courriel défile doucement au survol. Hauteur ∝ largeur. */
-function Thumb({ html, title }: { html: string; title: string }) {
+function Thumb({ html, title, fill }: { html: string; title: string; fill?: boolean }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [box, setBox] = useState(0);
@@ -375,7 +381,9 @@ function Thumb({ html, title }: { html: string; title: string }) {
   const onHeight = useCallback((h: number, s: number) => setFull({ h, s }), []);
   const scroll = full ? Math.min(0, box - full.h * full.s) : 0;
   return (
-    <div ref={ref} style={{ aspectRatio: "4 / 5", overflow: "hidden", position: "relative" }}>
+    <div ref={ref} style={fill
+      ? { height: "100%", overflow: "hidden", position: "relative", borderRadius: "10px 10px 0 0", background: "#ffffff", boxShadow: "0 14px 30px -16px rgba(0,0,0,.45)" }
+      : { aspectRatio: "4 / 5", overflow: "hidden", position: "relative" }}>
       {!full && <div className="cmp-skeleton" style={{ position: "absolute", inset: 0 }} />}
       {visible && (
         <div className="cmp-thumb-inner" style={{ ["--cmp-scroll" as string]: `${scroll}px`, opacity: full ? 1 : 0, transition: `opacity 0.4s, transform 3.2s ${EASE}` } as React.CSSProperties}>
@@ -458,22 +466,46 @@ const CampaignsPanel = () => {
   return (
     <div>
       <style>{PANEL_CSS}</style>
-      <StatStrip items={[
-        { label: "Campagnes envoyées", value: campaigns.length },
-        { label: "Courriels envoyés", value: sent },
-        { label: "Contacts", value: clientsLoading ? "…" : clients.length, hint: clientsLoading ? undefined : `${english} en anglais` },
-        { label: "Forfait d'envoi", value: `${DAILY_EMAIL_LIMIT} / jour`, hint: "commandes comprises" },
-      ]} />
+      {/* Ouverture : grande typographie aux couleurs d'Ooble, comme les pages OTC, Entreprises et FAQ. */}
+      <section className="cmp-hero">
+        <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
+          <p className="cmp-rise" style={{ margin: 0, fontSize: 14, color: C.coral }}>Campagnes · en français et en anglais</p>
+          <h1 className="cmp-rise cmp-hero-title" style={{ animationDelay: "60ms" }}>
+            Faites parler d'<span style={{ color: C.coral }}>Ooble</span><br />
+            dans chaque <span style={{ color: C.sun }}>boîte mail.</span>
+          </h1>
+          <p className="cmp-rise" style={{ margin: "18px 0 0", maxWidth: 520, fontSize: 15.5, lineHeight: 1.65, color: C.t2, animationDelay: "120ms" }}>
+            {CAMPAIGN_TEMPLATES.length} modèles prêts, envoyés à chaque client dans sa langue.{" "}
+            {clientsLoading ? "" : <><span style={{ color: C.t1 }}>{clients.length} contacts</span>, dont {english} en anglais. </>}
+            {campaigns.length > 0 && <><span style={{ color: C.t1 }}>{sent} courriels</span> déjà envoyés. </>}
+          </p>
+          <div className="cmp-rise" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 24, animationDelay: "180ms" }}>
+            <Button size="lg" variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={() => openStudio(CAMPAIGN_TEMPLATES[0].id, "fr")}>Nouvelle campagne</Button>
+            <span style={{ fontSize: 12.5, color: C.t3 }}>Forfait d'envoi : {DAILY_EMAIL_LIMIT} courriels par jour, commandes comprises.</span>
+          </div>
+        </div>
+        <div aria-hidden className="cmp-hero-art">
+          <div className="cmp-float" style={{ ["--r" as string]: "-8deg", position: "absolute", left: 0, top: 30, width: 170, height: 210, borderRadius: 18, background: "#fffaf0", boxShadow: "0 24px 50px -24px rgba(0,0,0,.5)", padding: 13 } as React.CSSProperties}>
+            <div style={{ height: 62, borderRadius: 10, background: "#ffc94d" }} />
+            <div style={{ height: 9, width: "80%", borderRadius: 5, background: "#14110f", marginTop: 13 }} />
+            <div style={{ height: 7, width: "95%", borderRadius: 4, background: "#e9dfcb", marginTop: 9 }} />
+            <div style={{ height: 7, width: "70%", borderRadius: 4, background: "#e9dfcb", marginTop: 5 }} />
+            <div style={{ height: 24, width: 82, borderRadius: 8, background: "#0f5c45", marginTop: 14 }} />
+          </div>
+          <div className="cmp-float" style={{ ["--r" as string]: "7deg", position: "absolute", right: 0, top: 0, width: 170, height: 230, borderRadius: 18, background: "#ff7a59", boxShadow: "0 24px 50px -24px rgba(0,0,0,.55)", padding: 13, animationDelay: "-3s" } as React.CSSProperties}>
+            <div style={{ height: 9, width: "50%", borderRadius: 5, background: "#14110f", opacity: 0.8 }} />
+            <div style={{ height: 15, width: "85%", borderRadius: 6, background: "#fffaf0", marginTop: 13 }} />
+            <div style={{ height: 15, width: "60%", borderRadius: 6, background: "#fffaf0", marginTop: 6 }} />
+            <div style={{ height: 82, borderRadius: 10, background: "#ffd2c4", marginTop: 13 }} />
+            <div style={{ height: 24, width: 82, borderRadius: 8, background: "#14110f", marginTop: 13 }} />
+          </div>
+        </div>
+      </section>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 28, borderBottom: `1px solid ${C.bds}` }}>
-        <Tabs style={{ borderBottom: "none", flex: 1, minWidth: 0 }} value={tab} onChange={setTab} items={[
-          { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
-          { id: "history", label: "Historique", count: campaigns.length || undefined },
-        ]} />
-        <Button size="sm" variant="primary" icon={<Megaphone style={{ width: 14, height: 14 }} />} onClick={() => openStudio(CAMPAIGN_TEMPLATES[0].id, "fr")}>
-          Nouvelle<span className="cmp-hide-sm"> campagne</span>
-        </Button>
-      </div>
+      <Tabs style={{ marginTop: 36 }} value={tab} onChange={setTab} items={[
+        { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
+        { id: "history", label: "Historique", count: campaigns.length || undefined },
+      ]} />
 
       {tab === "templates" && <TemplateGallery me={me} onUse={openStudio} />}
       {studio && (
@@ -502,6 +534,12 @@ type TestState = { kind: "busy" } | { kind: "ok"; text: string } | { kind: "err"
 
 /** Quota du forfait Resend : tous les courriels de la journée, commandes comprises. */
 const DAILY_EMAIL_LIMIT = 100;
+
+/** Fond des vignettes, par catégorie (couleurs des pages publiques d'Ooble). */
+const CATEGORY_BG: Record<string, string> = {
+  "Lancement": "#0f5c45", "Éducation": "#ffc94d", "Relance": "#ffd2c4", "Offre": "#ff7a59",
+  "Infolettre": "#bfe8d6", "Annonce": "#f6f1e7", "Sécurité": "#7cc4a6", "Saison": "#e9dfcb",
+};
 
 function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lang: EmailLang) => void }) {
   const [lang, setLang] = useState<EmailLang>("fr");
@@ -558,7 +596,7 @@ function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lan
       {list.length === 0 ? (
         <EmptyState icon={Search} title="Aucun modèle" text={`Aucun modèle ne correspond à « ${query} ».`} />
       ) : (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {list.map((t, i) => (
             <TemplateCard
               key={`${t.id}:${lang}`}
@@ -593,9 +631,9 @@ function TemplateCard({ delay, template: t, lang, onPreview, onUse }: {
   const html = useMemo(() => previewHtml(t.id, {}, lang), [t.id, lang]);
   return (
     <div className="cmp-card cmp-rise" style={{ display: "flex", flexDirection: "column", animationDelay: `${delay}ms` }}>
-      <div className="cmp-thumb-wrap" style={{ position: "relative", padding: "8px 8px 0", background: "#e9e6df", borderRadius: 10, overflow: "hidden" }}>
+      <div className="cmp-thumb-wrap" style={{ position: "relative", aspectRatio: "4 / 3", padding: "16px 15% 0", background: CATEGORY_BG[t.category] ?? "#e9e6df", borderRadius: 14, overflow: "hidden" }}>
         <button type="button" onClick={onPreview} aria-label={`Ouvrir le modèle ${t.name}`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "zoom-in" }}>
-          <Thumb html={html} title={t.name} />
+          <Thumb html={html} title={t.name} fill />
         </button>
         {t.isNew && (
           <span className="px-1.5 py-px text-[9px] md:px-2 md:py-0.5 md:text-[10px]" style={{ position: "absolute", top: 12, right: 12, fontWeight: 600, borderRadius: 99, background: "#14110f", color: "#ffffff", letterSpacing: "0.02em" }}>Nouveau</span>
