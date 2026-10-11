@@ -1,406 +1,223 @@
-import { useEffect, useState } from "react";
-import { Check, X, ScanFace, Eye, ChevronLeft, IdCard, User, FileCheck, ZoomIn } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { KYC_STATUS_META, timeAgo, type KycRequest, type KycStatus } from "@/lib/adminOrders";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, ScanFace, X } from "lucide-react";
+import { timeAgo, type KycRequest, type KycStatus } from "@/lib/adminOrders";
 import { fetchKyc, setKycStatus, getDocumentUrl } from "@/lib/adminKyc";
-import { ClientCell, SubTabs } from "./AdminBits";
-import AdminHero from "./AdminHero";
-import { C, FONT, card } from "./adminTheme";
+import { C, FONT } from "./adminTheme";
+import { Button, Field, Notice, TextArea, Workspace } from "./ui";
+import { Avatar, DataTable, EmptyState, FilterChips, KeyValues, Pill, StatStrip, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import DocFrame from "./DocFrame";
 import BusinessKycPanel from "./BusinessKycPanel";
 
-const KycBadge = ({ status }: { status: KycStatus }) => {
-  const m = KYC_STATUS_META[status];
-  return <span className={cn("whitespace-nowrap text-[13px] font-semibold", m.text)}>{m.label}</span>;
-};
-
-const DOC_LABELS: Record<string, { label: string; icon: React.ElementType }> = {
-  id_front: { label: "Recto", icon: IdCard },
-  id_back: { label: "Verso", icon: FileCheck },
-  selfie: { label: "Selfie", icon: User },
-};
-
+const STATUS: Record<KycStatus, [string, Tone]> = { attente: ["À vérifier", "warn"], verifie: ["Vérifiée", "ok"], refuse: ["Refusée", "danger"] };
+const DOC_LABEL: Record<string, string> = { selfie: "Selfie", id_front: "Pièce d'identité · recto", id_back: "Pièce d'identité · verso" };
 const DOC_ORDER = ["selfie", "id_front", "id_back"];
+const DOC_TYPE: Record<string, string> = { passport: "Passeport", drivers_license: "Permis de conduire", id_card: "Carte d'identité", pr_card: "Carte de résident permanent" };
+const CHECKS = [
+  "Le visage du selfie correspond à la photo de la pièce",
+  "Le nom correspond à celui du compte",
+  "La pièce n'est pas expirée",
+  "Les photos sont nettes et complètes",
+];
+const REASONS = [
+  "La photo de la pièce est floue : le texte n'est pas lisible.",
+  "La pièce d'identité est expirée.",
+  "Le selfie ne correspond pas à la photo de la pièce.",
+  "Il manque le verso de la pièce d'identité.",
+  "Le nom sur la pièce ne correspond pas à celui du compte.",
+];
 
-type Filter = "attente" | "verifie" | "refuse";
+type Filter = KycStatus;
 
+/* ─── Examen d'un dossier, en plein écran ─── */
+function Review({ list, index, onIndex, onClose, onDecide }: {
+  list: KycRequest[]; index: number; onIndex: (i: number) => void; onClose: () => void;
+  onDecide: (r: KycRequest, status: KycStatus, reason?: string) => Promise<boolean>;
+}) {
+  const r = list[index];
+  const [note, setNote] = useState("");
+  const [checks, setChecks] = useState<boolean[]>(CHECKS.map(() => false));
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setNote(""); setChecks(CHECKS.map(() => false)); setError(null); }, [r?.id]);
+  const load = useCallback((p: string) => getDocumentUrl(p), []);
+  if (!r) return null;
+  const keys = r.documentPaths ? DOC_ORDER.filter((k) => k in r.documentPaths!) : [];
+  const pending = r.status === "attente";
+
+  const decide = async (status: KycStatus) => {
+    if (status === "refuse" && !note.trim()) { setError("Indiquez au client ce qu'il doit corriger : le motif figure dans son courriel."); return; }
+    setBusy(true); setError(null);
+    const ok = await onDecide(r, status, status === "refuse" ? note : undefined);
+    setBusy(false);
+    if (!ok) setError("La décision n'a pas pu être enregistrée. Réessayez.");
+  };
+
+  return (
+    <Workspace
+      title={r.clientName}
+      subtitle={`Vérification d'identité · ${DOC_TYPE[r.docType] ?? r.docType ?? "document"} · soumise ${timeAgo(r.submittedMinsAgo)}`}
+      onClose={onClose}
+      actions={list.length > 1 && (
+        <>
+          <span style={{ fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{index + 1} / {list.length}</span>
+          <Button variant="ghost" size="sm" aria-label="Précédent" disabled={index === 0} onClick={() => onIndex(index - 1)} icon={<ChevronLeft style={{ width: 16, height: 16 }} />} />
+          <Button variant="ghost" size="sm" aria-label="Suivant" disabled={index === list.length - 1} onClick={() => onIndex(index + 1)} icon={<ChevronRight style={{ width: 16, height: 16 }} />} />
+        </>
+      )}
+    >
+      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px]" style={{ minHeight: 0 }}>
+        <div style={{ overflowY: "auto", padding: "24px 24px 60px" }}>
+          {keys.length === 0 ? (
+            <EmptyState icon={ScanFace} title="Aucun document" text="Ce dossier vient de l'ancien parcours (Sumsub) : aucun fichier n'est stocké chez Ooble." />
+          ) : (
+            <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))" }}>
+              {keys.map((k) => <DocFrame key={`${r.id}:${k}`} label={DOC_LABEL[k] ?? k} path={r.documentPaths![k]} load={load} height={k === "id_back" ? 300 : 440} />)}
+            </div>
+          )}
+        </div>
+
+        <aside style={{ overflowY: "auto", borderLeft: `1px solid ${C.bds}`, padding: "24px 24px 40px", fontFamily: FONT }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+            <Avatar name={r.clientName} size={40} />
+            <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={r.clientName} secondary={r.email} /></div>
+            <Pill tone={STATUS[r.status][1]} dot>{STATUS[r.status][0]}</Pill>
+          </div>
+          <KeyValues items={[
+            ["Document", DOC_TYPE[r.docType] ?? r.docType ?? "—"],
+            ["Soumis", timeAgo(r.submittedMinsAgo)],
+            ["Fichiers", keys.length ? keys.map((k) => DOC_LABEL[k]?.split(" · ").pop()).join(", ") : "Aucun"],
+          ]} />
+
+          {pending ? (
+            <>
+              <h3 style={{ margin: "26px 0 10px", fontSize: 14, fontWeight: 500 }}>À vérifier</h3>
+              <div style={{ display: "grid", gap: 2 }}>
+                {CHECKS.map((c, i) => (
+                  <label key={c} className="ui-row" style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 4px", borderRadius: 8, cursor: "pointer", fontSize: 13.5, color: checks[i] ? C.t1 : C.t2 }}>
+                    <input type="checkbox" checked={checks[i]} onChange={() => setChecks((v) => v.map((x, j) => (j === i ? !x : x)))} style={{ marginTop: 3, accentColor: "var(--a-t1)" }} />
+                    {c}
+                  </label>
+                ))}
+              </div>
+
+              <h3 style={{ margin: "26px 0 10px", fontSize: 14, fontWeight: 500 }}>Décision</h3>
+              <Field label="Motif pour le client" hint="Obligatoire en cas de refus. Le client reçoit un courriel avec la décision.">
+                <TextArea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ce que le client doit corriger." />
+              </Field>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                {REASONS.map((t) => (
+                  <button key={t} type="button" className="ui-btn ui-btn-ghost" onClick={() => setNote(t)}
+                    style={{ height: 28, padding: "0 10px", borderRadius: 99, border: `1px solid ${C.bds}`, background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 12, cursor: "pointer" }}>
+                    {t.split(" : ")[0].replace(/\.$/, "")}
+                  </button>
+                ))}
+              </div>
+              {error && <div style={{ marginTop: 12 }}><Notice tone="err">{error}</Notice></div>}
+              <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                <Button variant="danger" disabled={busy} onClick={() => decide("refuse")} icon={<X style={{ width: 15, height: 15 }} />}>Refuser</Button>
+                <Button variant="primary" disabled={busy} onClick={() => decide("verifie")} icon={<Check style={{ width: 15, height: 15 }} />} className="flex-1">
+                  {checks.every(Boolean) ? "Approuver" : "Approuver quand même"}
+                </Button>
+              </div>
+            </>
+          ) : r.reviewNote ? (
+            <>
+              <h3 style={{ margin: "26px 0 8px", fontSize: 14, fontWeight: 500 }}>Motif envoyé au client</h3>
+              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{r.reviewNote}</p>
+            </>
+          ) : null}
+        </aside>
+      </div>
+    </Workspace>
+  );
+}
+
+/* ─── Particuliers ─── */
 const PersonKycPanel = () => {
   const [rows, setRows] = useState<KycRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Filter>("attente");
-  const [detail, setDetail] = useState<KycRequest | null>(null);
-  const [docUrls, setDocUrls] = useState<Record<string, string>>({});
-  const [loadingUrls, setLoadingUrls] = useState(false);
-  const [lightbox, setLightbox] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [noteError, setNoteError] = useState<string | null>(null);
+  const [open, setOpen] = useState<{ ids: string[]; index: number } | null>(null);
 
-  useEffect(() => {
-    fetchKyc().then((r) => { setRows(r); setLoading(false); });
-  }, []);
+  useEffect(() => { fetchKyc().then((r) => { setRows(r); setLoading(false); }); }, []);
 
-  // Approuver ou refuser ; le client reçoit un courriel dans les deux cas.
-  // Un refus exige un motif (il figure dans le courriel).
-  const set = (id: string, status: KycStatus, reason?: string) => {
-    const row = rows.find((r) => r.id === id);
-    if (status === "refuse" && !reason?.trim()) {
-      setNoteError("Indiquez au client ce qu'il doit corriger.");
-      return;
-    }
-    setNoteError(null);
-    const reviewNote = status === "refuse" ? reason!.trim() : null;
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status, reviewNote } : r)));
-    if (detail?.id === id) setDetail((d) => d ? { ...d, status, reviewNote } : d);
-    setKycStatus(id, status, reason, row ? { email: row.email, name: row.clientName } : undefined).then((res) => {
-      if (res.error) fetchKyc().then(setRows);
-    });
-  };
-
-  const openDetail = async (r: KycRequest) => {
-    setDetail(r);
-    setNote("");
-    setNoteError(null);
-    setDocUrls({});
-    if (!r.documentPaths) return;
-    setLoadingUrls(true);
-    const urls: Record<string, string> = {};
-    for (const [key, path] of Object.entries(r.documentPaths)) {
-      const url = await getDocumentUrl(path);
-      if (url) urls[key] = url;
-    }
-    setDocUrls(urls);
-    setLoadingUrls(false);
-  };
-
-  const counts = {
+  const counts = useMemo(() => ({
     attente: rows.filter((r) => r.status === "attente").length,
     verifie: rows.filter((r) => r.status === "verifie").length,
     refuse: rows.filter((r) => r.status === "refuse").length,
+  }), [rows]);
+  // Même ordre que le tableau : les plus anciennes d'abord.
+  const list = rows.filter((r) => r.status === tab).sort((a, b) => b.submittedMinsAgo - a.submittedMinsAgo);
+  const reviewList = open ? open.ids.map((id) => rows.find((r) => r.id === id)!).filter(Boolean) : [];
+
+  // Approuver ou refuser : le client reçoit un courriel dans les deux cas. Puis dossier suivant.
+  const decide = async (r: KycRequest, status: KycStatus, reason?: string) => {
+    const reviewNote = status === "refuse" ? reason!.trim() : null;
+    const res = await setKycStatus(r.id, status, reason, { email: r.email, name: r.clientName });
+    if (res.error) { fetchKyc().then(setRows); return false; }
+    setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, status, reviewNote } : x)));
+    setOpen((o) => {
+      if (!o) return o;
+      const next = o.index + 1;
+      return next < o.ids.length ? { ...o, index: next } : null;
+    });
+    return true;
   };
-  const TABS = [
-    { id: "attente", label: "À vérifier", count: counts.attente },
-    { id: "verifie", label: "Vérifiés", count: counts.verifie },
-    { id: "refuse", label: "Refusés", count: counts.refuse },
+
+  const columns: Column<KycRequest>[] = [
+    { key: "client", header: "Client", sort: (r) => r.clientName, render: (r) => <TwoLine lead={<Avatar name={r.clientName} />} primary={r.clientName} secondary={r.email} /> },
+    { key: "doc", header: "Document", hideBelow: 800, render: (r) => <span style={{ color: C.t2 }}>{DOC_TYPE[r.docType] ?? r.docType ?? "—"}</span> },
+    { key: "status", header: "Statut", render: (r) => <Pill tone={STATUS[r.status][1]} dot>{STATUS[r.status][0]}</Pill> },
+    { key: "age", header: "Soumise", align: "right", sort: (r) => r.submittedMinsAgo, hideBelow: 700, render: (r) => <span style={{ color: C.t2 }}>{timeAgo(r.submittedMinsAgo)}</span> },
+    { key: "go", header: "", align: "right", render: (r) => <Button size="sm" variant={r.status === "attente" ? "primary" : "secondary"} onClick={(e) => { e.stopPropagation(); start(r); }}>{r.status === "attente" ? "Examiner" : "Voir"}</Button> },
   ];
-  const list = rows.filter((r) => r.status === tab);
-  const cols = "grid grid-cols-[1fr_auto] md:grid-cols-[1.7fr_1fr_0.7fr_auto] items-center gap-3";
-
-  /* ── Lightbox ── */
-  if (lightbox) {
-    return (
-      <div
-        style={{
-          position: "fixed", inset: 0, zIndex: 100,
-          background: "rgba(0,0,0,0.92)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer",
-        }}
-        onClick={() => setLightbox(null)}
-      >
-        <img
-          src={lightbox}
-          alt=""
-          style={{ maxWidth: "92vw", maxHeight: "88vh", objectFit: "contain", borderRadius: 8 }}
-        />
-        <button
-          type="button"
-          onClick={() => setLightbox(null)}
-          style={{
-            position: "absolute", top: 20, right: 20,
-            width: 36, height: 36, borderRadius: "50%",
-            background: "rgba(255,255,255,0.1)", border: "none",
-            color: "#fff", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <X style={{ width: 18, height: 18 }} />
-        </button>
-      </div>
-    );
-  }
-
-  /* ── Detail view ── */
-  if (detail) {
-    const m = KYC_STATUS_META[detail.status];
-    const sortedKeys = detail.documentPaths
-      ? DOC_ORDER.filter((k) => k in detail.documentPaths!)
-      : [];
-
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <button
-          type="button"
-          onClick={() => setDetail(null)}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: "none", border: "none", cursor: "pointer",
-            color: C.t2, fontSize: 13, fontFamily: FONT,
-            padding: 0, transition: "color 0.15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = C.t1; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = C.t2; }}
-        >
-          <ChevronLeft style={{ width: 16, height: 16 }} /> Retour à la liste
-        </button>
-
-        {/* Client header */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 14,
-          padding: "16px 18px",
-          ...card,
-        }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: C.l2, border: `1px solid ${C.bds}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: C.t2, fontSize: 16, fontFamily: FONT,
-            flexShrink: 0,
-          }}>
-            {detail.clientName.charAt(0).toUpperCase()}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, color: C.t1, fontSize: 15, fontFamily: FONT }}>{detail.clientName}</p>
-            <p style={{ margin: "2px 0 0", color: C.t3, fontSize: 12, fontFamily: FONT }}>{detail.email}</p>
-          </div>
-          <span style={{
-            fontSize: 11, fontFamily: FONT,
-            color: m.text.includes("green") || detail.status === "verifie" ? C.successText : detail.status === "refuse" ? C.dangerText : C.t2,
-            padding: "4px 10px",
-            borderRadius: 20,
-            background: detail.status === "verifie" ? C.successBg : detail.status === "refuse" ? C.dangerBg : C.l3,
-          }}>
-            {m.label}
-          </span>
-        </div>
-
-        {/* Doc info bar */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "10px 18px",
-          borderRadius: 10,
-          background: C.l2,
-          fontSize: 12, fontFamily: FONT,
-        }}>
-          <span style={{ color: C.t3 }}>Document :</span>
-          <span style={{ color: C.t1, fontWeight: 500 }}>{detail.docType || "N/D"}</span>
-          <span style={{ marginLeft: "auto", color: C.t3 }}>{timeAgo(detail.submittedMinsAgo)}</span>
-        </div>
-
-        {/* Documents */}
-        {detail.documentPaths ? (
-          loadingUrls ? (
-            <div style={{
-              textAlign: "center", padding: "48px 0",
-              color: C.t3, fontSize: 13, fontFamily: FONT,
-            }}>
-              Chargement des documents…
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {sortedKeys.map((key) => {
-                const meta = DOC_LABELS[key] ?? { label: key, icon: FileCheck };
-                const url = docUrls[key];
-                return (
-                  <div key={key} style={{ ...card, overflow: "hidden" }}>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "10px 16px",
-                      borderBottom: `1px solid ${C.bds}`,
-                    }}>
-                      <meta.icon style={{ width: 14, height: 14, color: C.t3 }} strokeWidth={1.7} />
-                      <span style={{ color: C.t2, fontSize: 12, fontFamily: FONT, flex: 1 }}>{meta.label}</span>
-                      {url && (
-                        <button
-                          type="button"
-                          onClick={() => setLightbox(url)}
-                          style={{
-                            background: "none", border: "none", cursor: "pointer",
-                            color: C.t3, display: "flex", alignItems: "center", gap: 4,
-                            fontSize: 11, fontFamily: FONT, padding: 0,
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color = C.t1; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.color = C.t3; }}
-                        >
-                          <ZoomIn style={{ width: 12, height: 12 }} /> Agrandir
-                        </button>
-                      )}
-                    </div>
-                    {url ? (
-                      <div
-                        style={{
-                          cursor: "pointer", background: C.bg,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          padding: 12,
-                        }}
-                        onClick={() => setLightbox(url)}
-                      >
-                        <img
-                          src={url}
-                          alt={meta.label}
-                          style={{
-                            maxWidth: "100%", maxHeight: 360,
-                            objectFit: "contain", borderRadius: 6,
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div style={{
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        padding: "48px 0", color: C.t3, fontSize: 12, fontFamily: FONT,
-                      }}>
-                        Indisponible
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )
-        ) : (
-          <div style={{
-            ...card, padding: "48px 0",
-            display: "flex", flexDirection: "column",
-            alignItems: "center", textAlign: "center",
-          }}>
-            <ScanFace style={{ width: 24, height: 24, color: C.t3 }} strokeWidth={1.5} />
-            <p style={{ margin: "10px 0 0", color: C.t3, fontSize: 13, fontFamily: FONT }}>
-              Aucun document uploadé (ancien flux Sumsub).
-            </p>
-          </div>
-        )}
-
-        {detail.status === "refuse" && detail.reviewNote && (
-          <div className="rounded-2xl border border-border bg-card px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Motif envoyé au client</p>
-            <p className="mt-1 whitespace-pre-wrap text-[13px]">{detail.reviewNote}</p>
-          </div>
-        )}
-
-        {/* Décision : motif (obligatoire pour un refus) + boutons */}
-        {detail.status === "attente" && (
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="block">
-              <span className="text-[12.5px] text-muted-foreground">Motif pour le client (obligatoire en cas de refus)</span>
-              <textarea
-                rows={3}
-                maxLength={1000}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Ex. : la photo du recto est floue, le texte n'est pas lisible."
-                className="mt-1.5 w-full resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 text-[13px] outline-none focus-visible:border-foreground/50"
-              />
-            </label>
-            {noteError && <p className="mt-2 text-[12.5px] text-destructive">{noteError}</p>}
-            <p className="mt-2 text-[12px] text-muted-foreground">Le client reçoit un courriel avec la décision.</p>
-          </div>
-        )}
-        {detail.status === "attente" && (
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
-            <Button variant="appOutline" shape="rounded" className="h-auto gap-1.5 rounded-[9px] px-4 py-[8px] text-[13px]" onClick={() => set(detail.id, "refuse", note)}>
-              <X className="h-[14px] w-[14px]" /> Refuser
-            </Button>
-            <Button variant="appSolid" shape="rounded" className="h-auto gap-1.5 rounded-[9px] px-4 py-[8px] text-[13px] font-bold" onClick={() => set(detail.id, "verifie")}>
-              <Check className="h-[14px] w-[14px]" /> Approuver
-            </Button>
-          </div>
-        )}
-      </div>
-    );
-  }
+  const start = (r: KycRequest) => {
+    const ids = list.map((x) => x.id);
+    setOpen({ ids, index: Math.max(0, ids.indexOf(r.id)) });
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="lg:max-w-[620px]">
-        <AdminHero
-          eyebrow="Vérifications d'identité"
-          loading={loading}
-          value={counts.attente}
-          unit={counts.attente > 1 ? "en attente" : "en attente"}
-          stats={[
-            { label: "Vérifiés", value: counts.verifie },
-            { label: "Refusés", value: counts.refuse },
-            { label: "Total", value: rows.length },
-          ]}
-        />
-      </div>
-
-      <SubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as Filter)} />
-
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className={cn(cols, "hidden border-b border-border px-4 py-2.5 md:grid")}>
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Client</span>
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Document</span>
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Soumis</span>
-          <span />
+    <div>
+      <StatStrip items={[
+        { label: "À vérifier", value: loading ? "…" : counts.attente, tone: counts.attente ? "warn" : undefined, hint: counts.attente ? "les clients attendent pour commander" : "rien en attente" },
+        { label: "Vérifiées", value: loading ? "…" : counts.verifie },
+        { label: "Refusées", value: loading ? "…" : counts.refuse },
+      ]} />
+      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+        { id: "attente", label: "À vérifier", count: counts.attente, tone: "warn" },
+        { id: "verifie", label: "Vérifiées", count: counts.verifie },
+        { id: "refuse", label: "Refusées", count: counts.refuse },
+      ]} />
+      {tab === "attente" && counts.attente > 1 && (
+        <div style={{ margin: "14px 0 0" }}>
+          <Button variant="primary" size="sm" onClick={() => start(list[0])}>Examiner les {counts.attente} dossiers à la suite</Button>
         </div>
-
-        {list.map((r, i) => (
-          <div key={r.id} className={cn(cols, "px-4 py-2.5", i < list.length - 1 && "border-b border-border")}>
-            <ClientCell name={r.clientName} email={r.email} />
-            <span className="hidden text-[13px] text-muted-foreground md:block">{r.docType}</span>
-            <span className="hidden text-[12.5px] text-muted-foreground md:block">{timeAgo(r.submittedMinsAgo)}</span>
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="appOutline"
-                shape="rounded"
-                className="h-auto gap-1.5 rounded-[9px] px-3 py-[7px] text-[12.5px]"
-                onClick={() => openDetail(r)}
-              >
-                <Eye className="h-[13px] w-[13px]" /> Voir
-              </Button>
-              {r.status === "attente" ? (
-                <>
-                  <Button variant="appOutline" shape="rounded" className="h-auto gap-1.5 rounded-[9px] px-3 py-[7px] text-[12.5px]" onClick={() => openDetail(r)}>
-                    <X className="h-[13px] w-[13px]" /> Refuser
-                  </Button>
-                  <Button variant="appSolid" shape="rounded" className="h-auto gap-1.5 rounded-[9px] px-3 py-[7px] text-[12.5px] font-bold" onClick={() => set(r.id, "verifie")}>
-                    <Check className="h-[13px] w-[13px]" /> Approuver
-                  </Button>
-                </>
-              ) : (
-                <KycBadge status={r.status} />
-              )}
+      )}
+      <div style={{ marginTop: 14 }}>
+        <DataTable rows={list} columns={columns} rowKey={(r) => r.id} onRowClick={start} initialSort={{ key: "age", dir: "desc" }}
+          empty={<EmptyState icon={ScanFace} title={loading ? "Chargement…" : "Aucun dossier ici"} text={tab === "attente" && !loading ? "Toutes les identités sont vérifiées." : undefined} />}
+          mobile={(r) => (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Avatar name={r.clientName} size={36} />
+              <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={r.clientName} secondary={`${DOC_TYPE[r.docType] ?? r.docType ?? "Document"} · ${timeAgo(r.submittedMinsAgo)}`} /></div>
+              <Pill tone={STATUS[r.status][1]} dot>{STATUS[r.status][0]}</Pill>
             </div>
-          </div>
-        ))}
-
-        {list.length === 0 && (
-          <div className="flex flex-col items-center py-16 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
-              <ScanFace className="h-5 w-5" strokeWidth={1.6} />
-            </span>
-            <p className="mt-3 text-[13px] text-muted-foreground">
-              {loading ? "Chargement…" : "Aucune vérification ici."}
-            </p>
-          </div>
-        )}
+          )} />
       </div>
+      {open && reviewList.length > 0 && (
+        <Review list={reviewList} index={Math.min(open.index, reviewList.length - 1)} onIndex={(i) => setOpen({ ...open, index: i })} onClose={() => setOpen(null)} onDecide={decide} />
+      )}
     </div>
   );
 };
 
-/* ── Particuliers / Entreprises ── */
+/* ─── Particuliers / Entreprises ─── */
 const KycPanel = () => {
   const [kind, setKind] = useState<"person" | "business">("person");
   return (
-    <div className="space-y-4">
-      <div className="inline-flex rounded-[10px] border border-border bg-secondary/60 p-0.5">
-        {([
-          { id: "person", label: "Particuliers" },
-          { id: "business", label: "Entreprises" },
-        ] as const).map((k) => (
-          <button
-            key={k.id}
-            type="button"
-            onClick={() => setKind(k.id)}
-            className={cn(
-              "rounded-md px-3.5 py-1.5 text-[13px] font-semibold transition-colors",
-              kind === k.id ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {k.label}
-          </button>
-        ))}
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <FilterChips value={kind} onChange={setKind} options={[{ id: "person", label: "Particuliers" }, { id: "business", label: "Entreprises" }]} />
       </div>
       {kind === "person" ? <PersonKycPanel /> : <BusinessKycPanel />}
     </div>

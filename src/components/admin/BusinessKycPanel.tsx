@@ -1,31 +1,24 @@
-import { useEffect, useState } from "react";
-import { Building2, Check, ChevronLeft, ExternalLink, Eye, FileText, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useState } from "react";
+import { Building2, Check, X } from "lucide-react";
 import { decideKyb, fetchKyb, getKybDocumentUrl, resetKyb, type KybRequest } from "@/lib/adminKyb";
 import type { KybDocKey, OwnerRole } from "@/lib/kyb";
 import { useAuth } from "@/lib/auth";
-import { ClientCell, SubTabs } from "./AdminBits";
-import AdminHero from "./AdminHero";
 import BusinessMark from "@/components/app/BusinessMark";
+import { C, FONT } from "./adminTheme";
+import { Button, Field, Notice, TextArea, Workspace } from "./ui";
+import { DataTable, EmptyState, KeyValues, Pill, StatStrip, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import DocFrame from "./DocFrame";
 
 type Filter = "pending" | "approved" | "rejected";
 
 const DOC_LABELS: Record<KybDocKey, string> = {
-  incorporation: "Constitution",
+  incorporation: "Acte constitutif",
   registry: "Registre des administrateurs",
   address_proof: "Preuve d'adresse",
 };
-const ROLE_LABELS: Record<OwnerRole, string> = {
-  director: "Administrateur",
-  owner: "Propriétaire",
-  both: "Administrateur et propriétaire",
-};
-const STATUS_LABEL: Record<string, string> = {
-  not_started: "Non commencée",
-  pending: "En attente",
-  approved: "Vérifiée",
-  rejected: "Refusée",
+const ROLE_LABELS: Record<OwnerRole, string> = { director: "Administrateur", owner: "Propriétaire", both: "Administrateur et propriétaire" };
+const STATUS: Record<string, [string, Tone]> = {
+  not_started: ["Non commencée", "neutral"], pending: ["À examiner", "warn"], approved: ["Vérifiée", "ok"], rejected: ["Refusée", "danger"],
 };
 
 /** Une date seule (« 1990-04-12 ») est lue en heure locale, pas en UTC (sinon la veille s'affiche). */
@@ -35,61 +28,39 @@ const fmtDate = (iso: string) => {
   return d.toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" });
 };
 
-const Row = ({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) => (
-  <div className="flex items-start gap-4 px-4 py-2.5">
-    <span className="w-[38%] shrink-0 text-[12.5px] text-muted-foreground">{label}</span>
-    <span className={cn("min-w-0 flex-1 whitespace-pre-wrap break-words text-[13px]", mono && "font-mono")}>{value || "N/D"}</span>
-  </div>
-);
-
-const StatusPill = ({ status }: { status: string }) => (
-  <span
-    className={cn(
-      "whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold",
-      status === "approved" ? "bg-primary/10 text-primary" : status === "rejected" ? "bg-destructive/10 text-destructive" : "bg-secondary text-foreground/80",
-    )}
-  >
-    {STATUS_LABEL[status] ?? status}
-  </span>
-);
-
 const BusinessKycPanel = () => {
   const { roles } = useAuth();
   const canDecide = roles.includes("admin") || roles.includes("kyc_reviewer");
   const isAdmin = roles.includes("admin");
-  const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
   const [rows, setRows] = useState<KybRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Filter>("pending");
   const [detail, setDetail] = useState<KybRequest | null>(null);
+  const [doc, setDoc] = useState<KybDocKey>("incorporation");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
+  const load = useCallback((p: string) => getKybDocumentUrl(p), []);
 
-  const load = () => fetchKyb().then((r) => { setRows(r); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  useEffect(() => { fetchKyb().then((r) => { setRows(r); setLoading(false); }); }, []);
 
   const counts = {
     pending: rows.filter((r) => r.status === "pending").length,
     approved: rows.filter((r) => r.status === "approved").length,
     rejected: rows.filter((r) => r.status === "rejected").length,
   };
+  const list = rows.filter((r) => r.status === tab);
 
-  const openDoc = async (path: string) => {
-    const w = window.open("", "_blank");
-    const url = await getKybDocumentUrl(path);
-    if (w && url) w.location.href = url;
-    else w?.close();
+  const open = (r: KybRequest) => {
+    setDetail(r); setNote(""); setError(null); setResetStep("idle");
+    setDoc((Object.keys(DOC_LABELS) as KybDocKey[]).find((k) => r.documents[k]) ?? "incorporation");
   };
 
   const decide = async (decision: "approved" | "rejected") => {
     if (!detail) return;
-    if (decision === "rejected" && !note.trim()) {
-      setError("Expliquez au client ce qu'il doit corriger.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
+    if (decision === "rejected" && !note.trim()) { setError("Expliquez au client ce qu'il doit corriger."); return; }
+    setBusy(true); setError(null);
     const res = await decideKyb(detail, decision, note);
     setBusy(false);
     if (res.error) { setError(res.error); return; }
@@ -100,8 +71,7 @@ const BusinessKycPanel = () => {
 
   const reset = async () => {
     if (!detail) return;
-    setResetStep("busy");
-    setError(null);
+    setResetStep("busy"); setError(null);
     const res = await resetKyb(detail.userId, { businessStatus: detail.status, businessName: detail.legalName });
     setResetStep("idle");
     if (res.error) { setError(res.error); return; }
@@ -109,214 +79,123 @@ const BusinessKycPanel = () => {
     setDetail(null);
   };
 
-  /* ── Dossier ── */
-  if (detail) {
-    const d = detail;
-    const owned = d.owners.reduce((s, o) => s + (o.role === "director" ? 0 : Number(o.ownership) || 0), 0);
-    return (
-      <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => { setDetail(null); setError(null); setResetStep("idle"); }}
-          className="flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" /> Retour à la liste
-        </button>
+  const columns: Column<KybRequest>[] = [
+    { key: "co", header: "Entreprise", sort: (r) => r.legalName, render: (r) => <TwoLine lead={<BusinessMark name={r.legalName} size="sm" />} primary={r.legalName} secondary={r.businessNumber ? `NEQ ${r.businessNumber}` : r.jurisdiction ?? ""} /> },
+    { key: "contact", header: "Responsable", hideBelow: 800, render: (r) => <TwoLine primary={r.contactName} secondary={r.email} /> },
+    { key: "status", header: "Statut", render: (r) => <Pill tone={STATUS[r.status]?.[1]} dot>{STATUS[r.status]?.[0] ?? r.status}</Pill> },
+    { key: "date", header: "Soumis", align: "right", sort: (r) => r.createdAt, hideBelow: 700, render: (r) => <span style={{ color: C.t2 }}>{fmtDate(r.createdAt)}</span> },
+  ];
 
-        <div className="flex items-center gap-3.5 rounded-2xl border border-border bg-card px-4 py-4">
-          <BusinessMark name={d.legalName} size="md" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold">{d.legalName}</p>
-            <p className="truncate text-[12px] text-muted-foreground">{d.contactName} · {d.email}</p>
-          </div>
-          <StatusPill status={d.status} />
-        </div>
+  const d = detail;
+  const owned = d ? d.owners.reduce((s, o) => s + (o.role === "director" ? 0 : Number(o.ownership) || 0), 0) : 0;
+  const docKeys = Object.keys(DOC_LABELS) as KybDocKey[];
 
-        <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          <Row label="Immatriculation" value={d.jurisdiction} />
-          <Row label="NEQ / BN" value={d.businessNumber} mono />
-          <Row label="Adresse du siège" value={d.address} />
-          <Row label="Téléphone" value={d.phone} />
-          <Row label="Site web" value={d.website} />
-          <Row label="Activité" value={d.activity} />
-          <Row label="Soumis le" value={fmtDate(d.createdAt)} />
-          <Row label="Identité du responsable" value={<StatusPill status={d.contactKyc} />} />
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
-              Administrateurs et propriétaires ({d.owners.length})
-            </span>
-            <span className="text-[11.5px] text-muted-foreground">Parts déclarées : {owned} %</span>
-          </div>
-          <div className="divide-y divide-border">
-            {d.owners.map((o, i) => (
-              <div key={i} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 px-4 py-2.5 md:grid-cols-[1.4fr_1.2fr_0.6fr_1fr]">
-                <span className="text-[13px] font-medium">{o.name}</span>
-                <span className="text-right text-[12.5px] text-muted-foreground md:text-left">{ROLE_LABELS[o.role] ?? o.role}</span>
-                <span className="text-[12.5px] text-muted-foreground">{o.role === "director" ? "N/D" : `${o.ownership} %`}</span>
-                <span className="text-right text-[12.5px] text-muted-foreground md:text-left">
-                  {o.birthDate ? fmtDate(o.birthDate) : "N/D"} · {o.country}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="border-b border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Documents</div>
-          <div className="divide-y divide-border">
-            {(Object.keys(DOC_LABELS) as KybDocKey[]).map((k) => (
-              <div key={k} className="flex items-center gap-3 px-4 py-2.5">
-                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.7} />
-                <span className="flex-1 text-[13px]">{DOC_LABELS[k]}</span>
-                {d.documents[k] ? (
-                  <button
-                    type="button"
-                    onClick={() => openDoc(d.documents[k]!)}
-                    className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-foreground hover:underline"
-                  >
-                    Ouvrir <ExternalLink className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <span className="text-[12.5px] text-muted-foreground">Non fourni</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {d.status !== "pending" && d.reviewNote && (
-          <div className="rounded-2xl border border-border bg-card px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Note envoyée au client</p>
-            <p className="mt-1 whitespace-pre-wrap text-[13px]">{d.reviewNote}</p>
-          </div>
-        )}
-
-        {isAdmin && (
-          <div className="flex flex-wrap items-center justify-end gap-2.5 px-1">
-            {resetStep === "confirm" ? (
-              <>
-                <span className="mr-auto text-[12.5px] text-muted-foreground">
-                  Supprimer ce dossier ? Le client repartira d'un dossier vide.
-                </span>
-                <button type="button" onClick={() => setResetStep("idle")} className="rounded-[9px] px-3 py-[7px] text-[12.5px] font-medium text-muted-foreground hover:text-foreground">
-                  Annuler
-                </button>
-                <button type="button" onClick={reset} className="rounded-[9px] bg-destructive px-3 py-[7px] text-[12.5px] font-semibold text-destructive-foreground hover:opacity-90">
-                  Réinitialiser
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                disabled={resetStep === "busy"}
-                onClick={() => { setError(null); setResetStep("confirm"); }}
-                className="rounded-[9px] border border-border px-3 py-[7px] text-[12.5px] font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-              >
-                {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification"}
-              </button>
-            )}
-          </div>
-        )}
-        {d.status !== "pending" && error && <p className="px-1 text-right text-[12.5px] text-destructive">{error}</p>}
-
-        {d.status === "pending" && canDecide && (
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="block">
-              <span className="text-[12.5px] text-muted-foreground">Note au client (obligatoire en cas de refus)</span>
-              <textarea
-                rows={3}
-                maxLength={1000}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Ex. : le registre des administrateurs fourni date de plus d'un an."
-                className="mt-1.5 w-full resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 text-[13px] outline-none focus-visible:border-foreground/50"
-              />
-            </label>
-            {d.contactKyc !== "approved" && (
-              <p className="mt-2 text-[12px] text-muted-foreground">
-                L'identité du responsable n'est pas encore vérifiée ({STATUS_LABEL[d.contactKyc].toLowerCase()}).
-              </p>
-            )}
-            {error && <p className="mt-2 text-[12.5px] text-destructive">{error}</p>}
-            <div className="mt-3 flex justify-end gap-2.5">
-              <Button variant="appOutline" shape="rounded" className="h-auto gap-1.5 rounded-[9px] px-4 py-[8px] text-[13px]" disabled={busy} onClick={() => decide("rejected")}>
-                <X className="h-[14px] w-[14px]" /> Refuser
-              </Button>
-              <Button variant="appSolid" shape="rounded" className="h-auto gap-1.5 rounded-[9px] px-4 py-[8px] text-[13px] font-bold" disabled={busy} onClick={() => decide("approved")}>
-                <Check className="h-[14px] w-[14px]" /> Approuver
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  /* ── Liste ── */
-  const list = rows.filter((r) => r.status === tab);
-  const cols = "grid grid-cols-[1fr_auto] md:grid-cols-[1.5fr_1.3fr_0.8fr_auto] items-center gap-3";
   return (
-    <div className="space-y-4">
-      <div className="lg:max-w-[620px]">
-        <AdminHero
-          eyebrow="Vérifications d'entreprise"
-          loading={loading}
-          value={counts.pending}
-          unit="en attente"
-          stats={[
-            { label: "Vérifiées", value: counts.approved },
-            { label: "Refusées", value: counts.rejected },
-            { label: "Total", value: rows.length },
-          ]}
-        />
-      </div>
+    <div>
+      <StatStrip items={[
+        { label: "À examiner", value: loading ? "…" : counts.pending, tone: counts.pending ? "warn" : undefined },
+        { label: "Vérifiées", value: loading ? "…" : counts.approved },
+        { label: "Refusées", value: loading ? "…" : counts.rejected },
+      ]} />
+      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+        { id: "pending", label: "À examiner", count: counts.pending, tone: "warn" },
+        { id: "approved", label: "Vérifiées", count: counts.approved },
+        { id: "rejected", label: "Refusées", count: counts.rejected },
+      ]} />
+      <DataTable rows={list} columns={columns} rowKey={(r) => r.id} onRowClick={open} initialSort={{ key: "date", dir: "desc" }}
+        empty={<EmptyState icon={Building2} title={loading ? "Chargement…" : "Aucun dossier ici"} />}
+        mobile={(r) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <BusinessMark name={r.legalName} size="sm" />
+            <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={r.legalName} secondary={`${r.contactName} · ${fmtDate(r.createdAt)}`} /></div>
+            <Pill tone={STATUS[r.status]?.[1]} dot>{STATUS[r.status]?.[0] ?? r.status}</Pill>
+          </div>
+        )} />
 
-      <SubTabs
-        tabs={[
-          { id: "pending", label: "À examiner", count: counts.pending },
-          { id: "approved", label: "Vérifiées", count: counts.approved },
-          { id: "rejected", label: "Refusées", count: counts.rejected },
-        ]}
-        active={tab}
-        onChange={(id) => setTab(id as Filter)}
-      />
-
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className={cn(cols, "hidden border-b border-border px-4 py-2.5 md:grid")}>
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Responsable</span>
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Entreprise</span>
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Soumis</span>
-          <span />
-        </div>
-        {list.map((r, i) => (
-          <div key={r.id} className={cn(cols, "px-4 py-2.5", i < list.length - 1 && "border-b border-border")}>
-            <ClientCell name={r.contactName} email={r.email} />
-            <span className="hidden truncate text-[13px] md:block">{r.legalName}</span>
-            <span className="hidden text-[12.5px] text-muted-foreground md:block">{fmtDate(r.createdAt)}</span>
-            <div className="flex justify-end">
-              <Button
-                variant="appOutline"
-                shape="rounded"
-                className="h-auto gap-1.5 rounded-[9px] px-3 py-[7px] text-[12.5px]"
-                onClick={() => { setDetail(r); setNote(""); setError(null); }}
-              >
-                <Eye className="h-[13px] w-[13px]" /> {r.status === "pending" && canDecide ? "Examiner" : "Voir"}
-              </Button>
+      {d && (
+        <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetail(null)}>
+          <div className="grid flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px]" style={{ minHeight: 0 }}>
+            <div style={{ overflowY: "auto", padding: "20px 24px 60px", display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
+                {docKeys.map((k) => (
+                  <button key={k} type="button" onClick={() => setDoc(k)} className="ui-btn"
+                    style={{ height: 32, padding: "0 12px", borderRadius: 8, border: `1px solid ${doc === k ? C.bd : "transparent"}`, background: doc === k ? C.l2 : "transparent", color: doc === k ? C.t1 : d.documents[k] ? C.t2 : C.t3, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
+                    {DOC_LABELS[k]}{!d.documents[k] && " · non fourni"}
+                  </button>
+                ))}
+              </div>
+              <DocFrame key={`${d.id}:${doc}`} label={DOC_LABELS[doc]} path={d.documents[doc]} load={load} height={620} />
             </div>
+
+            <aside style={{ overflowY: "auto", borderLeft: `1px solid ${C.bds}`, padding: "24px 24px 40px", fontFamily: FONT }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <BusinessMark name={d.legalName} size="md" />
+                <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={d.legalName} secondary={`${d.contactName} · ${d.email}`} /></div>
+                <Pill tone={STATUS[d.status]?.[1]} dot>{STATUS[d.status]?.[0] ?? d.status}</Pill>
+              </div>
+              <KeyValues items={[
+                ["Immatriculation", d.jurisdiction ?? "—"],
+                ["NEQ / BN", d.businessNumber ?? "—"],
+                ["Siège", d.address],
+                ["Téléphone", d.phone ?? "—"],
+                ["Site web", d.website ?? "—"],
+                ["Activité", d.activity],
+                ["Identité du responsable", <Pill key="k" tone={STATUS[d.contactKyc]?.[1]} dot>{STATUS[d.contactKyc]?.[0] ?? d.contactKyc}</Pill>],
+              ]} />
+
+              <h3 style={{ margin: "26px 0 4px", fontSize: 14, fontWeight: 500 }}>Administrateurs et propriétaires</h3>
+              <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t3 }}>{d.owners.length} personne{d.owners.length > 1 ? "s" : ""} · parts déclarées : {owned} %</p>
+              <div style={{ borderTop: `1px solid ${C.bds}` }}>
+                {d.owners.map((o, i) => (
+                  <div key={i} style={{ padding: "10px 0", borderBottom: `1px solid ${C.bds}`, display: "flex", gap: 12, alignItems: "baseline" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={o.name} secondary={[ROLE_LABELS[o.role] ?? o.role, o.birthDate ? `né(e) le ${fmtDate(o.birthDate)}` : null, o.country].filter(Boolean).join(" · ")} /></div>
+                    <span style={{ fontSize: 13, color: C.t2, fontVariantNumeric: "tabular-nums" }}>{o.role === "director" || o.ownership == null ? "—" : `${o.ownership} %`}</span>
+                  </div>
+                ))}
+              </div>
+
+              {d.status !== "pending" && d.reviewNote && (
+                <>
+                  <h3 style={{ margin: "26px 0 8px", fontSize: 14, fontWeight: 500 }}>Note envoyée au client</h3>
+                  <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{d.reviewNote}</p>
+                </>
+              )}
+
+              {d.status === "pending" && canDecide && (
+                <>
+                  <h3 style={{ margin: "26px 0 10px", fontSize: 14, fontWeight: 500 }}>Décision</h3>
+                  {d.contactKyc !== "approved" && <div style={{ marginBottom: 12 }}><Notice tone="warn">L'identité du responsable n'est pas encore vérifiée ({(STATUS[d.contactKyc]?.[0] ?? d.contactKyc).toLowerCase()}).</Notice></div>}
+                  <Field label="Note au client" hint="Obligatoire en cas de refus.">
+                    <TextArea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex. : le registre des administrateurs fourni date de plus d'un an." />
+                  </Field>
+                  {error && <div style={{ marginTop: 12 }}><Notice tone="err">{error}</Notice></div>}
+                  <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                    <Button variant="danger" disabled={busy} onClick={() => decide("rejected")} icon={<X style={{ width: 15, height: 15 }} />}>Refuser</Button>
+                    <Button variant="primary" disabled={busy} onClick={() => decide("approved")} icon={<Check style={{ width: 15, height: 15 }} />} className="flex-1">Approuver</Button>
+                  </div>
+                </>
+              )}
+
+              {isAdmin && (
+                <div style={{ marginTop: 32, paddingTop: 16, borderTop: `1px solid ${C.bds}` }}>
+                  {d.status !== "pending" && error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
+                  {resetStep === "confirm" ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <span style={{ flex: "1 1 180px", fontSize: 13, color: C.t2 }}>Supprimer ce dossier ? Le client repartira d'un dossier vide.</span>
+                      <Button size="sm" variant="ghost" onClick={() => setResetStep("idle")}>Annuler</Button>
+                      <Button size="sm" variant="danger" onClick={reset}>Réinitialiser</Button>
+                    </div>
+                  ) : (
+                    <Button size="sm" variant="ghost" disabled={resetStep === "busy"} onClick={() => { setError(null); setResetStep("confirm"); }}>
+                      {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification"}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </aside>
           </div>
-        ))}
-        {list.length === 0 && (
-          <div className="flex flex-col items-center py-16 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
-              <Building2 className="h-5 w-5" strokeWidth={1.6} />
-            </span>
-            <p className="mt-3 text-[13px] text-muted-foreground">{loading ? "Chargement…" : "Aucun dossier ici."}</p>
-          </div>
-        )}
-      </div>
+        </Workspace>
+      )}
     </div>
   );
 };
