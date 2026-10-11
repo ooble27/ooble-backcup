@@ -5,7 +5,7 @@ import type { KybDocKey, OwnerRole } from "@/lib/kyb";
 import { useAuth } from "@/lib/auth";
 import BusinessMark from "@/components/app/BusinessMark";
 import { C, FONT } from "./adminTheme";
-import { Button, Field, Notice, TextArea, Workspace } from "./ui";
+import { Button, Field, Notice, TextArea, Workspace, WsPane } from "./ui";
 import { DataTable, EmptyState, KeyValues, Pill, StatStrip, Tabs, TwoLine, type Column, type Tone } from "./layout";
 import DocFrame from "./DocFrame";
 
@@ -113,9 +113,9 @@ const BusinessKycPanel = () => {
         )} />
 
       {d && (
-        <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetail(null)}>
-          <div className="grid flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px]" style={{ minHeight: 0 }}>
-            <div style={{ overflowY: "auto", padding: "20px 24px 60px", display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetail(null)} panes>
+          <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden" style={{ minHeight: 0 }}>
+            <WsPane style={{ padding: "20px 24px 60px", display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
                 {docKeys.map((k) => (
                   <button key={k} type="button" onClick={() => setDoc(k)} className="ui-btn"
@@ -125,9 +125,9 @@ const BusinessKycPanel = () => {
                 ))}
               </div>
               <DocFrame key={`${d.id}:${doc}`} label={DOC_LABELS[doc]} path={d.documents[doc]} load={load} height={620} />
-            </div>
+            </WsPane>
 
-            <aside style={{ overflowY: "auto", borderLeft: `1px solid ${C.bds}`, padding: "24px 24px 40px", fontFamily: FONT }}>
+            <WsPane style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
                 <BusinessMark name={d.legalName} size="md" />
                 <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={d.legalName} secondary={`${d.contactName} · ${d.email}`} /></div>
@@ -192,7 +192,7 @@ const BusinessKycPanel = () => {
                   )}
                 </div>
               )}
-            </aside>
+            </WsPane>
           </div>
         </Workspace>
       )}

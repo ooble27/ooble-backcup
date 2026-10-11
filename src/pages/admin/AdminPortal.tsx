@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, ArrowRightLeft, Power, BookUser, Menu, Search, ChevronRight,
+  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { type AdminOrder } from "@/lib/adminOrders";
@@ -29,6 +29,8 @@ import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG } from "@/components/admin/adminThem
 import { UI_CSS } from "@/components/admin/ui";
 import { LAYOUT_CSS, PageHeader, Section } from "@/components/admin/layout";
 import ThemeToggle from "@/components/app/ThemeToggle";
+import { AutoSettle } from "@/components/admin/icons";
+import { prefetchAdmin } from "@/lib/adminData";
 
 export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform";
 
@@ -42,7 +44,7 @@ const GROUPS: NavGroup[] = [
   { label: "Opérations", items: [
     { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
     { id: "orders", label: "Commandes", desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
-    { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: ArrowRightLeft },
+    { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: AutoSettle },
   ] },
   { label: "Clients", items: [
     { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: BookUser },
@@ -172,25 +174,41 @@ const AdminPortal = () => {
     document.head.appendChild(style);
     const meta = document.querySelector('meta[name="theme-color"]');
     const prevTheme = meta?.getAttribute("content") ?? "";
+    const prevOverflow = [html.style.overflow, body.style.overflow];
     const sync = () => {
       const wide = window.innerWidth >= 768;
       const dark = html.classList.contains("dark");
       const bg = wide ? (dark ? ADMIN_BG.groundDark : ADMIN_BG.groundLight) : dark ? ADMIN_BG.dark : ADMIN_BG.light;
       html.style.backgroundColor = bg;
       body.style.backgroundColor = bg;
+      // Ordinateur et tablette : seul l'écrin défile, jamais la page (pas de rebond sous la barre d'état).
+      html.style.overflow = wide ? "hidden" : "";
+      body.style.overflow = wide ? "hidden" : "";
       meta?.setAttribute("content", bg);
     };
     sync();
     const obs = new MutationObserver(sync);
     obs.observe(html, { attributes: true, attributeFilter: ["class"] });
+    window.addEventListener("resize", sync);
     return () => {
       obs.disconnect();
+      window.removeEventListener("resize", sync);
       document.head.removeChild(style);
+      [html.style.overflow, body.style.overflow] = prevOverflow;
       html.style.backgroundColor = prevHtmlBg;
       body.style.backgroundColor = prevBodyBg;
       if (meta) meta.setAttribute("content", prevTheme);
     };
   }, []);
+
+  // Préchargement discret des pages lentes (soldes des portefeuilles, plateforme) : elles s'ouvrent remplies.
+  useEffect(() => {
+    if (!allowedTabs.size) return;
+    const go = () => prefetchAdmin({ settlement: allowedTabs.has("settlement"), platform: allowedTabs.has("platform") });
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    const t = w.requestIdleCallback ? w.requestIdleCallback(go) : window.setTimeout(go, 1200);
+    return () => { if (!w.requestIdleCallback) clearTimeout(t); };
+  }, [allowedTabs]);
 
   const refresh = () => fetchAdminOrders().then((rows) => {
     setOrders(rows);
@@ -320,7 +338,12 @@ const AdminPortal = () => {
   const panel = vw >= 768; // même seuil que le mode « drawer »
 
   return (
-    <div className="admin-scope" style={{ background: panel ? C.ground : C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
+    /* Ordinateur et tablette : tout le back-office tient dans un conteneur fixe, pleine largeur, de couleur unie.
+       C'est ce que WebKit cherche en haut de l'écran : il reprend cette couleur au lieu de flouter la barre
+       d'état des apps installées (PWA, iOS 26). La page elle-même ne défile plus : rien ne passe dessous. */
+    <div className="admin-scope" style={panel
+      ? { position: "fixed", inset: 0, overflow: "hidden", background: C.ground, color: C.t1, fontFamily: FONT }
+      : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {/* Bande pleine derrière la barre d'état (iPhone, iPad) : iOS reprend sa couleur au lieu de flouter
           le haut de la page, et le voile du menu ouvert ne la grise pas. */}
       <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: "calc(env(safe-area-inset-top, 0px) + 8px)", background: panel ? C.ground : C.bg, zIndex: 70 }} />

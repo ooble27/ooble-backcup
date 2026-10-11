@@ -347,7 +347,7 @@ function DeclarationWorkspace({ sourceRef, dueDate, form, onChange, onSubmit, on
         </div>
       </div>
 
-      <div style={{ flexShrink: 0, borderTop: `1px solid ${C.bds}`, padding: "12px 24px calc(12px + env(safe-area-inset-bottom, 0px))", display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+      <div style={{ flexShrink: 0, margin: "0 8px 8px", borderRadius: 12, background: C.l2, padding: "10px 12px 10px 16px", display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
         <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, color: C.t3 }}>Étape {step + 1} sur 4 · les champs marqués * sont requis</span>
         <Button variant="ghost" onClick={step > 0 ? () => setStep(step - 1) : onClose}>{step > 0 ? "Précédent" : "Annuler"}</Button>
         {step < 3 ? (

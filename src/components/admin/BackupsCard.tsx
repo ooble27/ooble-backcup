@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { KeyRound } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { peek } from "@/lib/adminCache";
+import { loadBackupRuns } from "@/lib/adminData";
 import { TABLE_LABELS } from "@/lib/backupLabels";
 import { C } from "./adminTheme";
 import { Notice, SidePanel } from "./ui";
@@ -47,12 +48,11 @@ const STATUS = {
 } as const;
 
 export default function BackupsCard() {
-  const [runs, setRuns] = useState<Run[] | null>(null);
+  const [runs, setRuns] = useState<Run[] | null>(() => peek<Run[]>("pf.backups")?.value ?? null);
   const [open, setOpen] = useState<Run | null>(null);
 
   useEffect(() => {
-    supabase.from("backup_runs" as never).select("*").order("started_at", { ascending: false }).limit(10)
-      .then(({ data }) => setRuns(((data ?? []) as unknown) as Run[]));
+    void loadBackupRuns<Run>().then(setRuns);
   }, []);
 
   const lastOk = runs?.find((r) => r.status === "success");

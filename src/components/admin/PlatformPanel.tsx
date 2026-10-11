@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Lock, RotateCcw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { peek } from "@/lib/adminCache";
+import { loadPlatformPreview, resetTestData } from "@/lib/adminData";
 import BackupsCard from "@/components/admin/BackupsCard";
 import { C, FONT } from "@/components/admin/adminTheme";
 import { Button, Notice, Switch, TextInput } from "@/components/admin/ui";
@@ -37,15 +38,7 @@ const fmtDate = (s: string) => new Date(s).toLocaleString("fr-CA", { dateStyle: 
 const plain = (s: string) => s.trim().toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const sum = (rows: Count[]) => rows.reduce((t, c) => t + c.n, 0);
 
-async function call<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("reset-test-data", { body });
-  if (error) {
-    const res = (error as { context?: Response }).context;
-    const detail = res ? await res.json().catch(() => null) : null;
-    throw new Error(detail?.message ?? detail?.error ?? error.message);
-  }
-  return data as T;
-}
+const call = resetTestData;
 
 /** Ligne de liste à plat : libellé, détail, valeur à droite. */
 const Line = ({ children, right, muted }: { children: React.ReactNode; right?: React.ReactNode; muted?: boolean }) => (
@@ -77,7 +70,7 @@ const Confirm = ({ word, value, onChange, onSubmit, disabled, busy, label, dange
 };
 
 export default function PlatformPanel() {
-  const [p, setP] = useState<Preview | null>(null);
+  const [p, setP] = useState<Preview | null>(() => peek<Preview>("pf.preview")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [mail, setMail] = useState(true);
   const [logs, setLogs] = useState(true);
@@ -87,7 +80,7 @@ export default function PlatformPanel() {
   const [result, setResult] = useState<ResetResult | null>(null);
 
   const load = useCallback(() => {
-    call<Preview>({ action: "preview" }).then((d) => { setP(d); setErr(null); }).catch((e) => setErr(e.message));
+    loadPlatformPreview<Preview>().then((d) => { setP(d); setErr(null); }).catch((e) => setErr(e.message));
   }, []);
   useEffect(load, [load]);
 

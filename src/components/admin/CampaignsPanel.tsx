@@ -18,7 +18,7 @@ import {
   Loader2, Smartphone, Monitor, ArrowLeft, ArrowRight, Building2, ShieldCheck,
   Clock, ChevronRight, ChevronLeft, X, User, UserPlus,
   Globe, AtSign, Plus, Image as ImageIcon, UserX,
-  Search, Eye, Trash2, ArrowUp, ArrowDown, Maximize2,
+  Search, Eye, Trash2, ArrowUp, ArrowDown, Maximize2, RotateCcw, Link2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { sendCampaignEmail } from "@/lib/email";
@@ -35,8 +35,8 @@ import {
   type CampaignTemplate, type TemplateField, type TemplateValues, type EmailLang, type EmailImage,
 } from "@/lib/campaignTemplates";
 import { draftCampaign, isAIError, type DraftCampaignResult } from "@/lib/ai";
-import { C, FONT, sH, btnPrimary, btnGhost } from "./adminTheme";
-import { Button, Field, Group, Notice, SidePanel, SummaryRow, TextArea, TextInput, Workspace, fieldInput, type WorkspaceStep } from "./ui";
+import { C, FONT } from "./adminTheme";
+import { Button, Notice, SidePanel, SummaryRow, Workspace, WsPane, type WorkspaceStep } from "./ui";
 import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column } from "./layout";
 
 // ─── Types ──────────────────────────────────────────────────
@@ -189,6 +189,17 @@ const PANEL_CSS = `
 .cmp-hero-title { margin: 14px 0 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 0.98; font-weight: 600; letter-spacing: -0.05em; color: var(--a-t1); text-wrap: balance; }
 .cmp-hero-art { display: none; position: relative; height: 260px; }
 @media (min-width: 1100px) { .cmp-hero { grid-template-columns: minmax(0, 1fr) 380px; } .cmp-hero-art { display: block; } }
+/* Champs « à même la page » : pas de cadre, juste une teinte au survol et pendant la saisie. */
+.cmp-ghost { display: block; box-sizing: border-box; width: calc(100% + 20px); margin: 0 -10px; padding: 7px 10px; border: none; outline: none; border-radius: 10px; background: transparent; color: var(--a-t1); font-family: inherit; resize: none; transition: background .15s; field-sizing: content; }
+.cmp-ghost::placeholder { color: var(--a-t3); }
+.cmp-ghost:hover { background: var(--a-hover1); }
+.cmp-ghost:focus { background: var(--a-hover2); }
+.cmp-tile { transition: background .15s; }
+.cmp-tile:hover:not(:disabled) { background: var(--a-hover3); }
+.cmp-fab { width: 44px; height: 44px; border-radius: 99px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds), 0 8px 24px -10px rgba(0,0,0,.45); }
+.cmp-fab:focus-visible, .cmp-cta:focus-visible, .cmp-ico:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+.cmp-ico { width: 34px; height: 34px; border-radius: 99px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
+@media (hover: none) { .cmp-ico { width: 30px; height: 30px; } }
 @media (prefers-reduced-motion: reduce) {
   .cmp-rise, .cmp-skeleton, .cmp-float { animation: none; }
   .cmp-card, .cmp-thumb-inner, .cmp-overlay, .cmp-dialog, .cmp-backdrop, .cmp-img-opt { transition: none; }
@@ -279,7 +290,9 @@ function Modal({ open, onClose, variant, label, children }: {
         aria-label={label}
         className={`cmp-dialog ${variant === "full" ? "cmp-full" : "cmp-sheet"}`}
         data-show={show}
-        style={{ background: C.bg, border: `1px solid ${C.bds}`, boxShadow: C.shadowHeavy, overflow: "hidden", display: "flex", flexDirection: "column" }}
+        style={variant === "full"
+          ? { background: C.ground, boxShadow: C.shadowHeavy, overflow: "hidden", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top, 0px)" }
+          : { background: C.bg, border: `1px solid ${C.bds}`, boxShadow: C.shadowHeavy, overflow: "hidden", display: "flex", flexDirection: "column" }}
       >
         {children}
       </div>
@@ -411,15 +424,21 @@ function InboxRow({ subject, preheader }: { subject: string; preheader: string }
   );
 }
 
-/** Aperçu ordinateur ou téléphone (cadre de téléphone). */
-function DevicePreview({ html, device, title }: { html: string; device: "desktop" | "mobile"; title: string }) {
+/**
+ * Aperçu ordinateur ou téléphone. `fit` : l'appareil remplit toute la hauteur
+ * disponible et le courriel défile à l'intérieur (aucun vide sous l'aperçu).
+ */
+function DevicePreview({ html, device, title, fit }: { html: string; device: "desktop" | "mobile"; title: string; fit?: boolean }) {
   if (device === "mobile") {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 24px" }}>
-        <div style={{ width: 326, borderRadius: 46, padding: 10, background: "#0b0b0c", boxShadow: "0 30px 60px -30px rgba(0,0,0,0.6), inset 0 0 0 1px #2a2a2c" }}>
-          <div style={{ position: "relative", borderRadius: 36, overflow: "hidden", background: "#e9e6df", height: 640 }}>
+      <div style={{ display: "flex", justifyContent: "center", height: fit ? "100%" : undefined, padding: fit ? 0 : "8px 0 24px" }}>
+        <div style={{
+          height: fit ? "100%" : 660, maxHeight: fit ? 860 : undefined, aspectRatio: "326 / 660", maxWidth: "100%",
+          boxSizing: "border-box", borderRadius: 46, padding: 10, background: "#0b0b0c", boxShadow: "0 30px 60px -30px rgba(0,0,0,0.6), inset 0 0 0 1px #2a2a2c",
+        }}>
+          <div style={{ position: "relative", borderRadius: 36, overflow: "hidden", background: "#e9e6df", height: "100%" }}>
             <div aria-hidden style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 92, height: 24, borderRadius: 14, background: "#0b0b0c", zIndex: 2 }} />
-            <div style={{ height: "100%", overflowY: "auto", paddingTop: 40 }}>
+            <div style={{ height: "100%", overflowY: "auto", paddingTop: 40, boxSizing: "border-box" }}>
               <ScaledFrame key="m" html={html} frameWidth={390} title={title} />
             </div>
           </div>
@@ -428,12 +447,40 @@ function DevicePreview({ html, device, title }: { html: string; device: "desktop
     );
   }
   return (
-    <div style={{ maxWidth: 680, margin: "0 auto", borderRadius: 14, overflow: "hidden", boxShadow: "0 24px 60px -36px rgba(0,0,0,0.55)", background: "#e9e6df" }}>
-      <div style={{ height: 30, background: "#d9d5cc", display: "flex", alignItems: "center", gap: 6, padding: "0 12px" }}>
+    <div style={{
+      maxWidth: 760, margin: "0 auto", borderRadius: 14, overflow: "hidden", boxShadow: "0 24px 60px -36px rgba(0,0,0,0.55)", background: "#e9e6df",
+      ...(fit ? { height: "100%", display: "flex", flexDirection: "column" } : null),
+    }}>
+      <div style={{ height: 30, flexShrink: 0, background: "#d9d5cc", display: "flex", alignItems: "center", gap: 6, padding: "0 12px" }}>
         {["#ff5f57", "#febc2e", "#28c840"].map((c) => <span key={c} style={{ width: 10, height: 10, borderRadius: 99, background: c }} />)}
       </div>
-      <ScaledFrame key="d" html={html} frameWidth={680} title={title} />
+      <div style={fit ? { flex: 1, minHeight: 0, overflowY: "auto" } : undefined}>
+        <ScaledFrame key="d" html={html} frameWidth={680} title={title} />
+      </div>
     </div>
+  );
+}
+
+const DEVICE_OPTIONS: { id: "desktop" | "mobile"; label: React.ReactNode; title: string }[] = [
+  { id: "desktop", label: <Monitor style={{ width: 14, height: 14 }} strokeWidth={1.8} />, title: "Ordinateur" },
+  { id: "mobile", label: <Smartphone style={{ width: 14, height: 14 }} strokeWidth={1.8} />, title: "Téléphone" },
+];
+const LANG_OPTIONS: { id: EmailLang; label: string }[] = [{ id: "fr", label: "FR" }, { id: "en", label: "EN" }];
+
+/** Bouton d'action principal : pilule, libellé, pastille corail avec la flèche. */
+function CtaPill({ children, onClick, autoFocus, full }: { children: React.ReactNode; onClick: () => void; autoFocus?: boolean; full?: boolean }) {
+  return (
+    <button type="button" className="cmp-cta" data-autofocus={autoFocus || undefined} onClick={onClick}
+      style={{
+        height: 50, width: full ? "100%" : undefined, padding: "0 6px 0 22px", borderRadius: 99, border: "none", cursor: "pointer",
+        background: C.t1, color: C.bg, fontFamily: FONT, fontSize: 14.5, fontWeight: 500, letterSpacing: "-0.01em",
+        display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 14, whiteSpace: "nowrap",
+      }}>
+      {children}
+      <span aria-hidden style={{ width: 38, height: 38, borderRadius: 99, background: "#ff7a59", color: "#14110f", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <ArrowRight style={{ width: 17, height: 17 }} strokeWidth={2} />
+      </span>
+    </button>
   );
 }
 
@@ -638,14 +685,12 @@ function TemplateCard({ delay, template: t, lang, onPreview, onUse }: {
         {t.isNew && (
           <span className="px-1.5 py-px text-[9px] md:px-2 md:py-0.5 md:text-[10px]" style={{ position: "absolute", top: 12, right: 12, fontWeight: 600, borderRadius: 99, background: "#14110f", color: "#ffffff", letterSpacing: "0.02em" }}>Nouveau</span>
         )}
-        <div className="cmp-overlay hidden md:flex" style={{ position: "absolute", left: 14, right: 14, bottom: 10, gap: 6, justifyContent: "center" }}>
-          <button type="button" onClick={onPreview} style={{ ...btnGhost, height: 30, fontSize: 11.5, background: "rgba(255,255,255,0.94)", color: "#14110f", border: "1px solid rgba(0,0,0,0.08)" }}>
-            <Eye style={{ width: 12, height: 12 }} strokeWidth={1.8} />
-            Aperçu
+        <div className="cmp-overlay" style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 6 }}>
+          <button type="button" className="cmp-ico" onClick={onPreview} aria-label={`Aperçu : ${t.name}`} title="Aperçu" style={{ background: "#ffffff", color: "#14110f" }}>
+            <Eye style={{ width: 15, height: 15 }} strokeWidth={1.9} />
           </button>
-          <button type="button" onClick={onUse} style={{ ...btnPrimary, height: 30, fontSize: 11.5, background: "#14110f", color: "#ffffff" }}>
-            Utiliser
-            <ArrowRight style={{ width: 12, height: 12 }} strokeWidth={1.8} />
+          <button type="button" className="cmp-ico" onClick={onUse} aria-label={`Utiliser : ${t.name}`} title="Utiliser ce modèle" style={{ background: "#14110f", color: "#ffffff" }}>
+            <ArrowRight style={{ width: 15, height: 15 }} strokeWidth={1.9} />
           </button>
         </div>
       </div>
@@ -666,7 +711,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
   index: number | null; lang: EmailLang; onLang: (l: EmailLang) => void; onIndex: (i: number) => void; onClose: () => void;
   onUse: (id: string, lang: EmailLang) => void; onTest: (t: CampaignTemplate, l: EmailLang) => void; tests: Record<string, TestState>;
 }) {
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<"desktop" | "mobile">(() => (typeof window !== "undefined" && window.innerWidth < 640 ? "mobile" : "desktop"));
   const last = useRef(0);
   if (index !== null) last.current = index;
   const i = index ?? last.current;
@@ -688,85 +733,78 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
     return () => window.removeEventListener("keydown", onKey);
   }, [index, i, n, onIndex]);
 
+  const prev = CAMPAIGN_TEMPLATES[(i - 1 + n) % n];
+  const next = CAMPAIGN_TEMPLATES[(i + 1) % n];
+  const switches = (
+    <>
+      <Segmented ariaLabel="Langue" size="sm" value={lang} onChange={onLang} options={LANG_OPTIONS} />
+      <Segmented ariaLabel="Appareil" size="sm" value={device} onChange={setDevice} options={DEVICE_OPTIONS} />
+    </>
+  );
+
   return (
     <Modal open={index !== null} onClose={onClose} variant="full" label={`Aperçu : ${t.name}`}>
-      {/* En-tête */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: `1px solid ${C.bds}`, background: C.l1 }}>
-        <IconButton label="Fermer" onClick={onClose}><X style={{ width: 15, height: 15 }} strokeWidth={1.8} /></IconButton>
+      {/* En-tête posé sur le fond : aucun trait. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px 10px 10px", flexShrink: 0 }}>
+        <Button variant="ghost" aria-label="Fermer" title="Fermer (Échap)" onClick={onClose} icon={<X style={{ width: 18, height: 18 }} />} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <p style={{ margin: 0, fontSize: 14, color: C.t1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</p>
-          <p style={{ margin: 0, fontSize: 11.5, color: C.t3 }}>{t.category} · {i + 1} / {n}</p>
+          <p style={{ margin: 0, fontSize: 15, color: C.t1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</p>
+          <p style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, display: "flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden style={{ width: 8, height: 8, borderRadius: 3, background: CATEGORY_BG[t.category] ?? C.t3 }} />
+            {t.category}
+          </p>
         </div>
-        <div className="hidden sm:flex" style={{ gap: 8, alignItems: "center" }}>
-          <Segmented ariaLabel="Langue" size="sm" value={lang} onChange={onLang} options={[{ id: "fr", label: "FR" }, { id: "en", label: "EN" }]} />
-          <Segmented
-            ariaLabel="Appareil"
-            size="sm"
-            value={device}
-            onChange={setDevice}
-            options={[
-              { id: "desktop", label: <Monitor style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Ordinateur" },
-              { id: "mobile", label: <Smartphone style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Téléphone" },
-            ]}
-          />
-        </div>
-        <IconButton label="Modèle précédent" onClick={() => onIndex((i - 1 + n) % n)}><ChevronLeft style={{ width: 16, height: 16 }} strokeWidth={1.8} /></IconButton>
-        <IconButton label="Modèle suivant" onClick={() => onIndex((i + 1) % n)}><ChevronRight style={{ width: 16, height: 16 }} strokeWidth={1.8} /></IconButton>
+        <div className="hidden sm:flex" style={{ gap: 8, alignItems: "center" }}>{switches}</div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start overflow-y-auto lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
-        {/* Courriel */}
-        <div className="lg:min-h-0 lg:overflow-y-auto" style={{ background: "#d9d5cc", padding: "22px 16px" }}>
-          <div className="mb-4 flex justify-center gap-2 sm:hidden">
-            <Segmented ariaLabel="Langue" size="sm" value={lang} onChange={onLang} options={[{ id: "fr", label: "FR" }, { id: "en", label: "EN" }]} />
-            <Segmented
-              ariaLabel="Appareil"
-              size="sm"
-              value={device}
-              onChange={setDevice}
-              options={[
-                { id: "desktop", label: <Monitor style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Ordinateur" },
-                { id: "mobile", label: <Smartphone style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Téléphone" },
-              ]}
-            />
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto px-2 pb-2 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:content-stretch lg:overflow-hidden">
+        {/* Courriel, dans un volet arrondi ; flèches flottantes pour parcourir les modèles. */}
+        <div className="h-[74vh] lg:h-auto" style={{ position: "relative", minHeight: 0, borderRadius: 16, background: "#e4e0d7", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div className="flex justify-center gap-2 pt-3 sm:hidden">{switches}</div>
+          <div key={`${t.id}:${lang}:${device}`} className="cmp-rise" style={{ flex: 1, minHeight: 0, padding: "20px 62px 52px" }}>
+            <DevicePreview html={html} device={device} title={`${t.name} (${lang})`} fit />
           </div>
-          <div key={`${t.id}:${lang}:${device}`} className="cmp-rise">
-            <DevicePreview html={html} device={device} title={`${t.name} (${lang})`} />
-          </div>
+          <button type="button" className="cmp-fab" aria-label={`Modèle précédent : ${prev.name}`} title={prev.name} onClick={() => onIndex((i - 1 + n) % n)}
+            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}>
+            <ChevronLeft style={{ width: 20, height: 20 }} strokeWidth={1.8} />
+          </button>
+          <button type="button" className="cmp-fab" aria-label={`Modèle suivant : ${next.name}`} title={next.name} onClick={() => onIndex((i + 1) % n)}
+            style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}>
+            <ChevronRight style={{ width: 20, height: 20 }} strokeWidth={1.8} />
+          </button>
+          <span style={{ position: "absolute", left: "50%", bottom: 14, transform: "translateX(-50%)", padding: "4px 10px", borderRadius: 99, background: "rgba(20,17,15,.72)", color: "#fff", fontSize: 11.5, fontVariantNumeric: "tabular-nums", fontFamily: FONT }}>
+            {i + 1} / {n}
+          </span>
         </div>
 
-        {/* Infos */}
-        <aside className="lg:overflow-y-auto" style={{ borderLeft: `1px solid ${C.bds}`, background: C.l1, padding: 20, display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
+        {/* Infos et actions, dans un second volet. */}
+        <aside style={{ minHeight: 0, borderRadius: 16, background: C.bg, padding: 22, display: "flex", flexDirection: "column", gap: 22, overflowY: "auto" }}>
           <div>
-            <p style={{ ...sH, fontSize: 10, marginBottom: 8 }}>Dans la boîte de réception</p>
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: C.t3 }}>Dans la boîte de réception</p>
             <InboxRow subject={inbox.subject} preheader={inbox.preheader} />
           </div>
+          <p style={{ margin: 0, fontSize: 19, lineHeight: 1.35, color: C.t1, letterSpacing: "-0.02em", fontWeight: 500, textWrap: "balance" } as React.CSSProperties}>{t.description}</p>
           <div>
-            <p style={{ ...sH, fontSize: 10, marginBottom: 8 }}>À quoi il sert</p>
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: C.t2 }}>{t.description}</p>
-          </div>
-          <div>
-            <p style={{ ...sH, fontSize: 10, marginBottom: 8 }}>Ce que vous pouvez modifier</p>
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: C.t3 }}>Vous pourrez modifier</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {t.fields.map((f) => (
-                <span key={f.key} style={{ fontSize: 11, color: C.t2, padding: "3px 9px", borderRadius: 99, border: `1px solid ${C.bds}`, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {f.kind === "image" && <ImageIcon style={{ width: 10, height: 10 }} strokeWidth={1.8} />}
+                <span key={f.key} style={{ fontSize: 12, color: C.t2, padding: "5px 10px", borderRadius: 99, background: C.hover2, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  {f.kind === "image" && <ImageIcon style={{ width: 11, height: 11 }} strokeWidth={1.8} />}
                   {f.label}
                 </span>
               ))}
             </div>
           </div>
-          <div style={{ marginTop: "auto", display: "grid", gap: 8 }}>
-            <button type="button" data-autofocus onClick={() => onUse(t.id, lang)} style={{ ...btnPrimary, height: 42, justifyContent: "center", fontSize: 13 }}>
-              Utiliser ce modèle
-              <ArrowRight style={{ width: 14, height: 14 }} strokeWidth={1.8} />
+
+          <div style={{ marginTop: "auto", display: "grid", gap: 10 }}>
+            <CtaPill full autoFocus onClick={() => onUse(t.id, lang)}>Personnaliser ce modèle</CtaPill>
+            <button type="button" onClick={() => onTest(t, lang)} disabled={test?.kind === "busy"} className="ui-btn ui-btn-ghost"
+              style={{ height: 42, borderRadius: 99, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}>
+              {test?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : test?.kind === "ok" ? <Check style={{ width: 14, height: 14, color: C.successText }} strokeWidth={2.4} /> : <Send style={{ width: 14, height: 14 }} strokeWidth={1.8} />}
+              {test?.kind === "ok" ? "Test envoyé dans votre boîte" : `M'envoyer un test en ${lang === "fr" ? "français" : "anglais"}`}
             </button>
-            <button type="button" onClick={() => onTest(t, lang)} disabled={test?.kind === "busy"} style={{ ...btnGhost, height: 40, justifyContent: "center" }}>
-              {test?.kind === "busy" ? <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} /> : test?.kind === "ok" ? <Check style={{ width: 13, height: 13, color: C.successText }} strokeWidth={2.4} /> : <Send style={{ width: 13, height: 13 }} strokeWidth={1.8} />}
-              {test?.kind === "ok" ? "Test envoyé" : `M'envoyer un test (${lang.toUpperCase()})`}
-            </button>
-            {test?.kind === "err" && <p style={{ margin: 0, fontSize: 11.5, color: C.dangerText }}>{test.text}</p>}
-            <p style={{ margin: "4px 0 0", fontSize: 11, color: C.t3, textAlign: "center" }}>← → pour parcourir · Échap pour fermer</p>
+            {test?.kind === "err" && <p style={{ margin: 0, fontSize: 12, color: C.dangerText, textAlign: "center" }}>{test.text}</p>}
+            <p className="hidden lg:block" style={{ margin: 0, fontSize: 11.5, color: C.t3, textAlign: "center" }}>← → pour parcourir · Échap pour fermer</p>
           </div>
         </aside>
       </div>
@@ -847,7 +885,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
     return out;
   }, [recipients, sendLang, unknownLang]);
 
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<"desktop" | "mobile">(() => (typeof window !== "undefined" && window.innerWidth < 640 ? "mobile" : "desktop"));
   const [testTo, setTestTo] = useState(me.email);
   const [testState, setTestState] = useState<TestState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -1007,148 +1045,177 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   );
 
   /* ── Étape 1 : contenu ── */
+  // On écrit directement dans la forme finale : l'objet dans une ligne de boîte de réception,
+  // le titre en grand, le bouton comme un bouton. Pas de cadres de formulaire.
   const editor = (
-    <div style={{ padding: wide ? "24px 28px 80px" : "20px 16px 80px", maxWidth: 560, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+    <div style={{ padding: wide ? "26px 30px 80px" : "20px 18px 80px", maxWidth: 600, margin: "0 auto" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 22 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 13, color: C.t1 }}>Textes en {editLang === "fr" ? "français" : "anglais"}</p>
-          <p style={{ margin: "2px 0 0", fontSize: 12, color: C.t3, lineHeight: 1.5 }}>Chaque client reçoit la version de sa langue.</p>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.t1 }}>
+            Le message, en <span style={{ color: "var(--a-coral)" }}>{editLang === "fr" ? "français" : "anglais"}</span>
+          </h2>
+          <p style={{ margin: "5px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.5 }}>Chaque client reçoit la version de sa langue. Touchez un texte pour le modifier.</p>
         </div>
         {langSwitch}
       </div>
 
-      <Group first title="Boîte de réception">
-        <Field label="Objet"><TextInput value={values.subject ?? ""} onChange={(e) => setField("subject", e.target.value)} /></Field>
-        <Field label="Préentête" hint="Le petit texte gris affiché après l'objet.">
-          <TextInput value={values.preheader ?? ""} onChange={(e) => setField("preheader", e.target.value)} />
-        </Field>
-      </Group>
-
-      <Group title="Contenu" right={
-        edited(editLang) ? (
-          <button type="button" className="ui-btn" onClick={() => setByLang((s) => ({ ...s, [editLang]: defaultsFor(templateId, editLang) }))}
-            style={{ background: "none", border: "none", padding: 0, color: C.t3, cursor: "pointer", fontSize: 12.5, fontFamily: FONT }}>
-            Rétablir les textes d'origine
-          </button>
-        ) : undefined
-      } description={<><b style={{ color: C.t2, fontWeight: 500 }}>{"{{prenom}}"}</b> insère le prénom du client · <b style={{ color: C.t2, fontWeight: 500 }}>**mot**</b> met en gras.</>}>
-        {contentFields.map((f) => (
-          <TemplateFieldInput key={`${editLang}:${f.key}`} field={f} value={values[f.key] ?? ""} onChange={(v) => setField(f.key, v)} />
-        ))}
-      </Group>
-
-      <Group title="Rédaction assistée" description={`Décrivez le message : l'IA propose les textes en ${editLang === "fr" ? "français" : "anglais"}, vous relisez.`}>
-        <div style={{ display: "grid", gap: 8 }}>
-          <TextArea value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} rows={2}
-            placeholder="Ex. : rappeler aux clients non vérifiés de terminer leur vérification avant la fin du mois." />
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <Button size="sm" onClick={generateWithAI} disabled={!aiPrompt.trim() || aiLoading}
-              icon={aiLoading ? <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} /> : <Sparkles style={{ width: 13, height: 13 }} />}>
-              {aiLoading ? "Rédaction…" : "Proposer les textes"}
-            </Button>
-            {aiNote && <span style={{ fontSize: 12.5, color: aiNote.kind === "ok" ? C.successText : C.dangerText }}>{aiNote.text}</span>}
+      <StudioSection title="Dans la boîte de réception">
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px 10px", borderRadius: 16, background: C.hover1 }}>
+          <img src="/icons/icon-192.png" alt="" width={36} height={36} style={{ borderRadius: 10, flexShrink: 0, marginTop: 4 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "0 0 2px" }}>
+              <span style={{ fontSize: 13, color: C.t1, fontWeight: 600 }}>Ooble</span>
+              <span style={{ fontSize: 11.5, color: C.t3 }}>maintenant</span>
+            </div>
+            <input className="cmp-ghost" aria-label="Objet" placeholder="Objet du courriel" value={values.subject ?? ""} onChange={(e) => setField("subject", e.target.value)}
+              style={{ fontSize: 15, fontWeight: 600, padding: "4px 10px" }} />
+            <input className="cmp-ghost" aria-label="Préentête" placeholder="Petit texte gris après l'objet" value={values.preheader ?? ""} onChange={(e) => setField("preheader", e.target.value)}
+              style={{ fontSize: 13, color: C.t3, padding: "3px 10px" }} />
           </div>
         </div>
-      </Group>
+      </StudioSection>
+
+      <StudioSection title="Le courriel" right={
+        edited(editLang) ? (
+          <button type="button" className="ui-btn" onClick={() => setByLang((s) => ({ ...s, [editLang]: defaultsFor(templateId, editLang) }))}
+            style={{ background: "none", border: "none", padding: 0, color: C.t3, cursor: "pointer", fontSize: 12.5, fontFamily: FONT, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <RotateCcw style={{ width: 12, height: 12 }} /> Textes d'origine
+          </button>
+        ) : undefined
+      } hint={<><b style={{ color: C.t2, fontWeight: 500 }}>{"{{prenom}}"}</b> insère le prénom · <b style={{ color: C.t2, fontWeight: 500 }}>**mot**</b> met en gras</>}>
+        <div style={{ display: "grid", gap: 18 }}>
+          {contentFields.map((f) => (
+            <TemplateFieldInput key={`${editLang}:${f.key}`} field={f} value={values[f.key] ?? ""} onChange={(v) => setField(f.key, v)} />
+          ))}
+        </div>
+      </StudioSection>
+
+      <StudioSection title="Rédaction assistée">
+        {/* Barre de demande, comme une conversation : on écrit, on envoie. */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 8px 8px 16px", borderRadius: 22, background: C.hover1 }}>
+          <Sparkles style={{ width: 16, height: 16, color: "var(--a-sun)", flexShrink: 0, marginBottom: 10 }} />
+          <textarea className="cmp-ghost" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} rows={2}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generateWithAI(); }}
+            placeholder={`Décrivez le message, l'IA écrit en ${editLang === "fr" ? "français" : "anglais"}…`}
+            style={{ fontSize: 14, lineHeight: 1.5, margin: 0, width: "100%", background: "transparent" }} />
+          <button type="button" onClick={generateWithAI} disabled={!aiPrompt.trim() || aiLoading} aria-label="Proposer les textes" title="Proposer les textes"
+            style={{ width: 38, height: 38, borderRadius: 99, border: "none", flexShrink: 0, cursor: aiPrompt.trim() && !aiLoading ? "pointer" : "default", background: aiPrompt.trim() ? C.t1 : C.hover3, color: aiPrompt.trim() ? C.bg : C.t3, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {aiLoading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : <ArrowUp style={{ width: 17, height: 17 }} strokeWidth={2} />}
+          </button>
+        </div>
+        {aiNote && <p style={{ margin: "8px 4px 0", fontSize: 12.5, color: aiNote.kind === "ok" ? C.successText : C.dangerText }}>{aiNote.text}</p>}
+      </StudioSection>
     </div>
   );
 
+  // Aperçu : barre flottante (sans trait), puis l'appareil qui remplit toute la hauteur du volet.
+  const previewBar = (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 12.5, color: "#5b554c", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {LANG_LABEL[editLang]} · prénom d'exemple « {sample} »
+      </span>
+      <Segmented ariaLabel="Appareil" size="sm" value={device} onChange={setDevice} options={DEVICE_OPTIONS} />
+      <button type="button" className="cmp-ico" aria-label="Agrandir l'aperçu" title="Agrandir" onClick={() => setFullPreview(true)} style={{ background: "#ffffff", color: "#14110f" }}>
+        <Maximize2 style={{ width: 14, height: 14 }} strokeWidth={1.9} />
+      </button>
+    </div>
+  );
   const preview = (
-    <div style={{ minHeight: "100%", background: "var(--a-l2)", display: "flex", flexDirection: "column" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "var(--a-l2)", borderBottom: `1px solid ${C.bds}` }}>
-        <span style={{ fontSize: 12.5, color: C.t3, flex: 1 }}>Aperçu · {LANG_LABEL[editLang]} · prénom d'exemple « {sample} »</span>
-        <Segmented ariaLabel="Appareil" size="sm" value={device} onChange={setDevice}
-          options={[
-            { id: "desktop", label: <Monitor style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Ordinateur" },
-            { id: "mobile", label: <Smartphone style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Téléphone" },
-          ]} />
-        <Button variant="ghost" size="sm" aria-label="Plein écran" title="Plein écran" onClick={() => setFullPreview(true)} icon={<Maximize2 style={{ width: 14, height: 14 }} />} />
-      </div>
-      <div style={{ padding: wide ? "28px 32px 60px" : "16px 12px 60px" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto 18px" }}><InboxRow subject={inbox.subject} preheader={inbox.preheader} /></div>
-        <DevicePreview html={html} device={device} title="Aperçu du courriel" />
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 14, padding: wide ? "14px 18px 18px" : "12px", boxSizing: "border-box" }}>
+      {previewBar}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <DevicePreview html={html} device={device} title="Aperçu du courriel" fit />
       </div>
     </div>
   );
+  const stage: React.CSSProperties = { background: "#e4e0d7", overflow: "hidden" };
 
   const contentStep = wide ? (
-    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(380px, 480px) minmax(0, 1fr)" }}>
-      <div style={{ overflowY: "auto", borderRight: `1px solid ${C.bds}` }}>{editor}</div>
-      <div style={{ overflowY: "auto" }}>{preview}</div>
+    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(400px, 520px) minmax(0, 1fr)", gap: 8 }}>
+      <WsPane>{editor}</WsPane>
+      <WsPane style={stage}>{preview}</WsPane>
     </div>
   ) : (
-    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.bds}`, display: "flex", justifyContent: "center" }}>
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
         <Segmented ariaLabel="Affichage" value={mobilePane} onChange={setMobilePane}
           options={[{ id: "edit", label: "Modifier" }, { id: "preview", label: <><Eye style={{ width: 13, height: 13 }} /> Aperçu</> }]} />
       </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>{mobilePane === "edit" ? editor : preview}</div>
+      {mobilePane === "edit" ? <WsPane style={{ flex: 1 }}>{editor}</WsPane> : <WsPane style={{ flex: 1, ...stage }}>{preview}</WsPane>}
     </div>
   );
 
   /* ── Étape 2 : audience ── */
   const audienceSide = (
-    <div style={{ padding: wide ? "24px 28px 60px" : "20px 16px 24px" }}>
-      <Group first title="Ajouter des destinataires" description="Cherchez un client par son nom, ou tapez une adresse puis Entrée.">
+    <div style={{ padding: wide ? "26px 26px 60px" : "20px 18px 24px", display: "grid", gap: 30 }}>
+      <StudioSection title="Ajouter des personnes" hint="Un nom, ou une adresse puis Entrée." flush>
         <CampaignRecipientPicker bare selected={recipients} clients={clients} loading={clientsLoading} onAdd={addRecipient} onRemove={removeRecipient} />
-      </Group>
-      <Group title="Ajouter un groupe">
-        <div style={{ borderTop: `1px solid ${C.bds}`, marginTop: -4 }}>
+      </StudioSection>
+      <StudioSection title="Ou tout un groupe" flush>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
           {SEGMENTS.map(({ id: s, icon: Icon, label }) => {
             const n = clientsLoading ? null : filterBySegment(clients, s).length;
             return (
-              <button key={s} type="button" className="ui-row" onClick={() => addSegment(s)} disabled={!n}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 4px", border: "none", borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, fontFamily: FONT, fontSize: 13.5, cursor: n ? "pointer" : "default", textAlign: "left" }}>
-                <Icon style={{ width: 15, height: 15, color: C.t3 }} strokeWidth={1.7} />
-                <span style={{ flex: 1 }}>{label}</span>
-                <span style={{ fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{n ?? "…"}</span>
-                <Plus style={{ width: 14, height: 14, color: C.t3 }} />
+              <button key={s} type="button" className="cmp-tile" onClick={() => addSegment(s)} disabled={!n}
+                style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, padding: "12px 12px 11px", borderRadius: 14, border: "none", background: C.hover1, color: C.t1, fontFamily: FONT, textAlign: "left", cursor: n ? "pointer" : "default", opacity: n === 0 ? 0.5 : 1 }}>
+                <span style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
+                  <Icon style={{ width: 16, height: 16, color: C.t2 }} strokeWidth={1.7} />
+                  <Plus style={{ width: 14, height: 14, color: C.t3 }} />
+                </span>
+                <span style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{n ?? "…"}</span>
+                <span style={{ fontSize: 12.5, color: C.t2, lineHeight: 1.3 }}>{label}</span>
               </button>
             );
           })}
         </div>
-      </Group>
-      <Group title="Langue d'envoi">
-        <Segmented ariaLabel="Langue d'envoi" value={sendLang} onChange={setSendLang}
-          options={[{ id: "client", label: "Celle du client" }, { id: "fr", label: "Français" }, { id: "en", label: "English" }]} />
-        {sendLang === "client" && (
-          <Field label="Si la langue du client est inconnue">
-            <select value={unknownLang} onChange={(e) => setUnknownLang(e.target.value as UnknownLang)} className="ui-input" style={{ ...fieldInput, height: 40 }}>
-              <option value="fr">Français</option>
-              <option value="en">English</option>
-              <option value="province">Selon la province (Québec : français, ailleurs : anglais)</option>
-            </select>
-          </Field>
-        )}
-      </Group>
+      </StudioSection>
+      <StudioSection title="Langue d'envoi" flush>
+        <div style={{ display: "grid", gap: 12 }}>
+          <Segmented ariaLabel="Langue d'envoi" value={sendLang} onChange={setSendLang}
+            options={[{ id: "client", label: "Celle du client" }, { id: "fr", label: "Français" }, { id: "en", label: "English" }]} />
+          {sendLang === "client" && (
+            <div>
+              <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t3 }}>Si la langue du client est inconnue</p>
+              <Segmented ariaLabel="Langue si inconnue" size="sm" value={unknownLang} onChange={setUnknownLang}
+                options={[{ id: "fr", label: "Français" }, { id: "en", label: "English" }, { id: "province", label: "Selon la province", title: "Québec : français, ailleurs : anglais" }]} />
+            </div>
+          )}
+        </div>
+      </StudioSection>
     </div>
   );
 
   const audienceList = (
-    <div style={{ padding: wide ? "24px 32px 60px" : "8px 16px 60px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 500, letterSpacing: "-0.015em", flex: 1 }}>
-          {recipients.length} destinataire{recipients.length > 1 ? "s" : ""}
+    <div style={{ padding: wide ? "26px 30px 60px" : "20px 18px 40px" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+        <h2 style={{ margin: 0, flex: 1, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1 }}>
+          <span style={{ color: recipients.length ? "var(--a-coral)" : C.t3, fontVariantNumeric: "tabular-nums" }}>{recipients.length}</span> destinataire{recipients.length > 1 ? "s" : ""}
         </h2>
         {recipients.length > 0 && <Button variant="ghost" size="sm" onClick={() => setRecipients([])}>Tout retirer</Button>}
       </div>
       {recipients.length > 0 && (
-        <p style={{ margin: "4px 0 0", fontSize: 13, color: C.t3, fontVariantNumeric: "tabular-nums" }}>
-          {split.fr} en français · {split.en} en anglais{sendLang === "client" && split.unknown > 0 ? ` · ${split.unknown} sans langue connue` : ""}
-        </p>
+        <div style={{ marginTop: 14 }}>
+          {/* Répartition par langue : une barre, deux couleurs. */}
+          <div aria-hidden style={{ display: "flex", height: 8, borderRadius: 99, overflow: "hidden", background: C.hover2 }}>
+            <span style={{ width: `${(split.fr / recipients.length) * 100}%`, background: "var(--a-sage)" }} />
+            <span style={{ width: `${(split.en / recipients.length) * 100}%`, background: "var(--a-sun)" }} />
+          </div>
+          <p style={{ margin: "8px 0 0", fontSize: 13, color: C.t3, fontVariantNumeric: "tabular-nums", display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <span><i style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: "var(--a-sage)", marginRight: 6 }} />{split.fr} en français</span>
+            <span><i style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: "var(--a-sun)", marginRight: 6 }} />{split.en} en anglais</span>
+            {sendLang === "client" && split.unknown > 0 && <span>{split.unknown} sans langue connue</span>}
+          </p>
+        </div>
       )}
       {recipients.length === 0 ? (
-        <div style={{ marginTop: 40, textAlign: "center", color: C.t3, fontSize: 13.5, lineHeight: 1.6 }}>
-          <Users style={{ width: 28, height: 28, marginBottom: 10 }} strokeWidth={1.4} />
-          <p style={{ margin: 0 }}>Personne pour l'instant.<br />Ajoutez des clients ou un groupe.</p>
-        </div>
+        <p style={{ margin: "14px 0 0", fontSize: 14, color: C.t3, lineHeight: 1.6, maxWidth: 360 }}>Personne pour l'instant. Ajoutez des clients un par un, ou tout un groupe d'un seul geste.</p>
       ) : (
-        <div style={{ marginTop: 18, borderTop: `1px solid ${C.bds}` }}>
+        <div style={{ marginTop: 20, display: "grid", gap: 2 }}>
           {recipients.slice(0, 300).map((r) => {
             const l = langFor(r, sendLang, unknownLang);
             return (
-              <div key={r.email} className="ui-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 4px", borderBottom: `1px solid ${C.bds}` }}>
-                <span style={{ width: 30, height: 30, borderRadius: 99, background: C.l3, color: C.t2, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div key={r.email} className="ui-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 8px", borderRadius: 12 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 99, background: l === "fr" ? "#bfe8d6" : "#ffe7a8", color: "#14110f", fontSize: 12.5, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   {(r.firstName || r.email)[0]?.toUpperCase()}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -1169,25 +1236,29 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   );
 
   const audienceStep = wide ? (
-    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(360px, 440px) minmax(0, 1fr)" }}>
-      <div style={{ overflowY: "auto", borderRight: `1px solid ${C.bds}` }}>{audienceSide}</div>
-      <div style={{ overflowY: "auto" }}>{audienceList}</div>
+    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(360px, 440px) minmax(0, 1fr)", gap: 8 }}>
+      <WsPane>{audienceSide}</WsPane>
+      <WsPane>{audienceList}</WsPane>
     </div>
   ) : (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>{audienceSide}<div style={{ borderTop: `1px solid ${C.bds}` }}>{audienceList}</div></div>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "grid", alignContent: "start", gap: 8 }}>
+      <WsPane style={{ overflow: "visible" }}>{audienceSide}</WsPane>
+      <WsPane style={{ overflow: "visible" }}>{audienceList}</WsPane>
+    </div>
   );
 
   /* ── Étape 3 : envoi ── */
   const heavy = recipients.length > DAILY_EMAIL_LIMIT * 0.6;
   const sendStep = (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-      <div className="ui-in" style={{ maxWidth: 720, margin: "0 auto", padding: wide ? "40px 28px 80px" : "24px 16px 80px" }}>
-        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em" }}>Vérifier et envoyer</h2>
-        <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t3 }}>Relisez, envoyez-vous un test, puis lancez la campagne.</p>
+    <WsPane style={{ flex: 1 }}>
+      <div className="ui-in" style={{ maxWidth: 720, margin: "0 auto", padding: wide ? "40px 28px 80px" : "24px 18px 80px" }}>
+        <h2 style={{ margin: 0, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1.02 }}>
+          Tout est <span style={{ color: "var(--a-coral)" }}>prêt</span> ?<br /><span style={{ color: C.t3 }}>Relisez, testez, envoyez.</span>
+        </h2>
 
-        <div style={{ marginTop: 24, borderTop: `1px solid ${C.bds}` }}>
+        <div style={{ marginTop: 28 }}>
           <SummaryRow label="Nom interne">
-            <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder={byLang.fr.subject || template.name} style={{ minHeight: 36, padding: "6px 10px" }} />
+            <input className="cmp-ghost" value={name} onChange={(e) => setName(e.target.value)} placeholder={byLang.fr.subject || template.name} aria-label="Nom interne" style={{ fontSize: 14, padding: "4px 10px" }} />
           </SummaryRow>
           <SummaryRow label="Modèle" action={<Button variant="ghost" size="sm" onClick={onChangeTemplate}>Changer</Button>}>{template.name}</SummaryRow>
           <SummaryRow label="Objet (français)" action={<Button variant="ghost" size="sm" onClick={() => { setEditLang("fr"); go("content"); }}>Modifier</Button>}>
@@ -1213,19 +1284,23 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           </div>
         )}
 
-        <Group title="Envoyer un test d'abord" description="Un seul courriel par clic : vérifiez le rendu dans votre boîte avant d'envoyer à tout le monde.">
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <TextInput type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="votre@adresse.ca" aria-label="Adresse du test" style={{ flex: "1 1 220px", width: "auto" }} />
-            <Button onClick={() => sendTest([editLang])} disabled={testState?.kind === "busy"}
-              icon={testState?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 14, height: 14 }} />}>
-              Test {editLang.toUpperCase()}
-            </Button>
-            <Button variant="ghost" onClick={() => sendTest(["fr", "en"])} disabled={testState?.kind === "busy"}>FR + EN</Button>
-          </div>
-          {testState && testState.kind !== "busy" && <Notice tone={testState.kind === "ok" ? "ok" : "err"}>{testState.text}</Notice>}
-        </Group>
+        <div style={{ marginTop: 30 }}>
+          <StudioSection title="Un test d'abord" hint="Un seul courriel par clic : vérifiez le rendu dans votre boîte." flush>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 6px 6px 16px", borderRadius: 99, background: C.hover1, flexWrap: "wrap" }}>
+              <AtSign style={{ width: 15, height: 15, color: C.t3, flexShrink: 0 }} />
+              <input className="cmp-ghost" type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="votre@adresse.ca" aria-label="Adresse du test"
+                style={{ flex: "1 1 180px", width: "auto", margin: 0, fontSize: 14, background: "transparent" }} />
+              <Button onClick={() => sendTest([editLang])} disabled={testState?.kind === "busy"}
+                icon={testState?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 14, height: 14 }} />}>
+                {editLang.toUpperCase()}
+              </Button>
+              <Button variant="ghost" onClick={() => sendTest(["fr", "en"])} disabled={testState?.kind === "busy"}>FR + EN</Button>
+            </div>
+            {testState && testState.kind !== "busy" && <div style={{ marginTop: 10 }}><Notice tone={testState.kind === "ok" ? "ok" : "err"}>{testState.text}</Notice></div>}
+          </StudioSection>
+        </div>
 
-        <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.bds}`, display: "grid", gap: 14 }}>
+        <div style={{ marginTop: 36, display: "grid", gap: 14 }}>
           {feedback && <Notice tone={feedback.kind === "ok" ? "ok" : "err"}>{feedback.text}</Notice>}
           {progress && (
             <div>
@@ -1233,28 +1308,30 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
                 <span>Envoi en cours… ne fermez pas cette page.</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>{progress.done} / {progress.total}</span>
               </div>
-              <div style={{ height: 4, background: C.l3, borderRadius: 2, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%`, background: C.accent, transition: `width 0.3s ${EASE}` }} />
+              <div style={{ height: 6, background: C.l3, borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%`, background: "var(--a-coral)", borderRadius: 99, transition: `width 0.3s ${EASE}` }} />
               </div>
             </div>
           )}
           {confirming ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ flex: "1 1 200px", fontSize: 13.5, color: C.t1 }}>Envoyer maintenant à {recipients.length} personne{recipients.length > 1 ? "s" : ""} ?</span>
+              <span style={{ flex: "1 1 200px", fontSize: 14, color: C.t1 }}>Envoyer maintenant à {recipients.length} personne{recipients.length > 1 ? "s" : ""} ?</span>
               <Button variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>Annuler</Button>
               <Button variant="primary" onClick={send} disabled={busy}
                 icon={busy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 15, height: 15 }} />}>
                 Oui, envoyer
               </Button>
             </div>
+          ) : canSend && feedback?.kind !== "ok" ? (
+            <div><CtaPill onClick={() => setConfirming(true)}>Envoyer à {recipients.length} destinataire{recipients.length > 1 ? "s" : ""}</CtaPill></div>
           ) : (
-            <Button variant="primary" size="lg" onClick={() => setConfirming(true)} disabled={!canSend || feedback?.kind === "ok"} icon={<Send style={{ width: 16, height: 16 }} />}>
-              {recipients.length > 0 ? `Envoyer à ${recipients.length} destinataire${recipients.length > 1 ? "s" : ""}` : "Ajoutez des destinataires pour envoyer"}
-            </Button>
+            <p style={{ margin: 0, fontSize: 13.5, color: C.t3 }}>
+              {feedback?.kind === "ok" ? "Campagne envoyée." : !subjectsOk ? "Il manque un objet (français ou anglais)." : "Ajoutez des destinataires pour envoyer."}
+            </p>
           )}
         </div>
       </div>
-    </div>
+    </WsPane>
   );
 
   return (
@@ -1267,6 +1344,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
       step={step}
       onStep={(s) => go(s as StudioStep)}
       actions={nav}
+      panes
     >
       <div key={step} className="ui-in" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {step === "content" && contentStep}
@@ -1274,28 +1352,35 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
         {step === "send" && sendStep}
       </div>
 
-      <Modal open={fullPreview} onClose={() => setFullPreview(false)} variant="full" label="Aperçu plein écran">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: `1px solid ${C.bds}`, background: C.l1 }}>
-          <IconButton label="Fermer" onClick={() => setFullPreview(false)}><X style={{ width: 15, height: 15 }} strokeWidth={1.8} /></IconButton>
-          <p style={{ margin: 0, flex: 1, fontSize: 14, color: C.t1, fontWeight: 500 }}>{template.name}</p>
-          <Segmented ariaLabel="Langue" size="sm" value={editLang} onChange={setEditLang} options={[{ id: "fr", label: "FR" }, { id: "en", label: "EN" }]} />
-          <Segmented
-            ariaLabel="Appareil"
-            size="sm"
-            value={device}
-            onChange={setDevice}
-            options={[
-              { id: "desktop", label: <Monitor style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Ordinateur" },
-              { id: "mobile", label: <Smartphone style={{ width: 13, height: 13 }} strokeWidth={1.8} />, title: "Téléphone" },
-            ]}
-          />
+      <Modal open={fullPreview} onClose={() => setFullPreview(false)} variant="full" label="Aperçu agrandi">
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px 10px 10px", flexShrink: 0, flexWrap: "wrap" }}>
+          <Button variant="ghost" aria-label="Fermer" title="Fermer (Échap)" onClick={() => setFullPreview(false)} icon={<X style={{ width: 18, height: 18 }} />} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 15, color: C.t1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inbox.subject || template.name}</p>
+            <p style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inbox.preheader}</p>
+          </div>
+          <Segmented ariaLabel="Langue" size="sm" value={editLang} onChange={setEditLang} options={LANG_OPTIONS} />
+          <Segmented ariaLabel="Appareil" size="sm" value={device} onChange={setDevice} options={DEVICE_OPTIONS} />
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", background: "#d9d5cc", padding: "24px 16px" }}>
-          <div style={{ maxWidth: 680, margin: "0 auto 18px" }}><InboxRow subject={inbox.subject} preheader={inbox.preheader} /></div>
-          <DevicePreview html={html} device={device} title="Aperçu plein écran" />
+        <div style={{ flex: 1, minHeight: 0, margin: "0 8px 8px", borderRadius: 16, background: "#e4e0d7", padding: "20px 16px" }}>
+          <DevicePreview html={html} device={device} title="Aperçu agrandi" fit />
         </div>
       </Modal>
     </Workspace>
+  );
+}
+
+/** Section du studio : petit titre, aide facultative, contenu. Séparée par de l'espace, pas par des traits. */
+function StudioSection({ title, hint, right, children, flush }: { title: string; hint?: React.ReactNode; right?: React.ReactNode; children: React.ReactNode; flush?: boolean }) {
+  return (
+    <section style={{ marginTop: flush ? 0 : 30 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: hint ? 2 : 12 }}>
+        <h3 style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 500, color: C.t2 }}>{title}</h3>
+        {right}
+      </div>
+      {hint && <p style={{ margin: "0 0 12px", fontSize: 12, color: C.t3, lineHeight: 1.5 }}>{hint}</p>}
+      {children}
+    </section>
   );
 }
 
@@ -1308,38 +1393,48 @@ function Dot() {
 function TemplateFieldInput({ field, value, onChange }: { field: TemplateField; value: string; onChange: (v: string) => void }) {
   if (field.kind === "image") return <ImageField label={field.label} value={value} onChange={onChange} />;
   if (field.kind === "lines") return <LinesEditor field={field} value={value} onChange={onChange} />;
+  const k = field.key;
+  // Chaque texte prend l'allure qu'il aura dans le courriel.
+  const look: "title" | "eyebrow" | "button" | "link" | "body" =
+    k === "headline" ? "title"
+      : k === "eyebrow" || k === "badge" || k === "label" ? "eyebrow"
+        : k === "cta" || k === "cta2" ? "button"
+          : field.kind === "url" ? "link" : "body";
   const multiline = field.kind === "textarea";
+  const rows = Math.min(8, Math.max(look === "title" ? 1 : 2, Math.ceil(value.length / (look === "title" ? 32 : 60)) + value.split("\n").length - 1));
+  const style: React.CSSProperties =
+    look === "title" ? { fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.2 }
+      : look === "eyebrow" ? { fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--a-coral)" }
+        : look === "link" ? { fontSize: 13, color: C.t2, fontFamily: "ui-monospace, Menlo, monospace" }
+          : { fontSize: 14.5, lineHeight: 1.6 };
+
   return (
-    <EditField
-      label={field.label}
-      value={value}
-      onChange={onChange}
-      multiline={multiline}
-      rows={Math.min(8, Math.max(2, Math.ceil(value.length / 70) + value.split("\n").length - 1))}
-      hint={field.hint}
-      placeholder={field.kind === "url" ? "/app/acheter ou https://…" : undefined}
-    />
+    <div>
+      <FieldLabel>{field.label}</FieldLabel>
+      {look === "button" ? (
+        <input className="cmp-ghost" aria-label={field.label} value={value} onChange={(e) => onChange(e.target.value)}
+          style={{ width: "auto", minWidth: 160, maxWidth: "100%", margin: 0, padding: "10px 20px", borderRadius: 99, background: C.t1, color: C.bg, fontSize: 14, fontWeight: 500, fieldSizing: "content" } as React.CSSProperties} />
+      ) : look === "link" ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Link2 style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />
+          <input className="cmp-ghost" aria-label={field.label} value={value} onChange={(e) => onChange(e.target.value)} placeholder="/app/acheter ou https://…" style={{ ...style, margin: "0 -10px 0 -4px" }} />
+        </div>
+      ) : multiline ? (
+        <textarea className="cmp-ghost" aria-label={field.label} value={value} rows={rows} onChange={(e) => onChange(e.target.value)} style={style} />
+      ) : (
+        <input className="cmp-ghost" aria-label={field.label} value={value} onChange={(e) => onChange(e.target.value)} style={style} />
+      )}
+      {field.hint && <p style={{ margin: "4px 0 0", fontSize: 11.5, color: C.t3, lineHeight: 1.5 }}>{field.hint}</p>}
+    </div>
   );
 }
 
 function FieldLabel({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 12.5, color: C.t2, marginBottom: 6, fontFamily: FONT, display: "flex", alignItems: "baseline", gap: 6 }}>
+    <div style={{ fontSize: 11.5, color: C.t3, marginBottom: 2, fontFamily: FONT, display: "flex", alignItems: "baseline", gap: 6 }}>
       <span style={{ flex: 1 }}>{children}</span>
       {right}
     </div>
-  );
-}
-
-function EditField({ label, value, onChange, multiline, rows = 3, hint, placeholder }: {
-  label: string; value: string; onChange: (v: string) => void; multiline?: boolean; rows?: number; hint?: string; placeholder?: string;
-}) {
-  return (
-    <Field label={label} hint={hint}>
-      {multiline
-        ? <TextArea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} />
-        : <TextInput type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />}
-    </Field>
   );
 }
 
@@ -1355,10 +1450,10 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="cmp-row ui-input"
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: 6, borderRadius: 10, border: `1px solid ${C.bds}`, background: "var(--a-inputBg)", cursor: "pointer", textAlign: "left", fontFamily: FONT }}
+        className="cmp-tile"
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: 6, marginTop: 4, borderRadius: 16, border: "none", background: C.hover1, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
       >
-        <span style={{ width: 112, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: "#f3efe6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ width: 112, height: 64, borderRadius: 11, overflow: "hidden", flexShrink: 0, background: "#f3efe6", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <img src={current.url} alt="" style={{ width: "100%", height: "100%", objectFit: current.group === "guide" ? "cover" : "contain" }} />
         </span>
         <span style={{ minWidth: 0, flex: 1 }}>
@@ -1375,7 +1470,7 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
         <div className="flex justify-center pt-2 md:hidden">
           <span aria-hidden style={{ width: 38, height: 4, borderRadius: 99, background: C.bd }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: `1px solid ${C.bds}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px 4px" }}>
           <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: 15, color: C.t1, fontWeight: 500 }}>Choisir une image</p>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: C.t3 }}>{label}</p>
@@ -1457,17 +1552,17 @@ function LinesEditor({ field, value, onChange }: { field: TemplateField; value: 
   return (
     <div>
       <FieldLabel right={<span style={{ fontSize: 11, color: C.t3 }}>{rows.length} ligne{rows.length > 1 ? "s" : ""}</span>}>{field.label}</FieldLabel>
-      <div style={{ display: "grid", borderTop: `1px solid ${C.bds}` }}>
+      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
         {rows.map((r, ri) => (
-          <div key={ri} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: `1px solid ${C.bds}` }}>
-            <span style={{ width: 22, height: 22, borderRadius: 7, background: C.l3, color: C.t2, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{ri + 1}</span>
-            <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 6, alignContent: "start" }}>
+          <div key={ri} style={{ display: "flex", gap: 10, padding: "8px 6px 8px 10px", borderRadius: 14, background: C.hover1 }}>
+            <span style={{ width: 22, height: 22, borderRadius: 99, background: C.bg, color: C.t2, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{ri + 1}</span>
+            <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 0, alignContent: "start", paddingLeft: 10 }}>
               {cols.map((c, ci) => {
                 const long = ci === cols.length - 1;
                 return long ? (
-                  <TextArea key={ci} aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} rows={cols.length > 1 ? 2 : Math.min(3, Math.max(1, Math.ceil(r[ci].length / 34)))} onChange={(e) => set(ri, ci, e.target.value)} style={{ fontSize: 13.5, minHeight: 0, padding: "7px 10px" }} />
+                  <textarea key={ci} className="cmp-ghost" aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} rows={cols.length > 1 ? 2 : Math.min(3, Math.max(1, Math.ceil(r[ci].length / 34)))} onChange={(e) => set(ri, ci, e.target.value)} style={{ fontSize: 13.5, lineHeight: 1.5, color: cols.length > 1 ? C.t2 : C.t1, padding: "5px 10px" }} />
                 ) : (
-                  <TextInput key={ci} aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} onChange={(e) => set(ri, ci, e.target.value)} style={{ fontSize: 13.5, minHeight: 36, padding: "6px 10px", fontWeight: ci === 0 && cols.length > 1 ? 500 : 400 }} />
+                  <input key={ci} className="cmp-ghost" aria-label={`${c} ${ri + 1}`} value={r[ci]} placeholder={c} onChange={(e) => set(ri, ci, e.target.value)} style={{ fontSize: 13.5, padding: "5px 10px", fontWeight: ci === 0 && cols.length > 1 ? 600 : 400 }} />
                 );
               })}
             </div>
@@ -1481,7 +1576,8 @@ function LinesEditor({ field, value, onChange }: { field: TemplateField; value: 
         <button
           type="button"
           onClick={() => commit([...rows, cols.map((c, i) => (i === 0 ? (cols.length > 1 ? c : "Nouveau point") : ""))])}
-          style={{ marginTop: 8, height: 34, justifySelf: "start", padding: "0 10px", borderRadius: 8, border: "none", background: "transparent", color: C.t2, fontSize: 13, fontFamily: FONT, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+          className="cmp-tile"
+          style={{ marginTop: 2, height: 36, justifySelf: "start", padding: "0 14px 0 10px", borderRadius: 99, border: "none", background: "transparent", color: C.t2, fontSize: 13, fontFamily: FONT, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           <Plus style={{ width: 13, height: 13 }} strokeWidth={1.8} />
           Ajouter une ligne
@@ -1644,7 +1740,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove, 
         )}
       </div>}
 
-      <div className={bare ? "ui-input" : undefined} style={bare ? { ...fieldInput, display: "flex", alignItems: "center", gap: 8, padding: "0 12px" } : {
+      <div style={bare ? { display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 16px", borderRadius: 99, background: C.hover1 } : {
         display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center",
         minHeight: 32,
       }}>

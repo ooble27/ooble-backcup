@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight, ScanFace, X } from "lucide-react";
 import { timeAgo, type KycRequest, type KycStatus } from "@/lib/adminOrders";
 import { fetchKyc, setKycStatus, getDocumentUrl } from "@/lib/adminKyc";
 import { C, FONT } from "./adminTheme";
-import { Button, Field, Notice, TextArea, Workspace } from "./ui";
+import { Button, Field, Notice, TextArea, Workspace, WsPane } from "./ui";
 import { Avatar, DataTable, EmptyState, FilterChips, KeyValues, Pill, StatStrip, Tabs, TwoLine, type Column, type Tone } from "./layout";
 import DocFrame from "./DocFrame";
 import BusinessKycPanel from "./BusinessKycPanel";
@@ -57,6 +57,7 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
       title={r.clientName}
       subtitle={`Vérification d'identité · ${DOC_TYPE[r.docType] ?? r.docType ?? "document"} · soumise ${timeAgo(r.submittedMinsAgo)}`}
       onClose={onClose}
+      panes
       actions={list.length > 1 && (
         <>
           <span style={{ fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{index + 1} / {list.length}</span>
@@ -65,8 +66,8 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
         </>
       )}
     >
-      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px]" style={{ minHeight: 0 }}>
-        <div style={{ overflowY: "auto", padding: "24px 24px 60px" }}>
+      <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:overflow-hidden" style={{ minHeight: 0 }}>
+        <WsPane style={{ padding: "24px 24px 60px" }}>
           {keys.length === 0 ? (
             <EmptyState icon={ScanFace} title="Aucun document" text="Ce dossier vient de l'ancien parcours (Sumsub) : aucun fichier n'est stocké chez Ooble." />
           ) : (
@@ -74,9 +75,9 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
               {keys.map((k) => <DocFrame key={`${r.id}:${k}`} label={DOC_LABEL[k] ?? k} path={r.documentPaths![k]} load={load} height={k === "id_back" ? 300 : 440} />)}
             </div>
           )}
-        </div>
+        </WsPane>
 
-        <aside style={{ overflowY: "auto", borderLeft: `1px solid ${C.bds}`, padding: "24px 24px 40px", fontFamily: FONT }}>
+        <WsPane style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
             <Avatar name={r.clientName} size={40} />
             <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={r.clientName} secondary={r.email} /></div>
@@ -126,7 +127,7 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
               <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{r.reviewNote}</p>
             </>
           ) : null}
-        </aside>
+        </WsPane>
       </div>
     </Workspace>
   );

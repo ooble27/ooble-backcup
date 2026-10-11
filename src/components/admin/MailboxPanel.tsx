@@ -1451,12 +1451,12 @@ const noop = () => undefined;
 type SubTab = "inbox" | "sent" | "snippets";
 
 const MAIL_CSS = `
-.mb-compose { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+.mb-compose { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; overflow-y: auto; border-radius: 16px; }
+.mb-compose > div { border-radius: 16px; background: ${C.bg}; box-shadow: 0 0 0 1px ${C.bds}; overflow: hidden; }
 .mb-compose > div:first-child { min-height: 100%; }
 @media (min-width: 1100px) {
   .mb-compose[data-preview="1"] { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); overflow: hidden; }
-  .mb-compose[data-preview="1"] > div:first-child { overflow-y: auto; min-height: 0; }
-  .mb-compose .mb-preview { border-left: 1px solid ${C.bds}; }
+  .mb-compose[data-preview="1"] > div { overflow-y: auto; min-height: 0; }
 }
 .mb-pane { margin-top: 16px; border-top: 1px solid ${C.bds}; border-bottom: 1px solid ${C.bds}; }
 .mb-split { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: calc(100vh - 290px); min-height: 480px; }
@@ -1532,7 +1532,7 @@ const MailboxPanel = () => {
       {tab === "snippets" && <SnippetsView onLoad={loadSnippet} />}
 
       {composer && (
-        <Workspace title={composer.title} subtitle={composer.threadId ? "La réponse s'ajoute à la conversation" : "Depuis bonjour@ooble.ca"} onClose={closeComposer}>
+        <Workspace title={composer.title} subtitle={composer.threadId ? "La réponse s'ajoute à la conversation" : "Depuis bonjour@ooble.ca"} onClose={closeComposer} panes>
           <style>{MAIL_CSS}</style>
           <ComposeView
             onSent={refreshSent}

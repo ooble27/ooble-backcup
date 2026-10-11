@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { peek } from "@/lib/adminCache";
+import { loadDeposits, loadPayouts, loadReceipts, loadScanState, loadWallets } from "@/lib/adminData";
 import { ArrowUpRight, Check, ChevronDown, Copy, Inbox, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
-  attachDeposit, fetchDeposits, fetchPayouts, fetchPendingSells, fetchReceipts, fetchScanState, fetchWallets,
+  attachDeposit, fetchPendingSells,
   ignoreDeposit, reconcilePayouts, scanDeposits, txUrl, updateSettings,
   type ChainDeposit, type InteracReceipt, type SettlementSettings, type UsdtPayout, type WalletState,
 } from "@/lib/settlement";
@@ -136,13 +138,16 @@ type Tab = "wallet" | "receipts" | "payouts" | "deposits";
 const SettlementPanel = () => {
   const { isAdmin } = useAuth();
   const [tab, setTab] = useState<Tab>("wallet");
-  const [wallets, setWallets] = useState<WalletState[] | null>(null);
-  const [settings, setSettings] = useState<SettlementSettings | null>(null);
-  const [draft, setDraft] = useState<SettlementSettings | null>(null);
-  const [receipts, setReceipts] = useState<InteracReceipt[]>([]);
-  const [payouts, setPayouts] = useState<UsdtPayout[]>([]);
-  const [deposits, setDeposits] = useState<ChainDeposit[]>([]);
-  const [lastScan, setLastScan] = useState<string | null>(null);
+  // Les dernières données connues s'affichent tout de suite ; la mise à jour arrive ensuite.
+  const cachedW = peek<Awaited<ReturnType<typeof loadWallets>>>("st.wallets")?.value;
+  const [wallets, setWallets] = useState<WalletState[] | null>(cachedW?.wallets ?? null);
+  const [settings, setSettings] = useState<SettlementSettings | null>(cachedW?.settings ?? null);
+  const [draft, setDraft] = useState<SettlementSettings | null>(cachedW?.settings ?? null);
+  const [receipts, setReceipts] = useState<InteracReceipt[]>(peek<InteracReceipt[]>("st.receipts")?.value ?? []);
+  const [payouts, setPayouts] = useState<UsdtPayout[]>(peek<UsdtPayout[]>("st.payouts")?.value ?? []);
+  const [deposits, setDeposits] = useState<ChainDeposit[]>(peek<ChainDeposit[]>("st.deposits")?.value ?? []);
+  const lastOf = (sc?: { updated_at: string }[]) => sc?.map((x) => x.updated_at).sort().pop() ?? null;
+  const [lastScan, setLastScan] = useState<string | null>(lastOf(peek<{ updated_at: string }[]>("st.scan")?.value));
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -153,15 +158,21 @@ const SettlementPanel = () => {
 
   const load = useCallback(async () => {
     setBusy(true);
-    const [w, r, p, d, sc] = await Promise.all([fetchWallets(), fetchReceipts(), fetchPayouts(), fetchDeposits(), fetchScanState()]);
-    setDeposits(d);
-    setLastScan(sc.map((x) => x.updated_at).sort().pop() ?? null);
+    // Chaque liste s'affiche dès qu'elle arrive ; les soldes (blockchains, plus lents) n'attendent personne.
+    const lists = Promise.all([
+      loadDeposits().then(setDeposits),
+      loadReceipts().then(setReceipts),
+      loadPayouts().then(setPayouts),
+      loadScanState().then((sc) => setLastScan(lastOf(sc))),
+    ]);
+    const w = await loadWallets();
     if (!w.ok) setErr(w.error ?? "Portefeuille indisponible.");
-    else { setErr(null); setWallets(w.wallets ?? []); setSettings(w.settings ?? null); setDraft(w.settings ?? null); }
-    setReceipts(r);
-    setPayouts(p);
+    else { setErr(null); setWallets(w.wallets ?? []); setSettings(w.settings ?? null); setDraft((d) => (d && JSON.stringify(d) !== JSON.stringify(settingsRef.current) ? d : w.settings ?? null)); }
+    await lists;
     setBusy(false);
   }, []);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   useEffect(() => { void load(); }, [load]);
 
   const save = async () => {

@@ -172,14 +172,28 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "ok" | "wa
 
 export interface WorkspaceStep { id: string; label: string; badge?: number | string; done?: boolean }
 
+/** Volet arrondi posé sur le fond de l'espace de travail (même écrin que le back-office). */
+export function WsPane({ children, style, className }: { children: React.ReactNode; style?: React.CSSProperties; className?: string }) {
+  return (
+    <div className={className} style={{
+      minWidth: 0, minHeight: 0, borderRadius: 16, background: C.bg, overflowY: "auto",
+      boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 /**
- * Tâche longue (composer une campagne, traiter un dossier…) en plein écran :
- * barre du haut avec titre, étapes et actions ; le corps est libre.
+ * Tâche longue (composer une campagne, traiter un dossier…) en plein écran.
+ * Comme le back-office : le titre, les étapes et les actions sont posés sur le fond ;
+ * le travail est dans un ou plusieurs volets arrondis, séparés par de l'espace, jamais par des traits.
+ * `panes` : les enfants fournissent eux-mêmes leurs volets (WsPane), sinon un seul volet les entoure.
  */
-export function Workspace({ title, subtitle, onClose, steps, step, onStep, actions, children, closeLabel = "Fermer" }: {
+export function Workspace({ title, subtitle, onClose, steps, step, onStep, actions, children, closeLabel = "Fermer", panes = false }: {
   title: React.ReactNode; subtitle?: React.ReactNode; onClose: () => void;
   steps?: WorkspaceStep[]; step?: string; onStep?: (id: string) => void;
-  actions?: React.ReactNode; children: React.ReactNode; closeLabel?: string;
+  actions?: React.ReactNode; children: React.ReactNode; closeLabel?: string; panes?: boolean;
 }) {
   const restore = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -191,12 +205,36 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
 
   const current = steps?.findIndex((s) => s.id === step) ?? -1;
 
+  const stepButton = (s: WorkspaceStep, i: number, phone: boolean) => {
+    const on = s.id === step;
+    const done = s.done ?? i < current;
+    return (
+      <button key={s.id} type="button" className="ui-step" onClick={() => onStep?.(s.id)} aria-current={on ? "step" : undefined}
+        style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, height: 36, padding: "0 14px 0 8px", borderRadius: 99, border: "none",
+          flex: phone ? "1 0 auto" : undefined,
+          background: on ? C.bg : "transparent", boxShadow: on ? `0 0 0 1px ${C.bds}, 0 1px 2px rgba(0,0,0,.06)` : "none",
+          color: on ? C.t1 : C.t3, fontFamily: FONT, fontSize: 13.5, cursor: "pointer", transition: `background .2s ${UI_EASE}, color .2s`,
+        }}>
+        <span style={{
+          width: 22, height: 22, borderRadius: 99, fontSize: 11.5, display: "inline-flex", alignItems: "center", justifyContent: "center",
+          background: on ? C.accent : done ? C.hover3 : "transparent", color: on ? C.btnText : C.t2,
+          boxShadow: on || done ? "none" : `inset 0 0 0 1px ${C.bd}`, fontVariantNumeric: "tabular-nums",
+        }}>
+          {done && !on ? <Check style={{ width: 12, height: 12 }} strokeWidth={2.6} /> : i + 1}
+        </span>
+        {s.label}
+        {s.badge !== undefined && s.badge !== 0 && <span style={{ fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{s.badge}</span>}
+      </button>
+    );
+  };
+
   return createPortal(
     <div className="admin-scope" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Espace de travail"}
-      style={{ position: "fixed", inset: 0, zIndex: 2147482000, background: C.bg, color: C.t1, fontFamily: FONT, display: "flex", flexDirection: "column", animation: `ui-fade .2s ${UI_EASE}` }}>
+      style={{ position: "fixed", inset: 0, zIndex: 2147482000, background: C.ground, color: C.t1, fontFamily: FONT, display: "flex", flexDirection: "column", animation: `ui-fade .2s ${UI_EASE}` }}>
       <UIStyles />
-      <header style={{ flexShrink: 0, borderBottom: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div style={{ height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
+      <header style={{ flexShrink: 0, paddingTop: "env(safe-area-inset-top, 0px)", background: C.ground }}>
+        <div style={{ height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 12px 0 10px" }}>
           <Button variant="ghost" aria-label={closeLabel} title={closeLabel} onClick={onClose} icon={<X style={{ width: 18, height: 18 }} />} />
           <div style={{ minWidth: 0, flex: "1 1 auto" }}>
             <div style={{ fontSize: 14.5, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
@@ -204,46 +242,20 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
           </div>
           {steps && (
             <nav aria-label="Étapes" className="hidden md:flex" style={{ alignItems: "center", gap: 4, flex: "0 0 auto" }}>
-              {steps.map((s, i) => {
-                const on = s.id === step;
-                const done = s.done ?? i < current;
-                return (
-                  <button key={s.id} type="button" className="ui-step" onClick={() => onStep?.(s.id)} aria-current={on ? "step" : undefined}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: "0 12px", borderRadius: 9, border: "none",
-                      background: on ? C.l2 : "transparent", color: on ? C.t1 : C.t3, fontFamily: FONT, fontSize: 13, cursor: "pointer",
-                    }}>
-                    <span style={{
-                      width: 20, height: 20, borderRadius: 99, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: on ? C.accent : done ? C.hover3 : "transparent", color: on ? C.btnText : C.t2,
-                      border: on || done ? "none" : `1px solid ${C.bd}`, fontVariantNumeric: "tabular-nums",
-                    }}>
-                      {done && !on ? <Check style={{ width: 11, height: 11 }} strokeWidth={2.6} /> : i + 1}
-                    </span>
-                    {s.label}
-                    {s.badge !== undefined && s.badge !== 0 && <span style={{ fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{s.badge}</span>}
-                  </button>
-                );
-              })}
+              {steps.map((s, i) => stepButton(s, i, false))}
             </nav>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", justifyContent: "flex-end", minWidth: 0 }}>{actions}</div>
         </div>
         {steps && (
-          <div className="md:hidden"><div style={{ display: "flex", gap: 4, padding: "0 12px 10px", overflowX: "auto" }}>
-            {steps.map((s, i) => {
-              const on = s.id === step;
-              return (
-                <button key={s.id} type="button" className="ui-step" onClick={() => onStep?.(s.id)} aria-current={on ? "step" : undefined}
-                  style={{ flex: "1 0 auto", height: 34, borderRadius: 9, border: "none", background: on ? C.l2 : "transparent", color: on ? C.t1 : C.t3, fontFamily: FONT, fontSize: 13 }}>
-                  {i + 1}. {s.label}{s.badge ? ` · ${s.badge}` : ""}
-                </button>
-              );
-            })}
-          </div></div>
+          <div className="md:hidden"><nav aria-label="Étapes" style={{ display: "flex", gap: 4, padding: "0 8px 8px", overflowX: "auto", scrollbarWidth: "none" }}>
+            {steps.map((s, i) => stepButton(s, i, true))}
+          </nav></div>
         )}
       </header>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>{children}</div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 8px calc(8px + env(safe-area-inset-bottom, 0px))" }}>
+        {panes ? children : <WsPane style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>{children}</WsPane>}
+      </div>
     </div>,
     document.body,
   );
@@ -260,12 +272,13 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
     return () => window.removeEventListener("keydown", k);
   }, [onClose]);
   return createPortal(
-    <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147482500, fontFamily: FONT, color: C.t1 }}>
+    <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147482500, fontFamily: FONT, color: C.t1, pointerEvents: "none" }}>
       <UIStyles />
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "ui-fade .18s ease" }} />
+      {/* Le voile s'arrête sous la barre d'état : iOS garde la couleur unie du haut au lieu de flouter. */}
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, top: "env(safe-area-inset-top, 0px)", background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
       <aside role="dialog" aria-modal="true" style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: `min(${width}px, 100vw)`, background: C.l1, boxShadow: C.panelShadow,
-        display: "flex", flexDirection: "column", animation: `ui-slide .28s ${UI_EASE}`,
+        display: "flex", flexDirection: "column", animation: `ui-slide .28s ${UI_EASE}`, pointerEvents: "auto",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(14px + env(safe-area-inset-top, 0px)) 16px 14px 20px", borderBottom: `1px solid ${C.bds}` }}>
           <div style={{ flex: 1, minWidth: 0 }}>
