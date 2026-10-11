@@ -173,7 +173,9 @@ const AdminPortal = () => {
     const meta = document.querySelector('meta[name="theme-color"]');
     const prevTheme = meta?.getAttribute("content") ?? "";
     const sync = () => {
-      const bg = html.classList.contains("dark") ? ADMIN_BG.dark : ADMIN_BG.light;
+      const wide = window.innerWidth >= 768;
+      const dark = html.classList.contains("dark");
+      const bg = wide ? (dark ? ADMIN_BG.groundDark : ADMIN_BG.groundLight) : dark ? ADMIN_BG.dark : ADMIN_BG.light;
       html.style.backgroundColor = bg;
       body.style.backgroundColor = bg;
       meta?.setAttribute("content", bg);
@@ -319,6 +321,9 @@ const AdminPortal = () => {
 
   return (
     <div className="admin-scope" style={{ background: panel ? C.ground : C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
+      {/* Bande pleine derrière la barre d'état (iPhone, iPad) : iOS reprend sa couleur au lieu de flouter
+          le haut de la page, et le voile du menu ouvert ne la grise pas. */}
+      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: "max(env(safe-area-inset-top, 0px), 1px)", background: panel ? C.ground : C.bg, zIndex: 70, pointerEvents: "none" }} />
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "env(safe-area-inset-top, 0px)" }}>
           {sidebar(false)}
@@ -327,7 +332,7 @@ const AdminPortal = () => {
 
       {drawer && mode === "drawer" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 60 }}>
-          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: C.overlay }} />
+          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, top: "env(safe-area-inset-top, 0px)", background: C.overlay }} />
           <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", paddingTop: "env(safe-area-inset-top, 0px)", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
             {sidebar(true)}
           </aside>
@@ -336,7 +341,7 @@ const AdminPortal = () => {
 
       {panel ? (
         /* Écrin : posé sur le fond, coins arrondis, aucun trait ne croise la barre latérale. */
-        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "8px 8px 8px 0" }}>
+        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 0" }}>
           <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
             <header style={panel
               ? { flexShrink: 0, background: C.bg }

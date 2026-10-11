@@ -109,7 +109,7 @@ const LIGHT = {
 };
 
 /** Raw bg values for html/body (CSS vars aren't available on ancestors). */
-export const ADMIN_BG = { dark: DARK.bg, light: LIGHT.bg } as const;
+export const ADMIN_BG = { dark: DARK.bg, light: LIGHT.bg, groundDark: DARK.ground, groundLight: LIGHT.ground } as const;
 
 // ── CSS to inject ────────────────────────────────────────────
 

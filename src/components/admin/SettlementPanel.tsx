@@ -100,6 +100,36 @@ function DepositActions({ d, onDone }: { d: ChainDeposit; onDone: () => void }) 
   );
 }
 
+/** Montant : libellé à gauche, champ de même largeur à droite (tous alignés), unité dans le champ. */
+function AmountRow({ label, hint, unit, value, onChange, disabled }: {
+  label: string; hint: string; unit: string; value: number; onChange: (v: number) => void; disabled?: boolean;
+}) {
+  const [focus, setFocus] = useState(false);
+  const [raw, setRaw] = useState("");
+  const shown = focus ? raw : nf(Number(value) || 0, 0);
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+      <span style={{ flex: "1 1 150px", minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13.5, color: C.t1 }}>{label}</span>
+        <span style={{ display: "block", marginTop: 2, fontSize: 12, color: C.t3 }}>{hint}</span>
+      </span>
+      <span className="st-amount" style={{
+        flex: "0 0 176px", width: 176, minWidth: 0, boxSizing: "border-box", display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 6px 0 14px", borderRadius: 12,
+        background: C.l1, boxShadow: `inset 0 0 0 1px ${focus ? C.bd : C.bds}`, opacity: disabled ? 0.6 : 1, transition: "box-shadow .15s",
+      }}>
+        <input
+          type="text" inputMode="numeric" disabled={disabled} value={shown} aria-label={label}
+          onFocus={() => { setRaw(String(value ?? "")); setFocus(true); }}
+          onBlur={() => setFocus(false)}
+          onChange={(e) => { const v = e.target.value.replace(/[^\d]/g, ""); setRaw(v); onChange(Number(v) || 0); }}
+          style={{ all: "unset", flex: 1, minWidth: 0, width: "100%", textAlign: "right", fontSize: 17, fontWeight: 500, color: C.t1, fontVariantNumeric: "tabular-nums", fontFamily: "inherit" }}
+        />
+        <span style={{ flexShrink: 0, height: 30, padding: "0 9px", borderRadius: 8, background: C.hover3, color: C.t2, fontSize: 12, display: "inline-flex", alignItems: "center" }}>{unit}</span>
+      </span>
+    </label>
+  );
+}
+
 type Tab = "wallet" | "receipts" | "payouts" | "deposits";
 
 const SettlementPanel = () => {
@@ -272,17 +302,12 @@ const SettlementPanel = () => {
                   label="Envoyer les USDT sans clic de l'équipe"
                   hint="Dès qu'un virement Interac est reçu et rapproché d'un achat."
                 />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <Field label="Maximum par commande">
-                    <TextInput type="number" min={0} inputMode="decimal" disabled={!isAdmin} value={draft.auto_payout_max_cad}
-                      onChange={(e) => setDraft({ ...draft, auto_payout_max_cad: Number(e.target.value) })} />
-                  </Field>
-                  <Field label="Plafond sur 24 h">
-                    <TextInput type="number" min={0} inputMode="decimal" disabled={!isAdmin} value={draft.daily_payout_max_usdt}
-                      onChange={(e) => setDraft({ ...draft, daily_payout_max_usdt: Number(e.target.value) })} />
-                  </Field>
+                <div style={{ display: "grid", gap: 12 }}>
+                  <AmountRow label="Maximum par commande" hint="Au-delà, l'équipe valide l'envoi." unit="$ CA"
+                    value={draft.auto_payout_max_cad} disabled={!isAdmin} onChange={(v) => setDraft({ ...draft, auto_payout_max_cad: v })} />
+                  <AmountRow label="Plafond sur 24 h" hint="Total de tous les envois." unit="USDT"
+                    value={draft.daily_payout_max_usdt} disabled={!isAdmin} onChange={(v) => setDraft({ ...draft, daily_payout_max_usdt: v })} />
                 </div>
-                <p style={{ margin: "-10px 0 0", fontSize: 12, color: C.t3 }}>En dollars canadiens, puis en USDT.</p>
                 <div>
                   <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t2 }}>L'envoi part seul seulement si</p>
                   <div style={{ display: "grid", gap: 5 }}>
@@ -408,6 +433,7 @@ const SettlementPanel = () => {
       <style>{`
         .st-grid { display: grid; gap: 40px; grid-template-columns: minmax(0, 1fr); }
         .st-aside { padding-top: 8px; }
+        @media (max-width: 560px) { .st-amount { flex: 1 1 100% !important; width: auto !important } }
         @media (min-width: 1180px) {
           .st-grid { grid-template-columns: minmax(0, 1fr) 360px; }
           .st-aside { padding: 20px 0 0 32px; border-left: 1px solid ${C.bds}; margin-top: 16px; }
