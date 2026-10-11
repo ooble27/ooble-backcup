@@ -1,0 +1,143 @@
+name: Sauvegarde nocturne
+
+# Chaque nuit à 3 h 17 (heure de l'Est) : base de données + fichiers KYC,
+# chiffrés (AES-256), publiés en « release » privée de ce dépôt, puis
+# restaurés dans une base vide pour vérifier qu'ils sont utilisables.
+# Guide complet : docs/SAUVEGARDES.md
+on:
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    # Seul le dépôt principal sauvegarde (le dépôt de copie n'a pas les secrets).
+    if: github.repository == 'ooble27/Ooble-'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: restore-test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      SUPABASE_URL: https://uukxacjjviiktmbikdwp.supabase.co
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      TEST_DB_URL: postgresql://postgres:restore-test@localhost:5432/postgres
+      OUT_DIR: ${{ runner.temp }}/backup
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      GH_TOKEN: ${{ github.token }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier les secrets
+        run: |
+          missing=""
+          [ -n "$SUPABASE_DB_URL" ] || missing="$missing SUPABASE_DB_URL"
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || missing="$missing SUPABASE_SERVICE_ROLE_KEY"
+          [ -n "$BACKUP_PASSPHRASE" ] || missing="$missing BACKUP_PASSPHRASE"
+          if [ -n "$missing" ]; then
+            echo "::error::Sauvegarde impossible : secrets GitHub manquants :$missing (voir docs/SAUVEGARDES.md)"
+            exit 1
+          fi
+          if [ "${#BACKUP_PASSPHRASE}" -lt 20 ]; then
+            echo "::error::BACKUP_PASSPHRASE doit faire au moins 20 caractères."
+            exit 1
+          fi
+
+      - name: Installer les outils PostgreSQL 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Sauvegarder
+        id: backup
+        run: bash scripts/backup/backup.sh
+
+      - name: Publier l'archive chiffrée
+        id: publish
+        run: |
+          source "$OUT_DIR/backup.env"
+          TAG="backup-$STAMP"
+          gh release create "$TAG" "$ARCHIVE" \
+            --target "${{ github.sha }}" --latest=false \
+            --title "Sauvegarde du ${STAMP:0:10}" \
+            --notes "Archive chiffrée (AES-256). Restauration : docs/SAUVEGARDES.md"
+          echo "TAG=$TAG" >> "$OUT_DIR/backup.env"
+
+      - name: Copie vers Cloudflare R2 (si configurée)
+        if: env.R2_BUCKET != ''
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          source "$OUT_DIR/backup.env"
+          aws s3 cp "$ARCHIVE" "s3://$R2_BUCKET/daily/$(basename "$ARCHIVE")" \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --only-show-errors
+
+      - name: Tester la restauration
+        id: restore
+        run: |
+          source "$OUT_DIR/backup.env"
+          bash scripts/backup/restore-test.sh "$ARCHIVE"
+
+      - name: Garder 30 jours + le 1er de chaque mois (13 mois) + le 1er janvier (6 ans)
+        run: |
+          now=$(date -u +%s); i=0
+          gh release list --limit 1000 --json tagName --jq '.[].tagName' | grep '^backup-' | sort -r | while read -r tag; do
+            i=$((i + 1))
+            d="${tag#backup-}"; day="${d:0:10}"
+            age=$(( (now - $(date -u -d "$day" +%s)) / 86400 ))
+            [ "$i" -le 30 ] && continue
+            [ "${d:8:2}" = "01" ] && [ "$age" -le 400 ] && continue
+            [ "${d:5:5}" = "01-01" ] && [ "$age" -le 2200 ] && continue
+            echo "Suppression de $tag ($age jours)"
+            gh release delete "$tag" --cleanup-tag --yes
+          done
+
+      - name: Journal (réussite)
+        run: |
+          source "$OUT_DIR/backup.env"
+          source "$OUT_DIR/restore.env"
+          psql "$SUPABASE_DB_URL" -qX -v ON_ERROR_STOP=1 \
+            -v id="$RUN_ID" -v tag="$TAG" -v detail="$RESTORE_DETAIL" -v tables="$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1]))["tables_after"]))' "$OUT_DIR/manifest.json")" <<'SQL'
+          update public.backup_runs
+             set status = 'success', finished_at = now(), restore_ok = true,
+                 restore_detail = :'detail', location = :'tag', tables = :'tables'::jsonb
+           where id = :id;
+          SQL
+
+      - name: Journal (échec)
+        if: failure() && steps.backup.outcome != 'skipped'
+        run: |
+          [ -f "$OUT_DIR/backup.env" ] || exit 0
+          source "$OUT_DIR/backup.env"
+          detail=""
+          [ -f "$OUT_DIR/restore.env" ] && source "$OUT_DIR/restore.env" && detail="$RESTORE_DETAIL"
+          fr() { case "$1" in success) echo "réussie";; failure) echo "en échec";; skipped) echo "non lancée";; cancelled) echo "annulée";; *) echo "$1";; esac; }
+          msg="Sauvegarde $(fr ${{ steps.backup.outcome }}), publication $(fr ${{ steps.publish.outcome }}), restauration $(fr ${{ steps.restore.outcome }})"
+          psql "$SUPABASE_DB_URL" -qX -v id="$RUN_ID" -v msg="$msg" -v detail="$detail" -v tag="${TAG:-}" <<'SQL' || true
+          update public.backup_runs
+             set status = 'failed', finished_at = now(), error = coalesce(error, :'msg'),
+                 restore_ok = case when :'detail' = '' then restore_ok else false end,
+                 restore_detail = nullif(:'detail', ''), location = nullif(:'tag', '')
+           where id = :id;
+          SQL

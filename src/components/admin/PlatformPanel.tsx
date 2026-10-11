@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Eraser, Lock, Power, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminHero from "@/components/admin/AdminHero";
+import BackupsCard from "@/components/admin/BackupsCard";
 import {
   C, FONT, card, cardHeaderRow, cardTitle, cardSubtitle, btnPrimary, inputStyle, sH, listRowStyle,
 } from "@/components/admin/adminTheme";
@@ -270,6 +271,8 @@ export default function PlatformPanel() {
           </div>
         </div>
       )}
+
+      <BackupsCard />
     </div>
   );
 }
