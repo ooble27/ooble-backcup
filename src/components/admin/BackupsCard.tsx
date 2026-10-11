@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, DatabaseBackup, Loader2, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, DatabaseBackup, KeyRound, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { C, FONT, card, cardHeaderRow, cardTitle, cardSubtitle, listRowStyle, numeric } from "@/components/admin/adminTheme";
+import { C, FONT, btnGhost, card, cardHeaderRow, cardTitle, cardSubtitle, listRowStyle, numeric } from "@/components/admin/adminTheme";
+import BackupOpener from "@/components/admin/BackupOpener";
 
 /*
  * Sauvegardes nocturnes (workflow GitHub « Sauvegarde nocturne ») :
@@ -71,6 +72,7 @@ function ago(s: string): string {
 export default function BackupsCard() {
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [open, setOpen] = useState<number | null>(null);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     supabase.from("backup_runs" as never).select("*").order("started_at", { ascending: false }).limit(10)
@@ -109,6 +111,16 @@ export default function BackupsCard() {
           </span>
         </div>
       )}
+
+      {testing
+        ? <BackupOpener onClose={() => setTesting(false)} />
+        : lastOk && (
+          <div style={{ margin: "0 16px 16px" }}>
+            <button type="button" onClick={() => setTesting(true)} style={{ ...btnGhost, width: "100%", justifyContent: "center", height: 40 }}>
+              <KeyRound style={{ width: 14, height: 14 }} /> Tester une sauvegarde (fichier + phrase secrète)
+            </button>
+          </div>
+        )}
 
       {!runs && (
         <div style={{ padding: 18, display: "flex", alignItems: "center", gap: 8, color: C.t3, fontSize: 13 }}>
