@@ -11,6 +11,8 @@
 // ── Palettes brutes ──────────────────────────────────────────
 
 const DARK = {
+  /** Fond sur lequel est posé l'écrin (barre latérale comprise). */
+  ground:         "#111111",
   bg:             "#1a1a1a",
   l1:             "#212121",
   l2:             "#282828",
@@ -57,6 +59,7 @@ const DARK = {
 };
 
 const LIGHT = {
+  ground:         "#e9e9e5",
   bg:             "#f5f5f3",
   l1:             "#ffffff",
   l2:             "#f0f0ee",
@@ -120,6 +123,7 @@ export const ADMIN_THEME_CSS = `
 
 /** Palette — all values are CSS var() references resolved at render time. */
 export const C = {
+  ground:        "var(--a-ground)",
   bg:            "var(--a-bg)",
   l1:            "var(--a-l1)",
   l2:            "var(--a-l2)",

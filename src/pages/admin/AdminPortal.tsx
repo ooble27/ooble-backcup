@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, Zap, Power, BookUser, Menu, PanelLeftClose, PanelLeftOpen, Search, X, ChevronRight,
+  LayoutDashboard, Bell, Mail, ArrowRightLeft, Power, BookUser, Menu, PanelLeftClose, PanelLeftOpen, Search, X, ChevronRight,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { type AdminOrder } from "@/lib/adminOrders";
@@ -43,7 +43,7 @@ const GROUPS: NavGroup[] = [
   { label: "Opérations", items: [
     { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
     { id: "orders", label: "Commandes", desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
-    { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: Zap },
+    { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: ArrowRightLeft },
   ] },
   { label: "Clients", items: [
     { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: BookUser },
@@ -88,6 +88,10 @@ const SHELL_CSS = `
 @keyframes sh-page { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 .sh-page { animation: sh-page .28s cubic-bezier(.22,1,.36,1) }
 @media (prefers-reduced-motion: reduce) { .sh-page { animation: none } }
+/* iPhone et iPad : Safari agrandit la page dès qu'on touche un champ dont le texte fait moins de 16 px. */
+@supports (-webkit-touch-callout: none) {
+  .admin-scope input:not([type=checkbox]):not([type=radio]):not([type=range]), .admin-scope textarea, .admin-scope select { font-size: 16px !important }
+}
 `;
 
 function useViewport() {
@@ -114,6 +118,8 @@ const AdminPortal = () => {
     try { return localStorage.getItem("ooble.admin.rail") === "1"; } catch { return false; }
   });
   const vw = useViewport();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
   const mode: "full" | "rail" | "drawer" = vw < 768 ? "drawer" : vw < 1180 || collapsed ? "rail" : "full";
 
   const allowedTabs = useMemo(() => {
@@ -141,8 +147,8 @@ const AdminPortal = () => {
     const url = new URL(window.location.href);
     url.searchParams.set("tab", id);
     window.history.pushState({ tab: id }, "", url);
-    window.scrollTo({ top: 0 });
-  }, []);
+    toTop();
+  }, [toTop]);
   useEffect(() => {
     const on = () => { const t = readTab(); if (t) { setTabState(t); setSelected(null); setClientView(null); } };
     window.addEventListener("popstate", on);
@@ -217,8 +223,8 @@ const AdminPortal = () => {
   const toProcess = orders.filter((o) => o.status === "recu").length;
   const badges: Partial<Record<TabId, number>> = { queue: toProcess };
 
-  const openOrder = (o: AdminOrder) => { setClientView(null); setSelected(o); window.scrollTo({ top: 0 }); };
-  const openClient = (userId: string, name: string) => { setSelected(null); setClientView({ userId, name }); window.scrollTo({ top: 0 }); };
+  const openOrder = (o: AdminOrder) => { setClientView(null); setSelected(o); toTop(); };
+  const openClient = (userId: string, name: string) => { setSelected(null); setClientView({ userId, name }); toTop(); };
   const showClient = (userId: string) => openClient(userId, selected?.clientName ?? "Client");
   const openOrderById = (orderId: string) => {
     const o = orders.find((x) => x.id === orderId);
@@ -241,7 +247,7 @@ const AdminPortal = () => {
     const compact = rail && !inDrawer;
     return (
       <nav aria-label="Navigation du back-office" style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: FONT }}>
-        <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: compact ? "0 14px" : "0 16px", borderBottom: `1px solid ${C.bds}`, flexShrink: 0 }}>
+        <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: compact ? "0 14px" : "0 16px", flexShrink: 0 }}>
           <img src="/icons/icon-192.png" alt="" width={26} height={26} style={{ borderRadius: 7, flexShrink: 0 }} />
           {!compact && (
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -260,7 +266,7 @@ const AdminPortal = () => {
           {visibleGroups.map((g, gi) => (
             <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 18) : 0 }}>
               {g.label && !compact && <p style={{ margin: "0 10px 6px", fontSize: 11.5, color: C.t3 }}>{g.label}</p>}
-              {g.label && compact && <div style={{ height: 1, background: C.bds, margin: "0 8px 10px" }} />}
+              {g.label && compact && <div style={{ height: 1, borderRadius: 1, background: C.bds, margin: "0 14px 10px" }} />}
               {g.items.map((it) => {
                 const on = it.id === tab;
                 const Icon = it.icon;
@@ -284,7 +290,7 @@ const AdminPortal = () => {
             </div>
           ))}
         </div>
-        <div style={{ borderTop: `1px solid ${C.bds}`, padding: compact ? "10px 8px" : "12px 12px", display: "grid", gap: 8, flexShrink: 0 }}>
+        <div style={{ padding: compact ? "10px 8px" : "12px 12px", display: "grid", gap: 8, flexShrink: 0 }}>
           {!compact && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
               <span style={{ width: 28, height: 28, borderRadius: 99, background: C.l3, color: C.t2, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -318,10 +324,12 @@ const AdminPortal = () => {
 
   const sideWidth = mode === "full" ? 248 : mode === "rail" ? 64 : 0;
 
+  const panel = vw >= 768; // même seuil que le mode « drawer »
+
   return (
-    <div className="admin-scope" style={{ background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
-      {mode !== "drawer" && (
-        <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, borderRight: `1px solid ${C.bds}`, background: C.bg, zIndex: 30, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+    <div className="admin-scope" style={{ background: panel ? C.ground : C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
+      {panel && (
+        <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "env(safe-area-inset-top, 0px)" }}>
           {sidebar(false)}
         </aside>
       )}
@@ -335,8 +343,94 @@ const AdminPortal = () => {
         </div>
       )}
 
-      <div style={{ marginLeft: sideWidth, minWidth: 0 }}>
-        <header style={{ position: "sticky", top: 0, zIndex: 20, background: C.bg, borderBottom: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      {panel ? (
+        /* Écrin : posé sur le fond, coins arrondis, aucun trait ne croise la barre latérale. */
+        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "8px 8px 8px 0" }}>
+          <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
+            <header style={panel
+              ? { flexShrink: 0, background: C.bg }
+              : { position: "sticky", top: 0, zIndex: 20, background: C.bg, borderBottom: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+              <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
+                {mode === "drawer" && (
+                  <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
+                    style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "transparent", color: C.t1, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                    <Menu style={{ width: 19, height: 19 }} />
+                  </button>
+                )}
+                <ol aria-label="Fil d'Ariane" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1, fontSize: 13.5 }}>
+                  {crumbs.map((c, i) => {
+                    const last = i === crumbs.length - 1;
+                    const hideOnPhone = mode === "drawer" && i < crumbs.length - 1;
+                    return (
+                      <li key={i} style={{ display: hideOnPhone ? "none" : "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                        {i > 0 && mode !== "drawer" && <ChevronRight style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />}
+                        {c.onClick
+                          ? <button type="button" onClick={c.onClick} style={{ all: "unset", cursor: "pointer", color: C.t3, whiteSpace: "nowrap" }}>{c.label}</button>
+                          : <span style={{ color: last ? C.t1 : C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>}
+                      </li>
+                    );
+                  })}
+                </ol>
+                <button type="button" className="sh-search" onClick={() => setPalette(true)} aria-label="Rechercher (⌘K)"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: mode === "drawer" ? 0 : "0 10px 0 12px",
+                    width: mode === "drawer" ? 36 : 260, justifyContent: mode === "drawer" ? "center" : "flex-start",
+                    borderRadius: 9, border: `1px solid ${mode === "drawer" ? "transparent" : C.bds}`, background: mode === "drawer" ? "transparent" : "var(--a-inputBg)",
+                    color: C.t3, fontFamily: FONT, fontSize: 13, cursor: "pointer", flexShrink: 0,
+                  }}>
+                  <Search style={{ width: 15, height: 15 }} />
+                  {mode !== "drawer" && <><span style={{ flex: 1, textAlign: "left" }}>Rechercher</span><kbd style={{ fontFamily: FONT, fontSize: 11, padding: "2px 6px", borderRadius: 5, border: `1px solid ${C.bds}`, color: C.t3 }}>⌘K</kbd></>}
+                </button>
+              </div>
+            </header>
+
+            <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+              <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
+                style={{ maxWidth: 1320, margin: "0 auto", padding: mode === "drawer" ? "24px 16px 96px" : "32px 32px 96px" }}>
+                {clientView ? (
+                  <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
+                ) : selected ? (
+                  <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} />
+                ) : (
+                  <>
+                    {tab !== "dashboard" && <PageHeader title={active.label} description={active.desc} />}
+                    {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
+                      <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
+                    ) : (
+                      <>
+                        {tab === "dashboard" && <KpiDashboard orders={orders} onNavigate={navigateTab} />}
+                        {tab === "queue" && <OrdersQueue orders={orders} onOpen={openOrder} onPatch={patch} />}
+                        {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}
+                        {tab === "clients" && <ClientsPanel onOpen={openClient} />}
+                        {tab === "kyc" && <KycPanel />}
+                        {tab === "accounting" && <AccountingPanel orders={orders} />}
+                        {tab === "compliance" && <CompliancePanel orders={orders} />}
+                        {tab === "settlement" && <SettlementPanel />}
+                        {tab === "mailbox" && <MailboxPanel />}
+                        {tab === "campaigns" && <CampaignsPanel />}
+                        {tab === "announcements" && <AnnouncementsPanel />}
+                        {tab === "team" && (
+                          <>
+                            <TeamPanel />
+                            <Section title="Journal d'audit" description="Chaque action de l'équipe, horodatée et non modifiable (exigence CANAFE).">
+                              <AuditLogPanel />
+                            </Section>
+                          </>
+                        )}
+                        {tab === "platform" && <PlatformPanel />}
+                      </>
+                    )}
+                  </>
+                )}
+              </main>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ minWidth: 0 }}>
+        <header style={panel
+          ? { flexShrink: 0, background: C.bg }
+          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, borderBottom: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
             {mode === "drawer" && (
               <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
@@ -409,7 +503,8 @@ const AdminPortal = () => {
             </>
           )}
         </main>
-      </div>
+        </div>
+      )}
 
       {palette && (
         <CommandPalette

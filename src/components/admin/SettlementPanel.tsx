@@ -36,6 +36,13 @@ const RECEIPT: Record<InteracReceipt["status"], { label: string; tone: Tone }> =
 };
 const NET_NAME: Record<string, string> = { trc20: "Tron", bep20: "BNB Chain", polygon: "Polygon", avalanche: "Avalanche", erc20: "Ethereum", spl: "Solana" };
 const netName = (n: string) => NET_NAME[n] ?? n.toUpperCase();
+/** Logo du réseau (fichiers de /public/coins). */
+const COIN: Record<string, string> = { trc20: "trx", trx: "trx", bep20: "bnb", bnb: "bnb", polygon: "matic", matic: "matic", erc20: "eth", eth: "eth", avalanche: "avax", avax: "avax", spl: "sol", sol: "sol", solana: "sol" };
+function NetLogo({ network, size = 22 }: { network: string; size?: number }) {
+  const coin = COIN[network.toLowerCase()];
+  if (!coin) return <span aria-hidden style={{ width: size, height: size, borderRadius: 99, background: C.l3, flexShrink: 0, display: "inline-block" }} />;
+  return <img src={`/coins/${coin}.svg`} alt="" width={size} height={size} style={{ borderRadius: 99, flexShrink: 0, display: "block" }} />;
+}
 
 function CopyBtn({ value }: { value: string }) {
   const [ok, setOk] = useState(false);
@@ -164,7 +171,7 @@ const SettlementPanel = () => {
 
   /* ─── Colonnes ─── */
   const walletCols: Column<WalletState>[] = [
-    { key: "net", header: "Réseau", render: (w) => <TwoLine primary={w.label} secondary={w.gasSymbol ? `Frais en ${w.gasSymbol}` : undefined} /> },
+    { key: "net", header: "Réseau", render: (w) => <TwoLine lead={<NetLogo network={w.network} size={26} />} primary={w.label} secondary={w.gasSymbol ? `Frais en ${w.gasSymbol}` : undefined} /> },
     { key: "addr", header: "Adresse d'envoi", hideBelow: 900, render: (w) => w.address
       ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.t2, ...mono }} title={w.address}>{short(w.address)}<CopyBtn value={w.address} /></span>
       : <span style={{ color: C.t3 }}>Non configurée</span> },
@@ -192,13 +199,13 @@ const SettlementPanel = () => {
     { key: "to", header: "Destination", hideBelow: 1000, render: (p) => p.error
       ? <span style={{ color: C.dangerText, display: "block", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.error}>{p.error}</span>
       : <span style={{ color: C.t2, ...mono }} title={p.to_address}>{short(p.to_address)}</span> },
-    { key: "amt", header: "Montant", align: "right", sort: (p) => Number(p.usdt_amount), render: (p) => <TwoLine primary={`${nf(Number(p.usdt_amount))} USDT`} secondary={netName(p.network)} /> },
+    { key: "amt", header: "Montant", align: "right", sort: (p) => Number(p.usdt_amount), render: (p) => <TwoLine primary={`${nf(Number(p.usdt_amount))} USDT`} secondary={<span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><NetLogo network={p.network} size={14} />{netName(p.network)}</span>} /> },
     { key: "tx", header: "", align: "right", hideBelow: 760, render: (p) => <TxLink network={p.network} hash={p.tx_hash} label="Transaction" /> },
     { key: "date", header: "Date", align: "right", sort: (p) => p.created_at, hideBelow: 760, render: (p) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(p.created_at))}</span> },
   ];
 
   const depositCols: Column<ChainDeposit>[] = [
-    { key: "amt", header: "Montant", sort: (d) => Number(d.usdt_amount), render: (d) => <TwoLine primary={`${nf(Number(d.usdt_amount))} USDT`} secondary={netName(d.network)} /> },
+    { key: "amt", header: "Montant", sort: (d) => Number(d.usdt_amount), render: (d) => <TwoLine lead={<NetLogo network={d.network} size={26} />} primary={`${nf(Number(d.usdt_amount))} USDT`} secondary={netName(d.network)} /> },
     { key: "status", header: "État", render: (d) => <Pill tone={DEPOSIT_PILL[d.status]?.tone}>{DEPOSIT_PILL[d.status]?.label ?? d.status}</Pill> },
     { key: "order", header: "Vente", hideBelow: 900, render: (d) => (d.order_id ? ref(d.order_id) : <span style={{ color: C.t3 }}>Aucune</span>) },
     { key: "reason", header: "Détail", hideBelow: 1180, render: (d) => <span style={{ color: C.t3, display: "block", maxWidth: 340, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.reason ?? "En attente d'une vente du même montant"}</span> },
@@ -243,7 +250,7 @@ const SettlementPanel = () => {
               columns={walletCols}
               rowKey={(w) => w.network}
               empty={<EmptyState title={wallets === null ? "Chargement des soldes…" : "Aucun réseau"} />}
-              mobile={(w) => mobileRow(w.label, w.address ? short(w.address) : "Non configurée",
+              mobile={(w) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={w.network} size={20} />{w.label}</span>, w.address ? short(w.address) : "Non configurée",
                 w.configured && !w.error ? `${nf(w.usdt ?? 0)} USDT` : "N/D",
                 !w.configured ? <Pill>Clé absente</Pill> : w.error ? <Pill tone="danger">Erreur</Pill> : lowGas(w) ? <Pill tone="warn">Frais bas</Pill> : <Pill tone="ok">Prêt</Pill>)}
             />
@@ -335,7 +342,7 @@ const SettlementPanel = () => {
             rowKey={(p) => p.id}
             initialSort={{ key: "date", dir: "desc" }}
             empty={<EmptyState icon={Inbox} title="Aucun envoi" text="Aucun envoi d'USDT pour l'instant." />}
-            mobile={(p) => mobileRow(ref(p.order_id), <>{netName(p.network)} · {dateFmt.format(new Date(p.created_at))}{p.tx_hash && <> · <TxLink network={p.network} hash={p.tx_hash} label="Transaction" /></>}</>,
+            mobile={(p) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={p.network} size={20} />{ref(p.order_id)}</span>, <>{netName(p.network)} · {dateFmt.format(new Date(p.created_at))}{p.tx_hash && <> · <TxLink network={p.network} hash={p.tx_hash} label="Transaction" /></>}</>,
               `${nf(Number(p.usdt_amount))} USDT`, <Pill tone={PAYOUT_PILL[p.status]?.tone}>{PAYOUT_PILL[p.status]?.label ?? p.status}</Pill>)}
           />
         </>
@@ -356,7 +363,7 @@ const SettlementPanel = () => {
             selectedKey={deposit?.id}
             initialSort={{ key: "date", dir: "desc" }}
             empty={<EmptyState icon={Inbox} title="Aucun dépôt" text="Aucun dépôt d'USDT lu pour l'instant." />}
-            mobile={(d) => mobileRow(`${nf(Number(d.usdt_amount))} USDT`, `${netName(d.network)} · ${dateFmt.format(new Date(d.block_time))}`,
+            mobile={(d) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={d.network} size={20} />{nf(Number(d.usdt_amount))} USDT</span>, `${netName(d.network)} · ${dateFmt.format(new Date(d.block_time))}`,
               d.order_id ? ref(d.order_id) : "", <Pill tone={DEPOSIT_PILL[d.status]?.tone}>{DEPOSIT_PILL[d.status]?.label ?? d.status}</Pill>)}
           />
         </>
@@ -384,6 +391,7 @@ const SettlementPanel = () => {
         <SidePanel title={`${nf(Number(deposit.usdt_amount))} USDT`} subtitle={`${netName(deposit.network)} · ${dateFmt.format(new Date(deposit.block_time))}`} onClose={() => setDeposit(null)}>
           <div style={{ marginBottom: 16 }}><Pill tone={DEPOSIT_PILL[deposit.status]?.tone}>{DEPOSIT_PILL[deposit.status]?.label ?? deposit.status}</Pill></div>
           <KeyValues items={[
+            ["Réseau", <span key="n" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={deposit.network} size={18} />{netName(deposit.network)}</span>],
             ["Expéditeur", deposit.from_address ? <span style={mono}>{deposit.from_address}</span> : "N/D"],
             ["Vente", deposit.order_id ? ref(deposit.order_id) : "Aucune"],
             ["Détail", deposit.reason ?? "En attente d'une vente du même montant (le client clique « J'ai envoyé mes USDT » après l'envoi)."],
