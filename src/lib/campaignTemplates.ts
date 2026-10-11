@@ -69,6 +69,23 @@ const ILLUSTRATIONS: [string, string, string][] = [
   ["business", "Entreprise", "Business"],
   ["login", "Connexion", "Sign-in"],
   ["reset", "Mot de passe", "Password"],
+  ["phone", "Téléphone et app", "Phone and app"],
+  ["coins", "Pièces des réseaux", "Network coins"],
+  ["transfer", "Virement vers USDT", "Transfer to USDT"],
+  ["shield", "Bouclier de sécurité", "Security shield"],
+  ["notify", "Notifications", "Notifications"],
+  ["celebrate", "Célébration", "Celebration"],
+  ["laptop", "Ordinateur", "Laptop"],
+  ["mail", "Courrier", "Mail"],
+  ["calendar", "Calendrier", "Calendar"],
+  ["chat", "Conversation", "Conversation"],
+  ["growth", "Croissance", "Growth"],
+  ["wallet", "Portefeuille", "Wallet"],
+  ["gift", "Cadeau", "Gift"],
+  ["team", "Équipe", "Team"],
+  ["city", "Ville et entreprises", "City and business"],
+  ["idcard", "Pièce d'identité", "ID card"],
+  ["approved", "Validé", "Approved"],
 ];
 
 export const EMAIL_IMAGES: EmailImage[] = [
@@ -360,7 +377,7 @@ table{border-collapse:collapse;}
 img{border:0;outline:none;text-decoration:none;}
 a{text-decoration:none;}
 @media (max-width:620px){
-  .card{width:100%!important;border-radius:0!important;}
+  .card{width:100%!important;}
   .outer{padding:0!important;}
   .px{padding-left:22px!important;padding-right:22px!important;}
   .stack{display:block!important;width:100%!important;padding-left:0!important;padding-right:0!important;}
@@ -378,7 +395,7 @@ a{text-decoration:none;}
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${esc(preheader)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${K.ground}" style="background:${K.ground};">
 <tr><td class="outer" align="center" style="padding:32px 12px;">
-<table role="presentation" class="card" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${cardBg}" style="width:600px;max-width:600px;background:${cardBg};border-radius:20px;overflow:hidden;font-family:${FONT};color:${K.ink};">
+<table role="presentation" class="card" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${cardBg}" style="width:600px;max-width:600px;background:${cardBg};overflow:hidden;font-family:${FONT};color:${K.ink};">
 ${rows}
 </table>
 </td></tr>
@@ -1549,7 +1566,6 @@ const verifie: CampaignTemplate = {
   description: "Grand badge vert et trois raccourcis (acheter, vendre, OTC). Pour les clients qui viennent d'être vérifiés.",
   category: "Relance",
   swatch: [K.mint, K.forest],
-  isNew: true,
   fields: [
     F.subject, F.preheader, F.headline, F.intro,
     { key: "actions", label: "Raccourcis", kind: "lines", hint: "Trois lignes : Titre | description | lien" },
@@ -1619,7 +1635,6 @@ const premierAchat: CampaignTemplate = {
   description: "En-tête noir et jaune, vidéo, six étapes en cartes. Pour guider un premier achat de USDT.",
   category: "Éducation",
   swatch: [K.ink, K.sun],
-  isNew: true,
   fields: [
     F.subject, F.preheader, F.headline, F.intro,
     { key: "image", label: "Vidéo / image", kind: "image" },
@@ -1703,7 +1718,6 @@ const fetes: CampaignTemplate = {
   description: "Carte de vœux vert profond, étoiles jaunes, message signé. Pour les fêtes de fin d'année ou une occasion spéciale.",
   category: "Saison",
   swatch: [K.forest, K.sun],
-  isNew: true,
   cardBg: K.forest,
   fields: [
     F.subject, F.preheader,
@@ -1764,7 +1778,6 @@ const sondage: CampaignTemplate = {
   description: "Une question, cinq notes cliquables. Pour mesurer la satisfaction en un clic.",
   category: "Relance",
   swatch: [K.peach, K.ink],
-  isNew: true,
   fields: [
     F.subject, F.preheader, F.headline, F.intro,
     { key: "question", label: "Question", kind: "text" },
@@ -1828,7 +1841,6 @@ const quoiDeNeuf: CampaignTemplate = {
   description: "Journal des nouveautés : chaque ligne avec son étiquette (Nouveau, Amélioré). Pour un récapitulatif produit.",
   category: "Lancement",
   swatch: ["#ffffff", K.coral],
-  isNew: true,
   fields: [
     F.subject, F.preheader,
     { key: "period", label: "Période", kind: "text" },
@@ -1894,7 +1906,6 @@ const evenement: CampaignTemplate = {
   description: "Grande date en vignette, heure, lieu et programme. Pour une séance en ligne, un atelier ou un événement.",
   category: "Annonce",
   swatch: [K.sun, K.forest],
-  isNew: true,
   fields: [
     F.subject, F.preheader,
     { key: "day", label: "Jour (chiffre)", kind: "text" },
@@ -1984,7 +1995,6 @@ const conditions: CampaignTemplate = {
   description: "Avis formel : date d'entrée en vigueur, résumé des changements, liens vers les documents. Pour un changement légal.",
   category: "Annonce",
   swatch: ["#ffffff", K.ink],
-  isNew: true,
   fields: [
     F.subject, F.preheader, F.headline, F.intro,
     { key: "effective", label: "Date d'entrée en vigueur", kind: "text" },
@@ -2045,7 +2055,6 @@ const alerte: CampaignTemplate = {
   description: "Bandeau d'alerte, vrai contre faux en deux colonnes. Pour prévenir d'une vague d'hameçonnage.",
   category: "Sécurité",
   swatch: [K.ink, K.coral],
-  isNew: true,
   fields: [
     F.subject, F.preheader, F.headline, F.intro,
     { key: "real", label: "Un vrai courriel Ooble", kind: "lines", hint: "Un point par ligne" },
@@ -2123,7 +2132,6 @@ const faq: CampaignTemplate = {
   description: "Cartes questions-réponses sur fond crème. Pour répondre aux questions que les clients posent le plus.",
   category: "Éducation",
   swatch: [K.cream, K.sage],
-  isNew: true,
   cardBg: K.cream,
   fields: [
     F.subject, F.preheader, F.headline, F.intro,
@@ -2185,7 +2193,6 @@ const appli: CampaignTemplate = {
   description: "Grande icône de l'app, deux colonnes iPhone et Android. Pour installer Ooble comme une application.",
   category: "Éducation",
   swatch: [K.mint, K.ink],
-  isNew: true,
   fields: [
     F.subject, F.preheader, F.headline, F.intro,
     { key: "iphone", label: "Étapes iPhone", kind: "lines", hint: "Une étape par ligne" },
@@ -2264,7 +2271,6 @@ const affiche: CampaignTemplate = {
   description: "Typographie géante sur fond corail, un seul message, un seul bouton. Pour un message fort et court.",
   category: "Offre",
   swatch: [K.coral, K.ink],
-  isNew: true,
   cardBg: K.coral,
   fields: [
     F.subject, F.preheader,
@@ -2302,7 +2308,861 @@ const affiche: CampaignTemplate = {
   ].join(""),
 };
 
+// ─── Modèles illustrés (série 3) ────────────────────────────
+
+/** En-tête scindé : texte d'un côté, illustration de l'autre (empilés sur téléphone). */
+function splitHero(bg: string, text: string, img: ResolvedImage, opts: { imgLeft?: boolean; imgW?: number } = {}): string {
+  const textTd = `<td class="stack-px" width="54%" valign="middle" style="padding:30px ${opts.imgLeft ? 32 : 8}px 34px ${opts.imgLeft ? 8 : 32}px;">${text}</td>`;
+  const imgTd = `<td class="stack" width="46%" valign="bottom" align="center" style="padding:24px ${opts.imgLeft ? 0 : 12}px 0 ${opts.imgLeft ? 12 : 0}px;">${art(img, opts.imgW ?? 270)}</td>`;
+  return `<tr><td bgcolor="${bg}" style="background:${bg};"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${opts.imgLeft ? imgTd + textTd : textTd + imgTd}</tr></table></td></tr>`;
+}
+
+/** Ligne avec pastille à gauche, titre et texte. */
+function iconRow(icon: string, title: string, text: string, last = false): string {
+  return `<tr><td style="padding:16px 0;${last ? "" : `border-bottom:1px solid ${K.line};`}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td width="42" valign="top">${icon}</td>
+    <td valign="top" style="padding-left:14px;"><p style="margin:0;font-family:${FONT};font-size:16px;font-weight:600;color:${K.ink};">${title}</p>${text ? `<p style="margin:3px 0 0;font-family:${FONT};font-size:14px;line-height:1.55;color:${K.body};">${text}</p>` : ""}</td>
+  </tr></table></td></tr>`;
+}
+
+const IMG_FIELD = (label = "Illustration"): TemplateField => ({ key: "image", label, kind: "image" });
+
+const notifications: CampaignTemplate = {
+  id: "notifications",
+  name: "Suivi en direct",
+  description: "En-tête jaune avec téléphone, frise des étapes d'un ordre. Pour faire connaître les notifications.",
+  category: "Éducation",
+  swatch: [K.sun, K.ink],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "steps", label: "Étapes", kind: "lines", hint: STEPS_HINT },
+    { key: "tip", label: "Encadré", kind: "textarea" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Suivez vos ordres en direct sur votre téléphone",
+      preheader: "Paiement reçu, USDT envoyés, ordre terminé : Ooble vous prévient à chaque étape.",
+      headline: "Vos ordres,\nen direct.",
+      intro: "Ooble vous prévient à chaque étape. Plus besoin de rafraîchir la page.",
+      image: "ill:notify",
+      steps: [
+        "Paiement reçu | Votre virement Interac est arrivé et vérifié.",
+        "USDT envoyés | Vos USDT partent vers votre wallet, avec le lien de la transaction.",
+        "Ordre terminé | Tout est réglé, l'ordre est fermé.",
+      ].join("\n"),
+      tip: "Sur iPhone, ajoutez d'abord Ooble à votre écran d'accueil : les notifications passent par l'app installée.",
+      cta: "Ouvrir Ooble",
+      ctaUrl: "/app",
+    },
+    en: {
+      subject: "Follow your orders live on your phone",
+      preheader: "Payment received, USDT sent, order complete: Ooble keeps you posted at every step.",
+      headline: "Your orders,\nlive.",
+      intro: "Ooble lets you know at every step. No more refreshing the page.",
+      image: "ill:notify",
+      steps: [
+        "Payment received | Your Interac transfer has arrived and been checked.",
+        "USDT sent | Your USDT are on their way to your wallet, with the transaction link.",
+        "Order complete | Everything is settled and the order is closed.",
+      ].join("\n"),
+      tip: "On iPhone, first add Ooble to your home screen: notifications come through the installed app.",
+      cta: "Open Ooble",
+      ctaUrl: "/app",
+    },
+  },
+  body: (v, ctx) => {
+    const all = lines(v.steps);
+    const steps = all.map(([t, d], i) => `<tr>
+      <td width="40" valign="top" align="center">${dot(String(i + 1), i === all.length - 1 ? K.forest : K.sun, i === all.length - 1 ? K.cream : K.ink, 34)}${i < all.length - 1 ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td width="3" height="34" bgcolor="${K.line}" style="width:3px;height:34px;background:${K.line};font-size:0;line-height:0;">&nbsp;</td></tr></table>` : ""}</td>
+      <td valign="top" style="padding:5px 0 0 16px;"><p style="margin:0;font-family:${FONT};font-size:16px;font-weight:600;color:${K.ink};">${esc(t ?? "")}</p><p style="margin:3px 0 18px;font-family:${FONT};font-size:14px;line-height:1.55;color:${K.body};">${rich(d, ctx)}</p></td>
+    </tr>`).join("");
+    return [
+      `<tr><td class="px" bgcolor="${K.sun}" style="background:${K.sun};padding:26px 32px 0;">${brand(K.ink)}</td></tr>`,
+      splitHero(K.sun, `${h1(rich(v.headline, ctx), K.ink, 42, 800)}${para(rich(v.intro, ctx), K.ink, 16, "16px 0 0")}`, image(v.image)),
+      P("34px 32px 6px", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
+      v.tip ? P("0 32px", box(para(rich(v.tip, ctx), K.ink, 14), "#fff4d6", { pad: "16px 20px" })) : "",
+      `<tr><td class="px" style="padding:24px 32px 38px;">${btn(v.cta, v.ctaUrl, K.ink, K.sun)}</td></tr>`,
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.ink }),
+    ].join("");
+  },
+};
+
+const portefeuille: CampaignTemplate = {
+  id: "portefeuille",
+  name: "Vos USDT restent à vous",
+  description: "Illustration centrée sur fond pêche, trois garanties. Pour expliquer qu'Ooble ne garde jamais l'argent.",
+  category: "Éducation",
+  swatch: [K.peach, K.forest],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "points", label: "Garanties", kind: "lines", hint: "Trois lignes : Titre | description" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Vos USDT restent à vous, toujours",
+      preheader: "Ooble ne garde jamais votre argent : vos USDT arrivent directement dans votre wallet.",
+      headline: "Vos USDT restent à vous.",
+      intro: "Ooble ne garde jamais votre argent : vos USDT arrivent directement dans votre wallet, et chaque ordre est fermé une fois réglé.",
+      image: "ill:wallet",
+      points: [
+        "Aucun solde chez Ooble | Pas de portefeuille interne, rien qui dort sur la plateforme.",
+        "Votre wallet, vos clés | Vous seul avez la phrase de récupération. Ne la partagez jamais.",
+        "Le bon réseau | L'adresse doit correspondre au réseau choisi : Tron, BNB Chain, Polygon ou Solana.",
+      ].join("\n"),
+      cta: "Acheter des USDT",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "Your USDT stay yours, always",
+      preheader: "Ooble never holds your money: your USDT land directly in your wallet.",
+      headline: "Your USDT stay yours.",
+      intro: "Ooble never holds your money: your USDT land directly in your wallet, and each order is closed once settled.",
+      image: "ill:wallet",
+      points: [
+        "No balance at Ooble | No internal wallet, nothing sitting on the platform.",
+        "Your wallet, your keys | Only you have the recovery phrase. Never share it.",
+        "The right network | The address must match the network you chose: Tron, BNB Chain, Polygon or Solana.",
+      ].join("\n"),
+      cta: "Buy USDT",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  body: (v, ctx) => {
+    const marks: [string, string, string][] = [["0", K.coral, K.ink], ["&#9670;", K.forest, K.sun], ["&#10003;", K.ink, "#ffffff"]];
+    const all = lines(v.points);
+    const rows = all.map(([t, d], i) => iconRow(dot(marks[i % 3][0], marks[i % 3][1], marks[i % 3][2], 40, { fontSize: 16 }), esc(t ?? ""), rich(d, ctx), i === all.length - 1)).join("");
+    return [
+      `<tr><td class="px" bgcolor="${K.peach}" style="background:${K.peach};padding:26px 32px 0;">${brand(K.ink)}</td></tr>`,
+      `<tr><td align="center" bgcolor="${K.peach}" style="background:${K.peach};padding:10px 32px 0;">${art(image(v.image), 380)}</td></tr>`,
+      `<tr><td class="px" align="center" style="padding:34px 40px 0;text-align:center;">${h1(rich(v.headline, ctx), K.ink, 38, 700)}${para(rich(v.intro, ctx), K.body, 16, "14px 0 0")}</td></tr>`,
+      P("22px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>`),
+      `<tr><td class="px" align="center" style="padding:22px 32px 40px;">${btn(v.cta, v.ctaUrl, K.forest, K.cream)}</td></tr>`,
+      footer(ctx, { bg: "#fff1ec", color: "#7a6a63", link: K.coralDeep }),
+    ].join("");
+  },
+};
+
+const pourquoi: CampaignTemplate = {
+  id: "pourquoi",
+  name: "Pourquoi Ooble",
+  description: "Illustration à gauche sur fond menthe, quatre raisons en grille. Pour convaincre un prospect.",
+  category: "Offre",
+  swatch: [K.mint, K.coral],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "reasons", label: "Raisons", kind: "lines", hint: "Quatre lignes : Titre | description" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Quatre raisons d'acheter vos USDT avec Ooble",
+      preheader: "Dollars canadiens, Interac, taux garanti 15 minutes, et une vraie équipe.",
+      headline: "Pourquoi\nOoble ?",
+      intro: "Acheter des USDT au Canada devrait être simple. Voici ce qui change avec Ooble.",
+      image: "ill:shield",
+      reasons: [
+        "En dollars canadiens | Payez par Interac, depuis votre propre banque.",
+        "Directement chez vous | Vos USDT arrivent dans votre wallet. Ooble ne garde aucun solde.",
+        "Taux garanti 15 minutes | Le prix affiché comprend tout : marge de 2 %, aucun frais caché.",
+        "Une vraie équipe | Qui vous répond en français et en anglais.",
+      ].join("\n"),
+      cta: "Ouvrir mon compte",
+      ctaUrl: "/inscription",
+    },
+    en: {
+      subject: "Four reasons to buy your USDT with Ooble",
+      preheader: "Canadian dollars, Interac, a rate locked for 15 minutes, and a real team.",
+      headline: "Why\nOoble?",
+      intro: "Buying USDT in Canada should be simple. Here's what's different with Ooble.",
+      image: "ill:shield",
+      reasons: [
+        "In Canadian dollars | Pay by Interac, from your own bank.",
+        "Straight to you | Your USDT land in your wallet. Ooble keeps no balance.",
+        "Rate locked for 15 minutes | The price shown includes everything: 2% margin, no hidden fees.",
+        "A real team | Answering you in English and French.",
+      ].join("\n"),
+      cta: "Open my account",
+      ctaUrl: "/inscription",
+    },
+  },
+  body: (v, ctx) => {
+    const tints = [K.mint, K.peach, "#fff4d6", K.cream];
+    const cells = lines(v.reasons).map(([t, d], i) => box(
+      `<p style="margin:0 0 12px;font-family:${FONT};font-size:34px;font-weight:700;line-height:1;letter-spacing:-0.03em;color:${i % 2 ? K.coralDeep : K.forest};">0${i + 1}</p>
+       <p style="margin:0 0 6px;font-family:${FONT};font-size:15px;font-weight:600;color:${K.ink};">${esc(t ?? "")}</p>
+       <p style="margin:0;font-family:${FONT};font-size:13px;line-height:1.5;color:${K.body};">${rich(d, ctx)}</p>`,
+      tints[i % 4], { pad: "20px" },
+    ));
+    return [
+      `<tr><td class="px" bgcolor="${K.mint}" style="background:${K.mint};padding:26px 32px 0;">${brand(K.forest)}</td></tr>`,
+      splitHero(K.mint, `${h1(rich(v.headline, ctx), K.forest, 46, 800)}${para(rich(v.intro, ctx), K.forest, 15.5, "16px 0 0")}`, image(v.image), { imgLeft: true }),
+      P("30px 32px 0", grid(cells, 2, 12)),
+      `<tr><td class="px" style="padding:14px 32px 40px;">${btn(v.cta, v.ctaUrl, K.coral, K.ink, { block: true, size: 16 })}</td></tr>`,
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const virement: CampaignTemplate = {
+  id: "virement",
+  name: "Du dollar au USDT",
+  description: "Illustration du virement, trois étapes côte à côte avec flèches. Pour montrer le parcours en un coup d'œil.",
+  category: "Éducation",
+  swatch: [K.cream, K.coral],
+  isNew: true,
+  cardBg: K.cream,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "flow", label: "Étapes", kind: "lines", hint: "Trois lignes : Titre | description" },
+    { key: "note", label: "Note", kind: "textarea" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Du dollar au USDT, en trois temps",
+      preheader: "Un virement Interac, une vérification automatique, vos USDT dans votre wallet.",
+      headline: "Du dollar au USDT,\nen trois temps.",
+      intro: "Voici ce qui se passe entre votre virement Interac et l'arrivée de vos USDT.",
+      image: "ill:transfer",
+      flow: [
+        "Vous payez | Un virement Interac à interac@ooble.ca.",
+        "Nous vérifions | Montant, référence et nom, automatiquement.",
+        "Vous recevez | Vos USDT, directement dans votre wallet.",
+      ].join("\n"),
+      note: "Le taux est garanti **15 minutes** à partir de la création de l'ordre.",
+      cta: "Acheter des USDT",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "From dollars to USDT, in three steps",
+      preheader: "One Interac transfer, an automatic check, your USDT in your wallet.",
+      headline: "From dollars to USDT,\nin three steps.",
+      intro: "Here's what happens between your Interac transfer and your USDT arriving.",
+      image: "ill:transfer",
+      flow: [
+        "You pay | An Interac transfer to interac@ooble.ca.",
+        "We check | Amount, reference and name, automatically.",
+        "You receive | Your USDT, directly in your wallet.",
+      ].join("\n"),
+      note: "The rate is locked for **15 minutes** from order creation.",
+      cta: "Buy USDT",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  body: (v, ctx) => {
+    const all = lines(v.flow).slice(0, 3);
+    const cols = all.map(([t, d], i) => `<td class="stack" width="${i === 1 ? 34 : 33}%" valign="top" style="padding:0 ${i === 2 ? 0 : 6}px 12px ${i === 0 ? 0 : 6}px;">${box(
+      `${dot(String(i + 1), [K.coral, K.sun, K.forest][i], i === 2 ? K.cream : K.ink, 34)}
+       <p style="margin:14px 0 6px;font-family:${FONT};font-size:15px;font-weight:600;color:${K.ink};">${esc(t ?? "")}</p>
+       <p style="margin:0;font-family:${FONT};font-size:13px;line-height:1.5;color:${K.body};">${rich(d, ctx)}</p>`,
+      "#ffffff", { pad: "18px 16px" })}</td>`).join("");
+    return [
+      P("26px 32px 0", brand(K.ink)),
+      `<tr><td align="center" style="padding:6px 32px 0;">${art(image(v.image), 400)}</td></tr>`,
+      P("24px 32px 0", `${h1(rich(v.headline, ctx), K.ink, 34, 700)}${para(rich(v.intro, ctx), K.body, 15.5, "12px 0 0")}`),
+      P("24px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cols}</tr></table>`),
+      v.note ? P("6px 32px 0", box(para(rich(v.note, ctx), K.ink, 14), K.peach, { pad: "14px 18px" })) : "",
+      `<tr><td class="px" style="padding:22px 32px 40px;">${btn(v.cta, v.ctaUrl, K.ink, "#ffffff")}</td></tr>`,
+      footer(ctx, { bg: "#ece5d6", color: K.mute, link: K.ink }),
+    ].join("");
+  },
+};
+
+const merci: CampaignTemplate = {
+  id: "merci",
+  name: "Merci",
+  description: "Célébration sur fond jaune, la suite en trois points. Après un premier achat ou pour remercier un client.",
+  category: "Relance",
+  swatch: [K.sun, K.coral],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "nextTitle", label: "Titre de la liste", kind: "text" },
+    { key: "next", label: "Points", kind: "lines", hint: "Une ligne : Titre | description" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Merci pour votre premier achat, {{prenom}}",
+      preheader: "Votre prochain achat sera encore plus rapide.",
+      headline: "Merci, {{prenom}} !",
+      intro: "Votre premier achat sur Ooble est terminé. Bienvenue parmi nos clients.",
+      image: "ill:celebrate",
+      nextTitle: "Pour la suite",
+      next: [
+        "Encore plus rapide | Enregistrez votre adresse de wallet : vous n'aurez plus à la recopier.",
+        "Plus de 9 999 $ ? | Au-delà de la limite de 24 heures, le desk OTC prend le relais.",
+        "Une question ? | Répondez simplement à ce courriel.",
+      ].join("\n"),
+      cta: "Acheter à nouveau",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "Thank you for your first purchase, {{prenom}}",
+      preheader: "Your next purchase will be even faster.",
+      headline: "Thank you, {{prenom}}!",
+      intro: "Your first purchase on Ooble is complete. Welcome aboard.",
+      image: "ill:celebrate",
+      nextTitle: "What's next",
+      next: [
+        "Even faster | Save your wallet address: no need to copy it again.",
+        "Over $9,999? | Above the 24-hour limit, the OTC desk takes over.",
+        "A question? | Just reply to this email.",
+      ].join("\n"),
+      cta: "Buy again",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  body: (v, ctx) => {
+    const all = lines(v.next);
+    const rows = all.map(([t, d], i) => iconRow(dot("&#10022;", K.sun, K.ink, 40, { fontSize: 16 }), esc(t ?? ""), rich(d, ctx), i === all.length - 1)).join("");
+    return [
+      `<tr><td class="px" bgcolor="${K.sun}" style="background:${K.sun};padding:26px 32px 0;">${brand(K.ink)}</td></tr>`,
+      `<tr><td class="px" align="center" bgcolor="${K.sun}" style="background:${K.sun};padding:26px 32px 0;text-align:center;">
+        <p class="poster" style="margin:0;font-family:${FONT};font-size:60px;line-height:1;font-weight:800;letter-spacing:-0.045em;color:${K.ink};">${rich(v.headline, ctx)}</p>
+        ${para(rich(v.intro, ctx), K.ink, 16, "14px 0 0")}
+      </td></tr>`,
+      `<tr><td align="center" bgcolor="${K.sun}" style="background:${K.sun};padding:10px 32px 0;">${art(image(v.image), 420)}</td></tr>`,
+      P("32px 32px 0", `${eyebrow(esc(v.nextTitle), K.coralDeep)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>`),
+      `<tr><td class="px" style="padding:20px 32px 40px;">${btn(v.cta, v.ctaUrl, K.ink, K.sun)}</td></tr>`,
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.ink }),
+    ].join("");
+  },
+};
+
+const support: CampaignTemplate = {
+  id: "support",
+  name: "Une équipe à l'écoute",
+  description: "Conversation illustrée, quatre façons de nous joindre en cartes. Pour présenter le service client.",
+  category: "Annonce",
+  swatch: ["#cfeadd", K.forest],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "channels", label: "Moyens de contact", kind: "lines", hint: "Quatre lignes : Titre | description | lien" }],
+  copy: {
+    fr: {
+      subject: "Une question ? Notre équipe vous répond",
+      preheader: "Par courriel, en français ou en anglais.",
+      headline: "Une équipe\nà votre écoute.",
+      intro: "De vraies personnes, qui connaissent Ooble par cœur et vous répondent en français ou en anglais.",
+      image: "ill:chat",
+      channels: [
+        "Support | support@ooble.ca, pour toute question sur un ordre ou votre compte. | mailto:support@ooble.ca",
+        "Gros montants | otc@ooble.ca, le desk OTC à partir de 10 000 $. | mailto:otc@ooble.ca",
+        "Guides vidéo | Sept vidéos de moins d'une minute. | /guide",
+        "Centre d'aide | Les réponses aux questions fréquentes. | /faq",
+      ].join("\n"),
+    },
+    en: {
+      subject: "A question? Our team is here for you",
+      preheader: "By email, in English or French.",
+      headline: "A team that\nlistens.",
+      intro: "Real people who know Ooble inside out and answer you in English or French.",
+      image: "ill:chat",
+      channels: [
+        "Support | support@ooble.ca, for any question about an order or your account. | mailto:support@ooble.ca",
+        "Large amounts | otc@ooble.ca, the OTC desk from $10,000. | mailto:otc@ooble.ca",
+        "Video guides | Seven videos under a minute each. | /guide",
+        "Help centre | Answers to common questions. | /faq",
+      ].join("\n"),
+    },
+  },
+  body: (v, ctx) => {
+    const cells = lines(v.channels).map(([t, d, u], i) => `<a href="${href(u)}" style="display:block;text-decoration:none;">${box(
+      `<p style="margin:0 0 6px;font-family:${FONT};font-size:15px;font-weight:600;color:${i === 0 ? K.cream : K.ink};">${esc(t ?? "")} &#8594;</p>
+       <p style="margin:0;font-family:${FONT};font-size:13px;line-height:1.5;color:${i === 0 ? "#cfe9de" : K.body};">${rich(d, ctx)}</p>`,
+      i === 0 ? K.forest : "#ffffff", { pad: "18px", border: i === 0 ? undefined : K.line })}</a>`);
+    return [
+      `<tr><td class="px" bgcolor="#cfeadd" style="background:#cfeadd;padding:26px 32px 0;">${brand(K.forest)}</td></tr>`,
+      splitHero("#cfeadd", `${h1(rich(v.headline, ctx), K.forest, 38, 700)}${para(rich(v.intro, ctx), K.forest, 15.5, "14px 0 0")}`, image(v.image), { imgW: 290 }),
+      P("30px 32px 26px", grid(cells, 2, 12)),
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const relanceCourte: CampaignTemplate = {
+  id: "relance-courte",
+  name: "Rappel express",
+  description: "Très court : une illustration, une phrase, un bouton. Deuxième relance de vérification, ou tout rappel rapide.",
+  category: "Relance",
+  swatch: [K.peach, K.ink],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(), F.cta, F.ctaUrl, { key: "small", label: "Petite ligne", kind: "text" }],
+  copy: {
+    fr: {
+      subject: "{{prenom}}, votre vérification vous attend",
+      preheader: "Deux minutes, une pièce d'identité et un selfie.",
+      headline: "{{prenom}}, votre vérification vous attend.",
+      intro: "Deux minutes, une pièce d'identité et un selfie. Ensuite, vous pouvez acheter vos premiers USDT.",
+      image: "ill:idcard",
+      cta: "Terminer ma vérification",
+      ctaUrl: "/app/verification",
+      small: "Une seule fois, exigée par la loi canadienne.",
+    },
+    en: {
+      subject: "{{prenom}}, your verification is waiting",
+      preheader: "Two minutes, a photo ID and a selfie.",
+      headline: "{{prenom}}, your verification is waiting.",
+      intro: "Two minutes, a photo ID and a selfie. Then you can buy your first USDT.",
+      image: "ill:idcard",
+      cta: "Finish my verification",
+      ctaUrl: "/app/verification",
+      small: "Just once, as required by Canadian law.",
+    },
+  },
+  body: (v, ctx) => [
+    `<tr><td class="px" bgcolor="${K.peach}" style="background:${K.peach};padding:26px 32px 0;">${brand(K.ink)}</td></tr>`,
+    `<tr><td align="center" bgcolor="${K.peach}" style="background:${K.peach};padding:14px 32px 0;">${art(image(v.image), 400)}</td></tr>`,
+    `<tr><td class="px" align="center" style="padding:36px 48px 0;text-align:center;">${h1(rich(v.headline, ctx), K.ink, 32, 700)}${para(rich(v.intro, ctx), K.body, 16, "14px 0 0")}</td></tr>`,
+    `<tr><td class="px" align="center" style="padding:26px 48px 0;">${btn(v.cta, v.ctaUrl, K.ink, "#ffffff", { radius: 99, size: 16 })}</td></tr>`,
+    `<tr><td class="px" align="center" style="padding:16px 48px 40px;text-align:center;">${para(rich(v.small, ctx), "#8a8379", 13)}</td></tr>`,
+    footer(ctx, { bg: "#fff1ec", color: "#7a6a63", link: K.coralDeep }),
+  ].join(""),
+};
+
+const reseau: CampaignTemplate = {
+  id: "reseau",
+  name: "Réseau à la une",
+  description: "Fond noir, pièces des réseaux, trois points clés. Pour mettre en avant un réseau (Solana, Tron…).",
+  category: "Lancement",
+  swatch: [K.ink, K.sun],
+  isNew: true,
+  cardBg: K.ink,
+  fields: [F.subject, F.preheader, { key: "eyebrow", label: "Sur-titre", kind: "text" }, F.headline, F.intro, IMG_FIELD(),
+    { key: "points", label: "Points clés", kind: "lines", hint: "Une ligne : Titre | description" },
+    { key: "tip", label: "Encadré", kind: "textarea" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Recevez vos USDT sur Solana",
+      preheader: "Règlement quasi instantané, à choisir au moment de l'ordre.",
+      eyebrow: "Réseau à la une",
+      headline: "Vos USDT\nsur Solana.",
+      intro: "Choisissez Solana au moment de l'ordre : le taux ne change pas, seuls les frais du réseau varient.",
+      image: "ill:coins",
+      points: [
+        "Quasi instantané | Le règlement sur Solana prend quelques instants.",
+        "Au choix, à chaque ordre | Tron, BNB Chain, Polygon ou Solana.",
+        "Même taux | Seuls les frais du réseau changent.",
+      ].join("\n"),
+      tip: "Une adresse Solana ne commence ni par T ni par 0x. Vérifiez-la avant de valider : une transaction blockchain est définitive.",
+      cta: "Acheter des USDT",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "Receive your USDT on Solana",
+      preheader: "Near-instant settlement, chosen when you place your order.",
+      eyebrow: "Network spotlight",
+      headline: "Your USDT\non Solana.",
+      intro: "Choose Solana when you place your order: the rate stays the same, only the network fees vary.",
+      image: "ill:coins",
+      points: [
+        "Near-instant | Settlement on Solana takes moments.",
+        "Your pick, every order | Tron, BNB Chain, Polygon or Solana.",
+        "Same rate | Only the network fees change.",
+      ].join("\n"),
+      tip: "A Solana address starts with neither T nor 0x. Check it before confirming: a blockchain transaction is final.",
+      cta: "Buy USDT",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  body: (v, ctx) => {
+    const cells = lines(v.points).slice(0, 3).map(([t, d]) => box(
+      `<p style="margin:0 0 6px;font-family:${FONT};font-size:15px;font-weight:600;color:#f4f2ee;">${esc(t ?? "")}</p>
+       <p style="margin:0;font-family:${FONT};font-size:13px;line-height:1.5;color:#a3a09b;">${rich(d, ctx)}</p>`,
+      "#1f1b19", { pad: "18px 16px" }));
+    return [
+      P("26px 32px 0", brand("#f4f2ee", pill(esc(v.eyebrow), K.sun, K.ink))),
+      `<tr><td align="center" style="padding:16px 32px 0;">${art(image(v.image), 420)}</td></tr>`,
+      P("10px 32px 0", `${h1(rich(v.headline, ctx), "#f4f2ee", 46, 800)}${para(rich(v.intro, ctx), "#cfcac2", 16, "16px 0 0")}`),
+      P("26px 32px 0", grid(cells, 3, 10)),
+      v.tip ? P("2px 32px 0", box(para(rich(v.tip, ctx), K.ink, 14), K.sun, { pad: "16px 18px" })) : "",
+      `<tr><td class="px" style="padding:24px 32px 40px;">${btn(v.cta, v.ctaUrl, K.sun, K.ink)}</td></tr>`,
+      footer(ctx, { bg: "#1d1a18", color: "#8c867e", link: K.sun }),
+    ].join("");
+  },
+};
+
+const nouvelAn: CampaignTemplate = {
+  id: "nouvel-an",
+  name: "Bonne année",
+  description: "Grand titre sur corail, cadeau illustré et trois bonnes résolutions. Pour le Nouvel An.",
+  category: "Saison",
+  swatch: [K.coral, K.sun],
+  isNew: true,
+  cardBg: "#ffffff",
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "listTitle", label: "Titre de la liste", kind: "text" },
+    { key: "resolutions", label: "Résolutions", kind: "lines", hint: "Une ligne : Titre | description" },
+    { key: "signature", label: "Signature", kind: "text" }],
+  copy: {
+    fr: {
+      subject: "Bonne année {{prenom}}, de toute l'équipe Ooble",
+      preheader: "Et trois bonnes résolutions pour vos cryptos.",
+      headline: "Bonne\nannée,\n{{prenom}} !",
+      intro: "Merci d'avoir fait confiance à Ooble. Nous vous souhaitons une année simple, sereine et pleine de projets.",
+      image: "ill:gift",
+      listTitle: "Trois bonnes résolutions",
+      resolutions: [
+        "Gardez votre phrase hors ligne | Sur papier, jamais en photo ni dans un message.",
+        "Vérifiez l'adresse et le réseau | Avant chaque ordre : une transaction est définitive.",
+        "N'achetez que pour vous | Jamais pour un inconnu, même rencontré en ligne.",
+      ].join("\n"),
+      signature: "L'équipe Ooble",
+    },
+    en: {
+      subject: "Happy New Year {{prenom}}, from the whole Ooble team",
+      preheader: "And three good resolutions for your crypto.",
+      headline: "Happy\nNew Year,\n{{prenom}}!",
+      intro: "Thank you for trusting Ooble. We wish you a simple, peaceful year full of projects.",
+      image: "ill:gift",
+      listTitle: "Three good resolutions",
+      resolutions: [
+        "Keep your phrase offline | On paper, never in a photo or a message.",
+        "Check the address and network | Before every order: a transaction is final.",
+        "Only buy for yourself | Never for a stranger, even someone met online.",
+      ].join("\n"),
+      signature: "The Ooble team",
+    },
+  },
+  body: (v, ctx) => {
+    const all = lines(v.resolutions);
+    const rows = all.map(([t, d], i) => iconRow(dot(String(i + 1), K.coral, K.ink, 40), esc(t ?? ""), rich(d, ctx), i === all.length - 1)).join("");
+    return [
+      `<tr><td class="px" bgcolor="${K.coral}" style="background:${K.coral};padding:26px 32px 0;">${brand(K.ink)}</td></tr>`,
+      splitHero(K.coral, `<p class="poster" style="margin:0;font-family:${FONT};font-size:58px;line-height:0.95;font-weight:800;letter-spacing:-0.05em;color:${K.ink};">${rich(v.headline, ctx)}</p>`, image(v.image), { imgW: 290 }),
+      P("30px 32px 0", para(rich(v.intro, ctx), K.body, 16.5)),
+      P("20px 32px 0", `${eyebrow(esc(v.listTitle), K.coralDeep)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>`),
+      P("18px 32px 40px", `<p style="margin:0;font-family:${FONT};font-size:16px;font-weight:600;color:${K.ink};">${rich(v.signature, ctx)}</p>`),
+      footer(ctx, { bg: "#fff1ec", color: "#7a6a63", link: K.coralDeep }),
+    ].join("");
+  },
+};
+
+const compteSecurise: CampaignTemplate = {
+  id: "compte-securise",
+  name: "Protégez votre compte",
+  description: "En-tête vert profond, quatre réflexes numérotés pour le compte. Rappel de sécurité du compte.",
+  category: "Sécurité",
+  swatch: [K.forest, K.mint],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "tips", label: "Réflexes", kind: "lines", hint: "Une ligne : Titre | description" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Quatre réflexes pour protéger votre compte Ooble",
+      preheader: "Mot de passe unique, appareils partagés, liens suspects.",
+      headline: "Protégez votre compte\nen quatre réflexes.",
+      intro: "Votre compte donne accès à vos ordres et à vos adresses. Quelques gestes suffisent à le garder en sécurité.",
+      image: "ill:approved",
+      tips: [
+        "Un mot de passe unique | Utilisé pour Ooble, et nulle part ailleurs.",
+        "Appareils partagés | Déconnectez-vous depuis le menu de votre compte.",
+        "Liens suspects | Ne cliquez pas : tapez ooble.ca vous-même.",
+        "Au moindre doute | Changez votre mot de passe depuis la page de connexion.",
+      ].join("\n"),
+      cta: "Mon compte",
+      ctaUrl: "/app/compte",
+    },
+    en: {
+      subject: "Four habits to protect your Ooble account",
+      preheader: "A unique password, shared devices, suspicious links.",
+      headline: "Protect your account\nwith four habits.",
+      intro: "Your account gives access to your orders and addresses. A few simple steps keep it safe.",
+      image: "ill:approved",
+      tips: [
+        "A unique password | Used for Ooble and nowhere else.",
+        "Shared devices | Sign out from your account menu.",
+        "Suspicious links | Don't click: type ooble.ca yourself.",
+        "At the slightest doubt | Change your password from the sign-in page.",
+      ].join("\n"),
+      cta: "My account",
+      ctaUrl: "/app/compte",
+    },
+  },
+  body: (v, ctx) => {
+    const cells = lines(v.tips).map(([t, d], i) => box(
+      `<p style="margin:0 0 10px;font-family:${FONT};font-size:13px;font-weight:700;letter-spacing:0.1em;color:${K.forest};">0${i + 1}</p>
+       <p style="margin:0 0 6px;font-family:${FONT};font-size:15px;font-weight:600;color:${K.ink};">${esc(t ?? "")}</p>
+       <p style="margin:0;font-family:${FONT};font-size:13px;line-height:1.5;color:${K.body};">${rich(d, ctx)}</p>`,
+      K.cream, { pad: "18px" }));
+    return [
+      `<tr><td class="px" bgcolor="${K.forest}" style="background:${K.forest};padding:26px 32px 0;">${brand(K.cream, pill(tr("Sécurité", "Security"), K.mint, K.forest))}</td></tr>`,
+      splitHero(K.forest, `${h1(rich(v.headline, ctx), K.cream, 32, 700)}${para(rich(v.intro, ctx), "#cfe9de", 15, "14px 0 0")}`, image(v.image), { imgW: 260 }),
+      P("30px 32px 0", grid(cells, 2, 12)),
+      `<tr><td class="px" style="padding:14px 32px 40px;">${btn(v.cta, v.ctaUrl, K.forest, K.cream)}</td></tr>`,
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const annonceCourte: CampaignTemplate = {
+  id: "annonce-courte",
+  name: "Annonce courte",
+  description: "Un grand bloc de couleur, un paragraphe, un bouton. Pour une annonce simple, sans image.",
+  category: "Annonce",
+  swatch: [K.forest, K.cream],
+  isNew: true,
+  fields: [F.subject, F.preheader, { key: "eyebrow", label: "Sur-titre", kind: "text" }, F.headline,
+    { key: "message", label: "Texte", kind: "textarea", hint: "Une ligne vide entre les paragraphes." }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Ooble, en français et en anglais",
+      preheader: "Le site, l'app et nos guides vidéo existent dans les deux langues.",
+      eyebrow: "Annonce",
+      headline: "Ooble parle\nvotre langue.",
+      message: "Le site, l'app et nos guides vidéo existent en français et en anglais. Changez de langue en un clic, depuis le menu.\n\nNos courriels vous arrivent aussi dans la langue que vous utilisez sur Ooble.",
+      cta: "Ouvrir Ooble",
+      ctaUrl: "/",
+    },
+    en: {
+      subject: "Ooble, in English and French",
+      preheader: "The site, the app and our video guides are available in both languages.",
+      eyebrow: "Announcement",
+      headline: "Ooble speaks\nyour language.",
+      message: "The site, the app and our video guides are available in English and French. Switch languages in one click, from the menu.\n\nOur emails also reach you in the language you use on Ooble.",
+      cta: "Open Ooble",
+      ctaUrl: "/",
+    },
+  },
+  body: (v, ctx) => [
+    P("26px 36px 0", brand(K.ink)),
+    `<tr><td class="px" style="padding:28px 36px 0;">${box(`${eyebrow(esc(v.eyebrow), K.mint)}${gap(14)}<p class="poster" style="margin:0;font-family:${FONT};font-size:52px;line-height:0.98;font-weight:800;letter-spacing:-0.045em;color:${K.cream};">${rich(v.headline, ctx)}</p>`, K.forest, { pad: "34px 30px 38px", radius: 0 })}</td></tr>`,
+    P("28px 36px 0", paragraphs(v.message).map((p) => para(rich(p, ctx), K.body, 16.5, "0 0 14px")).join("")),
+    `<tr><td class="px" style="padding:10px 36px 42px;">${btn(v.cta, v.ctaUrl, K.ink, "#ffffff")}</td></tr>`,
+    footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+  ].join(""),
+};
+
+const pointDuMois: CampaignTemplate = {
+  id: "point-du-mois",
+  name: "Le point du mois",
+  description: "Trois sujets illustrés, empilés comme des articles. Infolettre courte et visuelle.",
+  category: "Infolettre",
+  swatch: ["#ffffff", K.sage],
+  isNew: true,
+  fields: [F.subject, F.preheader, { key: "period", label: "Période", kind: "text" }, F.headline, F.intro,
+    { key: "item1Image", label: "Sujet 1 : image", kind: "image" }, { key: "item1", label: "Sujet 1", kind: "text", hint: "Titre | texte | lien" },
+    { key: "item2Image", label: "Sujet 2 : image", kind: "image" }, { key: "item2", label: "Sujet 2", kind: "text", hint: "Titre | texte | lien" },
+    { key: "item3Image", label: "Sujet 3 : image", kind: "image" }, { key: "item3", label: "Sujet 3", kind: "text", hint: "Titre | texte | lien" }],
+  copy: {
+    fr: {
+      subject: "Le point du mois chez Ooble",
+      preheader: "Desk OTC, notre équipe, nos guides vidéo.",
+      period: "Octobre 2026",
+      headline: "Le point du mois",
+      intro: "Trois nouvelles, une minute de lecture.",
+      item1Image: "ill:growth",
+      item1: "Le desk OTC | À partir de 10 000 $, un prix ferme et un seul interlocuteur. | /otc",
+      item2Image: "ill:team",
+      item2: "Une équipe qui répond | Écrivez à support@ooble.ca, en français ou en anglais. | /contact",
+      item3Image: "ill:laptop",
+      item3: "Des guides vidéo | Sept vidéos de moins d'une minute pour tout faire sans erreur. | /guide",
+    },
+    en: {
+      subject: "This month at Ooble",
+      preheader: "OTC desk, our team, our video guides.",
+      period: "October 2026",
+      headline: "This month at Ooble",
+      intro: "Three updates, a one-minute read.",
+      item1Image: "ill:growth",
+      item1: "The OTC desk | From $10,000, a firm price and a single point of contact. | /otc",
+      item2Image: "ill:team",
+      item2: "A team that answers | Write to support@ooble.ca, in English or French. | /contact",
+      item3Image: "ill:laptop",
+      item3: "Video guides | Seven videos under a minute to get everything right. | /guide",
+    },
+  },
+  body: (v, ctx) => {
+    const tints = [K.cream, "#eaf6f0", "#fff1ec"];
+    const item = (imgId: string, raw: string, i: number) => {
+      const [t, d, u] = (raw ?? "").split("|").map((s) => s.trim());
+      const img = image(imgId);
+      return `<tr><td style="padding-bottom:14px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${tints[i]}" style="background:${tints[i]};"><tr>
+        <td class="stack" width="44%" valign="bottom" align="center" style="padding:14px 0 0;">${art(img, 220)}</td>
+        <td class="stack-px" valign="middle" style="padding:22px 22px 22px 8px;">
+          <p style="margin:0;font-family:${FONT};font-size:18px;font-weight:600;line-height:1.3;color:${K.ink};">${esc(t ?? "")}</p>
+          <p style="margin:6px 0 12px;font-family:${FONT};font-size:14px;line-height:1.55;color:${K.body};">${rich(d, ctx)}</p>
+          ${u ? `<a href="${href(u)}" style="font-family:${FONT};font-size:14px;font-weight:600;color:${K.forest};">${tr("En savoir plus", "Learn more")} &#8594;</a>` : ""}
+        </td></tr></table></td></tr>`;
+    };
+    return [
+      P("26px 32px 0", brand(K.ink, esc(v.period), K.mute)),
+      P("30px 32px 24px", `${h1(rich(v.headline, ctx), K.ink, 40, 700)}${para(rich(v.intro, ctx), K.body, 15.5, "10px 0 0")}`),
+      P("0 32px 26px", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${item(v.item1Image, v.item1, 0)}${item(v.item2Image, v.item2, 1)}${item(v.item3Image, v.item3, 2)}</table>`),
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const mobile: CampaignTemplate = {
+  id: "mobile",
+  name: "Depuis votre téléphone",
+  description: "Téléphone illustré, trois chiffres clés, trois étapes. Pour pousser l'achat sur mobile.",
+  category: "Offre",
+  swatch: [K.mint, K.ink],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "stats", label: "Chiffres clés", kind: "lines", hint: "Trois lignes : Chiffre | libellé" },
+    { key: "steps", label: "Étapes", kind: "lines", hint: STEPS_HINT }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Achetez vos USDT depuis votre téléphone",
+      preheader: "Trois étapes, un virement Interac, et c'est fait.",
+      headline: "Vos USDT,\ndans la poche.",
+      intro: "Tout se fait depuis votre téléphone : l'ordre, le virement Interac et le suivi.",
+      image: "ill:phone",
+      stats: ["100 $ | minimum par ordre", "15 min | taux garanti", "4 | réseaux au choix"].join("\n"),
+      steps: [
+        "Entrez le montant | En dollars canadiens ou en USDT.",
+        "Payez par Interac | Depuis l'app de votre banque.",
+        "Recevez vos USDT | Directement dans votre wallet.",
+      ].join("\n"),
+      cta: "Acheter maintenant",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "Buy your USDT from your phone",
+      preheader: "Three steps, one Interac transfer, and you're done.",
+      headline: "Your USDT,\nin your pocket.",
+      intro: "Everything happens on your phone: the order, the Interac transfer and the tracking.",
+      image: "ill:phone",
+      stats: ["$100 | minimum per order", "15 min | locked rate", "4 | networks to choose from"].join("\n"),
+      steps: [
+        "Enter the amount | In Canadian dollars or USDT.",
+        "Pay by Interac | From your banking app.",
+        "Receive your USDT | Directly in your wallet.",
+      ].join("\n"),
+      cta: "Buy now",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  body: (v, ctx) => {
+    const stats = lines(v.stats).slice(0, 3).map(([n, l], i, a) => `<td width="33%" align="center" valign="top" style="padding:18px 8px;${i < a.length - 1 ? `border-right:1px solid ${K.line};` : ""}">
+      <p style="margin:0;font-family:${FONT};font-size:30px;font-weight:700;letter-spacing:-0.03em;color:${K.forest};">${esc(n ?? "")}</p>
+      <p style="margin:4px 0 0;font-family:${FONT};font-size:12.5px;color:${K.mute};">${esc(l ?? "")}</p></td>`).join("");
+    const all = lines(v.steps);
+    const steps = all.map(([t, d], i) => iconRow(dot(String(i + 1), K.ink, "#ffffff", 40), esc(t ?? ""), rich(d, ctx), i === all.length - 1)).join("");
+    return [
+      `<tr><td class="px" bgcolor="${K.mint}" style="background:${K.mint};padding:26px 32px 0;">${brand(K.forest)}</td></tr>`,
+      splitHero(K.mint, `${h1(rich(v.headline, ctx), K.ink, 42, 800)}${para(rich(v.intro, ctx), K.ink, 15.5, "14px 0 0")}`, image(v.image), { imgW: 280 }),
+      P("0 32px", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid ${K.line};"><tr>${stats}</tr></table>`),
+      P("14px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
+      `<tr><td class="px" style="padding:20px 32px 40px;">${btn(v.cta, v.ctaUrl, K.ink, "#ffffff", { block: true, size: 16 })}</td></tr>`,
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const entreprisesVille: CampaignTemplate = {
+  id: "entreprises-ville",
+  name: "Entreprises (noir)",
+  description: "En-tête sombre avec la ville illustrée, trois raisons numérotées. Variante plus affirmée pour les sociétés.",
+  category: "Offre",
+  swatch: [K.ink, K.mint],
+  isNew: true,
+  fields: [F.subject, F.preheader, { key: "badge", label: "Pastille", kind: "text" }, F.headline, F.intro, IMG_FIELD(),
+    { key: "reasons", label: "Raisons", kind: "lines", hint: "Trois lignes : Titre | description" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Le compte entreprise Ooble : vos USDT au nom de la société",
+      preheader: "Interac depuis le compte de l'entreprise, desk OTC dès 10 000 $.",
+      badge: "Entreprises",
+      headline: "Vos USDT,\nau nom de\nvotre société.",
+      intro: "Achetez et vendez des USDT au nom de votre entreprise, payés par Interac depuis son compte bancaire.",
+      image: "ill:city",
+      reasons: [
+        "Au nom de la société | Chaque ordre est fait au nom de l'entreprise, pas au vôtre.",
+        "Interac depuis l'entreprise | Payez depuis le compte bancaire de la société, sans carte.",
+        "Desk OTC dès 10 000 $ | Un prix ferme et un seul interlocuteur pour les gros montants.",
+      ].join("\n"),
+      cta: "Ouvrir un compte entreprise",
+      ctaUrl: "/inscription/entreprise",
+    },
+    en: {
+      subject: "The Ooble business account: USDT in your company's name",
+      preheader: "Interac from the company account, OTC desk from $10,000.",
+      badge: "Business",
+      headline: "Your USDT,\nin your\ncompany's name.",
+      intro: "Buy and sell USDT in your business's name, paid by Interac from its bank account.",
+      image: "ill:city",
+      reasons: [
+        "In the company's name | Every order is made in the business's name, not yours.",
+        "Interac from the business | Pay from the company bank account, no card needed.",
+        "OTC desk from $10,000 | A firm price and one point of contact for large amounts.",
+      ].join("\n"),
+      cta: "Open a business account",
+      ctaUrl: "/inscription/entreprise",
+    },
+  },
+  body: (v, ctx) => {
+    const all = lines(v.reasons);
+    const rows = all.map(([t, d], i) => `<tr><td style="padding:20px 0;${i < all.length - 1 ? "border-bottom:1px solid #2a2624;" : ""}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td width="56" valign="top" style="font-family:${FONT};font-size:30px;font-weight:300;letter-spacing:-0.03em;color:${K.mint};">0${i + 1}</td>
+      <td valign="top"><p style="margin:2px 0 0;font-family:${FONT};font-size:16px;font-weight:600;color:#f4f2ee;">${esc(t ?? "")}</p><p style="margin:4px 0 0;font-family:${FONT};font-size:14px;line-height:1.55;color:#a3a09b;">${rich(d, ctx)}</p></td>
+    </tr></table></td></tr>`).join("");
+    return [
+      P("26px 32px 0", brand("#f4f2ee", pill(esc(v.badge), K.mint, K.ink))),
+      P("30px 32px 0", `${h1(rich(v.headline, ctx), "#f4f2ee", 44, 700)}${para(rich(v.intro, ctx), "#cfcac2", 16, "16px 0 0")}`),
+      `<tr><td class="px" style="padding:28px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="${K.mint}" style="background:${K.mint};padding:22px 0 0;">${art(image(v.image), 380)}</td></tr></table></td></tr>`,
+      P("14px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>`),
+      `<tr><td class="px" style="padding:22px 32px 42px;">${btn(v.cta, v.ctaUrl, K.mint, K.ink)}</td></tr>`,
+      footer(ctx, { bg: "#1d1a18", color: "#8c867e", link: K.mint }),
+    ].join("");
+  },
+  cardBg: K.ink,
+};
+
+const enLigne: CampaignTemplate = {
+  id: "en-ligne",
+  name: "Tout en ligne",
+  description: "Illustration ordinateur sur crème, trois avantages en lignes. Pour rassurer : pas de succursale, tout se fait en ligne.",
+  category: "Éducation",
+  swatch: [K.cream, K.forest],
+  isNew: true,
+  cardBg: K.cream,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "points", label: "Avantages", kind: "lines", hint: "Une ligne : Titre | description" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Pas de succursale, pas de rendez-vous : tout se fait en ligne",
+      preheader: "Compte, vérification et ordres, depuis chez vous, à toute heure.",
+      headline: "Tout se fait\nen ligne.",
+      intro: "Pas de succursale, pas de rendez-vous : votre compte, votre vérification et vos ordres se font depuis chez vous.",
+      image: "ill:laptop",
+      points: [
+        "À toute heure | Vos USDT partent en quelques minutes quand le virement respecte les quatre règles.",
+        "Sur ordinateur ou téléphone | Le même compte, partout.",
+        "Une équipe en renfort | Les gros montants et les cas particuliers sont vérifiés par notre équipe.",
+      ].join("\n"),
+      cta: "Ouvrir mon compte",
+      ctaUrl: "/inscription",
+    },
+    en: {
+      subject: "No branch, no appointment: everything happens online",
+      preheader: "Account, verification and orders, from home, at any hour.",
+      headline: "Everything\nhappens online.",
+      intro: "No branch, no appointment: your account, your verification and your orders all happen from home.",
+      image: "ill:laptop",
+      points: [
+        "At any hour | Your USDT go out within minutes when the transfer follows the four rules.",
+        "On computer or phone | The same account, everywhere.",
+        "A team behind you | Large amounts and special cases are checked by our team.",
+      ].join("\n"),
+      cta: "Open my account",
+      ctaUrl: "/inscription",
+    },
+  },
+  body: (v, ctx) => {
+    const all = lines(v.points);
+    const rows = all.map(([t, d], i) => iconRow(dot(["&#9711;", "&#9634;", "&#9733;"][i % 3], [K.forest, K.coral, K.sun][i % 3], i === 0 ? K.mint : K.ink, 40, { fontSize: 15 }), esc(t ?? ""), rich(d, ctx), i === all.length - 1)).join("");
+    return [
+      `<tr><td class="px" style="padding:26px 32px 0;">${brand(K.ink)}</td></tr>`,
+      splitHero(K.cream, `${h1(rich(v.headline, ctx), K.ink, 42, 700)}${para(rich(v.intro, ctx), K.body, 15.5, "14px 0 0")}`, image(v.image), { imgW: 290 }),
+      `<tr><td class="px" bgcolor="#ffffff" style="background:#ffffff;padding:10px 32px 4px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table></td></tr>`,
+      `<tr><td class="px" bgcolor="#ffffff" style="background:#ffffff;padding:16px 32px 40px;">${btn(v.cta, v.ctaUrl, K.forest, K.cream)}</td></tr>`,
+      footer(ctx, { bg: "#ece5d6", color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const SERIE_3: CampaignTemplate[] = [
+  notifications, portefeuille, pourquoi, virement, merci, support, relanceCourte, reseau,
+  nouvelAn, compteSecurise, annonceCourte, pointDuMois, mobile, entreprisesVille, enLigne,
+];
+
 export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
+  ...SERIE_3,
   lancement, bienvenue, verifie, relanceKyc, retour, premierAchat, guideInterac, vendre,
   reseaux, otc, entreprises, affiche, quoiDeNeuf, nouveaute, lettre, fondateur,
   faq, appli, securite, alerte, avis, conditions, evenement, sondage, fetes,

@@ -153,20 +153,6 @@ function useDebounced<T>(value: T, ms: number): T {
   return v;
 }
 
-function useInView<T extends Element>(margin = "200px"): [React.RefObject<T>, boolean] {
-  const ref = useRef<T>(null);
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || seen) return;
-    if (typeof IntersectionObserver === "undefined") { setSeen(true); return; }
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setSeen(true); io.disconnect(); } }, { rootMargin: margin });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [seen, margin]);
-  return [ref, seen];
-}
-
 // ─── Styles (animations) ────────────────────────────────────
 
 const PANEL_CSS = `
@@ -271,7 +257,7 @@ function Modal({ open, onClose, variant, label, children }: {
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
     window.addEventListener("keydown", onKey);
-    const f = setTimeout(() => dialog.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus(), 60);
+    const f = setTimeout(() => dialog.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus({ preventScroll: true }), 60);
     return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); clearTimeout(f); };
   }, [mounted, open, onClose]);
 
@@ -368,18 +354,30 @@ function ScaledFrame({ html, frameWidth, maxHeight, interactive = true, title, o
   );
 }
 
-/** Vignette de galerie : le courriel défile doucement au survol. */
+/** Vignette de galerie : le courriel défile doucement au survol. Hauteur ∝ largeur. */
 function Thumb({ html, title }: { html: string; title: string }) {
-  const BOX = 330;
-  const [ref, seen] = useInView<HTMLDivElement>();
-  const [scroll, setScroll] = useState(0);
-  const [ready, setReady] = useState(false);
-  const onHeight = useCallback((h: number, s: number) => { setScroll(Math.min(0, BOX - h * s)); setReady(true); }, []);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [box, setBox] = useState(0);
+  const [full, setFull] = useState<{ h: number; s: number } | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setBox(e.contentRect.height));
+    ro.observe(el);
+    if (typeof IntersectionObserver === "undefined") { setVisible(true); return () => ro.disconnect(); }
+    // Monté seulement près de l'écran : la galerie reste légère avec beaucoup de modèles.
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => { ro.disconnect(); io.disconnect(); };
+  }, []);
+  const onHeight = useCallback((h: number, s: number) => setFull({ h, s }), []);
+  const scroll = full ? Math.min(0, box - full.h * full.s) : 0;
   return (
-    <div ref={ref} style={{ height: BOX, overflow: "hidden", position: "relative", borderRadius: 10 }}>
-      {!ready && <div className="cmp-skeleton" style={{ position: "absolute", inset: 0, borderRadius: 10 }} />}
-      {seen && (
-        <div className="cmp-thumb-inner" style={{ ["--cmp-scroll" as string]: `${scroll}px`, opacity: ready ? 1 : 0, transition: `opacity 0.4s, transform 3.2s ${EASE}` } as React.CSSProperties}>
+    <div ref={ref} style={{ aspectRatio: "4 / 5", overflow: "hidden", position: "relative" }}>
+      {!full && <div className="cmp-skeleton" style={{ position: "absolute", inset: 0 }} />}
+      {visible && (
+        <div className="cmp-thumb-inner" style={{ ["--cmp-scroll" as string]: `${scroll}px`, opacity: full ? 1 : 0, transition: `opacity 0.4s, transform 3.2s ${EASE}` } as React.CSSProperties}>
           <ScaledFrame html={html} frameWidth={680} interactive={false} title={title} onHeight={onHeight} />
         </div>
       )}
@@ -509,18 +507,20 @@ export default CampaignsPanel;
 
 type TestState = { kind: "busy" } | { kind: "ok"; text: string } | { kind: "err"; text: string };
 
+/** Quota du forfait Resend : tous les courriels de la journée, commandes comprises. */
+const DAILY_EMAIL_LIMIT = 100;
+
 function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lang: EmailLang) => void }) {
   const [lang, setLang] = useState<EmailLang>("fr");
   const [category, setCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [preview, setPreview] = useState<number | null>(null);
   const [tests, setTests] = useState<Record<string, TestState>>({});
-  const [all, setAll] = useState<{ done: number; failed: number; total: number; running: boolean; error?: string } | null>(null);
 
   const q = query.trim().toLowerCase();
   const list = CAMPAIGN_TEMPLATES.filter((t) =>
     (category === "all" || (category === "new" ? t.isNew : t.category === category))
-    && (!q || `${t.name} ${t.description} ${t.category} ${t.copy[lang].subject}`.toLowerCase().includes(q)));
+    && (!q || `${t.name} ${t.description} ${t.category} ${t.copy.fr.subject} ${t.copy.en.subject}`.toLowerCase().includes(q)));
 
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: CAMPAIGN_TEMPLATES.length, new: CAMPAIGN_TEMPLATES.filter((t) => t.isNew).length };
@@ -528,41 +528,18 @@ function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lan
     return m;
   }, []);
 
-  const tokenFor = async (): Promise<string | undefined> => {
-    const map = await prepareRecipients([me.email]);
-    return map.get(me.email.toLowerCase())?.token;
-  };
-
+  // Un seul test à la fois, toujours depuis l'aperçu : jamais d'envoi en rafale.
   const testOne = async (t: CampaignTemplate, l: EmailLang) => {
-    if (!me.email) return;
+    if (!me.email || Object.values(tests).some((s) => s.kind === "busy")) return;
     const key = `${t.id}:${l}`;
     setTests((s) => ({ ...s, [key]: { kind: "busy" } }));
     try {
-      const res = await sendTemplate(t.id, {}, l, me, await tokenFor(), "[Test] ");
+      const map = await prepareRecipients([me.email]);
+      const res = await sendTemplate(t.id, {}, l, me, map.get(me.email.toLowerCase())?.token, "[Test] ");
       setTests((s) => ({ ...s, [key]: res.error ? { kind: "err", text: res.error } : { kind: "ok", text: "Envoyé" } }));
     } catch (e) {
       setTests((s) => ({ ...s, [key]: { kind: "err", text: (e as Error).message } }));
     }
-  };
-
-  const testAll = async (langs: EmailLang[]) => {
-    if (!me.email || all?.running) return;
-    const jobs = CAMPAIGN_TEMPLATES.flatMap((t) => langs.map((l) => ({ t, l })));
-    setAll({ done: 0, failed: 0, total: jobs.length, running: true });
-    let token: string | undefined;
-    try { token = await tokenFor(); } catch (e) {
-      setAll({ done: 0, failed: jobs.length, total: jobs.length, running: false, error: (e as Error).message });
-      return;
-    }
-    let done = 0;
-    let failed = 0;
-    let error: string | undefined;
-    for (const [i, { t, l }] of jobs.entries()) {
-      const res = await sendTemplate(t.id, {}, l, me, token, `[Test ${i + 1}/${jobs.length}${langs.length > 1 ? ` ${l.toUpperCase()}` : ""}] `);
-      if (res.error) { failed += 1; error = res.error; } else done += 1;
-      setAll({ done, failed, total: jobs.length, running: true, error });
-    }
-    setAll({ done, failed, total: jobs.length, running: false, error });
   };
 
   const chips: { id: string; label: string }[] = [
@@ -572,45 +549,24 @@ function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lan
   ];
 
   return (
-    <div className="space-y-4" style={{ fontFamily: FONT }}>
+    <div className="space-y-3" style={{ fontFamily: FONT }}>
       {/* Barre d'outils */}
-      <div style={{ ...card, padding: 14, overflow: "visible" }} className="space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div style={{ ...card, padding: 12, overflow: "visible" }} className="space-y-3">
+        <div className="flex items-center gap-2">
           <label style={{ position: "relative", flex: 1, minWidth: 0 }}>
             <Search aria-hidden style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: C.t3 }} strokeWidth={1.8} />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Chercher un modèle (bienvenue, sécurité, fêtes…)"
+              placeholder="Chercher un modèle"
               aria-label="Chercher un modèle"
               style={{ ...inputStyle, paddingLeft: 34, height: 38 }}
             />
           </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <Segmented
-              ariaLabel="Langue des aperçus"
-              value={lang}
-              onChange={setLang}
-              options={[{ id: "fr", label: "Français" }, { id: "en", label: "English" }]}
-            />
-            <button
-              type="button"
-              onClick={() => testAll([lang])}
-              disabled={!me.email || all?.running}
-              style={{ ...btnPrimary, opacity: !me.email || all?.running ? 0.6 : 1 }}
-            >
-              {all?.running ? <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 13, height: 13 }} strokeWidth={1.8} />}
-              M'envoyer les {CAMPAIGN_TEMPLATES.length} ({lang.toUpperCase()})
-            </button>
-            <button type="button" onClick={() => testAll(["fr", "en"])} disabled={!me.email || all?.running} style={{ ...btnGhost, opacity: !me.email || all?.running ? 0.6 : 1 }} title="Les deux langues">
-              <Languages style={{ width: 13, height: 13 }} strokeWidth={1.8} />
-              FR + EN
-            </button>
-          </div>
+          <Segmented ariaLabel="Langue des aperçus" value={lang} onChange={setLang} options={[{ id: "fr", label: "FR" }, { id: "en", label: "EN" }]} />
         </div>
-
-        <div className="-mx-3.5 flex gap-1.5 overflow-x-auto px-3.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {chips.map((c) => {
             const on = category === c.id;
             const n = counts[c.id] ?? 0;
@@ -634,33 +590,27 @@ function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lan
             );
           })}
         </div>
+      </div>
 
-        <p style={{ margin: 0, color: C.t3, fontSize: 12, lineHeight: 1.5 }}>
-          Les tests partent à <span style={{ color: C.t2 }}>{me.email || "votre adresse"}</span>, avec « [Test] » dans l'objet.
-          {all && (
-            <span style={{ marginLeft: 6, color: all.failed ? C.dangerText : C.successText }}>
-              {all.running ? `Envoi en cours : ${all.done + all.failed} / ${all.total}` : `${all.done} test${all.done > 1 ? "s" : ""} envoyé${all.done > 1 ? "s" : ""}.`}
-              {all.failed > 0 && ` ${all.failed} en échec (${all.error ?? "erreur"}).`}
-            </span>
-          )}
+      <div className="flex items-baseline justify-between gap-3 px-1">
+        <p style={{ margin: 0, fontSize: 12, color: C.t3 }}>
+          {list.length} modèle{list.length > 1 ? "s" : ""} · touchez un modèle pour l'ouvrir
         </p>
+        <p className="hidden sm:block" style={{ margin: 0, fontSize: 11.5, color: C.t3 }}>Forfait Resend : {DAILY_EMAIL_LIMIT} courriels par jour, commandes comprises</p>
       </div>
 
       {list.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center", color: C.t3, fontSize: 13 }}>Aucun modèle ne correspond à « {query} ».</div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
           {list.map((t, i) => (
             <TemplateCard
               key={`${t.id}:${lang}`}
-              index={CAMPAIGN_TEMPLATES.indexOf(t) + 1}
-              delay={i * 35}
+              delay={Math.min(i, 12) * 30}
               template={t}
               lang={lang}
-              test={tests[`${t.id}:${lang}`]}
               onPreview={() => setPreview(CAMPAIGN_TEMPLATES.indexOf(t))}
               onUse={() => onUse(t.id, lang)}
-              onTest={() => testOne(t, lang)}
             />
           ))}
         </div>
@@ -680,56 +630,38 @@ function TemplateGallery({ me, onUse }: { me: Recipient; onUse: (id: string, lan
   );
 }
 
-function TemplateCard({ index, delay, template: t, lang, test, onPreview, onUse, onTest }: {
-  index: number; delay: number; template: CampaignTemplate; lang: EmailLang; test?: TestState;
-  onPreview: () => void; onUse: () => void; onTest: () => void;
+/** Carte compacte : vignette du courriel, nom, catégorie. Un toucher ouvre l'aperçu. */
+function TemplateCard({ delay, template: t, lang, onPreview, onUse }: {
+  delay: number; template: CampaignTemplate; lang: EmailLang; onPreview: () => void; onUse: () => void;
 }) {
   const html = useMemo(() => previewHtml(t.id, {}, lang), [t.id, lang]);
   return (
     <div className="cmp-card cmp-rise" style={{ ...card, display: "flex", flexDirection: "column", animationDelay: `${delay}ms` }}>
-      <div style={{ position: "relative", padding: "12px 12px 0", background: "#e9e6df" }}>
-        <button type="button" onClick={onPreview} aria-label={`Aperçu du modèle ${t.name}`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "zoom-in" }}>
+      <div style={{ position: "relative", padding: "8px 8px 0", background: "#e9e6df" }}>
+        <button type="button" onClick={onPreview} aria-label={`Ouvrir le modèle ${t.name}`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "zoom-in" }}>
           <Thumb html={html} title={t.name} />
         </button>
-        <div className="cmp-overlay" style={{ position: "absolute", left: 22, right: 22, bottom: 12, display: "flex", gap: 6, justifyContent: "center" }}>
-          <button type="button" onClick={onPreview} style={{ ...btnGhost, height: 32, background: "rgba(255,255,255,0.94)", color: "#14110f", border: "1px solid rgba(0,0,0,0.08)", backdropFilter: "blur(6px)" }}>
-            <Eye style={{ width: 13, height: 13 }} strokeWidth={1.8} />
+        {t.isNew && (
+          <span className="px-1.5 py-px text-[9px] md:px-2 md:py-0.5 md:text-[10px]" style={{ position: "absolute", top: 12, right: 12, fontWeight: 600, borderRadius: 99, background: "#14110f", color: "#ffffff", letterSpacing: "0.02em" }}>Nouveau</span>
+        )}
+        <div className="cmp-overlay hidden md:flex" style={{ position: "absolute", left: 14, right: 14, bottom: 10, gap: 6, justifyContent: "center" }}>
+          <button type="button" onClick={onPreview} style={{ ...btnGhost, height: 30, fontSize: 11.5, background: "rgba(255,255,255,0.94)", color: "#14110f", border: "1px solid rgba(0,0,0,0.08)" }}>
+            <Eye style={{ width: 12, height: 12 }} strokeWidth={1.8} />
             Aperçu
           </button>
-          <button type="button" onClick={onUse} style={{ ...btnPrimary, height: 32, background: "#14110f", color: "#ffffff" }}>
+          <button type="button" onClick={onUse} style={{ ...btnPrimary, height: 30, fontSize: 11.5, background: "#14110f", color: "#ffffff" }}>
             Utiliser
-            <ArrowRight style={{ width: 13, height: 13 }} strokeWidth={1.8} />
+            <ArrowRight style={{ width: 12, height: 12 }} strokeWidth={1.8} />
           </button>
         </div>
       </div>
-      <div style={{ padding: "14px 16px 14px", display: "flex", flexDirection: "column", gap: 7, flex: 1, borderTop: `1px solid ${C.bds}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <span aria-hidden style={{ width: 12, height: 12, borderRadius: 4, background: t.swatch[0], boxShadow: `inset 0 0 0 3px ${t.swatch[1]}`, flexShrink: 0 }} />
-          <span style={{ ...sH, fontSize: 10, letterSpacing: "0.12em" }}>{t.category}</span>
-          {t.isNew && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 99, background: C.successBg, color: C.successText, border: `1px solid ${C.successBd}` }}>Nouveau</span>}
-          <span style={{ marginLeft: "auto", fontSize: 11, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{String(index).padStart(2, "0")}</span>
-        </div>
-        <p style={{ margin: 0, color: C.t1, fontSize: 15, fontWeight: 500, letterSpacing: "-0.01em" }}>{t.name}</p>
-        <p style={{ margin: 0, color: C.t3, fontSize: 12, lineHeight: 1.55, flex: 1 }}>{t.description}</p>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-          <span style={{ fontSize: 11, color: C.t3 }}>FR · EN</span>
-          <button
-            type="button"
-            onClick={onTest}
-            disabled={test?.kind === "busy"}
-            title={`M'envoyer ce modèle (${lang.toUpperCase()})`}
-            style={{ ...btnGhost, height: 30, paddingLeft: 10, paddingRight: 10, fontSize: 11.5, color: test?.kind === "ok" ? C.successText : test?.kind === "err" ? C.dangerText : C.t2 }}
-          >
-            {test?.kind === "busy"
-              ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
-              : test?.kind === "ok"
-                ? <Check style={{ width: 12, height: 12 }} strokeWidth={2.4} />
-                : <FlaskConical style={{ width: 12, height: 12 }} strokeWidth={1.7} />}
-            {test?.kind === "ok" ? "Envoyé" : test?.kind === "err" ? "Échec" : `Test ${lang.toUpperCase()}`}
-          </button>
-        </div>
-        {test?.kind === "err" && <p style={{ margin: 0, color: C.dangerText, fontSize: 11.5, lineHeight: 1.45 }}>{test.text}</p>}
-      </div>
+      <button type="button" onClick={onPreview} style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 3, border: "none", borderTop: `1px solid ${C.bds}`, background: "transparent", textAlign: "left", cursor: "pointer", fontFamily: FONT }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+          <span aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: t.swatch[0], boxShadow: `inset 0 0 0 2.5px ${t.swatch[1]}`, flexShrink: 0 }} />
+          <span style={{ color: C.t1, fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+        </span>
+        <span style={{ fontSize: 11, color: C.t3 }}>{t.category}</span>
+      </button>
     </div>
   );
 }
@@ -1174,6 +1106,23 @@ function CampaignComposer({ templateId, startLang, onChangeTemplate, me, clients
               </div>
             )}
           </div>
+
+          {recipients.length > 0 && (
+            <div style={{
+              margin: "0 18px 12px", padding: "10px 12px", borderRadius: 9, fontSize: 12, lineHeight: 1.5,
+              display: "flex", gap: 8, alignItems: "flex-start",
+              background: recipients.length > DAILY_EMAIL_LIMIT * 0.6 ? C.warnBg : C.hover2,
+              border: `1px solid ${recipients.length > DAILY_EMAIL_LIMIT * 0.6 ? C.warnBd : C.bds}`,
+              color: recipients.length > DAILY_EMAIL_LIMIT * 0.6 ? C.warnText : C.t2,
+            }}>
+              <AlertTriangle style={{ width: 13, height: 13, flexShrink: 0, marginTop: 2 }} strokeWidth={1.8} />
+              <span>
+                Forfait Resend : {DAILY_EMAIL_LIMIT} courriels par jour au total, confirmations de commande comprises.
+                Cette campagne en utilisera {recipients.length}.
+                {recipients.length > DAILY_EMAIL_LIMIT * 0.6 && " Envoyez-la en plusieurs fois, sur plusieurs jours, pour ne pas bloquer les courriels des commandes."}
+              </span>
+            </div>
+          )}
 
           {feedback && (
             <div style={{ margin: "0 18px 12px", padding: "9px 12px", borderRadius: 9, background: feedback.kind === "ok" ? C.successBg : C.dangerBg, border: `1px solid ${feedback.kind === "ok" ? C.successBd : C.dangerBd}`, color: feedback.kind === "ok" ? C.successText : C.dangerText, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
