@@ -14,3 +14,14 @@ export const FINTRAC_REGISTRY_URL = {
   fr: "https://fintrac-canafe.canada.ca/msb-esm/reg-fra",
   en: "https://fintrac-canafe.canada.ca/msb-esm/reg-eng",
 } as const;
+
+/** Siège social (adresse postale, exigée dans les courriels commerciaux par la LCAP). */
+export const COMPANY_LEGAL_NAME = "Ooble Technologies Inc.";
+export const COMPANY_ADDRESS = {
+  street: "8580, avenue Lesperance",
+  city: "Québec",
+  region: "QC",
+  postalCode: "G2K 1M3",
+  fr: "8580, avenue Lesperance, Québec (Québec) G2K 1M3, Canada",
+  en: "8580 avenue Lesperance, Québec City, Quebec G2K 1M3, Canada",
+} as const;

@@ -13,7 +13,7 @@
  * Champs « lignes » : une entrée par ligne, colonnes séparées par « | ».
  */
 
-import { FINTRAC_MSB_NUMBER } from "./legal";
+import { COMPANY_ADDRESS, COMPANY_LEGAL_NAME, FINTRAC_MSB_NUMBER } from "./legal";
 
 const SITE = "https://ooble.ca";
 const FONT = "Poppins, 'Helvetica Neue', Helvetica, Arial, sans-serif";
@@ -356,8 +356,8 @@ function footer(ctx: RenderCtx, o: FooterOpts): string {
   return `<tr><td class="px" bgcolor="${o.bg}" style="background:${o.bg};padding:26px 32px;${o.top ? `border-top:1px solid ${o.top};` : ""}font-family:${FONT};font-size:12px;line-height:1.65;color:${o.color};">
 <p style="margin:0 0 10px;">${links}</p>
 ${o.note ? `<p style="margin:0 0 10px;">${o.note}</p>` : ""}
-<p style="margin:0;">${tr("Vous recevez ce courriel parce que vous êtes inscrit sur ooble.ca.", "You're receiving this email because you signed up at ooble.ca.")} <a href="${esc(ctx.unsubscribeUrl)}" style="color:${o.color};text-decoration:underline;">${tr("Se désabonner", "Unsubscribe")}</a> · Ooble · Canada</p>
-<p style="margin:6px 0 0;">FINTRAC ${FINTRAC_MSB_NUMBER}</p>
+<p style="margin:0;">${tr("Vous recevez ce courriel parce que vous êtes inscrit sur ooble.ca.", "You're receiving this email because you signed up at ooble.ca.")} <a href="${esc(ctx.unsubscribeUrl)}" style="color:${o.color};text-decoration:underline;">${tr("Se désabonner", "Unsubscribe")}</a></p>
+<p style="margin:6px 0 0;">${COMPANY_LEGAL_NAME} · ${tr(COMPANY_ADDRESS.fr, COMPANY_ADDRESS.en)} · FINTRAC ${FINTRAC_MSB_NUMBER}</p>
 </td></tr>`;
 }
 

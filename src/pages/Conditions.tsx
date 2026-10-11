@@ -58,8 +58,8 @@ const PARTS: Part[] = [
             Les présentes conditions d'utilisation (les « Conditions ») régissent l'accès et
             l'utilisation de la plateforme Ooble, exploitée par{" "}
             Ooble Technologies Inc., société constituée en vertu de la{" "}
-            <em>Loi canadienne sur les sociétés par actions</em>, dont le siège est situé à
-            Québec (Québec), Canada (« Ooble », « nous »). Ooble permet
+            <em>Loi canadienne sur les sociétés par actions</em>, dont le siège est situé au
+            8580, avenue Lesperance, Québec (Québec) G2K 1M3, Canada (« Ooble », « nous »). Ooble permet
             l'achat et la vente de Tether (USDT) contre des dollars canadiens (CAD), réglés
             directement vers le portefeuille numérique ou le compte bancaire du client par virement
             Interac.
@@ -100,8 +100,8 @@ const PARTS: Part[] = [
             These terms of use (the "Terms") govern access to and use of the Ooble platform,
             operated by{" "}
             Ooble Technologies Inc., a corporation incorporated under the{" "}
-            <em>Canada Business Corporations Act</em>, with its head office located in Québec
-            City, Quebec, Canada ("Ooble," "we"). Ooble enables the
+            <em>Canada Business Corporations Act</em>, with its head office located at 8580 avenue Lesperance, Québec City, Quebec G2K 1M3,
+            Canada ("Ooble," "we"). Ooble enables the
             purchase and sale of Tether (USDT) against Canadian dollars (CAD), settled directly to
             the customer's digital wallet or bank account via Interac transfer.
           </P>
@@ -866,7 +866,7 @@ const PARTS: Part[] = [
           <Ul>
             <li>Courriel : support@ooble.ca</li>
             <li>Interac e-Transfer (paiements) : {OOBLE_INTERAC_EMAIL}</li>
-            <li>Siège : Ooble Technologies Inc., Québec (Québec), Canada</li>
+            <li>Adresse postale : Ooble Technologies Inc., 8580, avenue Lesperance, Québec (Québec) G2K 1M3, Canada</li>
           </Ul>
         </>
       ),
@@ -879,7 +879,7 @@ const PARTS: Part[] = [
           <Ul>
             <li>Email: support@ooble.ca</li>
             <li>Interac e-Transfer (payments): {OOBLE_INTERAC_EMAIL}</li>
-            <li>Head office: Ooble Technologies Inc., Québec City, Quebec, Canada</li>
+            <li>Postal address: Ooble Technologies Inc., 8580 avenue Lesperance, Québec City, Quebec G2K 1M3, Canada</li>
           </Ul>
         </>
       ),

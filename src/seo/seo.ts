@@ -1,5 +1,5 @@
 import { FAQ_CATEGORIES } from "@/lib/faq";
-import { FINTRAC_MSB_NUMBER } from "@/lib/legal";
+import { COMPANY_ADDRESS, COMPANY_LEGAL_NAME, FINTRAC_MSB_NUMBER } from "@/lib/legal";
 import { GUIDES, guideKey, guideMedia } from "@/lib/guides";
 import { t } from "@/lib/translations";
 import { withEn, type Lang } from "@/lib/i18n";
@@ -148,6 +148,15 @@ const ORG: Json = {
   logo: `${SITE}/icons/icon-512.png`,
   email: "support@ooble.ca",
   areaServed: { "@type": "Country", name: "Canada" },
+  legalName: COMPANY_LEGAL_NAME,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: COMPANY_ADDRESS.street,
+    addressLocality: COMPANY_ADDRESS.city,
+    addressRegion: COMPANY_ADDRESS.region,
+    postalCode: COMPANY_ADDRESS.postalCode,
+    addressCountry: "CA",
+  },
   // Inscription CANAFE (entreprise de services monétaires).
   identifier: { "@type": "PropertyValue", propertyID: "FINTRAC MSB registration number", value: FINTRAC_MSB_NUMBER },
 };

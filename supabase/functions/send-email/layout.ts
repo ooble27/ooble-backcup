@@ -25,8 +25,8 @@ function env(key: string, fallback: string): string {
 
 const COMPANY = {
   legal:    env("COMPANY_LEGAL",    "Ooble Technologies Inc."),
-  address:  env("COMPANY_ADDRESS",  ""),                    // « 123 rue X »
-  locality: env("COMPANY_LOCALITY", "Québec"),
+  address:  env("COMPANY_ADDRESS",  "8580, avenue Lesperance"),
+  locality: env("COMPANY_LOCALITY", "Québec (Québec) G2K 1M3"),
   country:  env("COMPANY_COUNTRY",  "Canada"),
   email:    env("COMPANY_EMAIL",    ""),                    // à définir dès qu'une adresse de contact existe
   phone:    env("COMPANY_PHONE",    ""),                    // « +1 418 000-0000 »
