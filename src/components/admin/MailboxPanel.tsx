@@ -28,8 +28,8 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Send, Mail, Inbox, Sparkles, Check, AlertTriangle, Eye, Bold, Italic,
-  List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus, Copy,
+  Send, Mail, Inbox, Eye, Bold, Italic,
+  List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus,
   X, User, Users, Wand2, Loader2, ArrowLeft, Reply, Archive, MailOpen,
   ChevronRight,
 } from "lucide-react";
@@ -51,9 +51,9 @@ import {
   createThread, insertOutboundMessage, threadReplyTo, countUnread,
   type MailThread, type MailMessage, type MailboxId,
 } from "@/lib/mailThreads";
-import AdminHero from "./AdminHero";
-import { SubTabs } from "./AdminBits";
-import { C, FONT, card, sH, inputStyle, listRowStyle } from "./adminTheme";
+import { C, FONT, inputStyle } from "./adminTheme";
+import { Button, Notice, Workspace } from "./ui";
+import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, type Column } from "./layout";
 
 // ──────────────────── Recipient model ────────────────────
 //
@@ -477,8 +477,6 @@ Bonne journée,`,
   },
 ];
 
-type SubTab = "compose" | "sent" | "snippets" | "inbox";
-
 const dateFmt = new Intl.DateTimeFormat("fr-CA", {
   day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
 });
@@ -503,11 +501,15 @@ interface ComposeViewProps {
   clientsLoading: boolean;
   replyThreadId?: string | null;
   replyMailbox?: MailboxId;
+  /** Tout est parti : le parent ferme l'éditeur et affiche le message. */
+  onDone?: (text: string) => void;
+  /** Le brouillon contient quelque chose (pour confirmer avant de fermer). */
+  onDirty?: (dirty: boolean) => void;
 }
 
-function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, replyThreadId, replyMailbox }: ComposeViewProps) {
-  const { session } = useAuth();
-  const author = session?.user?.email ?? "staff";
+function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, replyThreadId, replyMailbox, onDone, onDirty }: ComposeViewProps) {
+  const { user } = useAuth();
+  const author = user?.email ?? "staff";
   const signature = useMemo(() => defaultSignature(author), [author]);
 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -517,7 +519,7 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
   const [showCc, setShowCc] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<null | { kind: "ok" | "err"; text: string }>(null);
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(() => typeof window === "undefined" || window.innerWidth >= 1100);
 
   // Assistant IA — état du prompt + du chargement.
   const [aiOpen, setAiOpen] = useState(false);
@@ -558,6 +560,10 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
   );
 
   const valid = recipients.length > 0 && subject.trim().length > 0 && body.trim().length > 0;
+
+  useEffect(() => {
+    onDirty?.(recipients.length > 0 || subject.trim().length > 0 || body.trim() !== signature.trim());
+  }, [recipients, subject, body, signature, onDirty]);
 
   const submit = async () => {
     if (!valid || busy) return;
@@ -610,7 +616,7 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
           subject: subj,
           bodyText: bodyRendered,
           bodyHtml: html,
-          staffId: session?.user?.id,
+          staffId: user?.id,
           resendId: res.id,
         });
       }
@@ -636,12 +642,11 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
     onSent();
 
     if (failed === 0) {
-      setFeedback({
-        kind: "ok",
-        text: recipients.length === 1
-          ? `Envoyé à ${recipients[0].fullName || recipients[0].email}.`
-          : `Envoyé à ${ok} destinataires.`,
-      });
+      const text = recipients.length === 1
+        ? `Envoyé à ${recipients[0].fullName || recipients[0].email}.`
+        : `Envoyé à ${ok} destinataires.`;
+      setFeedback({ kind: "ok", text });
+      onDone?.(text);
       setRecipients([]);
       setCc("");
       setSubject("");
@@ -732,14 +737,10 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-      {/* Colonne gauche — composer */}
-      <div style={{ ...card, padding: 0, fontFamily: FONT }}>
-        {/* Destinataires */}
-        <div style={{
-          padding: "14px 18px", borderBottom: `1px solid ${C.bds}`,
-          display: "grid", rowGap: 12,
-        }}>
+    <div className="mb-compose" data-preview={showPreview ? "1" : "0"}>
+      {/* Colonne gauche : en-têtes, barre d'outils, corps, envoi */}
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, fontFamily: FONT }}>
+        <div style={{ display: "grid", rowGap: 10, padding: "16px 24px", borderBottom: `1px solid ${C.bds}` }}>
           <RecipientPicker
             selected={recipients}
             clients={clients}
@@ -758,270 +759,143 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
                 value={cc}
                 onChange={(e) => setCc(e.target.value)}
                 placeholder="conformite@ooble.ca, direction@ooble.ca"
-                style={{ ...inputStyle, border: "none", padding: 0, background: "transparent", fontSize: 16 }}
+                style={{ ...inputStyle, border: "none", padding: 0, background: "transparent", fontSize: 15 }}
                 spellCheck={false}
                 autoCapitalize="none"
               />
             </FieldRow>
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowCc(true)}
-              style={{
-                justifySelf: "start",
-                background: "transparent", border: "none", cursor: "pointer",
-                color: C.t3, fontSize: 11.5, padding: 0, fontFamily: FONT,
-                transition: "color 0.12s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.t1; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.t3; }}
-            >
-              + Ajouter Cc
+            <button type="button" className="ui-step" onClick={() => setShowCc(true)}
+              style={{ justifySelf: "start", marginLeft: 48, background: "transparent", border: "none", cursor: "pointer", color: C.t3, fontSize: 12.5, padding: 0, fontFamily: FONT }}>
+              Ajouter un Cc
             </button>
           )}
+        </div>
+        <div style={{ padding: "12px 24px", borderBottom: `1px solid ${C.bds}` }}>
           <FieldRow label="Sujet">
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Objet du message"
-              style={{ ...inputStyle, border: "none", padding: 0, background: "transparent", fontSize: 16 }}
+              style={{ ...inputStyle, border: "none", padding: 0, background: "transparent", fontSize: 15 }}
             />
           </FieldRow>
         </div>
 
-        {/* Toolbar */}
-        <div style={{
-          display: "flex", flexWrap: "wrap", gap: 2,
-          padding: "8px 12px", borderBottom: `1px solid ${C.bds}`,
-          background: C.hover1,
-        }}>
+        {/* Barre d'outils */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", padding: "6px 18px", borderBottom: `1px solid ${C.bds}` }}>
           <ToolbarButton title="Titre" onClick={withRef((t) => prefixLines(t, "## "))}>
-            <Heading2 style={{ width: 14, height: 14 }} strokeWidth={1.7} />
+            <Heading2 style={{ width: 15, height: 15 }} strokeWidth={1.7} />
           </ToolbarButton>
           <ToolbarButton title="Gras" onClick={withRef((t) => wrapSelection(t, "**"))}>
-            <Bold style={{ width: 14, height: 14 }} strokeWidth={2} />
+            <Bold style={{ width: 15, height: 15 }} strokeWidth={2} />
           </ToolbarButton>
           <ToolbarButton title="Italique" onClick={withRef((t) => wrapSelection(t, "*"))}>
-            <Italic style={{ width: 14, height: 14 }} strokeWidth={1.7} />
+            <Italic style={{ width: 15, height: 15 }} strokeWidth={1.7} />
           </ToolbarButton>
           <ToolbarSeparator />
           <ToolbarButton title="Liste à puces" onClick={withRef((t) => prefixLines(t, "- "))}>
-            <List style={{ width: 14, height: 14 }} strokeWidth={1.7} />
+            <List style={{ width: 15, height: 15 }} strokeWidth={1.7} />
           </ToolbarButton>
           <ToolbarButton title="Liste numérotée" onClick={withRef((t) => prefixLines(t, "1. "))}>
-            <ListOrdered style={{ width: 14, height: 14 }} strokeWidth={1.7} />
+            <ListOrdered style={{ width: 15, height: 15 }} strokeWidth={1.7} />
           </ToolbarButton>
           <ToolbarButton title="Citation" onClick={withRef((t) => prefixLines(t, "> "))}>
-            <Quote style={{ width: 14, height: 14 }} strokeWidth={1.7} />
+            <Quote style={{ width: 15, height: 15 }} strokeWidth={1.7} />
           </ToolbarButton>
           <ToolbarSeparator />
           <ToolbarButton title="Lien" onClick={insertLink}>
-            <LinkIcon style={{ width: 14, height: 14 }} strokeWidth={1.7} />
+            <LinkIcon style={{ width: 15, height: 15 }} strokeWidth={1.7} />
           </ToolbarButton>
           <ToolbarButton title="Ligne horizontale" onClick={withRef((t) => insertAtCursor(t, "\n\n---\n\n"))}>
-            <Minus style={{ width: 14, height: 14 }} strokeWidth={1.7} />
+            <Minus style={{ width: 15, height: 15 }} strokeWidth={1.7} />
           </ToolbarButton>
           <ToolbarSeparator />
-          <ToolbarButton title="Insérer {{prenom}}" onClick={withRef((t) => insertAtCursor(t, "{{prenom}}"))}>
-            <span style={{ fontSize: 10.5, fontFamily: FONT, letterSpacing: "0.02em", padding: "0 3px" }}>
-              {"{{prenom}}"}
+          <ToolbarButton title="Insérer le prénom du destinataire" onClick={withRef((t) => insertAtCursor(t, "{{prenom}}"))}>
+            <span style={{ fontSize: 12, fontFamily: FONT, padding: "0 3px" }}>Prénom</span>
+          </ToolbarButton>
+          <ToolbarButton title="Rédiger avec l'assistant" onClick={() => setAiOpen((v) => !v)}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontFamily: FONT, padding: "0 3px", color: aiOpen ? C.t1 : undefined }}>
+              <Wand2 style={{ width: 13, height: 13 }} strokeWidth={1.8} /> Suggérer
             </span>
           </ToolbarButton>
-          <ToolbarSeparator />
-          <button
-            type="button"
-            onClick={() => setAiOpen((v) => !v)}
-            title="Assistant IA · rédiger un draft"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              height: 30, padding: "0 10px", borderRadius: 7, border: "none",
-              background: aiOpen ? C.hover4 : "transparent",
-              color: aiOpen ? C.t1 : C.t2,
-              cursor: "pointer", fontFamily: FONT, fontSize: 11.5,
-              transition: "background 0.12s, color 0.12s",
-            }}
-            onMouseEnter={(e) => { if (!aiOpen) { e.currentTarget.style.background = C.hover3; e.currentTarget.style.color = C.t1; } }}
-            onMouseLeave={(e) => { if (!aiOpen) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.t2; } }}
-          >
-            <Wand2 style={{ width: 12, height: 12 }} strokeWidth={1.8} />
-            Suggérer
-          </button>
           <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            onClick={() => setShowPreview((v) => !v)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              background: "transparent", border: "none", cursor: "pointer",
-              color: C.t3, fontSize: 11.5, padding: "4px 8px", borderRadius: 6,
-              fontFamily: FONT, transition: "color 0.12s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = C.t1; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = C.t3; }}
-          >
-            <Eye style={{ width: 12, height: 12 }} />
-            {showPreview ? "Cacher l'aperçu" : "Voir l'aperçu"}
-          </button>
+          <ToolbarButton title={showPreview ? "Cacher l'aperçu" : "Voir l'aperçu"} onClick={() => setShowPreview((v) => !v)}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontFamily: FONT, padding: "0 3px" }}>
+              <Eye style={{ width: 13, height: 13 }} /> {showPreview ? "Cacher l'aperçu" : "Aperçu"}
+            </span>
+          </ToolbarButton>
         </div>
 
-        {/* Assistant IA — bandeau plié/déplié pour saisir l'intention. */}
+        {/* Assistant : l'intention en une phrase */}
         {aiOpen && (
-          <div style={{
-            padding: "12px 18px", borderBottom: `1px solid ${C.bds}`,
-            background: C.hover2,
-            display: "flex", alignItems: "flex-start", gap: 10,
-          }}>
-            <Wand2 style={{ width: 14, height: 14, color: C.t2, marginTop: 6 }} strokeWidth={1.8} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <textarea
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void runAiDraft(); }
-                }}
-                placeholder="Décrivez ce que vous voulez dire, en une phrase. Ex : « réponds gentiment qu'on a bien reçu son KYC mais qu'il manque la preuve d'adresse »."
-                rows={2}
-                style={{
-                  display: "block", width: "100%", boxSizing: "border-box",
-                  padding: "6px 0", border: "none", outline: "none",
-                  background: "transparent", color: C.t1,
-                  fontFamily: FONT, fontSize: 16, lineHeight: 1.5,
-                  resize: "none",
-                }}
-              />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
-                <span style={{ fontSize: 10.5, color: C.t3 }}>
-                  {recipients.find((r) => r.id)
-                    ? `Contexte : ${recipients.find((r) => r.id)?.fullName} sera utilisé pour personnaliser.`
-                    : "Aucun contexte client. Sélectionnez un destinataire pour un draft plus fin."}
-                  {" · "}
-                  <kbd style={{ fontFamily: FONT, fontSize: 10 }}>⌘</kbd>+<kbd style={{ fontFamily: FONT, fontSize: 10 }}>Entrée</kbd> pour lancer.
-                </span>
-                <button
-                  type="button"
-                  onClick={runAiDraft}
-                  disabled={!aiPrompt.trim() || aiBusy}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    height: 28, padding: "0 12px", borderRadius: 7, border: "none",
-                    background: aiPrompt.trim() && !aiBusy ? C.accent : C.l3,
-                    color: aiPrompt.trim() && !aiBusy ? C.btnText : C.t3,
-                    fontSize: 11.5, fontFamily: FONT,
-                    cursor: aiPrompt.trim() && !aiBusy ? "pointer" : "default",
-                    transition: "background 0.15s",
-                  }}
-                >
-                  {aiBusy
-                    ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
-                    : <Wand2 style={{ width: 12, height: 12 }} strokeWidth={1.8} />}
-                  {aiBusy ? "Génération…" : "Générer le draft"}
-                </button>
-              </div>
+          <div style={{ padding: "12px 24px", borderBottom: `1px solid ${C.bds}`, background: C.hover1 }}>
+            <textarea
+              value={aiPrompt}
+              autoFocus
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void runAiDraft(); }
+              }}
+              placeholder="Ce que vous voulez dire, en une phrase. Ex. : « réponds qu'on a bien reçu sa pièce d'identité mais qu'il manque la preuve d'adresse »."
+              rows={2}
+              style={{ display: "block", width: "100%", boxSizing: "border-box", padding: "4px 0", border: "none", outline: "none", background: "transparent", color: C.t1, fontFamily: FONT, fontSize: 15, lineHeight: 1.5, resize: "none" }}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+              <span style={{ flex: 1, minWidth: 200, fontSize: 12, color: C.t3 }}>
+                {recipients.find((r) => r.id)
+                  ? `Le dossier de ${recipients.find((r) => r.id)?.fullName} sert de contexte.`
+                  : "Choisissez d'abord un client pour un brouillon plus juste."}
+                {" "}⌘ + Entrée pour lancer.
+              </span>
+              <Button size="sm" variant="primary" onClick={runAiDraft} disabled={!aiPrompt.trim() || aiBusy}
+                icon={aiBusy ? <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} /> : <Wand2 style={{ width: 13, height: 13 }} strokeWidth={1.8} />}>
+                {aiBusy ? "Rédaction…" : "Rédiger le brouillon"}
+              </Button>
             </div>
           </div>
         )}
 
-        {/* Textarea du corps — hauteur modeste, l'auteur agrandit à la
-            volée s'il en a besoin ; on n'inflige pas 320 px vides sur mobile. */}
         <textarea
           ref={textareaRef}
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Bonjour {{prenom}},&#10;&#10;Écrivez votre message ici. Les variables {{prenom}}, {{nom}}, {{email}} sont remplacées par les vraies valeurs de chaque destinataire au moment de l'envoi."
-          rows={10}
+          placeholder="Bonjour {{prenom}},&#10;&#10;Écrivez votre message ici. {{prenom}}, {{nom}} et {{email}} sont remplacés par les vraies valeurs de chaque destinataire à l'envoi."
           style={{
-            display: "block", width: "100%", boxSizing: "border-box",
-            padding: "14px 18px 8px", border: "none", outline: "none",
-            background: "transparent", color: C.t1,
-            fontFamily: FONT, fontSize: 16, lineHeight: 1.55,
-            resize: "vertical", minHeight: 180,
+            flex: 1, display: "block", width: "100%", boxSizing: "border-box", minHeight: 280,
+            padding: "18px 24px", border: "none", outline: "none", background: "transparent", color: C.t1,
+            fontFamily: FONT, fontSize: 15, lineHeight: 1.65, resize: "none",
           }}
         />
 
-        {/* Avertissement variables non remplies : on ne bloque pas
-            l'envoi, on informe. Le staff sait ce qu'il fait. */}
         {remainingVars.length > 0 && (
-          <div style={{
-            margin: "0 18px 8px",
-            padding: "8px 12px", borderRadius: 8,
-            background: C.warnBg,
-            border: `1px solid ${C.warnBd}`,
-            color: C.warnText,
-            fontSize: 11.5, lineHeight: 1.5,
-          }}>
-            Variable{remainingVars.length > 1 ? "s" : ""} non remplie{remainingVars.length > 1 ? "s" : ""} :
-            partira{remainingVars.length > 1 ? "ont" : ""} telle{remainingVars.length > 1 ? "s" : ""} quelle{remainingVars.length > 1 ? "s" : ""} :
-            {" "}
-            {remainingVars.map((v) => (
-              <code key={v} style={{
-                background: C.codeBg, padding: "1px 5px",
-                borderRadius: 4, marginRight: 4, fontSize: 11,
-              }}>{`{{${v}}}`}</code>
-            ))}
+          <div style={{ padding: "0 24px 10px" }}>
+            <Notice tone="warn">
+              {remainingVars.length > 1 ? "Ces variables partiront telles quelles : " : "Cette variable partira telle quelle : "}
+              {remainingVars.map((v) => <code key={v} style={{ background: C.codeBg, padding: "1px 5px", borderRadius: 4, marginRight: 4, fontSize: 12 }}>{`{{${v}}}`}</code>)}
+            </Notice>
           </div>
         )}
 
-        {/* Feedback + actions */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexWrap: "wrap", gap: 12,
-          padding: "12px 18px", borderTop: `1px solid ${C.bds}`,
-        }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            {feedback && (
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "6px 12px", borderRadius: 8,
-                background: feedback.kind === "ok" ? C.hover3 : C.dangerBg,
-                border: `1px solid ${feedback.kind === "ok" ? C.accentBd : C.dangerBd}`,
-                color: feedback.kind === "ok" ? C.t1 : C.dangerText,
-                fontSize: 12,
-              }}>
-                {feedback.kind === "ok"
-                  ? <Check style={{ width: 13, height: 13 }} strokeWidth={2} />
-                  : <AlertTriangle style={{ width: 13, height: 13 }} strokeWidth={2} />}
-                {feedback.text}
-              </div>
-            )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 24px calc(12px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${C.bds}`, background: C.bg, position: "sticky", bottom: 0, zIndex: 2 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {feedback
+              ? <span style={{ fontSize: 13, color: feedback.kind === "ok" ? C.successText : C.dangerText }}>{feedback.text}</span>
+              : <span style={{ fontSize: 12.5, color: C.t3 }}>{recipients.length > 1 ? "Chaque destinataire reçoit un courriel à son nom." : "Les réponses du client arrivent dans la réception."}</span>}
           </div>
-          <button
-            onClick={submit}
-            disabled={!valid || busy}
-            style={{
-              height: 38, padding: "0 20px", borderRadius: 9, border: "none",
-              background: valid && !busy ? C.accent : C.l3,
-              color: valid && !busy ? C.btnText : C.t3,
-              fontSize: 12.5, fontFamily: FONT,
-              display: "inline-flex", alignItems: "center", gap: 7,
-              cursor: valid && !busy ? "pointer" : "default",
-              transition: "background 0.15s",
-            }}
-          >
-            <Send style={{ width: 14, height: 14 }} strokeWidth={2} />
-            {busy
-              ? "Envoi…"
-              : recipients.length > 1
-                ? `Envoyer à ${recipients.length}`
-                : "Envoyer"}
-          </button>
+          <Button variant="primary" onClick={submit} disabled={!valid || busy} icon={<Send style={{ width: 14, height: 14 }} strokeWidth={2} />}>
+            {busy ? "Envoi…" : recipients.length > 1 ? `Envoyer à ${recipients.length}` : "Envoyer"}
+          </Button>
         </div>
       </div>
 
-      {/* Colonne droite — aperçu rendu */}
+      {/* Colonne droite : rendu chez le destinataire */}
       {showPreview && (
-        <div style={{ ...card, padding: 0, fontFamily: FONT }}>
-          <div style={{
-            padding: "12px 18px", borderBottom: `1px solid ${C.bds}`,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}>
-            <span style={sH}>Aperçu du message</span>
-            <span style={{ fontSize: 10.5, color: C.t3, letterSpacing: "0.06em" }}>
-              {previewRecipient
-                ? `Aperçu pour ${previewRecipient.fullName || previewRecipient.email}`
-                : "Rendu final chez le destinataire"}
-            </span>
-          </div>
+        <div className="mb-preview" style={{ minWidth: 0, overflowY: "auto", background: "#f6f6f4" }}>
+          <p style={{ margin: 0, padding: "14px 20px 0", fontSize: 12, color: "#8b8b86", fontFamily: FONT }}>
+            {previewRecipient ? `Aperçu pour ${previewRecipient.fullName || previewRecipient.email}` : "Rendu chez le destinataire"}
+          </p>
           <PreviewFrame
             from="Ooble <bonjour@ooble.ca>"
             to={previewRecipient?.email ?? (recipients[0]?.email ?? "N/D")}
@@ -1343,96 +1217,60 @@ function PreviewFrame({ from, to, subject, html }: { from: string; to: string; s
 // ─────────────────── Envoyés ───────────────────
 
 function SentView({ sent }: { sent: SentMail[] }) {
-  if (sent.length === 0) {
-    return (
-      <div style={{ ...card, padding: 40, textAlign: "center", fontFamily: FONT }}>
-        <Mail style={{ width: 22, height: 22, color: C.t3, opacity: 0.5, margin: "0 auto 8px", display: "block" }} strokeWidth={1.6} />
-        <p style={{ fontSize: 12.5, color: C.t3, margin: 0 }}>
-          Aucun e-mail envoyé depuis ce poste pour l'instant.
-        </p>
+  const columns: Column<SentMail>[] = [
+    { key: "subject", header: "Objet", render: (m) => <TwoLine primary={m.subject} secondary={`à ${m.to}`} /> },
+    { key: "by", header: "Envoyé par", hideBelow: 960, render: (m) => <span style={{ color: C.t2 }}>{m.sentBy}</span> },
+    { key: "state", header: "État", render: (m) => (m.outcome.ok
+      ? <Pill tone="ok" dot>Envoyé</Pill>
+      : <span title={m.outcome.error}><Pill tone="danger" dot>Échec</Pill></span>) },
+    { key: "date", header: "Date", align: "right", sort: (m) => m.sentAt, hideBelow: 760, render: (m) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(m.sentAt))}</span> },
+  ];
+  return (
+    <>
+      <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Historique des envois faits depuis cet appareil.</p>
+      <DataTable
+        rows={sent}
+        columns={columns}
+        rowKey={(m) => m.id}
+        initialSort={{ key: "date", dir: "desc" }}
+        empty={<EmptyState icon={Mail} title="Aucun envoi" text="Aucun courriel envoyé depuis cet appareil pour l'instant." />}
+        mobile={(m) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={m.subject} secondary={`à ${m.to} · ${dateFmt.format(new Date(m.sentAt))}`} /></div>
+            {m.outcome.ok ? <Pill tone="ok">Envoyé</Pill> : <Pill tone="danger">Échec</Pill>}
+          </div>
+        )}
+      />
+    </>
+  );
+}
+
+// ─────────────────── Modèles (points de départ) ───────────────────
+
+function SnippetsView({ onLoad }: { onLoad: (s: Snippet) => void }) {
+  return (
+    <>
+      <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Des débuts de message à reprendre et adapter. Rien n'est envoyé sans votre relecture.</p>
+      <div style={{ borderTop: `1px solid ${C.bds}` }}>
+        {SNIPPETS.map((s) => (
+          <div key={s.id} role="button" tabIndex={0} className="ui-row" onClick={() => onLoad(s)}
+            onKeyDown={(e) => { if (e.key === "Enter") onLoad(s); }}
+            style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 4px", borderBottom: `1px solid ${C.bds}`, cursor: "pointer" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 13.5, color: C.t1 }}>{s.name}</p>
+              <p style={{ margin: "3px 0 0", fontSize: 12.5, lineHeight: 1.5, color: C.t3 }}>{s.description}</p>
+            </div>
+            <span style={{ fontSize: 12.5, color: C.t2, display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              Utiliser <ChevronRight style={{ width: 14, height: 14 }} />
+            </span>
+          </div>
+        ))}
       </div>
-    );
-  }
-  return (
-    <div style={card}>
-      {sent.map((m, i) => {
-        const ok = m.outcome.ok;
-        return (
-          <div key={m.id} style={{ ...listRowStyle(i === sent.length - 1), alignItems: "flex-start", gap: 14 }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-              background: C.hover3, border: `1px solid ${C.bds}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: ok ? C.t1 : C.dangerText,
-            }}>
-              {ok ? <Check style={{ width: 13, height: 13 }} strokeWidth={2} />
-                  : <AlertTriangle style={{ width: 13, height: 13 }} strokeWidth={2} />}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {m.subject}
-              </p>
-              <p style={{ margin: "2px 0 0", fontSize: 11.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>
-                à {m.to} · par {m.sentBy} · {dateFmt.format(new Date(m.sentAt))}
-                {!ok && <> · <span style={{ color: C.dangerText }}>{m.outcome.error}</span></>}
-              </p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    </>
   );
 }
 
-// ─────────────────── Points de départ ───────────────────
-
-interface SnippetsViewProps { onLoad: (s: Snippet) => void }
-
-function SnippetsView({ onLoad }: SnippetsViewProps) {
-  return (
-    <div style={card}>
-      {SNIPPETS.map((s, i) => (
-        <div
-          key={s.id}
-          style={{ ...listRowStyle(i === SNIPPETS.length - 1), alignItems: "flex-start", gap: 14 }}
-        >
-          <div style={{
-            width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-            background: C.hover3, border: `1px solid ${C.bds}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: C.t2,
-          }}>
-            <Sparkles style={{ width: 13, height: 13 }} strokeWidth={1.7} />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ margin: 0, fontSize: 13, color: C.t1 }}>{s.name}</p>
-            <p style={{ margin: "2px 0 0", fontSize: 11.5, color: C.t3, lineHeight: 1.5 }}>
-              {s.description}
-            </p>
-          </div>
-          <button
-            onClick={() => onLoad(s)}
-            style={{
-              flexShrink: 0,
-              height: 30, padding: "0 12px", borderRadius: 7,
-              background: "transparent", border: `1px solid ${C.bd}`,
-              color: C.t2, fontSize: 11.5, fontFamily: FONT,
-              display: "inline-flex", alignItems: "center", gap: 5,
-              cursor: "pointer", transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accentBd; e.currentTarget.style.color = C.accent; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.color = C.t2; }}
-          >
-            <Copy style={{ width: 12, height: 12 }} />
-            Charger
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─────────────────── Boîte de réception ───────────────────
+// ─────────────────── Réception ───────────────────
 
 const msgDateFmt = new Intl.DateTimeFormat("fr-CA", {
   day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
@@ -1444,274 +1282,196 @@ function snippet(text: string | null, max = 100): string {
   return clean.length <= max ? clean : `${clean.slice(0, max)}...`;
 }
 
-interface InboxViewProps {
-  onReply: (thread: MailThread) => void;
+type MailboxFilter = "all" | "unread" | MailboxId;
+
+/** Conversation ouverte : messages du fil, du plus ancien au plus récent. */
+function Conversation({ thread, messages, loading, onBack, onReply, onArchive }: {
+  thread: MailThread; messages: MailMessage[]; loading: boolean;
+  onBack?: () => void; onReply: () => void; onArchive: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", borderBottom: `1px solid ${C.bds}` }}>
+        {onBack && <Button variant="ghost" size="sm" aria-label="Retour" onClick={onBack} icon={<ArrowLeft style={{ width: 16, height: 16 }} />} />}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <p style={{ margin: 0, fontSize: 15, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{thread.subject}</p>
+          <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {thread.clientName ? `${thread.clientName} · ` : ""}{thread.clientEmail}{thread.mailbox === "otc" ? " · OTC" : ""}
+          </p>
+        </div>
+        <Button size="sm" variant="ghost" title="Archiver" onClick={onArchive} icon={<Archive style={{ width: 14, height: 14 }} strokeWidth={1.7} />}>
+          <span className="mb-hide-sm">Archiver</span>
+        </Button>
+        <Button size="sm" variant="primary" onClick={onReply} icon={<Reply style={{ width: 14, height: 14 }} strokeWidth={2} />}>Répondre</Button>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 20px 24px" }}>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
+        ) : messages.map((m) => {
+          const inbound = m.direction === "inbound";
+          const who = inbound ? (m.fromName || m.fromEmail) : "Ooble";
+          return (
+            <article key={m.id} style={{ padding: "18px 0", borderBottom: `1px solid ${C.bds}` }}>
+              <header style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <Avatar name={who} size={28} />
+                <span style={{ fontSize: 13.5, color: C.t1 }}>{who}</span>
+                {!inbound && <Pill>Équipe</Pill>}
+                <span style={{ marginLeft: "auto", fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{msgDateFmt.format(new Date(m.createdAt))}</span>
+              </header>
+              <div style={{ fontSize: 14, color: inbound ? C.t1 : C.t2, lineHeight: 1.65, paddingLeft: 38, whiteSpace: "pre-wrap", wordBreak: "break-word", maxWidth: 720 }}>
+                {m.bodyText || snippet(m.bodyHtml, 500) || "(vide)"}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
-function InboxView({ onReply }: InboxViewProps) {
+function InboxView({ onReply, onCount }: { onReply: (thread: MailThread) => void; onCount: () => void }) {
   const [threads, setThreads] = useState<MailThread[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedThread, setSelectedThread] = useState<MailThread | null>(null);
+  const [selected, setSelected] = useState<MailThread | null>(null);
   const [messages, setMessages] = useState<MailMessage[]>([]);
   const [msgsLoading, setMsgsLoading] = useState(false);
+  const [filter, setFilter] = useState<MailboxFilter>("all");
+  const [q, setQ] = useState("");
+  const [wide, setWide] = useState(() => typeof window === "undefined" || window.innerWidth >= 1000);
 
+  useEffect(() => {
+    const on = () => setWide(window.innerWidth >= 1000);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
   useEffect(() => {
     fetchThreads().then((t) => { setThreads(t); setLoading(false); });
   }, []);
 
   const openThread = async (t: MailThread) => {
-    setSelectedThread(t);
+    setSelected(t);
     setMsgsLoading(true);
     const msgs = await fetchMessages(t.id);
     setMessages(msgs);
     setMsgsLoading(false);
     if (t.hasUnread) {
       await markThreadRead(t.id);
-      setThreads((prev) => prev.map((x) => x.id === t.id ? { ...x, hasUnread: false } : x));
+      setThreads((prev) => prev.map((x) => (x.id === t.id ? { ...x, hasUnread: false } : x)));
+      onCount();
     }
   };
 
   const doArchive = async (id: string) => {
     await archiveThread(id);
     setThreads((prev) => prev.filter((x) => x.id !== id));
-    setSelectedThread(null);
+    setSelected(null);
   };
 
-  // Vue détail d'un thread
-  if (selectedThread) {
-    return (
-      <div style={card}>
-        {/* En-tête */}
-        <div style={{
-          padding: "14px 18px", borderBottom: `1px solid ${C.bds}`,
-          display: "flex", alignItems: "center", gap: 12,
-        }}>
-          <button
-            onClick={() => setSelectedThread(null)}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              width: 30, height: 30, borderRadius: 7,
-              background: "transparent", border: `1px solid ${C.bds}`,
-              color: C.t2, cursor: "pointer", flexShrink: 0,
-              transition: "all 0.12s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accentBd; e.currentTarget.style.color = C.t1; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.bds; e.currentTarget.style.color = C.t2; }}
-          >
-            <ArrowLeft style={{ width: 14, height: 14 }} strokeWidth={1.7} />
-          </button>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ margin: 0, fontSize: 13.5, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {selectedThread.subject}
-            </p>
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: C.t3 }}>
-              {selectedThread.clientName || selectedThread.clientEmail} · {selectedThread.messageCount} message{selectedThread.messageCount > 1 ? "s" : ""}
-            </p>
-          </div>
-          <button
-            onClick={() => onReply(selectedThread)}
-            style={{
-              height: 30, padding: "0 14px", borderRadius: 7, border: "none",
-              background: C.accent, color: C.btnText,
-              fontSize: 11.5, fontFamily: FONT,
-              display: "inline-flex", alignItems: "center", gap: 5,
-              cursor: "pointer", transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = C.accentHover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = C.accent; }}
-          >
-            <Reply style={{ width: 12, height: 12 }} strokeWidth={2} />
-            Répondre
-          </button>
-          <button
-            onClick={() => doArchive(selectedThread.id)}
-            title="Archiver"
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              width: 30, height: 30, borderRadius: 7,
-              background: "transparent", border: `1px solid ${C.bds}`,
-              color: C.t3, cursor: "pointer", transition: "all 0.12s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accentBd; e.currentTarget.style.color = C.t1; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.bds; e.currentTarget.style.color = C.t3; }}
-          >
-            <Archive style={{ width: 13, height: 13 }} strokeWidth={1.7} />
-          </button>
-        </div>
+  const needle = q.trim().toLowerCase();
+  const list = threads
+    .filter((t) => filter === "all" || (filter === "unread" ? t.hasUnread : t.mailbox === filter))
+    .filter((t) => !needle || `${t.clientName ?? ""} ${t.clientEmail} ${t.subject}`.toLowerCase().includes(needle));
+  const unread = threads.filter((t) => t.hasUnread).length;
+  const hasOtc = threads.some((t) => t.mailbox === "otc");
 
-        {/* Messages */}
-        {msgsLoading ? (
-          <div style={{ padding: 30, textAlign: "center" }}>
-            <Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} />
-          </div>
-        ) : (
-          <div style={{ maxHeight: 520, overflowY: "auto" }}>
-            {messages.map((m, i) => {
-              const isInbound = m.direction === "inbound";
-              return (
-                <div
-                  key={m.id}
-                  style={{
-                    padding: "16px 18px",
-                    borderBottom: i < messages.length - 1 ? `1px solid ${C.bds}` : "none",
-                    background: isInbound ? C.hover1 : "transparent",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <div style={{
-                      width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-                      background: isInbound ? C.hover4 : C.accentSoft,
-                      border: `1px solid ${isInbound ? C.bds : C.accentBd}`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: isInbound ? C.t2 : C.t1, fontSize: 10,
-                    }}>
-                      {isInbound
-                        ? <MailOpen style={{ width: 11, height: 11 }} strokeWidth={1.7} />
-                        : <Send style={{ width: 10, height: 10 }} strokeWidth={2} />}
-                    </div>
-                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 400 }}>
-                      {isInbound ? (m.fromName || m.fromEmail) : "Ooble"}
-                    </span>
-                    <span style={{ fontSize: 10.5, color: C.t3, marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>
-                      {msgDateFmt.format(new Date(m.createdAt))}
-                    </span>
-                  </div>
-                  <div style={{
-                    fontSize: 13, color: C.t1, lineHeight: 1.6, paddingLeft: 32,
-                    whiteSpace: "pre-wrap", wordBreak: "break-word",
-                  }}>
-                    {m.bodyText || snippet(m.bodyHtml, 500) || "(vide)"}
-                  </div>
-                </div>
-              );
-            })}
+  const conversation = selected && (
+    <Conversation thread={selected} messages={messages} loading={msgsLoading}
+      onBack={wide ? undefined : () => setSelected(null)}
+      onReply={() => onReply(selected)} onArchive={() => doArchive(selected.id)} />
+  );
+
+  if (!wide && selected) return <div className="mb-pane">{conversation}</div>;
+
+  const listPane = (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+      <div style={{ display: "grid", gap: 10, padding: "12px 12px 10px", borderBottom: `1px solid ${C.bds}` }}>
+        <SearchField value={q} onChange={setQ} placeholder="Client, courriel, objet" width={600} />
+        <FilterChips value={filter} onChange={setFilter} options={[
+          { id: "all", label: "Tout", count: threads.length },
+          { id: "unread", label: "Non lus", count: unread },
+          ...(hasOtc ? [{ id: "support" as MailboxFilter, label: "Support" }, { id: "otc" as MailboxFilter, label: "OTC" }] : []),
+        ]} />
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
+        ) : list.length === 0 ? (
+          <EmptyState icon={Inbox} title={threads.length ? "Rien ici" : "Aucune conversation"}
+            text={threads.length ? "Aucune conversation ne correspond." : "Les réponses des clients à support@ooble.ca et otc@ooble.ca arrivent ici, comme les courriels envoyés d'ici."} />
+        ) : list.map((t) => {
+          const on = selected?.id === t.id;
+          return (
+            <button key={t.id} type="button" className="ui-row" onClick={() => openThread(t)}
+              style={{
+                all: "unset", boxSizing: "border-box", width: "100%", display: "flex", gap: 10, padding: "12px 14px",
+                borderBottom: `1px solid ${C.bds}`, cursor: "pointer", fontFamily: FONT,
+                background: on ? C.hover3 : undefined, boxShadow: on ? `inset 2px 0 0 ${C.t1}` : undefined,
+              }}>
+              <span style={{ width: 6, height: 6, borderRadius: 99, marginTop: 7, flexShrink: 0, background: t.hasUnread ? C.t1 : "transparent" }} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.t1, fontWeight: t.hasUnread ? 500 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {t.clientName || t.clientEmail}
+                  </span>
+                  <span style={{ fontSize: 11.5, color: C.t3, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{msgDateFmt.format(new Date(t.lastMessageAt))}</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: t.hasUnread ? C.t2 : C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span>
+                  {t.mailbox === "otc" && <Pill>OTC</Pill>}
+                  {t.messageCount > 1 && <span style={{ fontSize: 11.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{t.messageCount}</span>}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  if (!wide) return <div className="mb-pane">{listPane}</div>;
+
+  return (
+    <div className="mb-pane mb-split">
+      {listPane}
+      <div style={{ borderLeft: `1px solid ${C.bds}`, minHeight: 0, minWidth: 0 }}>
+        {conversation ?? (
+          <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <EmptyState icon={MailOpen} title="Choisissez une conversation" text="Elle s'affiche ici, avec l'historique complet des échanges." />
           </div>
         )}
       </div>
-    );
-  }
-
-  // Vue liste des threads
-  if (loading) {
-    return (
-      <div style={{ ...card, padding: 40, textAlign: "center" }}>
-        <Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite", margin: "0 auto" }} />
-      </div>
-    );
-  }
-
-  if (threads.length === 0) {
-    return (
-      <div style={{ ...card, padding: 40, textAlign: "center", fontFamily: FONT }}>
-        <Inbox style={{ width: 22, height: 22, color: C.t3, opacity: 0.5, margin: "0 auto 8px", display: "block" }} strokeWidth={1.6} />
-        <p style={{ fontSize: 12.5, color: C.t3, margin: "0 0 4px" }}>
-          Aucune conversation pour l'instant.
-        </p>
-        <p style={{ fontSize: 11, color: C.t3, margin: 0, lineHeight: 1.6 }}>
-          Les réponses des clients apparaissent ici une fois Resend Inbound activé sur <code style={{ background: C.l3, padding: "1px 5px", borderRadius: 4 }}>support@ooble.ca</code> et <code style={{ background: C.l3, padding: "1px 5px", borderRadius: 4 }}>otc@ooble.ca</code>.
-          <br />Les e-mails envoyés depuis le composer créent aussi un fil ici.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div style={card}>
-      {threads.map((t, i) => (
-        <button
-          key={t.id}
-          onClick={() => openThread(t)}
-          style={{
-            display: "flex", width: "100%", alignItems: "center", gap: 12,
-            padding: "14px 18px", textAlign: "left",
-            borderBottom: i < threads.length - 1 ? `1px solid ${C.bds}` : "none",
-            background: t.hasUnread ? C.hover2 : "transparent",
-            border: "none", borderBottomStyle: i < threads.length - 1 ? "solid" : "none",
-            borderBottomWidth: 1, borderBottomColor: C.bds,
-            cursor: "pointer", fontFamily: FONT,
-            transition: "background 0.12s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = C.hover2; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = t.hasUnread ? C.hover2 : "transparent"; }}
-        >
-          {/* Indicateur non lu */}
-          <div style={{
-            width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-            background: t.hasUnread ? C.accent : "transparent",
-          }} />
-
-          {/* Avatar */}
-          <div style={{
-            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-            background: C.hover3, border: `1px solid ${C.bds}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: C.t2, fontSize: 12,
-          }}>
-            {(t.clientName || t.clientEmail)[0]?.toUpperCase() || "?"}
-          </div>
-
-          {/* Contenu */}
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span style={{
-                fontSize: 13, color: C.t1,
-                fontWeight: t.hasUnread ? 500 : 400,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                flex: 1, minWidth: 0,
-              }}>
-                {t.clientName || t.clientEmail}
-              </span>
-              {t.mailbox === "otc" && (
-                <span style={{
-                  fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", color: C.t1,
-                  border: `1px solid ${C.bds}`, padding: "1px 6px", borderRadius: 999, flexShrink: 0,
-                }}>
-                  OTC
-                </span>
-              )}
-              <span style={{
-                fontSize: 10.5, color: C.t3, flexShrink: 0,
-                fontVariantNumeric: "tabular-nums",
-              }}>
-                {msgDateFmt.format(new Date(t.lastMessageAt))}
-              </span>
-            </div>
-            <p style={{
-              margin: "2px 0 0", fontSize: 12,
-              color: t.hasUnread ? C.t2 : C.t3,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {t.subject}
-            </p>
-          </div>
-
-          {/* Badge nombre de messages */}
-          {t.messageCount > 1 && (
-            <span style={{
-              fontSize: 10, color: C.t3, flexShrink: 0,
-              background: C.l3, padding: "2px 7px", borderRadius: 999,
-            }}>
-              {t.messageCount}
-            </span>
-          )}
-          <ChevronRight style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} strokeWidth={1.5} />
-        </button>
-      ))}
     </div>
   );
 }
 
 // ─────────────────── Panneau principal ───────────────────
 
+const noop = () => undefined;
+
+type SubTab = "inbox" | "sent" | "snippets";
+
+const MAIL_CSS = `
+.mb-compose { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+.mb-compose > div:first-child { min-height: 100%; }
+@media (min-width: 1100px) {
+  .mb-compose[data-preview="1"] { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); overflow: hidden; }
+  .mb-compose[data-preview="1"] > div:first-child { overflow-y: auto; min-height: 0; }
+  .mb-compose .mb-preview { border-left: 1px solid ${C.bds}; }
+}
+.mb-pane { margin-top: 16px; border-top: 1px solid ${C.bds}; border-bottom: 1px solid ${C.bds}; }
+.mb-split { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: calc(100vh - 290px); min-height: 480px; }
+@media (max-width: 520px) { .mb-hide-sm { display: none } }
+`;
+
 const MailboxPanel = () => {
-  const [tab, setTab] = useState<SubTab>("compose");
+  const [tab, setTab] = useState<SubTab>("inbox");
   const [sent, setSent] = useState<SentMail[]>([]);
-  const [initialComposerState, setInitialComposerState] = useState<ComposerState | null>(null);
+  const [composer, setComposer] = useState<{ state: ComposerState | null; threadId: string | null; mailbox: MailboxId; title: string } | null>(null);
   const [clients, setClients] = useState<ClientDirectoryEntry[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
-  const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
-  const [replyMailbox, setReplyMailbox] = useState<MailboxId>("support");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [done, setDone] = useState<string | null>(null);
+  const dirty = useRef(false);
 
   useEffect(() => { setSent(loadSent()); }, []);
   useEffect(() => {
@@ -1723,81 +1483,70 @@ const MailboxPanel = () => {
     });
     return () => { active = false; };
   }, []);
-  useEffect(() => {
-    countUnread().then(setUnreadCount);
-  }, [tab]);
+  const refreshUnread = useCallback(() => { countUnread().then(setUnreadCount); }, []);
+  useEffect(refreshUnread, [refreshUnread, tab]);
 
   const refreshSent = () => setSent(loadSent());
+  const failedSent = useMemo(() => sent.filter((m) => !m.outcome.ok).length, [sent]);
 
-  const successfulSent = useMemo(() => sent.filter((m) => m.outcome.ok).length, [sent]);
-  const failedSent = sent.length - successfulSent;
-
-  const loadSnippet = (s: Snippet) => {
-    setInitialComposerState({ recipients: [], cc: "", subject: s.subject, body: s.body });
-    setReplyThreadId(null);
-    setTab("compose");
+  const openComposer = (state: ComposerState | null, title = "Nouveau message", threadId: string | null = null, mailbox: MailboxId = "support") => {
+    dirty.current = false;
+    setDone(null);
+    setComposer({ state, threadId, mailbox, title });
+  };
+  const closeComposer = () => {
+    if (dirty.current && !confirm("Fermer sans envoyer ? Le brouillon sera perdu.")) return;
+    setComposer(null);
   };
 
+  const loadSnippet = (s: Snippet) => openComposer({ recipients: [], cc: "", subject: s.subject, body: s.body }, s.name);
+
   const handleReply = useCallback((thread: MailThread) => {
-    const firstName = thread.clientName?.split(/\s+/)[0]
-      || thread.clientEmail.split("@")[0];
-    setInitialComposerState({
-      recipients: [{
-        id: thread.clientId ?? undefined,
-        email: thread.clientEmail,
-        firstName,
-        fullName: thread.clientName || thread.clientEmail,
-      }],
+    const firstName = thread.clientName?.split(/\s+/)[0] || thread.clientEmail.split("@")[0];
+    openComposer({
+      recipients: [{ id: thread.clientId ?? undefined, email: thread.clientEmail, firstName, fullName: thread.clientName || thread.clientEmail }],
       cc: "",
       subject: `Re: ${thread.subject}`,
       body: "",
-    });
-    setReplyThreadId(thread.id);
-    setReplyMailbox(thread.mailbox);
-    setTab("compose");
+    }, `Répondre à ${thread.clientName || thread.clientEmail}`, thread.id, thread.mailbox);
   }, []);
 
-  const TABS = [
-    { id: "compose",  label: "Composer" },
-    { id: "sent",     label: "Envoyés",  count: sent.length || undefined },
-    { id: "snippets", label: "Points de départ", count: SNIPPETS.length },
-    { id: "inbox",    label: "Réception", count: unreadCount || undefined },
-  ];
-
   return (
-    <div className="space-y-4">
-      <div className="lg:max-w-[620px]">
-        <AdminHero
-          eyebrow="Messagerie"
-          value={sent.length}
-          unit={sent.length > 1 ? "envois" : "envoi"}
-          stats={[
-            { label: "Réussis", value: successfulSent },
-            { label: "Échecs",  value: failedSent },
-            { label: "Annuaire", value: clientsLoading ? "…" : clients.length },
-          ]}
-          actions={[
-            { label: "Nouveau message", icon: Send, primary: true, onClick: () => setTab("compose") },
-          ]}
-        />
+    <div>
+      <style>{MAIL_CSS}</style>
+      {done && <div style={{ marginBottom: 16 }}><Notice tone="ok">{done}</Notice></div>}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: `1px solid ${C.bds}` }}>
+        <Tabs style={{ borderBottom: "none", flex: 1, minWidth: 0 }} value={tab} onChange={setTab} items={[
+          { id: "inbox", label: "Réception", count: unreadCount || undefined },
+          { id: "sent", label: "Envoyés", count: sent.length || undefined, tone: failedSent ? "danger" : undefined },
+          { id: "snippets", label: "Modèles", count: SNIPPETS.length },
+        ]} />
+        <Button size="sm" variant="primary" icon={<Send style={{ width: 14, height: 14 }} />} onClick={() => openComposer(null)}>
+          Nouveau<span className="mb-hide-sm"> message</span>
+        </Button>
       </div>
 
-      <SubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as SubTab)} />
-
-      {tab === "compose"  && (
-        <ComposeView
-          onSent={refreshSent}
-          initial={initialComposerState}
-          onConsumed={() => setInitialComposerState(null)}
-          clients={clients}
-          clientsLoading={clientsLoading}
-          replyThreadId={replyThreadId}
-          replyMailbox={replyMailbox}
-        />
-      )}
-      {tab === "sent"     && <SentView sent={sent} />}
+      {tab === "inbox" && <InboxView onReply={handleReply} onCount={refreshUnread} />}
+      {tab === "sent" && <SentView sent={sent} />}
       {tab === "snippets" && <SnippetsView onLoad={loadSnippet} />}
-      {tab === "inbox"    && <InboxView onReply={handleReply} />}
+
+      {composer && (
+        <Workspace title={composer.title} subtitle={composer.threadId ? "La réponse s'ajoute à la conversation" : "Depuis bonjour@ooble.ca"} onClose={closeComposer}>
+          <style>{MAIL_CSS}</style>
+          <ComposeView
+            onSent={refreshSent}
+            initial={composer.state}
+            onConsumed={noop}
+            clients={clients}
+            clientsLoading={clientsLoading}
+            replyThreadId={composer.threadId}
+            replyMailbox={composer.mailbox}
+            onDirty={(d) => { dirty.current = d; }}
+            onDone={(text) => { dirty.current = false; setComposer(null); setDone(text); setTab(composer.threadId ? "inbox" : "sent"); }}
+          />
+        </Workspace>
+      )}
     </div>
   );
 };
