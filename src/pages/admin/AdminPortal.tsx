@@ -24,7 +24,6 @@ import MailboxPanel from "@/components/admin/MailboxPanel";
 import CampaignsPanel from "@/components/admin/CampaignsPanel";
 import PlatformPanel from "@/components/admin/PlatformPanel";
 import ClientsPanel from "@/components/admin/ClientsPanel";
-import AIFloatingChat from "@/components/admin/AIFloatingChat";
 import CommandPalette from "@/components/admin/CommandPalette";
 import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG } from "@/components/admin/adminTheme";
 import { UI_CSS } from "@/components/admin/ui";
@@ -517,7 +516,6 @@ const AdminPortal = () => {
           canSeeClients={allowedTabs.has("clients")}
         />
       )}
-      <AIFloatingChat />
     </div>
   );
 };
