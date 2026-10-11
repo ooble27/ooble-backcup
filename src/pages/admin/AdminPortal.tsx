@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, ArrowRightLeft, Power, BookUser, Menu, PanelLeftClose, PanelLeftOpen, Search, X, ChevronRight,
+  LayoutDashboard, Bell, Mail, ArrowRightLeft, Power, BookUser, Menu, Search, ChevronRight,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { type AdminOrder } from "@/lib/adminOrders";
@@ -113,13 +113,11 @@ const AdminPortal = () => {
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem("ooble.admin.rail") === "1"; } catch { return false; }
-  });
   const vw = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
-  const mode: "full" | "rail" | "drawer" = vw < 768 ? "drawer" : vw < 1180 || collapsed ? "rail" : "full";
+  // Ordinateur et tablette : menu toujours ouvert. Téléphone : menu d'icônes qu'on ouvre.
+  const mode: "full" | "drawer" = vw < 768 ? "drawer" : "full";
 
   const allowedTabs = useMemo(() => {
     const set = new Set<TabId>();
@@ -241,87 +239,81 @@ const AdminPortal = () => {
   if (selected) crumbs.push({ label: `Commande ${selected.ref}` });
   if (clientView) crumbs.push({ label: clientView.name });
 
-  const rail = mode === "rail";
   const sidebar = (inDrawer: boolean) => {
-    const compact = rail && !inDrawer;
+    // Sur téléphone : uniquement les icônes, plus grandes ; le nom de la page est dans la barre du haut.
+    const compact = inDrawer;
     return (
       <nav aria-label="Navigation du back-office" style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: FONT }}>
-        <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: compact ? "0 14px" : "0 16px", flexShrink: 0 }}>
-          <img src="/icons/icon-192.png" alt="" width={26} height={26} style={{ borderRadius: 7, flexShrink: 0 }} />
+        <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: compact ? "center" : "flex-start", gap: 12, padding: compact ? 0 : "0 12px 0 18px", flexShrink: 0 }}>
+          <img src="/icons/icon-192.png" alt="Ooble" width={compact ? 36 : 32} height={compact ? 36 : 32} style={{ borderRadius: 9, flexShrink: 0 }} />
           {!compact && (
             <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 14, color: C.t1, lineHeight: 1.2 }}>Ooble</p>
-              <p style={{ margin: 0, fontSize: 11.5, color: C.t3, lineHeight: 1.3 }}>Administration</p>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: C.t1, lineHeight: 1.2 }}>Ooble</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.3 }}>Administration</p>
             </div>
           )}
-          {inDrawer && (
-            <button type="button" className="sh-icon" aria-label="Fermer le menu" onClick={() => setDrawer(false)}
-              style={{ width: 34, height: 34, borderRadius: 8, border: "none", background: "transparent", color: C.t2, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-              <X style={{ width: 18, height: 18 }} />
-            </button>
+          {!compact && (
+            <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
+              style={{ width: 34, height: 34, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t3, flexShrink: 0 }}>
+              <ArrowLeft style={{ width: 17, height: 17 }} />
+            </Link>
           )}
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: compact ? "10px 8px" : "10px 10px 20px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: compact ? "4px 0 10px" : "4px 12px 14px", display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center" }}>
           {visibleGroups.map((g, gi) => (
-            <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 18) : 0 }}>
-              {g.label && !compact && <p style={{ margin: "0 10px 6px", fontSize: 11.5, color: C.t3 }}>{g.label}</p>}
-              {g.label && compact && <div style={{ height: 1, borderRadius: 1, background: C.bds, margin: "0 14px 10px" }} />}
+            <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 14) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              {g.label && !compact && <p style={{ margin: "0 12px 6px", fontSize: 12, color: C.t3, letterSpacing: "0.01em" }}>{g.label}</p>}
               {g.items.map((it) => {
                 const on = it.id === tab;
                 const Icon = it.icon;
                 const n = badges[it.id];
                 return (
                   <button key={it.id} type="button" className="sh-nav" onClick={() => setTab(it.id)} aria-current={on ? "page" : undefined}
-                    title={compact ? it.label : undefined}
+                    aria-label={compact ? it.label : undefined}
                     style={{
-                      position: "relative", width: "100%", display: "flex", alignItems: "center", gap: 10, height: 36, marginBottom: 2,
-                      padding: compact ? 0 : "0 10px", justifyContent: compact ? "center" : "flex-start", borderRadius: 8, border: "none",
-                      background: on ? C.l2 : "transparent", color: on ? C.t1 : C.t2, fontFamily: FONT, fontSize: 13.5, cursor: "pointer", textAlign: "left",
+                      position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+                      ...(compact
+                        ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
+                        : { width: "100%", height: 38, padding: "0 12px", borderRadius: 10, marginBottom: 1 }),
+                      background: on ? C.bg : "transparent",
+                      boxShadow: on ? `0 0 0 1px ${C.bds}, 0 1px 2px rgba(0,0,0,.12)` : "none",
+                      color: on ? C.t1 : C.t2, fontSize: 14.5,
                     }}>
-                    <Icon style={{ width: 16, height: 16, flexShrink: 0 }} strokeWidth={on ? 2 : 1.7} />
+                    <Icon style={{ width: compact ? 23 : 18, height: compact ? 23 : 18, flexShrink: 0, color: on ? C.brand : "currentColor" }} strokeWidth={on ? 2 : 1.75} />
                     {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>}
                     {!!n && (compact
-                      ? <span style={{ position: "absolute", top: 6, right: 8, width: 7, height: 7, borderRadius: 99, background: C.t1 }} />
-                      : <span style={{ fontSize: 11.5, minWidth: 20, height: 20, padding: "0 6px", borderRadius: 99, background: C.t1, color: C.bg, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
+                      ? <span style={{ position: "absolute", top: 1, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums", boxShadow: `0 0 0 2px ${C.ground}` }}>{n}</span>
+                      : <span style={{ fontSize: 12, minWidth: 22, height: 22, padding: "0 7px", borderRadius: 99, background: C.warnBg, color: C.warnText, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
                   </button>
                 );
               })}
             </div>
           ))}
         </div>
-        <div style={{ padding: compact ? "10px 8px" : "12px 12px", display: "grid", gap: 8, flexShrink: 0 }}>
-          {!compact && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-              <span style={{ width: 28, height: 28, borderRadius: 99, background: C.l3, color: C.t2, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ padding: compact ? "8px 0 calc(14px + env(safe-area-inset-bottom, 0px))" : "10px 12px 14px", display: "flex", alignItems: "center", justifyContent: compact ? "center" : "flex-start", gap: 10, flexShrink: 0 }}>
+          {compact ? (
+            <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
+              style={{ width: 52, height: 48, borderRadius: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t2 }}>
+              <ArrowLeft style={{ width: 21, height: 21 }} />
+            </Link>
+          ) : (
+            <>
+              <span title={user?.email ?? ""} style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 {(user?.email ?? "?")[0].toUpperCase()}
               </span>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 12.5, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
-                <p style={{ margin: 0, fontSize: 11.5, color: C.t3 }}>{ROLE_LABEL[topRole] ?? "Équipe"}</p>
+                <p style={{ margin: 0, fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
+                <p style={{ margin: "1px 0 0", fontSize: 12, color: C.t3 }}>{ROLE_LABEL[topRole] ?? "Équipe"}</p>
               </div>
-            </div>
+              <ThemeToggle />
+            </>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexDirection: compact ? "column" : "row" }}>
-            <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
-              style={{ height: 32, padding: compact ? 0 : "0 10px", width: compact ? 36 : undefined, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, color: C.t2, fontSize: 12.5, textDecoration: "none", whiteSpace: "nowrap" }}>
-              <ArrowLeft style={{ width: 15, height: 15 }} />{!compact && "L'app"}
-            </Link>
-            <span style={{ flex: compact ? undefined : 1 }} />
-            {!compact && <ThemeToggle />}
-            {!inDrawer && vw >= 768 && (
-              <button type="button" className="sh-icon" onClick={() => { const v = !collapsed; setCollapsed(v); try { localStorage.setItem("ooble.admin.rail", v ? "1" : "0"); } catch { /* ignoré */ } }}
-                aria-label={rail ? "Déplier le menu" : "Replier le menu"} title={rail ? "Déplier le menu" : "Replier le menu"}
-                style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "transparent", color: C.t3, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                {rail ? <PanelLeftOpen style={{ width: 16, height: 16 }} /> : <PanelLeftClose style={{ width: 16, height: 16 }} />}
-              </button>
-            )}
-          </div>
         </div>
       </nav>
     );
   };
 
-  const sideWidth = mode === "full" ? 248 : mode === "rail" ? 64 : 0;
+  const sideWidth = mode === "full" ? 264 : 0;
 
   const panel = vw >= 768; // même seuil que le mode « drawer »
 
@@ -336,7 +328,7 @@ const AdminPortal = () => {
       {drawer && mode === "drawer" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 60 }}>
           <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: C.overlay }} />
-          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "min(300px, 86vw)", background: C.bg, borderRight: `1px solid ${C.bds}`, paddingTop: "env(safe-area-inset-top, 0px)", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
+          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", paddingTop: "env(safe-area-inset-top, 0px)", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
             {sidebar(true)}
           </aside>
         </div>
