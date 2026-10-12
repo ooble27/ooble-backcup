@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import type { Database } from "@/integrations/supabase/types";
 import type { KycRequest, KycStatus } from "@/lib/adminOrders";
 import { logAdminAction } from "@/lib/audit";
@@ -31,11 +32,13 @@ const minsAgo = (iso: string) =>
   Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 
 export async function fetchKyc(): Promise<KycRequest[]> {
-  const { data, error } = await supabase
+  const data = await fetchAll((a, b) => supabase
     .from("kyc_verifications")
     .select("*, profiles(full_name, email)")
-    .order("created_at", { ascending: false });
-  if (error || !data) return [];
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(a, b)).catch(() => null);
+  if (!data) return [];
   return (data as RowWithProfile[]).map((r) => ({
     id: r.id,
     userId: r.user_id,

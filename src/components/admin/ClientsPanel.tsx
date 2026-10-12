@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchCached, peek } from "@/lib/adminCache";
+import { fetchAdminClients } from "@/lib/adminData";
 import { Download, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { nfCad } from "@/lib/adminOrders";
 import { regionName, countryName } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
@@ -90,11 +90,7 @@ export default function ClientsPanel({ onOpen }: { onOpen: (userId: string, name
 
   useEffect(() => {
     // Mémoire de la session seulement : la liste revient instantanément, puis se met à jour.
-    fetchCached("clients.admin", async () => {
-      const { data, error } = await supabase.rpc("admin_clients" as never);
-      if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as Client[];
-    }).then(setRows).catch((e: Error) => setErr(e.message));
+    fetchCached("clients.admin", () => fetchAdminClients<Client>()).then(setRows).catch((e: Error) => setErr(e.message));
   }, []);
 
   const all = rows ?? [];

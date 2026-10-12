@@ -71,7 +71,7 @@ export default function CommandPalette({ nav, orders, onClose, onTab, onOrder, o
 }) {
   const [q, setQ] = useState("");
   const [index, setIndex] = useState(0);
-  const [clients, setClients] = useState<ClientDirectoryEntry[] | null>(() => peek<ClientDirectoryEntry[]>("clients.directory2000")?.value ?? null);
+  const [clients, setClients] = useState<ClientDirectoryEntry[] | null>(() => peek<ClientDirectoryEntry[]>("clients.directory")?.value ?? null);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
 
@@ -80,7 +80,7 @@ export default function CommandPalette({ nav, orders, onClose, onTab, onOrder, o
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    if (canSeeClients) fetchCached("clients.directory2000", () => fetchClientDirectory(2000)).then(setClients).catch(() => setClients((c) => c ?? []));
+    if (canSeeClients) fetchCached("clients.directory", () => fetchClientDirectory()).then(setClients).catch(() => setClients((c) => c ?? []));
     return () => { document.body.style.overflow = prev; };
   }, [canSeeClients]);
 

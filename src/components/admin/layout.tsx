@@ -242,6 +242,20 @@ function useWidth() {
  * Tableau : en-tête collant, tri par colonne, ligne cliquable, pagination
  * légère. Sur téléphone, `mobile` rend chaque ligne en liste à deux niveaux.
  */
+function AutoMore({ onReach }: { onReach: () => void }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const cb = useRef(onReach);
+  cb.current = onReach;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) cb.current(); }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <div ref={ref} aria-hidden style={{ height: 1 }} />;
+}
+
 export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty, pageSize = 50, initialSort, selectedKey }: {
   rows: T[]; columns: Column<T>[]; rowKey: (row: T) => string; onRowClick?: (row: T) => void;
   mobile?: (row: T) => React.ReactNode; empty?: React.ReactNode; pageSize?: number;
@@ -270,10 +284,14 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
   if (rows.length === 0) return <div>{empty ?? <EmptyState title="Rien à afficher" />}</div>;
 
   const more = sorted.length > shown && (
+    <>
+    {/* Arrivé en bas, la suite se charge seule (50 lignes à la fois : fluide même avec des dizaines de milliers de lignes). */}
+    <AutoMore key={shown} onReach={() => setShown((n) => n + pageSize)} />
     <button type="button" className="ui-btn ui-btn-ghost" onClick={() => setShown((n) => n + pageSize)}
       style={{ marginTop: 12, height: 34, padding: "0 12px", borderRadius: 8, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
       Afficher {Math.min(pageSize, sorted.length - shown)} de plus · {sorted.length - shown} restantes
     </button>
+    </>
   );
 
   if (mobile && width < 640) {

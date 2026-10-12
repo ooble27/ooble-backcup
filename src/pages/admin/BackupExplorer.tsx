@@ -225,13 +225,13 @@ function Unlock({ onOpened }: { onOpened: (b: OpenedBackup) => void }) {
   );
 }
 
-function TopBar({ title, children, onBack }: { title: string; children?: React.ReactNode; onBack?: () => void }) {
+function TopBar({ title, children, onBack, bg }: { title: string; children?: React.ReactNode; onBack?: () => void; bg?: string }) {
   const back = { width: 36, height: 36, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, flexShrink: 0 } as const;
   return (
     <header style={{
       position: "sticky", top: 0, zIndex: 20, height: 56, boxSizing: "content-box",
       display: "flex", alignItems: "center", gap: 10, padding: "0 12px", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))",
-      background: C.bg,
+      background: bg ?? C.bg,
     }}>
       {onBack
         ? <button type="button" className="bx-nav" onClick={onBack} aria-label="Retour" style={{ ...back, background: "none", border: "none", cursor: "pointer" }}><ChevronLeft style={{ width: 20, height: 20 }} /></button>
@@ -404,7 +404,7 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
 
   return (
     <>
-      <TopBar title={narrow && view ? title : when ? `Sauvegarde du ${when}` : "Sauvegarde"} onBack={narrow && view ? () => setView(null) : undefined}>
+      <TopBar bg={narrow ? C.bg : C.ground} title={narrow && view ? title : when ? `Sauvegarde du ${when}` : "Sauvegarde"} onBack={narrow && view ? () => setView(null) : undefined}>
         <span title={intact ? "Empreintes vérifiées" : "Fichiers abîmés"} style={{
           display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: narrow ? "7px" : "5px 10px", borderRadius: 99,
           background: intact ? C.successBg : C.dangerBg, color: intact ? C.successText : C.dangerText, flexShrink: 0,
@@ -420,11 +420,12 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
       {narrow ? (
         <div>{view ? <div style={{ padding: "20px 16px 60px" }}>{content}</div> : sidebar}</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "264px minmax(0, 1fr)", minHeight: "calc(100vh - 57px)" }}>
+        // Comme le back-office : la colonne sur le fond, le contenu dans un écrin arrondi.
+        <div style={{ display: "grid", gridTemplateColumns: "264px minmax(0, 1fr)", minHeight: "calc(100vh - 57px)", background: C.ground, padding: "0 8px 8px 0" }}>
           <aside style={{ position: "sticky", top: 57, alignSelf: "start", maxHeight: "calc(100vh - 57px)", overflowY: "auto", overflowX: "hidden", minWidth: 0 }}>
             {sidebar}
           </aside>
-          <main style={{ padding: "28px 32px 80px", minWidth: 0 }}>{content}</main>
+          <main style={{ padding: "28px 32px 80px", minWidth: 0, borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }}>{content}</main>
         </div>
       )}
 

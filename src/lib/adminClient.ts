@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import type { Database } from "@/integrations/supabase/types";
 
 type KycStatus = Database["public"]["Enums"]["kyc_status"];
@@ -114,18 +115,20 @@ function pickFirstName(fullName: string | null | undefined, email: string | null
  * Annuaire des clients pour le composer d'e-mail : nécessite un compte staff
  * (la politique RLS `is_staff(auth.uid())` sur `profiles` doit être active).
  */
-export async function fetchClientDirectory(limit = 500): Promise<ClientDirectoryEntry[]> {
-  const [{ data, error }, origins] = await Promise.all([
-    supabase
+export async function fetchClientDirectory(limit = 200_000): Promise<ClientDirectoryEntry[]> {
+  // Tous les clients par tranches (l'annuaire sert aux campagnes : « Tous » doit vraiment être tous).
+  const [data, origins] = await Promise.all([
+    fetchAll((a, b) => supabase
       .from("profiles")
       .select("id, full_name, email, kyc_status, account_type, preferred_lang" as "id, full_name, email, kyc_status, account_type")
       .not("email", "is", null)
       .order("full_name", { ascending: true })
-      .limit(limit),
-    supabase.from("signup_origins" as never).select("user_id, region").limit(5000)
-      .then((r) => (r.data ?? []) as unknown as { user_id: string; region: string | null }[]),
+      .order("id")
+      .range(a, b), { max: limit }).catch(() => null),
+    fetchAll((a, b) => supabase.from("signup_origins" as never).select("user_id, region").order("user_id" as never).range(a, b) as unknown as PromiseLike<{ data: { user_id: string; region: string | null }[] | null; error: { message: string } | null }>)
+      .catch(() => [] as { user_id: string; region: string | null }[]),
   ]);
-  if (error || !data) return [];
+  if (!data) return [];
   const regionOf = new Map(origins.map((o) => [o.user_id, o.region]));
   return data
     .filter((p) => (p.email ?? "").length > 0)

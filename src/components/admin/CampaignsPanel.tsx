@@ -509,12 +509,12 @@ const CampaignsPanel = () => {
   const myEmail = user?.email ?? "";
   const [tab, setTab] = useState<SubTab>("templates");
   const [studio, setStudio] = useState<{ templateId: string; lang: EmailLang } | null>(null);
-  const [clients, setClients] = useState<ClientDirectoryEntry[]>(() => peek<ClientDirectoryEntry[]>("clients.directory2000")?.value ?? []);
-  const [clientsLoading, setClientsLoading] = useState(() => !peek("clients.directory2000"));
+  const [clients, setClients] = useState<ClientDirectoryEntry[]>(() => peek<ClientDirectoryEntry[]>("clients.directory")?.value ?? []);
+  const [clientsLoading, setClientsLoading] = useState(() => !peek("clients.directory"));
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
 
   useEffect(() => {
-    fetchCached("clients.directory2000", () => fetchClientDirectory(2000)).then((c) => { setClients(c); setClientsLoading(false); });
+    fetchCached("clients.directory", () => fetchClientDirectory()).then((c) => { setClients(c); setClientsLoading(false); });
     setCampaigns(loadCampaigns());
   }, []);
 

@@ -9,6 +9,7 @@
  * null) pour que l'UI puisse afficher des états vides sans planter.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import type { Database } from "@/integrations/supabase/types";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
@@ -81,11 +82,14 @@ export async function getVolumeMetrics({ periodDays }: { periodDays: number }): 
   const startCurrent = new Date(now.getTime() - periodDays * DAY_MS).toISOString();
   const startPrev = new Date(now.getTime() - 2 * periodDays * DAY_MS).toISOString();
 
-  const { data, error } = await supabase
+  // Par tranches : une période chargée peut dépasser 1 000 commandes.
+  const { data, error } = await fetchAll((a, b) => supabase
     .from("orders")
     .select("side, cad_amount, usdt_amount, created_at, status")
     .in("status", ACTIVE_STATUSES)
-    .gte("created_at", startPrev);
+    .gte("created_at", startPrev)
+    .order("id")
+    .range(a, b)).then((d) => ({ data: d, error: null }), () => ({ data: null, error: true }));
 
   if (error || !data) {
     return {
@@ -137,11 +141,13 @@ export async function getMarginMetrics({ periodDays }: { periodDays: number }): 
   const startCurrent = new Date(now.getTime() - periodDays * DAY_MS).toISOString();
   const startPrev = new Date(now.getTime() - 2 * periodDays * DAY_MS).toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await fetchAll((a, b) => supabase
     .from("orders")
     .select("cad_amount, created_at")
     .in("status", REVENUE_STATUSES)
-    .gte("created_at", startPrev);
+    .gte("created_at", startPrev)
+    .order("id")
+    .range(a, b)).then((d) => ({ data: d, error: null }), () => ({ data: null, error: true }));
 
   if (error || !data) {
     return { marginCad: 0, previousMarginCad: 0, changePct: null, completedCount: 0 };
@@ -183,12 +189,12 @@ const zeroStatuses = (): OrderStatusCounts => ({
 });
 
 export async function getOrderStatusCounts(): Promise<OrderStatusCounts> {
-  const { data, error } = await supabase.from("orders").select("status");
+  // Un comptage exact par état (sans charger les commandes) : juste à n'importe quel volume.
   const counts = zeroStatuses();
-  if (error || !data) return counts;
-  for (const r of data as { status: DbStatus }[]) {
-    counts[r.status] = (counts[r.status] ?? 0) + 1;
-  }
+  await Promise.all((Object.keys(counts) as DbStatus[]).map(async (st) => {
+    const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", st);
+    counts[st] = count ?? 0;
+  }));
   return counts;
 }
 
@@ -229,11 +235,8 @@ export async function getCustomerFunnel(): Promise<CustomerFunnel> {
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .eq("kyc_status", "approved" as DbKycStatus),
-    supabase.from("orders").select("user_id"),
-    supabase
-      .from("orders")
-      .select("user_id")
-      .gte("created_at", start30),
+    fetchAll<{ user_id: string }>((a, b) => supabase.from("orders").select("user_id").order("id").range(a, b)).then((d) => ({ data: d }), () => ({ data: [] })),
+    fetchAll<{ user_id: string }>((a, b) => supabase.from("orders").select("user_id").gte("created_at", start30).order("id").range(a, b)).then((d) => ({ data: d }), () => ({ data: [] })),
   ]);
 
   const total = totalRes.count ?? 0;
@@ -270,10 +273,12 @@ export async function getComplianceAlertsCount(): Promise<ComplianceAlertsCount>
   // Table récente, absente des types générés.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as unknown as { from: (t: string) => any };
-  const { data } = await db
+  const data = await fetchAll<{ type: string }>((a, b) => db
     .from("compliance_alerts")
     .select("type")
-    .in("status", ["nouveau", "en_cours"]);
+    .in("status", ["nouveau", "en_cours"])
+    .order("id")
+    .range(a, b)).catch(() => []);
   const rows = (data ?? []) as { type: string }[];
   return {
     open: rows.length,
@@ -297,11 +302,13 @@ const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
 export async function getDailyVolume({ days }: { days: number }): Promise<DailyVolumePoint[]> {
   const start = daysAgoIso(days);
 
-  const { data, error } = await supabase
+  const { data, error } = await fetchAll((a, b) => supabase
     .from("orders")
     .select("side, cad_amount, created_at, status")
     .in("status", ACTIVE_STATUSES)
-    .gte("created_at", start);
+    .gte("created_at", start)
+    .order("id")
+    .range(a, b)).then((d) => ({ data: d, error: null }), () => ({ data: null, error: true }));
 
   // Prépare les N buckets même si aucune donnée — évite les creux invisibles.
   const buckets: Map<string, DailyVolumePoint> = new Map();

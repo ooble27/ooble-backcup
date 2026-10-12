@@ -7,6 +7,7 @@
  * dans la base. L'UID reste identique côté composants.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import type { Database } from "@/integrations/supabase/types";
 import { DB_TO_NET, orderRef } from "@/lib/orders";
 import { CURRENT_OPERATOR, nfCad, nfUsdt, type AdminOrder, type OrderStatus } from "@/lib/adminOrders";
@@ -92,12 +93,15 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
   const { data: auth } = await supabase.auth.getSession();
   const uid = auth.session?.user?.id ?? null;
 
-  const { data, error } = await supabase
+  // Par tranches de 1 000 : au-delà, Supabase tronquerait la liste sans prévenir.
+  const data = await fetchAll((a, b) => supabase
     .from("orders")
     .select("*, profiles(full_name, email)")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(a, b)).catch(() => null);
 
-  if (error || !data) return [];
+  if (!data) return [];
   return (data as RowWithProfile[]).map((r) => toAdminOrder(r, uid));
 }
 

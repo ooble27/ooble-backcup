@@ -3,6 +3,7 @@
  * Lecture : tout le staff. Décision : admin et kyc_reviewer (RLS).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import type { Database } from "@/integrations/supabase/types";
 import type { BusinessOwner, KybDocKey } from "@/lib/kyb";
 import { logAdminAction } from "@/lib/audit";
@@ -34,11 +35,13 @@ export interface KybRequest {
 }
 
 export async function fetchKyb(): Promise<KybRequest[]> {
-  const { data, error } = await supabase
+  const data = await fetchAll((a, b) => supabase
     .from("business_verifications")
     .select("*, profiles(full_name, email, kyc_status)")
-    .order("created_at", { ascending: false });
-  if (error || !data) return [];
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(a, b)).catch(() => null);
+  if (!data) return [];
   return (data as unknown as RowWithProfile[]).map((r) => ({
     id: r.id,
     userId: r.user_id,

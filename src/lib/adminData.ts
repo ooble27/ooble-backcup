@@ -3,6 +3,7 @@
  * Le portail les précharge en arrière-plan ; les pages s'ouvrent alors avec les données déjà là.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import { fetchCached, prefetch } from "./adminCache";
 import { fetchDeposits, fetchPayouts, fetchReceipts, fetchScanState, fetchWallets } from "./settlement";
 import { fetchKyc } from "./adminKyc";
@@ -35,7 +36,7 @@ export const loadDeposits = () => fetchCached("st.deposits", () => fetchDeposits
 
 export const loadPlatformPreview = <T,>() => fetchCached<T>("pf.preview", () => resetTestData<T>({ action: "preview" }), { persist: true });
 export const loadBackupRuns = <T,>() => fetchCached<T[]>("pf.backups", async () => {
-  const { data } = await supabase.from("backup_runs" as never).select("*").order("started_at", { ascending: false }).limit(10);
+  const { data } = await supabase.from("backup_runs" as never).select("*").order("started_at", { ascending: false }).limit(40);
   return ((data ?? []) as unknown) as T[];
 }, { persist: true });
 
@@ -43,18 +44,14 @@ export const loadBackupRuns = <T,>() => fetchCached<T[]>("pf.backups", async () 
 export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; kyc?: boolean; clients?: boolean; compliance?: boolean; mailbox?: boolean; team?: boolean; campaigns?: boolean }) {
   // Listes avec données clients : en mémoire pour la session seulement.
   if (tabs.kyc) { prefetch("kyc", fetchKyc); prefetch("kyb", fetchKyb); }
-  if (tabs.clients) prefetch("clients.admin", async () => {
-    const { data, error } = await supabase.rpc("admin_clients" as never);
-    if (error) throw new Error(error.message);
-    return (data ?? []) as unknown[];
-  });
+  if (tabs.clients) prefetch("clients.admin", fetchAdminClients);
   if (tabs.compliance) prefetch("cmp", async () => {
     const [a, d, c] = await Promise.all([fetchAlerts(), fetchDeclarations(), fetchChecklist()]);
     return { a, d, c };
   });
   if (tabs.mailbox) prefetch("mail.threads", fetchThreads);
   if (tabs.team) prefetch("team", fetchTeam);
-  if (tabs.campaigns) prefetch("clients.directory2000", () => fetchClientDirectory(2000));
+  if (tabs.campaigns) prefetch("clients.directory", () => fetchClientDirectory());
   if (tabs.settlement) {
     prefetch("st.wallets", fetchWallets, { persist: true, keep: (w) => !!w.ok });
     prefetch("st.scan", fetchScanState, { persist: true });
@@ -65,8 +62,16 @@ export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; ky
   if (tabs.platform) {
     prefetch("pf.preview", () => resetTestData({ action: "preview" }), { persist: true, maxAgeMs: 5 * 60_000 });
     prefetch("pf.backups", async () => {
-      const { data } = await supabase.from("backup_runs" as never).select("*").order("started_at", { ascending: false }).limit(10);
+      const { data } = await supabase.from("backup_runs" as never).select("*").order("started_at", { ascending: false }).limit(40);
       return (data ?? []) as unknown[];
     }, { persist: true, maxAgeMs: 5 * 60_000 });
   }
+}
+
+/** Tous les clients (fonction admin_clients), par tranches : juste au-delà de 1 000 inscrits. */
+export async function fetchAdminClients<T = unknown>(): Promise<T[]> {
+  return fetchAll<T>((a, b) => supabase.rpc("admin_clients" as never)
+    .order("created_at" as never, { ascending: false })
+    .order("id" as never)
+    .range(a, b) as unknown as PromiseLike<{ data: T[] | null; error: { message: string } | null }>);
 }
