@@ -378,14 +378,6 @@
   html.has-notice .pt-safe-page { padding-top: 0; }
   html.has-notice .app-top { padding-top: 1.25rem; }
 
-  /* App installée sur iPhone / iPad : bande du haut floutée par iOS 26. Elle reste d'une couleur unie
-     (le flou d'une couleur unie est invisible) et le contenu commence en dessous. */
-  .ios-edge { display: none; }
-  html.ooble-ios-pwa .ios-edge {
-    display: block; position: fixed; top: 0; left: 0; right: 0; z-index: 70;
-    height: var(--ios-top); background: hsl(var(--background)); pointer-events: none;
-  }
-
   .deco-dots {
     background-image: radial-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1px);
     background-size: 24px 24px;

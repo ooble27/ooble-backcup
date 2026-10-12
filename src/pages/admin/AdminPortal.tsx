@@ -414,10 +414,6 @@ const AdminPortal = () => {
     <div className="admin-scope" style={panel
       ? { position: "fixed", inset: 0, overflow: "hidden", background: C.ground, color: C.t1, fontFamily: FONT }
       : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
-      {/* Bande pleine derrière la barre d'état (iPhone, iPad) : iOS reprend sa couleur au lieu de flouter
-          le haut de la page, et le voile du menu ouvert la couvre comme le reste.
-          Elle s'arrête 4 px au-dessus de l'écrin : le trait du haut de l'écrin reste visible, fermé comme celui du bas. */}
-      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: panel ? "calc(var(--a-top, env(safe-area-inset-top, 0px)) + 4px)" : "var(--a-top, env(safe-area-inset-top, 0px))", background: panel ? C.ground : C.bg, zIndex: 70 }} />
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
           {sidebar(false)}

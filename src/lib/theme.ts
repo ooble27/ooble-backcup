@@ -36,11 +36,6 @@ export function setTheme(theme: Theme): void {
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#1a1a1a" : "#ffffff");
   applyTheme(theme);
   listeners.forEach((cb) => cb(theme));
-  // App installée sur iPhone / iPad : iOS ne relit la couleur de la barre d'état qu'à l'ouverture.
-  // On recharge aussitôt la page, sinon une bande de l'ancien thème resterait tout en haut.
-  if (document.documentElement.classList.contains("ooble-ios-pwa")) {
-    window.setTimeout(() => window.location.reload(), 180);
-  }
 }
 
 /** À appeler au démarrage pour éviter le flash. */
