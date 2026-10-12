@@ -20,6 +20,7 @@ import CompliancePanel from "@/components/admin/CompliancePanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
 import KpiDashboard from "@/components/admin/KpiDashboard";
 import { DialNav } from "@/components/admin/DialNav";
+import { FocusNav, type FocusGroup } from "@/components/admin/FocusNav";
 import AnnouncementsPanel from "@/components/admin/AnnouncementsPanel";
 import SettlementPanel from "@/components/admin/SettlementPanel";
 import MailboxPanel from "@/components/admin/MailboxPanel";
@@ -413,7 +414,24 @@ const AdminPortal = () => {
     );
   };
 
-  const sideWidth = mode === "full" ? 264 : 0;
+  const sideWidth = mode === "full" ? (vw >= 1180 ? 300 : 272) : 0;
+
+  // Barre latérale (ordinateur, tablette) : grands mots et, à droite, une indication en caractères machine.
+  const FOCUS_LABEL: Partial<Record<TabId, string>> = { dashboard: "Accueil", announcements: "Bannière", kb: "Connaissances", techdocs: "Documentation" };
+  const FOCUS_META: Partial<Record<TabId, string>> = {
+    dashboard: "tableau de bord", settlement: "usdt", clients: "inscrits", kyc: "identités", accounting: "revenus", compliance: "canafe",
+    mailbox: "réception", campaigns: "fr · en", announcements: "site · app", team: "rôles", platform: "en ligne", kb: "fiches", manual: "chapitres", techdocs: "admin",
+  };
+  const focusGroups: FocusGroup[] = visibleGroups.map((g) => ({
+    label: g.label,
+    menu: g.menu ? { label: g.menu.label, meta: `${g.items.length} docs` } : undefined,
+    items: g.items.map((it) => ({
+      id: it.id,
+      label: FOCUS_LABEL[it.id] ?? it.label,
+      meta: it.id === "queue" ? (toProcess ? `${toProcess} à traiter` : "à jour") : it.id === "orders" ? (orders.length ? `${orders.length} ordres` : undefined) : FOCUS_META[it.id],
+      hot: it.id === "queue" && toProcess > 0,
+    })),
+  }));
 
   const panel = vw >= 768; // même seuil que le mode « drawer »
 
@@ -426,7 +444,7 @@ const AdminPortal = () => {
       : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
-          {sidebar(false)}
+          <FocusNav groups={focusGroups} current={tab} onSelect={(id) => setTab(id as TabId)} email={user?.email ?? ""} role={ROLE_LABEL[topRole] ?? "Équipe"} />
         </aside>
       )}
 
