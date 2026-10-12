@@ -215,7 +215,7 @@ function TopBar({ title, children, onBack }: { title: string; children?: React.R
   return (
     <header style={{
       position: "sticky", top: 0, zIndex: 20, height: 56, boxSizing: "content-box",
-      display: "flex", alignItems: "center", gap: 10, padding: "0 12px", paddingTop: "env(safe-area-inset-top, 0px)",
+      display: "flex", alignItems: "center", gap: 10, padding: "0 12px", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))",
       background: C.bg, borderBottom: `1px solid ${C.bds}`,
     }}>
       {onBack
@@ -572,7 +572,7 @@ function RowSheet({ cols, row, title, people, onClose }: {
         position: "absolute", top: 0, right: 0, bottom: 0, width: "min(460px, 100vw)", background: C.l1, boxShadow: C.panelShadow,
         display: "flex", flexDirection: "column", animation: "bx-sheet .22s cubic-bezier(.2,.8,.2,1) both",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(14px + env(safe-area-inset-top, 0px)) 16px 14px", borderBottom: `1px solid ${C.bds}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(14px + var(--a-top, env(safe-area-inset-top, 0px))) 16px 14px", borderBottom: `1px solid ${C.bds}` }}>
           <p style={{ margin: 0, flex: 1, fontSize: 14 }}>{title}</p>
           <button type="button" className="bx-btn" onClick={onClose} aria-label="Fermer" style={{ width: 34, height: 34, borderRadius: 9, border: "none", background: C.l2, color: C.t2, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <X style={{ width: 16, height: 16 }} />
@@ -678,7 +678,7 @@ function Viewer({ list, index, people, onIndex, onClose }: {
 
   return createPortal(
     <div role="dialog" aria-label={d.kind} className="bx-anim admin-scope" style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(8,8,10,0.96)", color: "#fff", display: "flex", flexDirection: "column", fontFamily: FONT, animation: "bx-fade .18s ease both" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(10px + env(safe-area-inset-top, 0px)) 12px 10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(10px + var(--a-top, env(safe-area-inset-top, 0px))) 12px 10px" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.kind}</p>
           <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(255,255,255,0.6)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

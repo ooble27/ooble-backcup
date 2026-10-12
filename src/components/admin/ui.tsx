@@ -239,7 +239,7 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
     <div className="admin-scope" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Espace de travail"}
       style={{ position: "fixed", inset: 0, zIndex: 2147482000, background: C.ground, color: C.t1, fontFamily: FONT, display: "flex", flexDirection: "column", animation: `ui-fade .2s ${UI_EASE}` }}>
       <UIStyles />
-      <header style={{ flexShrink: 0, paddingTop: "env(safe-area-inset-top, 0px)", background: C.ground }}>
+      <header style={{ flexShrink: 0, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.ground }}>
         <div style={{ height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 12px 0 10px" }}>
           <Button variant="ghost" aria-label={closeLabel} title={closeLabel} onClick={onClose} icon={<X style={{ width: 18, height: 18 }} />} />
           <div style={{ minWidth: 0, flex: "1 1 auto" }}>
@@ -281,12 +281,12 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
     <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147482500, fontFamily: FONT, color: C.t1, pointerEvents: "none" }}>
       <UIStyles />
       {/* Le voile s'arrête sous la barre d'état : iOS garde la couleur unie du haut au lieu de flouter. */}
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, top: "env(safe-area-inset-top, 0px)", background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, top: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
       <aside role="dialog" aria-modal="true" style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: `min(${width}px, 100vw)`, background: C.l1, boxShadow: C.panelShadow,
         display: "flex", flexDirection: "column", animation: `ui-slide .28s ${UI_EASE}`, pointerEvents: "auto",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(14px + env(safe-area-inset-top, 0px)) 16px 14px 20px", borderBottom: `1px solid ${C.bds}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(14px + var(--a-top, env(safe-area-inset-top, 0px))) 16px 14px 20px", borderBottom: `1px solid ${C.bds}` }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, color: C.t1 }}>{title}</div>
             {subtitle && <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{subtitle}</div>}

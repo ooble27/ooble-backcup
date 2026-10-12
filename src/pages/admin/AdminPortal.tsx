@@ -94,6 +94,12 @@ const SHELL_CSS = `
 /* Pas d'animation d'entrée : changer de page ne doit jamais clignoter. */
 .sh-page { animation: none }
 @media (prefers-reduced-motion: reduce) { .sh-page { animation: none } }
+/* Haut de l'écran. Dans l'app installée sur iPhone et iPad (iOS 26), le système floute la barre d'état et
+   environ 40 points en dessous ; aucun réglage ne l'enlève. On laisse donc cette bande au fond uni (le flou
+   d'une couleur unie ne se voit pas) et tout le contenu commence en dessous. */
+:root { --a-top: env(safe-area-inset-top, 0px); }
+html.ooble-ios-pwa { --a-top: calc(env(safe-area-inset-top, 0px) + 40px); } /* classe posée au démarrage (main.tsx) */
+@media (orientation: landscape) and (max-height: 500px) { html.ooble-ios-pwa { --a-top: env(safe-area-inset-top, 0px); } }
 /* iPhone et iPad : Safari agrandit la page dès qu'on touche un champ dont le texte fait moins de 16 px. */
 @supports (-webkit-touch-callout: none) {
   .admin-scope input:not([type=checkbox]):not([type=radio]):not([type=range]), .admin-scope textarea, .admin-scope select { font-size: 16px !important }
@@ -358,17 +364,17 @@ const AdminPortal = () => {
       : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {/* Bande pleine derrière la barre d'état (iPhone, iPad) : iOS reprend sa couleur au lieu de flouter
           le haut de la page, et le voile du menu ouvert ne la grise pas. */}
-      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: "calc(env(safe-area-inset-top, 0px) + 8px)", background: panel ? C.ground : C.bg, zIndex: 70 }} />
+      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: "calc(var(--a-top, env(safe-area-inset-top, 0px)) + 8px)", background: panel ? C.ground : C.bg, zIndex: 70 }} />
       {panel && (
-        <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
           {sidebar(false)}
         </aside>
       )}
 
       {drawer && mode === "drawer" && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 60 }}>
-          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, top: "env(safe-area-inset-top, 0px)", background: C.overlay }} />
-          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", paddingTop: "env(safe-area-inset-top, 0px)", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 80 }}>
+          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, top: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.overlay }} />
+          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
             {sidebar(true)}
           </aside>
         </div>
@@ -376,11 +382,11 @@ const AdminPortal = () => {
 
       {panel ? (
         /* Écrin : posé sur le fond, coins arrondis, aucun trait ne croise la barre latérale. */
-        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 0" }}>
+        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 0" }}>
           <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
             <header style={panel
               ? { flexShrink: 0, background: C.bg }
-              : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+              : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
               <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
                 {mode === "drawer" && (
                   <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
@@ -461,7 +467,7 @@ const AdminPortal = () => {
         <div style={{ minWidth: 0 }}>
         <header style={panel
           ? { flexShrink: 0, background: C.bg }
-          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
           <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
             {mode === "drawer" && (
               <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}

@@ -292,7 +292,7 @@ function Modal({ open, onClose, variant, label, children }: {
         className={`cmp-dialog ${variant === "full" ? "cmp-full" : "cmp-sheet"}`}
         data-show={show}
         style={variant === "full"
-          ? { background: C.ground, boxShadow: C.shadowHeavy, overflow: "hidden", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top, 0px)" }
+          ? { background: C.ground, boxShadow: C.shadowHeavy, overflow: "hidden", display: "flex", flexDirection: "column", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }
           : { background: C.bg, border: `1px solid ${C.bds}`, boxShadow: C.shadowHeavy, overflow: "hidden", display: "flex", flexDirection: "column" }}
       >
         {children}

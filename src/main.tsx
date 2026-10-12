@@ -9,6 +9,15 @@ import { supabase } from "./integrations/supabase/client";
 
 initTheme();
 captureSource();
+
+// App installée sur iPhone / iPad (iOS 26) : le système floute la barre d'état et ~40 points dessous.
+// La classe réserve cette bande à une couleur unie (voir --ios-top dans index.css).
+{
+  const nav = navigator as Navigator & { standalone?: boolean };
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
+  const installed = nav.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+  if (ios && installed) document.documentElement.classList.add("ooble-ios-pwa");
+}
 const { basename, redirect } = initLang();
 
 if (redirect) {
