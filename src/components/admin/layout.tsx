@@ -16,7 +16,7 @@ export function PageHeader({ title, description, actions, children }: {
     <header style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 320px", minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em", color: C.t1, textWrap: "balance" }}>{title}</h1>
+          <h1 style={{ margin: 0, fontSize: "clamp(28px, 2.6vw, 34px)", fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.1, color: C.t1, textWrap: "balance" }}>{title}</h1>
           {description && <p style={{ margin: "6px 0 0", fontSize: 13.5, lineHeight: 1.55, color: C.t3, maxWidth: 680 }}>{description}</p>}
         </div>
         {actions && <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>{actions}</div>}

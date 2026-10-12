@@ -125,7 +125,7 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
       ]} />
 
       <style>{`
-        .kd-title { margin: 12px 0 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+        .kd-title { margin: 12px 0 0; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
         .kd-todo { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 22px; letter-spacing: -0.02em; color: var(--a-t1); padding: 4px 0; }
         .kd-todo .kd-go { align-self: center; color: var(--a-t3); transition: transform .25s cubic-bezier(.22,1,.36,1), color .2s; }
         .kd-todo:hover .kd-go { transform: translateX(4px); color: var(--a-t1); }

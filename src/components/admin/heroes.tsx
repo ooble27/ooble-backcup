@@ -5,7 +5,7 @@
  * - Vérifications : jauge du taux d'approbation ;
  * - Conformité : le programme, un tiret par point ;
  * - Règlement auto : un réservoir par réseau (USDT et frais) ;
- * - Messagerie : le rythme des 14 derniers jours (une bulle par jour) ;
+ * - Messagerie : les messages du site des 14 derniers jours, une pastille par message ;
  * - Bannière : aperçu du site tel que les clients le voient ;
  * - Équipe : les visages de l'équipe ;
  * - Plateforme : les dernières sauvegardes, une pastille par nuit.
@@ -26,18 +26,19 @@ const ago = (iso: string) => {
 export const HERO_CSS = `
 .hz { display: grid; gap: 22px; margin-bottom: 30px; font-family: inherit; }
 @media (min-width: 1024px) { .hz { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); align-items: center; gap: 40px; } }
-.hz-title { margin: 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+.hz-title { margin: 0; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .hz-title .mute { color: var(--a-t3); }
 .hz-sub { margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--a-t2); max-width: 560px; }
 .hz-cap { margin-top: 8px; min-height: 36px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
 `;
 
-function Hero({ title, sub, children }: { title: React.ReactNode; sub?: React.ReactNode; children?: React.ReactNode }) {
+function Hero({ title, sub, action, children }: { title: React.ReactNode; sub?: React.ReactNode; action?: React.ReactNode; children?: React.ReactNode }) {
   return (
     <section className="hz" style={{ fontFamily: FONT }}>
       <div style={{ minWidth: 0 }}>
         <h2 className="hz-title">{title}</h2>
         {sub && <p className="hz-sub">{sub}</p>}
+        {action && <div style={{ marginTop: 18, display: "flex", gap: 8, flexWrap: "wrap" }}>{action}</div>}
       </div>
       {children && <div style={{ minWidth: 0 }}>{children}</div>}
     </section>
@@ -288,57 +289,68 @@ export function SettlementHero({ tanks, auto, maxCad, loading, toReview }: { tan
 
 /* ─── Messagerie ───────────────────────────────────────────── */
 
-interface HeroThread { lastMessageAt: string; hasUnread: boolean; status: string; clientName?: string | null; clientEmail?: string; subject?: string; lastSnippet?: string }
+interface HeroThread { createdAt: string; hasUnread: boolean; status: string; messageCount: number; mailbox: string }
 
-/** Les trois dernières conversations, empilées comme des notifications. */
-function ThreadStack({ threads }: { threads: HeroThread[] }) {
-  const recent = [...threads].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)).slice(0, 3);
+/** Messages laissés sur le site, 14 derniers jours : une pastille par message, empilées par jour. */
+function MessageDays({ threads }: { threads: HeroThread[] }) {
+  const days = useMemo(() => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const out = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(start); d.setDate(d.getDate() - 13 + i);
+      return { t: d.getTime(), label: i === 13 ? "auj." : d.toLocaleDateString("fr-CA", { weekday: "narrow" }), long: d.toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" }), items: [] as HeroThread[] };
+    });
+    for (const t of threads) {
+      const c = new Date(t.createdAt); c.setHours(0, 0, 0, 0);
+      out.find((d) => d.t === c.getTime())?.items.push(t);
+    }
+    return out;
+  }, [threads]);
+  const total = days.reduce((s, d) => s + d.items.length, 0);
+  const tone = (t: HeroThread) => (t.hasUnread ? C.vzCoral : t.messageCount > 1 ? C.vzGreen : C.vzGray);
+  const MAX = 6;
+  const tallest = Math.max(3, ...days.map((d) => Math.min(MAX, d.items.length) + (d.items.length > MAX ? 1 : 0)));
   return (
-    <div style={{ position: "relative", paddingBottom: (recent.length - 1) * 10 }}>
-      {recent.map((t, i) => {
-        const who = t.clientName || t.clientEmail || "Client";
-        return (
-          <div key={i} style={{
-            position: i ? "absolute" : "relative", left: i * 10, right: i * 10, top: i ? i * 10 : undefined, zIndex: 3 - i,
-            display: i ? "block" : "flex", gap: 12, alignItems: "flex-start", padding: i ? 0 : "14px 16px", height: i ? "100%" : undefined,
-            borderRadius: 12, background: i ? C.hover3 : C.l1, boxShadow: i ? "none" : `0 0 0 1px ${C.bds}, 0 10px 24px -16px rgba(0,0,0,.45)`, opacity: i ? 1 - i * 0.25 : 1,
-          }}>
-            {!i && <>
-              <span style={{ width: 34, height: 34, borderRadius: 99, background: t.hasUnread ? "#ffd2c4" : "#bfe8d6", color: "#14110f", fontSize: 13.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{who[0]?.toUpperCase()}</span>
-              <span style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <b style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</b>
-                  <span style={{ fontSize: 11.5, color: C.t3 }}>il y a {ago(t.lastMessageAt)}</span>
-                  {t.hasUnread && <span aria-label="non lue" style={{ width: 8, height: 8, borderRadius: 99, background: C.vzCoral, flexShrink: 0 }} />}
-                </span>
-                <span style={{ display: "block", fontSize: 13, color: C.t1, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span>
-                {t.lastSnippet && <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.lastSnippet}</span>}
-              </span>
-            </>}
+    <div style={{ display: "grid", gap: 10 }}>
+      <span style={{ fontSize: 12.5, color: C.t3 }}>Messages reçus du site, 14 derniers jours · {total}</span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(14, minmax(0, 1fr))", gap: 4, alignItems: "end", height: tallest * 16 }}>
+        {days.map((d) => (
+          <div key={d.t} title={`${d.long} : ${d.items.length} ${plural(d.items.length, "message")}`}
+            style={{ display: "flex", flexDirection: "column-reverse", alignItems: "center", gap: 4, height: "100%" }}>
+            {d.items.length === 0 && <span style={{ width: 4, height: 4, borderRadius: 99, background: C.bd }} />}
+            {d.items.slice(0, MAX).map((t, i) => (
+              <span key={i} style={{ width: "min(12px, 80%)", aspectRatio: "1", borderRadius: 99, background: tone(t) }} />
+            ))}
+            {d.items.length > MAX && <span style={{ fontSize: 10.5, color: C.t3 }}>+{d.items.length - MAX}</span>}
           </div>
-        );
-      })}
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(14, minmax(0, 1fr))", gap: 4, marginTop: -4 }}>
+        {days.map((d, i) => (
+          <span key={d.t} style={{ textAlign: "center", fontSize: 10.5, color: i === 13 ? C.t1 : C.t3, textTransform: "capitalize" }}>{d.label}</span>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: 12, color: C.t2 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Swatch color={C.vzCoral} round />Non lu</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Swatch color={C.vzGreen} round />Répondu</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Swatch color={C.vzGray} round />Lu</span>
+      </div>
     </div>
   );
 }
 
-export function MailboxHero({ threads, unread, loading }: { threads: HeroThread[]; unread: number; loading: boolean }) {
+export function MailboxHero({ threads, unread, loading, action }: { threads: HeroThread[]; unread: number; loading: boolean; action?: React.ReactNode }) {
   const open = threads.filter((t) => t.status === "open").length;
   return (
     <Hero
       title={loading ? <span className="mute">…</span> : unread ? (
-        <><span style={{ color: C.coral }}>{unread}</span> {plural(unread, "conversation")} <span className="mute">{plural(unread, "attend", "attendent")} une réponse.</span></>
+        <><span style={{ color: C.coral }}>{unread}</span> {plural(unread, "message")} <span className="mute">du site {plural(unread, "attend", "attendent")} une réponse.</span></>
       ) : (
-        <>Boîte de réception <span style={{ color: C.sage }}>à jour</span>.</>
+        <>Réception <span style={{ color: C.sage }}>à jour</span>.</>
       )}
-      sub={`${open} ${plural(open, "conversation ouverte", "conversations ouvertes")}. Les réponses partent de bonjour@ooble.ca ; le desk gros volumes reçoit sur otc@ooble.ca.`}
+      sub={<>Ici arrivent les messages laissés sur les pages Contact et OTC du site ({open} {plural(open, "conversation ouverte", "conversations ouvertes")}). Les courriels écrits à support@ooble.ca arrivent dans votre boîte habituelle.</>}
+      action={action}
     >
-      {threads.length > 0 && (
-        <div style={{ display: "grid", gap: 8 }}>
-          <span style={{ fontSize: 12.5, color: C.t3 }}>Dernières conversations</span>
-          <ThreadStack threads={threads} />
-        </div>
-      )}
+      <MessageDays threads={threads} />
     </Hero>
   );
 }

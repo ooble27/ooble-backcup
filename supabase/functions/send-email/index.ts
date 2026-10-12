@@ -344,6 +344,7 @@ async function handleContact(c: ContactPayload, req: Request, apiKey: string, fr
       last_message_at: new Date().toISOString(),
       has_unread: true,
       mailbox: otc ? "otc" : "support",
+      origin: "form", // seuls les messages du site apparaissent en Réception
     })
     .select("id")
     .single();

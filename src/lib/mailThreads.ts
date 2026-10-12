@@ -38,10 +38,12 @@ export interface MailMessage {
   createdAt: string;
 }
 
+/** Réception : uniquement les messages laissés sur le site (formulaires Contact et OTC). */
 export async function fetchThreads(limit = 50): Promise<MailThread[]> {
   const { data, error } = await supabase
     .from("mail_threads")
     .select("*")
+    .eq("origin", "form")
     .order("last_message_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
@@ -96,6 +98,9 @@ export async function createThread(params: {
       client_name: params.clientName ?? null,
       subject: params.subject,
       last_message_at: new Date().toISOString(),
+      // Envoi de l'équipe : gardé pour l'historique (Envoyés), jamais en Réception.
+      origin: "staff",
+      has_unread: false,
     })
     .select("id")
     .single();
@@ -133,14 +138,29 @@ export async function countUnread(): Promise<number> {
     .from("mail_threads")
     .select("*", { count: "exact", head: true })
     .eq("has_unread", true)
-    .eq("status", "open");
+    .eq("status", "open")
+    .eq("origin", "form");
   if (error) return 0;
   return count ?? 0;
 }
 
-/** Reply-To d'une réponse : la réponse du client revient dans le même fil. */
-export function threadReplyTo(threadId: string, mailbox: MailboxId = "support"): string {
-  return `${mailbox}+t.${threadId}@ooble.ca`;
+/** Reply-To : la réponse du client arrive dans la boîte courriel habituelle de l'équipe. */
+export function threadReplyTo(mailbox: MailboxId = "support"): string {
+  return `${mailbox}@ooble.ca`;
+}
+
+export interface SentRow { id: string; to: string; subject: string; sentAt: string; sentBy: string }
+
+/** Envoyés : tous les courriels partis du back-office, quel que soit l'appareil. */
+export async function fetchSentMessages(limit = 200): Promise<SentRow[]> {
+  const { data, error } = await supabase
+    .from("mail_messages")
+    .select("id, to_email, subject, created_at, from_email")
+    .eq("direction", "outbound")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as unknown as Record<string, string>[]).map((r) => ({ id: r.id, to: r.to_email, subject: r.subject ?? "(sans objet)", sentAt: r.created_at, sentBy: r.from_email }));
 }
 
 function mapThread(r: Record<string, unknown>): MailThread {

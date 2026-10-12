@@ -98,7 +98,7 @@ const SHELL_CSS = `
    un peu en dessous ; aucun réglage ne l'enlève. On laisse une petite bande au fond uni (le flou
    d'une couleur unie ne se voit pas) et tout le contenu commence en dessous. */
 :root { --a-top: env(safe-area-inset-top, 0px); }
-html.ooble-ios-pwa { --a-top: calc(env(safe-area-inset-top, 0px) + 10px); } /* classe posée au démarrage (main.tsx) */
+@media (min-width: 768px) { html.ooble-ios-pwa { --a-top: calc(env(safe-area-inset-top, 0px) + 14px); } } /* iPad installé (classe posée dans main.tsx) ; l'iPhone n'en a pas besoin */
 @media (orientation: landscape) and (max-height: 500px) { html.ooble-ios-pwa { --a-top: env(safe-area-inset-top, 0px); } }
 /* iPhone et iPad : Safari agrandit la page dès qu'on touche un champ dont le texte fait moins de 16 px. */
 @supports (-webkit-touch-callout: none) {
@@ -363,8 +363,8 @@ const AdminPortal = () => {
       ? { position: "fixed", inset: 0, overflow: "hidden", background: C.ground, color: C.t1, fontFamily: FONT }
       : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {/* Bande pleine derrière la barre d'état (iPhone, iPad) : iOS reprend sa couleur au lieu de flouter
-          le haut de la page, et le voile du menu ouvert ne la grise pas. */}
-      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: "calc(var(--a-top, env(safe-area-inset-top, 0px)) + 8px)", background: panel ? C.ground : C.bg, zIndex: 70 }} />
+          le haut de la page, et le voile du menu ouvert la couvre comme le reste. */}
+      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: panel ? "calc(var(--a-top, env(safe-area-inset-top, 0px)) + 8px)" : "var(--a-top, env(safe-area-inset-top, 0px))", background: panel ? C.ground : C.bg, zIndex: 70 }} />
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
           {sidebar(false)}
@@ -373,7 +373,7 @@ const AdminPortal = () => {
 
       {drawer && mode === "drawer" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 80 }}>
-          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, top: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.overlay }} />
+          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: C.overlay }} />
           <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
             {sidebar(true)}
           </aside>

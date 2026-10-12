@@ -1,5 +1,10 @@
 // Fonction edge Ooble — webhook e-mails entrants (Resend Inbound).
 //
+// Depuis le 2026-10-12, la Réception du back-office ne montre que les messages
+// laissés sur le site (formulaires Contact et OTC). Les courriels entrants sont
+// lus dans la boîte habituelle de l'équipe ; ceux qui arrivent encore ici sont
+// gardés avec origin = 'email' et n'apparaissent nulle part.
+//
 // Reçoit les e-mails envoyés à `support@ooble.ca` et à `otc@ooble.ca`
 // (desk gros volumes) et les insère dans la table `mail_messages`,
 // rattachés au bon thread. Le thread est identifié par le plus-addressing
@@ -273,6 +278,9 @@ Deno.serve(async (req) => {
       last_message_at: new Date().toISOString(),
       has_unread: true,
       mailbox,
+      // Les courriels arrivent dans la boîte habituelle de l'équipe : gardés ici
+      // pour mémoire seulement, jamais affichés en Réception (réservée au site).
+      origin: "email",
     })
     .select("id")
     .single();

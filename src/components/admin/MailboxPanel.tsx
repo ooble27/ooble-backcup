@@ -49,7 +49,7 @@ import {
 } from "@/lib/mailComposer";
 import {
   fetchThreads, fetchMessages, markThreadRead, archiveThread,
-  createThread, insertOutboundMessage, threadReplyTo, countUnread,
+  createThread, insertOutboundMessage, threadReplyTo, countUnread, fetchSentMessages, type SentRow,
   type MailThread, type MailMessage, type MailboxId,
 } from "@/lib/mailThreads";
 import { C, FONT, inputStyle } from "./adminTheme";
@@ -598,7 +598,7 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
         });
       }
 
-      const replyTo = usedThreadId ? threadReplyTo(usedThreadId, replyThreadId ? replyMailbox : "support") : undefined;
+      const replyTo = threadReplyTo(replyThreadId ? replyMailbox : "support");
       const res = await sendCustomEmail({
         to: r.email,
         subject: subj,
@@ -1229,13 +1229,13 @@ function SentView({ sent }: { sent: SentMail[] }) {
   ];
   return (
     <>
-      <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Historique des envois faits depuis cet appareil.</p>
+      <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Tous les courriels envoyés depuis le back-office, quel que soit l'appareil.</p>
       <DataTable
         rows={sent}
         columns={columns}
         rowKey={(m) => m.id}
         initialSort={{ key: "date", dir: "desc" }}
-        empty={<EmptyState icon={Mail} title="Aucun envoi" text="Aucun courriel envoyé depuis cet appareil pour l'instant." />}
+        empty={<EmptyState icon={Mail} title="Aucun envoi" text="Aucun courriel envoyé depuis le back-office pour l'instant." />}
         mobile={(m) => (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={m.subject} secondary={`à ${m.to} · ${dateFmt.format(new Date(m.sentAt))}`} /></div>
@@ -1400,7 +1400,7 @@ function InboxView({ onReply, onCount }: { onReply: (thread: MailThread) => void
           <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
         ) : list.length === 0 ? (
           <EmptyState icon={Inbox} title={threads.length ? "Rien ici" : "Aucune conversation"}
-            text={threads.length ? "Aucune conversation ne correspond." : "Les réponses des clients à support@ooble.ca et otc@ooble.ca arrivent ici, comme les courriels envoyés d'ici."} />
+            text={threads.length ? "Aucune conversation ne correspond." : "Les messages laissés sur les pages Contact et OTC du site arrivent ici."} />
         ) : list.map((t) => {
           const on = selected?.id === t.id;
           return (
@@ -1482,7 +1482,15 @@ const MailboxPanel = () => {
   const [done, setDone] = useState<string | null>(null);
   const dirty = useRef(false);
 
-  useEffect(() => { setSent(loadSent()); }, []);
+  // Envoyés : la base (tous les appareils) + les échecs gardés sur cet appareil.
+  const refreshSent = useCallback(() => {
+    const local = loadSent().filter((m) => !m.outcome.ok);
+    const merge = (rows: SentRow[]) => [...rows.map<SentMail>((r) => ({ id: r.id, to: r.to, subject: r.subject, template: "newsletter", vars: {}, sentAt: r.sentAt, sentBy: r.sentBy, outcome: { ok: true } })), ...local];
+    const cached = peek<SentRow[]>("mail.sent")?.value;
+    if (cached) setSent(merge(cached));
+    fetchSentMessages().then((rows) => { put("mail.sent", rows); setSent(merge(rows)); });
+  }, []);
+  useEffect(refreshSent, [refreshSent]);
   useEffect(() => {
     let active = true;
     fetchCached("clients.directory", () => fetchClientDirectory()).then((rows) => {
@@ -1495,7 +1503,6 @@ const MailboxPanel = () => {
   const refreshUnread = useCallback(() => { countUnread().then(setUnreadCount); }, []);
   useEffect(refreshUnread, [refreshUnread, tab]);
 
-  const refreshSent = () => setSent(loadSent());
   const failedSent = useMemo(() => sent.filter((m) => !m.outcome.ok).length, [sent]);
 
   const openComposer = (state: ComposerState | null, title = "Nouveau message", threadId: string | null = null, mailbox: MailboxId = "support") => {
@@ -1524,18 +1531,15 @@ const MailboxPanel = () => {
     <div>
       <style>{MAIL_CSS}</style>
       {done && <div style={{ marginBottom: 16 }}><Notice tone="ok">{done}</Notice></div>}
-      <MailboxHero threads={heroThreads ?? []} unread={unreadCount} loading={heroThreads === null} />
+      {/* Le bouton vit sous la phrase d'en-tête : il ne recouvre plus les onglets sur téléphone. */}
+      <MailboxHero threads={heroThreads ?? []} unread={unreadCount} loading={heroThreads === null}
+        action={<Button variant="primary" icon={<Send style={{ width: 15, height: 15 }} />} onClick={() => openComposer(null)}>Nouveau message</Button>} />
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: `1px solid ${C.bds}` }}>
-        <Tabs style={{ borderBottom: "none", flex: 1, minWidth: 0 }} value={tab} onChange={setTab} items={[
-          { id: "inbox", label: "Réception", count: unreadCount || undefined },
-          { id: "sent", label: "Envoyés", count: sent.length || undefined, tone: failedSent ? "danger" : undefined },
-          { id: "snippets", label: "Modèles", count: SNIPPETS.length },
-        ]} />
-        <Button size="sm" variant="primary" icon={<Send style={{ width: 14, height: 14 }} />} onClick={() => openComposer(null)}>
-          Nouveau<span className="mb-hide-sm"> message</span>
-        </Button>
-      </div>
+      <Tabs value={tab} onChange={setTab} items={[
+        { id: "inbox", label: "Réception", count: unreadCount || undefined },
+        { id: "sent", label: "Envoyés", count: sent.length || undefined, tone: failedSent ? "danger" : undefined },
+        { id: "snippets", label: "Modèles", count: SNIPPETS.length },
+      ]} />
 
       {tab === "inbox" && <InboxView onReply={handleReply} onCount={refreshUnread} />}
       {tab === "sent" && <SentView sent={sent} />}

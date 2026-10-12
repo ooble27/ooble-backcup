@@ -187,7 +187,7 @@ const PANEL_CSS = `
 @keyframes cmp-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)) } 50% { transform: translateY(-8px) rotate(var(--r, 0deg)) } }
 .cmp-float { animation: cmp-float 7s ease-in-out infinite; }
 .cmp-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; padding: 8px 0 4px; }
-.cmp-hero-title { margin: 14px 0 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+.cmp-hero-title { margin: 14px 0 0; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .cmp-hero-art { display: none; }
 @media (min-width: 900px) { .cmp-hero { grid-template-columns: minmax(0, 1fr) minmax(260px, 400px); } .cmp-hero-art { display: block; } }
 /* Champs « à même la page » : pas de cadre, juste une teinte au survol et pendant la saisie. */
@@ -1172,7 +1172,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const audienceList = (
     <div style={{ padding: wide ? "26px 30px 60px" : "20px 18px 40px" }}>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, flex: 1, fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1 }}>
+        <h2 style={{ margin: 0, flex: 1, fontSize: "clamp(34px, 4.4vw, 56px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1 }}>
           <span style={{ color: recipients.length ? "var(--a-coral)" : C.t3, fontVariantNumeric: "tabular-nums" }}>{recipients.length}</span> destinataire{recipients.length > 1 ? "s" : ""}
         </h2>
         {recipients.length > 0 && <Button variant="ghost" size="sm" onClick={() => setRecipients([])}>Tout retirer</Button>}
@@ -1236,7 +1236,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const sendStep = (
     <WsPane style={{ flex: 1 }}>
       <div className="ui-in" style={{ maxWidth: 720, margin: "0 auto", padding: wide ? "40px 28px 80px" : "24px 18px 80px" }}>
-        <h2 style={{ margin: 0, fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1.02 }}>
+        <h2 style={{ margin: 0, fontSize: "clamp(34px, 4.4vw, 56px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1.02 }}>
           Tout est <span style={{ color: "var(--a-coral)" }}>prêt</span> ?<br /><span style={{ color: C.t3 }}>Relisez, testez, envoyez.</span>
         </h2>
 

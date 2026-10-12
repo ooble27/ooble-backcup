@@ -14,7 +14,7 @@ import type { CustomerFunnel } from "@/lib/kpi";
 import { C, FONT } from "./adminTheme";
 
 export const VIZ_CSS = `
-.vz-head { margin: 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+.vz-head { margin: 0; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .vz-head .mute { color: var(--a-t3); }
 .vz-sub { margin: 8px 0 0; font-size: 14px; color: var(--a-t2); line-height: 1.5; }
 .vz-cap { min-height: 36px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
@@ -154,7 +154,7 @@ export function ClientsPopulation({ clients }: { clients: PopClient[] | null }) 
   return (
     <div style={{ fontFamily: FONT, display: "grid", gap: 22 }} className="lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
       <div style={{ minWidth: 0 }}>
-        <p className="vz-head" style={{ fontSize: "clamp(28px, 3vw, 40px)" }}>
+        <p className="vz-head" style={{ fontSize: "clamp(34px, 4.4vw, 56px)" }}>
           <span style={{ color: C.coral }}>{nf.format(n)}</span> {plural(n, "personne")} <span className="mute">{plural(n, "a", "ont")} rejoint Ooble.</span>
         </p>
         <p className="vz-sub">
@@ -316,7 +316,7 @@ export function QueueWait({ orders, onOpen, mine, unassigned }: { orders: AdminO
 
   return (
     <div ref={box} style={{ fontFamily: FONT }}>
-      <p className="vz-head" style={{ fontSize: "clamp(28px, 3vw, 40px)" }}>
+      <p className="vz-head" style={{ fontSize: "clamp(34px, 4.4vw, 56px)" }}>
         {paid.length ? (
           <><span style={{ color: C.coral }}>{paid.length}</span> {plural(paid.length, "commande payée vous attend", "commandes payées vous attendent")}.</>
         ) : (
