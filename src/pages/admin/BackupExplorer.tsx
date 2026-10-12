@@ -11,6 +11,7 @@ import ThemeToggle from "@/components/app/ThemeToggle";
 import { BackupOpenError, openBackup, type BackupEntry, type OpenStep, type OpenedBackup } from "@/lib/backupOpen";
 import { MAIN_TABLES, columnLabel, docInfo, formatValue, parseCsv, tableLabel } from "@/lib/backupLabels";
 import { useNoZoom } from "@/lib/noZoom";
+import { readCopySql, readPgDump, type DumpTable } from "@/lib/pgDump";
 
 /*
  * Explorateur de sauvegarde (/admin/sauvegarde) : on choisit le fichier .gpg
@@ -140,6 +141,10 @@ function Unlock({ onOpened }: { onOpened: (b: OpenedBackup) => void }) {
           Choisissez un fichier <span style={{ color: C.t1 }}>ooble-backup-….gpg</span> téléchargé depuis GitHub, puis tapez votre phrase secrète.
           Tout s'ouvre dans cette page : rien n'est envoyé, et tout disparaît quand vous la fermez.
         </p>
+        <a href="https://github.com/ooble27/Ooble-/releases" target="_blank" rel="noopener noreferrer" className="bx-btn"
+          style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: C.t1, textDecoration: "underline", textUnderlineOffset: 3 }}>
+          Où trouver les sauvegardes : GitHub › Ooble- › Releases (connecté à votre compte)
+        </a>
 
         <input ref={input} type="file" style={{ display: "none" }} onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(null); }} />
         <button type="button" className="bx-btn" onClick={() => input.current?.click()} disabled={busy}
@@ -255,11 +260,44 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
 
   const csvs = useMemo(() => new Map(backup.entries.filter((e) => /^lisible\/[^/]+\.csv$/.test(e.path))
     .map((e) => [e.path.slice(8, -4), e])), [backup]);
+  // Sauvegarde sans export lisible (ou table absente de l'export) : les tables sont relues dans la base
+  // sauvegardée elle-même (db/public.dump), et les comptes dans db/auth-data.sql (sans mots de passe).
+  const [dump, setDump] = useState<Map<string, DumpTable> | null>(null);
+  const [dumpState, setDumpState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  useEffect(() => {
+    const names = Object.keys(backup.manifest?.tables_after ?? {});
+    const missing = names.some((n) => !csvs.has(n)) || !csvs.has("auth_users") || names.length === 0;
+    const pub = backup.entries.find((e) => e.path === "db/public.dump");
+    if (!missing || !pub) return;
+    let alive = true;
+    setDumpState("loading");
+    (async () => {
+      try {
+        const m = await readPgDump(pub.data);
+        const auth = backup.entries.find((e) => e.path === "db/auth-data.sql");
+        if (auth && !csvs.has("auth_users")) {
+          const u = readCopySql(new TextDecoder().decode(auth.data), "auth.users");
+          if (u) m.set("auth_users", { ...u, name: "auth_users" });
+        }
+        if (alive) { setDump(m); setDumpState("ready"); }
+      } catch {
+        if (alive) setDumpState("error");
+      }
+    })();
+    return () => { alive = false; };
+  }, [backup, csvs]);
+
   const cache = useRef(new Map<string, Table>());
   const table = (name: string): Table | null => {
     if (cache.current.has(name)) return cache.current.get(name)!;
     const e = csvs.get(name);
-    if (!e) return null;
+    if (!e) {
+      const d = dump?.get(name);
+      if (!d) return null;
+      const t = { name, columns: d.columns, rows: d.rows };
+      cache.current.set(name, t);
+      return t;
+    }
     const [columns = [], ...rows] = parseCsv(new TextDecoder().decode(e.data));
     const t = { name, columns, rows };
     cache.current.set(name, t);
@@ -277,21 +315,22 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [csvs]);
+  }, [csvs, dump]);
 
   const counts: Record<string, number> = useMemo(() => {
     const out: Record<string, number> = { ...(backup.manifest?.tables_after ?? {}) };
     for (const name of csvs.keys()) if (!(name in out)) out[name] = Math.max(0, (table(name)?.rows.length ?? 0));
+    if (dump) for (const [name, d] of dump) if (!(name in out)) out[name] = d.rows.length;
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backup, csvs]);
+  }, [backup, csvs, dump]);
 
   const tableNames = useMemo(() => {
-    const all = new Set([...Object.keys(counts), ...csvs.keys()]);
+    const all = new Set([...Object.keys(counts), ...csvs.keys(), ...(dump?.keys() ?? [])]);
     const main = MAIN_TABLES.filter((t) => all.has(t));
     const rest = [...all].filter((t) => !(MAIN_TABLES as readonly string[]).includes(t)).sort((a, b) => tableLabel(a).localeCompare(tableLabel(b)));
     return { main, rest };
-  }, [counts, csvs]);
+  }, [counts, csvs, dump]);
 
   const owners = useMemo(() => {
     const m = new Map<string, number>();
@@ -309,14 +348,15 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
       <NavGroup label="Documents" />
       <NavItem icon={FolderOpen} label="Tous les documents" count={docs.length} on={view?.kind === "docs" && view.owner === null} onClick={() => go({ kind: "docs", owner: null })} />
       <NavGroup label="Données" />
-      {csvs.size === 0 && <p style={{ margin: "4px 10px 8px", fontSize: 12, lineHeight: 1.5, color: C.t3 }}>Pas de tableaux lisibles dans cette sauvegarde (voir Vue d'ensemble).</p>}
+      {dumpState === "loading" && <p style={{ margin: "4px 10px 8px", fontSize: 12, lineHeight: 1.5, color: C.t3, display: "flex", gap: 6, alignItems: "center" }}><Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />Lecture de la base sauvegardée…</p>}
+      {dumpState === "error" && csvs.size === 0 && <p style={{ margin: "4px 10px 8px", fontSize: 12, lineHeight: 1.5, color: C.t3 }}>Base illisible dans le navigateur : restauration nécessaire (voir Vue d'ensemble).</p>}
       {tableNames.main.map((t) => (
         <NavItem key={t} icon={t === "auth_users" || t === "profiles" ? Users : Database} label={tableLabel(t)} count={counts[t]}
-          disabled={!csvs.has(t)} on={view?.kind === "table" && view.name === t} onClick={() => go({ kind: "table", name: t })} />
+          disabled={!csvs.has(t) && !dump?.has(t)} on={view?.kind === "table" && view.name === t} onClick={() => go({ kind: "table", name: t })} />
       ))}
       {tableNames.rest.length > 0 && <NavGroup label="Autres tables" />}
       {tableNames.rest.map((t) => (
-        <NavItem key={t} label={tableLabel(t)} count={counts[t]} disabled={!csvs.has(t)}
+        <NavItem key={t} label={tableLabel(t)} count={counts[t]} disabled={!csvs.has(t) && !dump?.has(t)}
           on={view?.kind === "table" && view.name === t} onClick={() => go({ kind: "table", name: t })} />
       ))}
     </nav>
@@ -329,7 +369,7 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
     <div key={JSON.stringify(view)} className="bx-anim" style={{ animation: "bx-in .22s ease" }}>
       {view.kind === "overview" && (
         <Overview when={when} intact={intact} backup={backup} counts={counts} docs={docs} owners={owners} people={people}
-          hasCsv={csvs.size > 0} go={go} />
+          hasCsv={csvs.size > 0 || !!dump?.size} go={go} />
       )}
       {view.kind === "table" && <TableView key={view.name} table={table(view.name)} label={tableLabel(view.name)} people={people} />}
       {view.kind === "docs" && (
@@ -492,6 +532,16 @@ function TableView({ table, label, people }: { table: Table | null; label: strin
   const cell = (col: string, raw: string) => (col === "user_id" && people.get(raw)?.name) || formatValue(raw);
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(PAGE);
+  // Toutes les lignes, au fil du défilement : la suite se charge seule quand on arrive en bas.
+  const box = useRef<HTMLDivElement | null>(null);
+  const end = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = end.current;
+    if (!el) return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShown((n) => n + PAGE * 2); }, { root: box.current, rootMargin: "400px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [table]);
   const [row, setRow] = useState<string[] | null>(null);
 
   const rows = useMemo(() => {
@@ -521,7 +571,7 @@ function TableView({ table, label, people }: { table: Table | null; label: strin
         </label>
       </div>
 
-      <div style={{ marginTop: 18, border: `1px solid ${C.bds}`, borderRadius: 10, overflow: "auto", maxHeight: "calc(100vh - 220px)" }}>
+      <div ref={box} style={{ marginTop: 18, border: `1px solid ${C.bds}`, borderRadius: 10, overflow: "auto", maxHeight: "calc(100vh - 220px)" }}>
         <table style={{ borderCollapse: "separate", borderSpacing: 0, width: "100%", fontSize: 12.5 }}>
           <thead>
             <tr>
@@ -547,11 +597,12 @@ function TableView({ table, label, people }: { table: Table | null; label: strin
           </tbody>
         </table>
         {rows.length === 0 && <p style={{ margin: 0, padding: 24, textAlign: "center", fontSize: 13, color: C.t3 }}>{q ? "Aucun résultat." : "Table vide."}</p>}
+        <div ref={end} aria-hidden style={{ height: 1 }} />
       </div>
       {rows.length > shown && (
-        <button type="button" className="bx-btn" onClick={() => setShown((n) => n + PAGE)}
+        <button type="button" className="bx-btn" onClick={() => setShown(rows.length)}
           style={{ marginTop: 12, height: 36, padding: "0 14px", borderRadius: 9, border: `1px solid ${C.bds}`, background: "none", color: C.t2, fontFamily: FONT, fontSize: 12.5, cursor: "pointer" }}>
-          Afficher {Math.min(PAGE, rows.length - shown)} lignes de plus · {fmtNum(rows.length - shown)} restantes
+          Tout afficher · {fmtNum(rows.length - shown)} lignes restantes
         </button>
       )}
 

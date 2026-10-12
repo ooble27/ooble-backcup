@@ -6,10 +6,10 @@ import type { KybDocKey, OwnerRole } from "@/lib/kyb";
 import { useAuth } from "@/lib/auth";
 import BusinessMark from "@/components/app/BusinessMark";
 import { C, FONT } from "./adminTheme";
-import { Button, Field, Notice, TextArea, Workspace, WsPane } from "./ui";
-import { DataTable, EmptyState, KeyValues, Pill, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import { Button, Notice, TextArea, Workspace, WsPane } from "./ui";
+import { Avatar, DataTable, EmptyState, Pill, Tabs, TwoLine, type Column, type Tone } from "./layout";
 import { KycHero } from "./heroes";
-import DocFrame from "./DocFrame";
+import { DocViewer, Facts, Section } from "./Dossier";
 
 type Filter = "pending" | "approved" | "rejected";
 
@@ -38,7 +38,6 @@ const BusinessKycPanel = () => {
   const [loading, setLoading] = useState(() => !peek("kyb"));
   const [tab, setTab] = useState<Filter>("pending");
   const [detail, setDetail] = useState<KybRequest | null>(null);
-  const [doc, setDoc] = useState<KybDocKey>("incorporation");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +56,6 @@ const BusinessKycPanel = () => {
 
   const open = (r: KybRequest) => {
     setDetail(r); setNote(""); setError(null); setResetStep("idle");
-    setDoc((Object.keys(DOC_LABELS) as KybDocKey[]).find((k) => r.documents[k]) ?? "incorporation");
   };
 
   const decide = async (decision: "approved" | "rejected") => {
@@ -114,82 +112,102 @@ const BusinessKycPanel = () => {
 
       {d && (
         <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetail(null)} panes>
-          <div className="grid flex-1 grid-cols-1 gap-2 lg:gap-0 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden" style={{ minHeight: 0 }}>
-            <WsPane style={{ padding: "20px 24px 60px", display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
-                {docKeys.map((k) => (
-                  <button key={k} type="button" onClick={() => setDoc(k)} className="ui-btn"
-                    style={{ height: 32, padding: "0 12px", borderRadius: 8, border: `1px solid ${doc === k ? C.bd : "transparent"}`, background: doc === k ? C.l2 : "transparent", color: doc === k ? C.t1 : d.documents[k] ? C.t2 : C.t3, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
-                    {DOC_LABELS[k]}{!d.documents[k] && " · non fourni"}
-                  </button>
-                ))}
-              </div>
-              <DocFrame key={`${d.id}:${doc}`} label={DOC_LABELS[doc]} path={d.documents[doc]} load={load} height={620} />
+          <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-2 lg:overflow-hidden" style={{ minHeight: 0 }}>
+            {/* Les pièces de l'entreprise en grand, les autres en vignettes dessous. */}
+            <WsPane flat className="h-[64vh] lg:h-auto" style={{ padding: "4px 8px 12px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <DocViewer docs={docKeys.map((k) => ({ key: k, label: DOC_LABELS[k], path: d.documents[k] }))} load={load} />
             </WsPane>
 
-            <WsPane flat style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <BusinessMark name={d.legalName} size="md" />
-                <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={d.legalName} secondary={`${d.contactName} · ${d.email}`} /></div>
-                <Pill tone={STATUS[d.status]?.[1]} dot>{STATUS[d.status]?.[0] ?? d.status}</Pill>
-              </div>
-              <KeyValues items={[
-                ["Immatriculation", d.jurisdiction ?? "—"],
-                ["NEQ / BN", d.businessNumber ?? "—"],
-                ["Siège", d.address],
-                ["Téléphone", d.phone ?? "—"],
-                ["Site web", d.website ?? "—"],
-                ["Activité", d.activity],
-                ["Identité du responsable", <Pill key="k" tone={STATUS[d.contactKyc]?.[1]} dot>{STATUS[d.contactKyc]?.[0] ?? d.contactKyc}</Pill>],
-              ]} />
+            <WsPane style={{ display: "flex", flexDirection: "column", fontFamily: FONT }}>
+              <div style={{ flex: 1, padding: "26px 26px 20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <BusinessMark name={d.legalName} size="md" />
+                  <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={d.contactName} secondary={d.email} /></div>
+                  <Pill tone={STATUS[d.status]?.[1]} dot>{STATUS[d.status]?.[0] ?? d.status}</Pill>
+                </div>
+                <p style={{ margin: "26px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1.05, textWrap: "balance" } as React.CSSProperties}>{d.legalName}</p>
+                <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t3 }}>{d.activity || "Activité non précisée"} · soumise le {fmtDate(d.createdAt)}</p>
 
-              <h3 style={{ margin: "26px 0 4px", fontSize: 14, fontWeight: 500 }}>Administrateurs et propriétaires</h3>
-              <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t3 }}>{d.owners.length} personne{d.owners.length > 1 ? "s" : ""} · parts déclarées : {owned} %</p>
-              <div style={{ borderTop: `1px solid ${C.bds}` }}>
-                {d.owners.map((o, i) => (
-                  <div key={i} style={{ padding: "10px 0", borderBottom: `1px solid ${C.bds}`, display: "flex", gap: 12, alignItems: "baseline" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={o.name} secondary={[ROLE_LABELS[o.role] ?? o.role, o.birthDate ? `né(e) le ${fmtDate(o.birthDate)}` : null, o.country].filter(Boolean).join(" · ")} /></div>
-                    <span style={{ fontSize: 13, color: C.t2, fontVariantNumeric: "tabular-nums" }}>{o.role === "director" || o.ownership == null ? "—" : `${o.ownership} %`}</span>
+                <Section title="Entreprise">
+                  <Facts items={[
+                    ["Immatriculation", d.jurisdiction],
+                    ["NEQ / BN", d.businessNumber],
+                    ["Téléphone", d.phone],
+                    ["Site web", d.website ? <a key="w" href={/^https?:/i.test(d.website) ? d.website : `https://${d.website}`} target="_blank" rel="noopener noreferrer" style={{ color: C.t1, textDecoration: "underline", textUnderlineOffset: 3 }}>{d.website}</a> : null],
+                  ]} />
+                  <div style={{ marginTop: 18 }}><Facts cols={1} items={[["Siège", d.address]]} /></div>
+                </Section>
+
+                <Section title="Responsable" hint={`${d.contactName} · identité`}>
+                  <Pill tone={STATUS[d.contactKyc]?.[1]} dot>{STATUS[d.contactKyc]?.[0] ?? d.contactKyc}</Pill>
+                </Section>
+
+                <Section title="Administrateurs et propriétaires" hint={`${d.owners.length} personne${d.owners.length > 1 ? "s" : ""} · parts déclarées : ${owned} %`}>
+                  <div style={{ display: "grid", gap: 14 }}>
+                    {d.owners.map((o, i) => {
+                      const pct = o.role === "director" || o.ownership == null ? null : Number(o.ownership) || 0;
+                      return (
+                        <div key={i} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                          <Avatar name={o.name} size={34} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                              <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.name}</span>
+                              <span style={{ fontSize: 13, color: C.t2, fontVariantNumeric: "tabular-nums" }}>{pct == null ? "—" : `${pct} %`}</span>
+                            </div>
+                            <p style={{ margin: "2px 0 0", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {[ROLE_LABELS[o.role] ?? o.role, o.birthDate ? `né(e) le ${fmtDate(o.birthDate)}` : null, o.country].filter(Boolean).join(" · ")}
+                            </p>
+                            {pct != null && (
+                              <div aria-hidden style={{ marginTop: 7, height: 4, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
+                                <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", borderRadius: 99, background: "var(--a-sage)" }} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                </Section>
 
-              {d.status !== "pending" && d.reviewNote && (
-                <>
-                  <h3 style={{ margin: "26px 0 8px", fontSize: 14, fontWeight: 500 }}>Note envoyée au client</h3>
-                  <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{d.reviewNote}</p>
-                </>
-              )}
+                {d.status !== "pending" && d.reviewNote && (
+                  <Section title="Note envoyée au client">
+                    <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{d.reviewNote}</p>
+                  </Section>
+                )}
+
+                {d.status === "pending" && canDecide && (
+                  <Section title="Note au client" hint="Obligatoire en cas de refus.">
+                    {d.contactKyc !== "approved" && <div style={{ marginBottom: 12 }}><Notice tone="warn">L'identité du responsable n'est pas encore vérifiée ({(STATUS[d.contactKyc]?.[0] ?? d.contactKyc).toLowerCase()}).</Notice></div>}
+                    <TextArea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex. : le registre des administrateurs fourni date de plus d'un an." />
+                  </Section>
+                )}
+
+                {isAdmin && (
+                  <div style={{ marginTop: 30 }}>
+                    {d.status !== "pending" && error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
+                    {resetStep === "confirm" ? (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <span style={{ flex: "1 1 180px", fontSize: 13, color: C.t2 }}>Supprimer ce dossier ? Le client repartira d'un dossier vide.</span>
+                        <Button size="sm" variant="ghost" onClick={() => setResetStep("idle")}>Annuler</Button>
+                        <Button size="sm" variant="danger" onClick={reset}>Réinitialiser</Button>
+                      </div>
+                    ) : (
+                      <button type="button" disabled={resetStep === "busy"} onClick={() => { setError(null); setResetStep("confirm"); }}
+                        style={{ all: "unset", cursor: "pointer", fontSize: 12.5, color: C.t3, textDecoration: "underline", textUnderlineOffset: 3 }}>
+                        {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification"}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {d.status === "pending" && canDecide && (
-                <>
-                  <h3 style={{ margin: "26px 0 10px", fontSize: 14, fontWeight: 500 }}>Décision</h3>
-                  {d.contactKyc !== "approved" && <div style={{ marginBottom: 12 }}><Notice tone="warn">L'identité du responsable n'est pas encore vérifiée ({(STATUS[d.contactKyc]?.[0] ?? d.contactKyc).toLowerCase()}).</Notice></div>}
-                  <Field label="Note au client" hint="Obligatoire en cas de refus.">
-                    <TextArea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex. : le registre des administrateurs fourni date de plus d'un an." />
-                  </Field>
-                  {error && <div style={{ marginTop: 12 }}><Notice tone="err">{error}</Notice></div>}
-                  <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                <div style={{ position: "sticky", bottom: 0, padding: "14px 26px calc(18px + env(safe-area-inset-bottom, 0px))", background: C.bg }}>
+                  {error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
+                  <div style={{ display: "flex", gap: 8 }}>
                     <Button variant="danger" disabled={busy} onClick={() => decide("rejected")} icon={<X style={{ width: 15, height: 15 }} />}>Refuser</Button>
                     <Button variant="primary" disabled={busy} onClick={() => decide("approved")} icon={<Check style={{ width: 15, height: 15 }} />} className="flex-1">Approuver</Button>
                   </div>
-                </>
-              )}
-
-              {isAdmin && (
-                <div style={{ marginTop: 32, paddingTop: 16, borderTop: `1px solid ${C.bds}` }}>
-                  {d.status !== "pending" && error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
-                  {resetStep === "confirm" ? (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <span style={{ flex: "1 1 180px", fontSize: 13, color: C.t2 }}>Supprimer ce dossier ? Le client repartira d'un dossier vide.</span>
-                      <Button size="sm" variant="ghost" onClick={() => setResetStep("idle")}>Annuler</Button>
-                      <Button size="sm" variant="danger" onClick={reset}>Réinitialiser</Button>
-                    </div>
-                  ) : (
-                    <Button size="sm" variant="ghost" disabled={resetStep === "busy"} onClick={() => { setError(null); setResetStep("confirm"); }}>
-                      {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification"}
-                    </Button>
-                  )}
                 </div>
               )}
             </WsPane>

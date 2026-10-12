@@ -4,10 +4,10 @@ import { Check, ChevronLeft, ChevronRight, ScanFace, X } from "lucide-react";
 import { timeAgo, type KycRequest, type KycStatus } from "@/lib/adminOrders";
 import { fetchKyc, setKycStatus, getDocumentUrl } from "@/lib/adminKyc";
 import { C, FONT } from "./adminTheme";
-import { Button, Field, Notice, TextArea, Workspace, WsPane } from "./ui";
-import { Avatar, DataTable, EmptyState, FilterChips, KeyValues, Pill, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import { Button, Notice, TextArea, Workspace, WsPane } from "./ui";
+import { Avatar, DataTable, EmptyState, FilterChips, Pill, Tabs, TwoLine, type Column, type Tone } from "./layout";
 import { KycHero } from "./heroes";
-import DocFrame from "./DocFrame";
+import { Checklist, DocViewer, Section } from "./Dossier";
 import BusinessKycPanel from "./BusinessKycPanel";
 
 const STATUS: Record<KycStatus, [string, Tone]> = { attente: ["À vérifier", "warn"], verifie: ["Vérifiée", "ok"], refuse: ["Refusée", "danger"] };
@@ -68,67 +68,59 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
         </>
       )}
     >
-      <div className="grid flex-1 grid-cols-1 gap-2 lg:gap-0 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:overflow-hidden" style={{ minHeight: 0 }}>
-        <WsPane style={{ padding: "24px 24px 60px" }}>
-          {keys.length === 0 ? (
-            <EmptyState icon={ScanFace} title="Aucun document" text="Ce dossier vient de l'ancien parcours (Sumsub) : aucun fichier n'est stocké chez Ooble." />
-          ) : (
-            <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))" }}>
-              {keys.map((k) => <DocFrame key={`${r.id}:${k}`} label={DOC_LABEL[k] ?? k} path={r.documentPaths![k]} load={load} height={k === "id_back" ? 300 : 440} />)}
-            </div>
-          )}
+      <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-2 lg:overflow-hidden" style={{ minHeight: 0 }}>
+        {/* Les documents en grand, posés sur le fond ; les autres en vignettes dessous. */}
+        <WsPane flat className="h-[64vh] lg:h-auto" style={{ padding: "4px 8px 12px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <DocViewer docs={keys.map((k) => ({ key: k, label: DOC_LABEL[k] ?? k, path: r.documentPaths![k] }))} load={load}
+            empty={<div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><EmptyState icon={ScanFace} title="Aucun document" text="Ce dossier vient de l'ancien parcours (Sumsub) : aucun fichier n'est stocké chez Ooble." /></div>} />
         </WsPane>
 
-        <WsPane flat style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-            <Avatar name={r.clientName} size={40} />
-            <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={r.clientName} secondary={r.email} /></div>
-            <Pill tone={STATUS[r.status][1]} dot>{STATUS[r.status][0]}</Pill>
+        <WsPane style={{ display: "flex", flexDirection: "column", fontFamily: FONT }}>
+          <div style={{ flex: 1, padding: "26px 26px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Avatar name={r.clientName} size={44} />
+              <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={r.clientName} secondary={r.email} /></div>
+              <Pill tone={STATUS[r.status][1]} dot>{STATUS[r.status][0]}</Pill>
+            </div>
+            <p style={{ margin: "26px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1.05 }}>{DOC_TYPE[r.docType] ?? r.docType ?? "Document"}</p>
+            <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t3 }}>Soumis {timeAgo(r.submittedMinsAgo)} · {keys.length ? keys.map((k) => (DOC_LABEL[k]?.split(" · ").pop() ?? k).toLowerCase()).join(", ") : "aucun fichier"}</p>
+
+            {pending ? (
+              <>
+                <Section title="À vérifier">
+                  <Checklist items={CHECKS} value={checks} onChange={setChecks} />
+                </Section>
+                <Section title="Motif pour le client" hint="Obligatoire en cas de refus : il figure dans le courriel envoyé au client.">
+                  <TextArea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ce que le client doit corriger." />
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                    {REASONS.map((t) => (
+                      <button key={t} type="button" className="ui-btn ui-btn-ghost" onClick={() => setNote(t)}
+                        style={{ height: 30, padding: "0 12px", borderRadius: 99, border: "none", background: note === t ? C.t1 : C.hover2, color: note === t ? C.bg : C.t2, fontFamily: FONT, fontSize: 12, cursor: "pointer" }}>
+                        {t.split(" : ")[0].replace(/\.$/, "")}
+                      </button>
+                    ))}
+                  </div>
+                </Section>
+              </>
+            ) : r.reviewNote ? (
+              <Section title="Motif envoyé au client">
+                <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{r.reviewNote}</p>
+              </Section>
+            ) : null}
           </div>
-          <KeyValues items={[
-            ["Document", DOC_TYPE[r.docType] ?? r.docType ?? "—"],
-            ["Soumis", timeAgo(r.submittedMinsAgo)],
-            ["Fichiers", keys.length ? keys.map((k) => DOC_LABEL[k]?.split(" · ").pop()).join(", ") : "Aucun"],
-          ]} />
 
-          {pending ? (
-            <>
-              <h3 style={{ margin: "26px 0 10px", fontSize: 14, fontWeight: 500 }}>À vérifier</h3>
-              <div style={{ display: "grid", gap: 2 }}>
-                {CHECKS.map((c, i) => (
-                  <label key={c} className="ui-row" style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 4px", borderRadius: 8, cursor: "pointer", fontSize: 13.5, color: checks[i] ? C.t1 : C.t2 }}>
-                    <input type="checkbox" checked={checks[i]} onChange={() => setChecks((v) => v.map((x, j) => (j === i ? !x : x)))} style={{ marginTop: 3, accentColor: "var(--a-t1)" }} />
-                    {c}
-                  </label>
-                ))}
-              </div>
-
-              <h3 style={{ margin: "26px 0 10px", fontSize: 14, fontWeight: 500 }}>Décision</h3>
-              <Field label="Motif pour le client" hint="Obligatoire en cas de refus. Le client reçoit un courriel avec la décision.">
-                <TextArea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ce que le client doit corriger." />
-              </Field>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                {REASONS.map((t) => (
-                  <button key={t} type="button" className="ui-btn ui-btn-ghost" onClick={() => setNote(t)}
-                    style={{ height: 28, padding: "0 10px", borderRadius: 8, border: `1px solid ${C.bds}`, background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 12, cursor: "pointer" }}>
-                    {t.split(" : ")[0].replace(/\.$/, "")}
-                  </button>
-                ))}
-              </div>
-              {error && <div style={{ marginTop: 12 }}><Notice tone="err">{error}</Notice></div>}
-              <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          {pending && (
+            // Décision toujours à portée de main, en bas du volet.
+            <div style={{ position: "sticky", bottom: 0, padding: "14px 26px calc(18px + env(safe-area-inset-bottom, 0px))", background: C.bg }}>
+              {error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
+              <div style={{ display: "flex", gap: 8 }}>
                 <Button variant="danger" disabled={busy} onClick={() => decide("refuse")} icon={<X style={{ width: 15, height: 15 }} />}>Refuser</Button>
                 <Button variant="primary" disabled={busy} onClick={() => decide("verifie")} icon={<Check style={{ width: 15, height: 15 }} />} className="flex-1">
                   {checks.every(Boolean) ? "Approuver" : "Approuver quand même"}
                 </Button>
               </div>
-            </>
-          ) : r.reviewNote ? (
-            <>
-              <h3 style={{ margin: "26px 0 8px", fontSize: 14, fontWeight: 500 }}>Motif envoyé au client</h3>
-              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{r.reviewNote}</p>
-            </>
-          ) : null}
+            </div>
+          )}
         </WsPane>
       </div>
     </Workspace>
