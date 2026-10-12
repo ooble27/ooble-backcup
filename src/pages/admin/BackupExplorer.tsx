@@ -357,7 +357,17 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
       path: d.entry.path, data: d.entry.data, owner: d.owner, kind: d.kind, date: d.date,
       ownerName: d.owner ? people.get(d.owner)?.name ?? `Client ${d.owner.slice(0, 8)}` : "Autres fichiers",
     }));
-    const blob = await exportBackup(when ?? "", backup.manifest?.created_utc ?? new Date().toISOString().slice(0, 10), tables, files);
+    // Registres de conformité tels qu'au jour de la sauvegarde : le registre et, à part, le détail des entrées.
+    const [{ registersFromBackup }, { buildRegisterPdf, REGISTER_TITLES }, { RECORD_RETENTION_YEARS }] = await Promise.all([
+      import("@/lib/backupRegisters"), import("@/lib/registerPdf"), import("@/lib/compliance"),
+    ]);
+    const registers: { name: string; data: Uint8Array }[] = [];
+    for (const { kind, rows } of registersFromBackup(table)) {
+      const title = REGISTER_TITLES[kind];
+      registers.push({ name: title, data: await buildRegisterPdf({ kind, rows, retentionYears: RECORD_RETENTION_YEARS, part: "index" }) });
+      if (rows.length) registers.push({ name: `${title} - détail des entrées`, data: await buildRegisterPdf({ kind, rows, retentionYears: RECORD_RETENTION_YEARS, part: "detail" }) });
+    }
+    const blob = await exportBackup(when ?? "", backup.manifest?.created_utc ?? new Date().toISOString().slice(0, 10), tables, files, registers);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `ooble-sauvegarde-${backup.manifest?.created_utc ?? "export"}.zip`;
@@ -512,7 +522,7 @@ function Overview({ when, intact, backup, counts, docs, owners, people, hasCsv, 
           <div style={{ flex: "1 1 280px", minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 14.5, fontWeight: 500 }}>Exporter pour un organisme</p>
             <p style={{ margin: "4px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>
-              Un dossier ZIP qui s'ouvre partout : sommaire PDF, chaque table en CSV (Excel) et les documents rangés par client.
+              Un dossier ZIP qui s'ouvre partout : sommaire PDF, registres de conformité en PDF (registre et détail des entrées), chaque table en CSV (Excel) et les documents rangés par client.
               Il n'est pas chiffré : transmettez-le uniquement par un canal sûr.
             </p>
             {exporting === "error" && <p style={{ margin: "6px 0 0", fontSize: 12.5, color: C.dangerText }}>L'export n'a pas abouti. Réessayez.</p>}

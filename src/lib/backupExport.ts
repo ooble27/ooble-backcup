@@ -62,7 +62,7 @@ async function sommaire(when: string, tables: ExportTable[], docs: ExportDoc[]):
   return new Uint8Array(pdf.output("arraybuffer"));
 }
 
-export async function exportBackup(when: string, stamp: string, tables: ExportTable[], docs: ExportDoc[]): Promise<Blob> {
+export async function exportBackup(when: string, stamp: string, tables: ExportTable[], docs: ExportDoc[], registers: { name: string; data: Uint8Array }[] = []): Promise<Blob> {
   const files: Record<string, Uint8Array> = {};
   const root = `ooble-sauvegarde-${stamp}`;
   files[`${root}/sommaire.pdf`] = await sommaire(when, tables, docs);
@@ -70,6 +70,8 @@ export async function exportBackup(when: string, stamp: string, tables: ExportTa
     `Ooble · sauvegarde du ${when}`,
     "",
     "sommaire.pdf : la liste de tout ce que contient ce dossier.",
+    "registres/ : les registres de conformité en PDF ; pour chacun, le registre (une ligne par entrée)",
+    "             et, à part, le détail des entrées (une fiche complète par entrée).",
     "donnees/ : une table par fichier CSV (Excel, Numbers, Google Sheets).",
     "documents/ : les pièces d'identité et documents d'entreprise, un dossier par client.",
     "",
@@ -78,6 +80,7 @@ export async function exportBackup(when: string, stamp: string, tables: ExportTa
   ].join("\r\n"));
   const used = new Set<string>();
   const unique = (p: string) => { let q = p, i = 2; while (used.has(q)) q = p.replace(/(\.[^.]+)?$/, ` (${i++})$1`); used.add(q); return q; };
+  for (const r of registers) files[unique(`${root}/registres/${safe(r.name)}.pdf`)] = r.data;
   for (const t of tables) files[unique(`${root}/donnees/${safe(t.label)}.csv`)] = strToU8(toCsv(t));
   for (const d of docs) {
     const ext = d.path.split(".").pop()?.toLowerCase() ?? "bin";

@@ -231,6 +231,7 @@ export const ACTION_LABELS: Record<string, { fr: string; en: string }> = {
   "compliance.alert_create":        { fr: "Client signalé",             en: "Client flagged" },
   "compliance.program_toggle":      { fr: "Programme mis à jour",       en: "Program updated" },
   "compliance.register_export":     { fr: "Registre téléchargé",        en: "Register exported" },
+  "compliance.client_register_export": { fr: "Registre d'un client téléchargé", en: "Client register exported" },
   "kyb.approve":                    { fr: "Entreprise approuvée",       en: "Business approved" },
   "kyb.reject":                     { fr: "Entreprise refusée",         en: "Business rejected" },
   "kyb.reset":                      { fr: "Vérification d'entreprise rouverte", en: "Business check reopened" },

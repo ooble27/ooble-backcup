@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Loader2, ShoppingCart, Wand2 } from "lucide-react";
+import { Check, Copy, FileText, Loader2, ShoppingCart, Wand2 } from "lucide-react";
 import { nfCad } from "@/lib/adminOrders";
 import { orderRef } from "@/lib/orders";
 import {
@@ -9,6 +9,7 @@ import {
 import { summarizeClient, isAIError, toAIClientContext, toAIOrderSummaries } from "@/lib/ai";
 import { useAuth } from "@/lib/auth";
 import { resetKyb } from "@/lib/adminKyb";
+import { logAdminAction } from "@/lib/audit";
 import { fetchOrigin, placeLabel, type SignupOrigin } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
@@ -48,6 +49,15 @@ function Block({ title, right, children }: { title: string; right?: React.ReactN
 
 const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   const { isAdmin } = useAuth();
+  const [regBusy, setRegBusy] = useState(false);
+  const downloadRegister = async () => {
+    setRegBusy(true);
+    try {
+      const { downloadClientRegister } = await import("@/lib/complianceLive");
+      const n = await downloadClientRegister(userId, clientName || "Client");
+      void logAdminAction({ action: "compliance.client_register_export", entityKind: "profile", entityId: userId, metadata: { rows: n } });
+    } finally { setRegBusy(false); }
+  };
   const [profile, setProfile] = useState<ClientProfileData | null>(null);
   const [origin, setOrigin] = useState<SignupOrigin | null>(null);
   const [orders, setOrders] = useState<ClientOrder[]>([]);
@@ -118,6 +128,13 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
           {profile && <Pill tone={KYC_TONE[profile.kycStatus] ?? "neutral"} dot>{KYC_LABEL[profile.kycStatus]}</Pill>}
           {profile?.accountType === "business" && <Pill>Entreprise</Pill>}
           <span style={{ flex: 1 }} />
+          {isAdmin && (
+            // Registre de ce client seul (opérations, identité, alertes), prêt à remettre au CANAFE.
+            <Button variant="ghost" disabled={regBusy} onClick={downloadRegister}
+              icon={regBusy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <FileText style={{ width: 15, height: 15 }} />}>
+              {regBusy ? "Préparation…" : "Registre du client (PDF)"}
+            </Button>
+          )}
           <Button icon={aiBusy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Wand2 style={{ width: 15, height: 15 }} />} onClick={runSummary} disabled={aiBusy || !profile}>
             {aiBusy ? "Analyse…" : aiSummary ? "Régénérer le résumé" : "Résumé par l'assistant"}
           </Button>

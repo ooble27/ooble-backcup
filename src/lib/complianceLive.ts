@@ -292,7 +292,7 @@ const csvCell = (v: unknown) => {
  * imprimable) ou en CSV (séparateur « ; » et BOM UTF-8 : s'ouvre directement
  * dans Excel en français). Renvoie le nombre de lignes.
  */
-export async function downloadRegister(kind: RegisterKind, from?: string, to?: string, format: "pdf" | "csv" = "pdf"): Promise<number> {
+export async function downloadRegister(kind: RegisterKind, from?: string, to?: string, format: "pdf" | "detail" | "csv" = "pdf"): Promise<number> {
   const { data, error } = await db.rpc("compliance_register", {
     _kind: kind,
     _from: from ? new Date(`${from}T00:00:00`).toISOString() : null,
@@ -300,9 +300,10 @@ export async function downloadRegister(kind: RegisterKind, from?: string, to?: s
   });
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as Record<string, unknown>[];
-  if (format === "pdf") {
+  if (format !== "csv") {
+    // Deux documents séparés : le registre (synthèse et index) et le détail des entrées (une fiche par entrée).
     const [{ downloadRegisterPdf }, { RECORD_RETENTION_YEARS }] = await Promise.all([import("@/lib/registerPdf"), import("@/lib/compliance")]);
-    await downloadRegisterPdf({ kind, rows, from, to, retentionYears: RECORD_RETENTION_YEARS });
+    await downloadRegisterPdf({ kind, rows, from, to, retentionYears: RECORD_RETENTION_YEARS, part: format === "detail" ? "detail" : "index" });
     return rows.length;
   }
   const cols = rows.length ? Object.keys(rows[0]) : [];
@@ -317,4 +318,26 @@ export async function downloadRegister(kind: RegisterKind, from?: string, to?: s
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return rows.length;
+}
+
+/**
+ * Registre d'un client : ses opérations, vérifications d'identité et alertes, chacune avec
+ * l'index et le détail dans un même PDF (le volume d'un seul client reste raisonnable).
+ */
+export async function downloadClientRegister(userId: string, clientName: string): Promise<number> {
+  const kinds: RegisterKind[] = ["operations", "identites", "alertes"];
+  const results = await Promise.all(kinds.map(async (k) => {
+    const { data, error } = await db.rpc("compliance_register_client", { _user: userId, _kind: k });
+    if (error) throw new Error(error.message);
+    return [k, (data ?? []) as Record<string, unknown>[]] as const;
+  }));
+  const [{ buildClientRegisterPdf, registerFileName }, { RECORD_RETENTION_YEARS }] = await Promise.all([import("@/lib/registerPdf"), import("@/lib/compliance")]);
+  const label: Record<string, string> = { operations: "Opérations", identites: "Vérifications d'identité", alertes: "Alertes" };
+  const bytes = await buildClientRegisterPdf(clientName, results.map(([k, rows]) => ({ kind: k, rows, heading: label[k] })), RECORD_RETENTION_YEARS);
+  const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/pdf" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = registerFileName("operations", "both", `client-${clientName}`).replace("registre-operations", "registre");
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  return results.reduce((n, [, rows]) => n + rows.length, 0);
 }

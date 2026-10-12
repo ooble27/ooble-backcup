@@ -670,7 +670,7 @@ const monthFr = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { mon
 
 function RegistreView({ stats, onExport, busyKind }: {
   stats: RegisterStats | null;
-  onExport: (kind: RecordCategoryId, from?: string, to?: string, format?: "pdf" | "csv") => void;
+  onExport: (kind: RecordCategoryId, from?: string, to?: string, format?: "pdf" | "detail" | "csv") => void;
   busyKind: RecordCategoryId | null;
 }) {
   const [period, setPeriod] = useState<PeriodId>("tout");
@@ -733,9 +733,11 @@ function RegistreView({ stats, onExport, busyKind }: {
               </p>
               <p style={{ margin: "3px 0 0", fontSize: 12.5, lineHeight: 1.5, color: C.t3 }}>{cat.description}{detail(cat.id) ? ` · ${detail(cat.id)}` : ""}</p>
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <Button size="sm" disabled={busyKind !== null} onClick={() => { const [f, t] = range(); onExport(cat.id, f, t, "pdf"); }}
-                icon={<Download style={{ width: 14, height: 14 }} />}>{busyKind === cat.id ? "Export…" : "PDF"}</Button>
+                icon={<Download style={{ width: 14, height: 14 }} />}>{busyKind === cat.id ? "Export…" : "Registre PDF"}</Button>
+              <Button size="sm" variant="ghost" disabled={busyKind !== null} title="Une fiche complète par entrée, document à part"
+                onClick={() => { const [f, t] = range(); onExport(cat.id, f, t, "detail"); }}>Détail des entrées</Button>
               <Button size="sm" variant="ghost" disabled={busyKind !== null} onClick={() => { const [f, t] = range(); onExport(cat.id, f, t, "csv"); }}>CSV</Button>
             </div>
           </div>
@@ -1027,7 +1029,7 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
       setSuccessMsg(`Alerte ${created.ref} ouverte et prise en charge.`);
     });
 
-  const exportRegister = async (kind: RecordCategoryId, from?: string, to?: string, format: "pdf" | "csv" = "pdf") => {
+  const exportRegister = async (kind: RecordCategoryId, from?: string, to?: string, format: "pdf" | "detail" | "csv" = "pdf") => {
     setExporting(kind); setErrorMsg(null);
     try {
       const n = await downloadRegister(kind, from, to, format);

@@ -13,7 +13,7 @@ import type { RegisterKind } from "@/lib/complianceLive";
 type Row = Record<string, unknown>;
 type Section = { title: string; fields: string[]; wide?: string[] };
 
-const TITLES: Record<RegisterKind, string> = {
+export const REGISTER_TITLES: Record<RegisterKind, string> = {
   operations: "Registre des opérations",
   identites: "Registre des vérifications d'identité",
   interac: "Registre des virements Interac reçus",
@@ -133,6 +133,21 @@ export interface PdfMeta {
   from?: string;
   to?: string;
   retentionYears: number;
+  /**
+   * « index » : synthèse et une ligne par entrée (le registre à remettre) ;
+   * « detail » : une fiche complète par entrée, document à part (volumineux) ;
+   * « both » : les deux dans un même document (registre d'un seul client).
+   */
+  part?: "index" | "detail" | "both";
+  /** Titre affiché à la place du titre du registre (ex. « Registre du client · Awa Diop »). */
+  heading?: string;
+}
+
+/** Nom de fichier d'un registre. */
+export function registerFileName(kind: RegisterKind, part: "index" | "detail" | "both", extra?: string) {
+  const day = new Date().toISOString().slice(0, 10);
+  const slug = (extra ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+  return `ooble-registre-${kind}${part === "detail" ? "-detail" : ""}${slug ? `-${slug}` : ""}-${day}.pdf`;
 }
 
 // Mise en page (points, format lettre portrait).
@@ -142,7 +157,17 @@ const MUTED: [number, number, number] = [110, 110, 110];
 const LINE: [number, number, number] = [222, 222, 222];
 
 /** Construit le PDF et le télécharge. */
-export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears }: PdfMeta): Promise<void> {
+export async function downloadRegisterPdf(meta: PdfMeta & { fileName?: string }): Promise<void> {
+  const bytes = await buildRegisterPdf(meta);
+  const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/pdf" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = meta.fileName ?? registerFileName(meta.kind, meta.part ?? "index");
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+/** Construit le PDF et renvoie ses octets (téléchargement, ou ajout à un export ZIP). */
+export async function buildRegisterPdf({ kind, rows, from, to, retentionYears, part = "index", heading, into }: PdfMeta & { into?: unknown }): Promise<Uint8Array> {
   const [{ jsPDF }, at] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
   // Selon l'outil de build, la fonction est l'export nommé ou par défaut.
   const mod = at as unknown as { autoTable?: unknown; default?: unknown };
@@ -150,9 +175,11 @@ export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears
   if (typeof autoTable !== "function") autoTable = (autoTable as { default?: unknown })?.default;
   const runTable = autoTable as (doc: unknown, opts: Record<string, unknown>) => void;
 
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+  // `into` : on ajoute ce registre à la suite d'un document existant (registre d'un client, plusieurs rubriques).
+  const doc = (into as InstanceType<typeof jsPDF> | undefined) ?? new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+  if (into) doc.addPage();
   const now = new Date();
-  const title = TITLES[kind];
+  const title = heading ?? REGISTER_TITLES[kind];
   const period = from || to ? `Du ${from ?? "début"} au ${to ?? fmtDate(now.toISOString()).slice(0, 10)}` : "Tout l'historique";
 
   const text = (s: string, x: number, y: number, size: number, color: [number, number, number] = INK, style: "normal" | "bold" = "normal", font = "helvetica", opts?: Record<string, unknown>) => {
@@ -162,6 +189,7 @@ export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears
     doc.text(s, x, y, opts);
   };
 
+  if (part !== "detail") {
   // ─── Page 1 : synthèse ───
   text("OOBLE", M, M + 4, 9, MUTED, "bold");
   text(title, M, M + 30, 20, INK, "bold");
@@ -186,7 +214,7 @@ export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears
     text(value, x + 12, y + 40, 14, INK, "bold");
   });
 
-  text(`Conservation : au moins ${retentionYears} ans (LRPCFAT, CANAFE). Le détail de chaque entrée suit l'index.`, M, M + 140, 9, MUTED);
+  text(`Conservation : au moins ${retentionYears} ans (LRPCFAT, CANAFE). ${part === "both" ? "Le détail de chaque entrée suit l'index." : "Le détail de chaque entrée est un document à part : « Détail des entrées »."}`, M, M + 140, 9, MUTED);
 
   // Index : une ligne par entrée.
   const idx = INDEX[kind];
@@ -199,6 +227,7 @@ export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears
     headStyles: { fillColor: INK, textColor: 255, fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [247, 247, 247] },
   });
+  }
 
   // ─── Fiches détaillées ───
   const listed = new Set<string>(["statut", ...HEAD[kind], ...SECTIONS[kind].flatMap((s) => [...s.fields, ...(s.wide ?? [])])]);
@@ -236,7 +265,16 @@ export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears
 
   let y = PAGE_H; // force une nouvelle page pour la première fiche
   let first = true;
-  rows.forEach((r) => {
+  if (part === "detail") {
+    // Document à part : son propre en-tête, puis les fiches à la suite.
+    text("OOBLE", M, M + 4, 9, MUTED, "bold");
+    text(`${title} · détail des entrées`, M, M + 30, 18, INK, "bold");
+    text(`${period} · ${rows.length} entrée${rows.length > 1 ? "s" : ""} · généré le ${fmtDate(now.toISOString())}`, M, M + 48, 10, MUTED);
+    if (!rows.length) text("Aucune donnée sur cette période.", M, M + 80, 10.5, MUTED);
+    y = M + 66;
+    first = false;
+  }
+  (part === "index" ? [] : rows).forEach((r) => {
     const { h, blocks } = layout(r);
     if (y + h > PAGE_H - FOOT - 6) {
       doc.addPage();
@@ -289,7 +327,16 @@ export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears
     y += h + 10;
   });
 
-  // Pied de page : titre et pagination sur toutes les pages.
+  if (into) return new Uint8Array();
+  stampFooter(doc, title);
+  return new Uint8Array(doc.output("arraybuffer"));
+}
+
+/** Pied de page : titre et pagination sur toutes les pages. */
+function stampFooter(doc: { getNumberOfPages(): number; setPage(n: number): unknown; setDrawColor(...c: number[]): unknown; setLineWidth(w: number): unknown; line(a: number, b: number, c: number, d: number): unknown; setFont(f: string, s: string): unknown; setFontSize(n: number): unknown; setTextColor(...c: number[]): unknown; text(s: string, x: number, y: number, o?: Record<string, unknown>): unknown }, title: string) {
+  const text = (s: string, x: number, y: number, size: number, color: [number, number, number], opts?: Record<string, unknown>) => {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(size); doc.setTextColor(...color); doc.text(s, x, y, opts);
+  };
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
@@ -297,8 +344,29 @@ export async function downloadRegisterPdf({ kind, rows, from, to, retentionYears
     doc.setLineWidth(0.5);
     doc.line(M, PAGE_H - FOOT + 6, PAGE_W - M, PAGE_H - FOOT + 6);
     text(`Ooble · ${title}`, M, PAGE_H - FOOT + 20, 8, MUTED);
-    text(`Page ${i} sur ${pages}`, PAGE_W - M, PAGE_H - FOOT + 20, 8, MUTED, "normal", "helvetica", { align: "right" });
+    text(`Page ${i} sur ${pages}`, PAGE_W - M, PAGE_H - FOOT + 20, 8, MUTED, { align: "right" });
   }
+}
 
-  doc.save(`ooble-registre-${kind}-${now.toISOString().slice(0, 10)}.pdf`);
+/** Registre d'un client : plusieurs rubriques (opérations, identité, alertes), index et détail, dans un seul PDF. */
+export async function buildClientRegisterPdf(clientName: string, sections: { kind: RegisterKind; rows: Row[]; heading: string }[], retentionYears: number): Promise<Uint8Array> {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+  // Page de garde.
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...MUTED); doc.text("OOBLE", M, M + 4);
+  doc.setFontSize(22); doc.setTextColor(...INK); doc.text("Registre du client", M, M + 34);
+  doc.setFontSize(15); doc.text(clientName, M, M + 58);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...MUTED);
+  doc.text(`Généré le ${fmtDate(new Date().toISOString())} · conservation : au moins ${retentionYears} ans (LRPCFAT, CANAFE).`, M, M + 80);
+  sections.forEach((sct, i) => {
+    doc.setFontSize(11); doc.setTextColor(...INK);
+    doc.text(`${sct.heading}`, M, M + 116 + i * 20);
+    doc.setTextColor(...MUTED);
+    doc.text(`${sct.rows.length} entrée${sct.rows.length > 1 ? "s" : ""}`, PAGE_W - M, M + 116 + i * 20, { align: "right" });
+  });
+  for (const sct of sections) {
+    await buildRegisterPdf({ kind: sct.kind, rows: sct.rows, retentionYears, part: "both", heading: `${sct.heading} · ${clientName}`, into: doc });
+  }
+  stampFooter(doc as never, `Registre du client · ${clientName}`);
+  return new Uint8Array(doc.output("arraybuffer"));
 }
