@@ -74,7 +74,10 @@ function Banner({ announcement }: { announcement: Announcement }) {
   };
 
   return (
-    <div className="pt-safe sticky top-0 z-[60] w-full">
+    // La bannière occupe elle-même le haut de l'écran (barre d'état comprise, fond uni) et passe
+    // au-dessus de la bande de l'app installée : elle n'est jamais rognée, et la page ne double pas l'espace.
+    <div className="sticky top-0 z-[75] w-full bg-background" style={{ paddingTop: "var(--ios-top)" }}>
+      <NoticeMark />
       <div className={cn("border-b px-4 py-2.5 md:px-6", style.wrap)}>
         <div className="mx-auto flex max-w-[1200px] items-start gap-3">
           <span className={cn("mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full", style.badge)}>
@@ -205,5 +208,15 @@ const GlobalNotice = () => {
     </>
   );
 };
+
+/** Tant que la bannière est affichée, la page n'ajoute pas sa propre marge de barre d'état. */
+function NoticeMark() {
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("has-notice");
+    return () => html.classList.remove("has-notice");
+  }, []);
+  return null;
+}
 
 export default GlobalNotice;

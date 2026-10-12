@@ -246,7 +246,7 @@ export function OrdersCalendar({ orders }: { orders: AdminOrder[] }) {
       <div style={{ minWidth: 0 }}>
         <p className="vz-head">
           <span style={{ color: C.coral }}>{nf.format(data.inRange)}</span> {plural(data.inRange, "commande")} <span className="mute">en {weeks} semaines,</span>{" "}
-          <span style={{ color: C.sun }}>{nfCad.format(data.vol)} $</span> <span className="mute">échangés.</span>
+          <span style={{ color: C.sun, whiteSpace: "nowrap" }}>{nfCad.format(data.vol)} $</span> <span className="mute">échangés.</span>
         </p>
         <p className="vz-sub">
           {data.inRange ? <>Le <b style={{ color: C.t1, fontWeight: 500 }}>{WEEKDAYS[best]}</b> est le jour le plus actif ({data.byDow[best]} {plural(data.byDow[best], "commande")}).</> : "Le calendrier se remplira avec les premières commandes."}
@@ -350,7 +350,7 @@ export function QueueWait({ orders, onOpen, mine, unassigned }: { orders: AdminO
             ))}
           </svg>
           <div className="vz-cap" style={{ marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ flex: 1, minWidth: 200, color: hover ? C.t1 : undefined }}>
+            <span style={{ flex: "1 1 100%", minWidth: 0, color: hover ? C.t1 : undefined }}>
               {hover ? `${hover.clientName} · ${nfCad.format(hover.cad)} $ · attend depuis ${ageText(hover.createdMinsAgo)} · touchez pour ouvrir` : "Chaque point est une commande active, placée selon son temps d'attente."}
             </span>
             <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><Dot color={C.vzCoral} /> Payée, à traiter</span>

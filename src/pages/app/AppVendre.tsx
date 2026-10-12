@@ -58,13 +58,13 @@ const StepHeader = ({ title, sub, onBack, backLabel }: { title: string; sub: str
   </div>
 );
 
+/* Commandes fermées aux clients : la page d'attente. Composant à part, pour que les rôles de
+   l'équipe, chargés après le premier affichage, ne changent jamais le nombre de hooks du formulaire. */
 const AppVendre = () => {
-  const rate = useUsdtRate();
-  const { user, isStaff } = useAuth();
+  const { isStaff, rolesLoading } = useAuth();
   const t = useT();
-  const otc = useOtcVisible();
-
   if (!TRADING_ENABLED && !isStaff) {
+    if (rolesLoading) return null;
     return (
       <AppShell center>
         <div className="flex flex-col items-center py-16 text-center">
@@ -88,6 +88,15 @@ const AppVendre = () => {
       </AppShell>
     );
   }
+  return <AppVendreForm />;
+};
+
+const AppVendreForm = () => {
+  const rate = useUsdtRate();
+  const { user, isStaff } = useAuth();
+  const t = useT();
+  const otc = useOtcVisible();
+
 
   const [step, setStep] = useState<Step>("amount");
   const [unit, setUnit] = useState<Unit>("USDT");

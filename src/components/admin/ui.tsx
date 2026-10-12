@@ -14,6 +14,10 @@ import { C, FONT } from "./adminTheme";
 export const UI_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export const UI_CSS = `
+/* Volet posé sur le fond qui défile : le texte s'efface en douceur aux bords au lieu d'être coupé net. */
+.ws-flat { --ft: 0px; --fb: 0px; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); }
+.ws-flat[data-top="1"] { --ft: 36px; }
+.ws-flat[data-bottom="1"] { --fb: 36px; }
 @keyframes ui-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 @keyframes ui-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes ui-slide { from { opacity: 0; transform: translateX(28px) } to { opacity: 1; transform: none } }
@@ -179,8 +183,23 @@ export interface WorkspaceStep { id: string; label: string; badge?: number | str
 /** Volet arrondi posé sur le fond de l'espace de travail (même écrin que le back-office). */
 export function WsPane({ children, style, className, flat }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; flat?: boolean }) {
   // `flat` : posé directement sur le fond, sans écrin (comme la barre latérale à côté de l'écrin du back-office).
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!flat || !el) return;
+    const sync = () => {
+      el.dataset.top = el.scrollTop > 2 ? "1" : "0";
+      el.dataset.bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 2 ? "1" : "0";
+    };
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => { el.removeEventListener("scroll", sync); ro.disconnect(); };
+  }, [flat]);
   return (
-    <div className={className} style={{
+    <div ref={ref} className={[className, flat ? "ws-flat" : ""].filter(Boolean).join(" ") || undefined} style={{
       minWidth: 0, minHeight: 0, overflowY: "auto",
       ...(flat ? { background: "transparent" } : { borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }),
       ...style,
@@ -280,8 +299,8 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
   return createPortal(
     <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147482500, fontFamily: FONT, color: C.t1, pointerEvents: "none" }}>
       <UIStyles />
-      {/* Le voile s'arrête sous la barre d'état : iOS garde la couleur unie du haut au lieu de flouter. */}
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, top: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
+      {/* Le voile couvre tout l'écran, barre d'état comprise : pas de bande plus claire en haut. */}
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
       <aside role="dialog" aria-modal="true" style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: `min(${width}px, 100vw)`, background: C.l1, boxShadow: C.panelShadow,
         display: "flex", flexDirection: "column", animation: `ui-slide .28s ${UI_EASE}`, pointerEvents: "auto",

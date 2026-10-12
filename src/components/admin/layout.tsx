@@ -3,7 +3,7 @@
  * statistiques à plat, barre d'outils, tableau de données, pastilles d'état,
  * état vide. Aucune « carte » : des filets et de l'espace.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Search } from "lucide-react";
 import { C, FONT } from "./adminTheme";
 
@@ -33,8 +33,30 @@ export interface TabItem<T extends string> { id: T; label: React.ReactNode; coun
 export function Tabs<T extends string>({ items, value, onChange, style }: {
   items: TabItem<T>[]; value: T; onChange: (id: T) => void; style?: React.CSSProperties;
 }) {
+  // Téléphone : les onglets défilent de côté ; l'onglet choisi reste visible, un fondu signale la suite.
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const sync = () => {
+      el.dataset.left = el.scrollLeft > 2 ? "1" : "0";
+      el.dataset.right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2 ? "1" : "0";
+    };
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", sync); ro.disconnect(); };
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    const on = el?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (el && on && el.scrollWidth > el.clientWidth) {
+      el.scrollTo({ left: Math.max(0, on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2), behavior: "smooth" });
+    }
+  }, [value]);
   return (
-    <div role="tablist" style={{ display: "flex", gap: 2, borderBottom: `1px solid ${C.bds}`, overflowX: "auto", scrollbarWidth: "none", ...style }}>
+    <div ref={ref} role="tablist" className="ly-tabs" style={{ display: "flex", gap: 2, borderBottom: `1px solid ${C.bds}`, overflowX: "auto", scrollbarWidth: "none", ...style }}>
       {items.map((t) => {
         const on = t.id === value;
         return (
@@ -93,7 +115,7 @@ export function Section({ title, description, actions, children, style }: {
     <section style={{ marginTop: 36, ...style }}>
       {(title || actions) && (
         <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: "1 1 240px", minWidth: 0 }}>
             {title && <h2 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: C.t1 }}>{title}</h2>}
             {description && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.5 }}>{description}</p>}
           </div>
@@ -145,7 +167,7 @@ export function SearchField({ value, onChange, placeholder = "Rechercher", width
   value: string; onChange: (v: string) => void; placeholder?: string; width?: number;
 }) {
   return (
-    <label style={{ position: "relative", flex: `0 1 ${width}px`, minWidth: 180 }}>
+    <label className="ly-search" style={{ position: "relative", flex: `0 1 ${width}px`, minWidth: 180 }}>
       <Search style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", width: 15, height: 15, color: C.t3, pointerEvents: "none" }} />
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} className="ui-input"
         style={{ width: "100%", height: 36, padding: "0 12px 0 34px", borderRadius: 9, border: `1px solid ${C.bds}`, background: "var(--a-inputBg)", color: C.t1, fontFamily: FONT, fontSize: 13.5, boxSizing: "border-box" }} />
@@ -158,7 +180,7 @@ export function FilterChips<T extends string>({ value, options, onChange }: {
   value: T; options: { id: T; label: React.ReactNode; count?: number }[]; onChange: (v: T) => void;
 }) {
   return (
-    <div style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
+    <div className="ly-chips" style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
       {options.map((o) => {
         const on = o.id === value;
         return (
@@ -262,7 +284,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
             <div key={rowKey(r)} role={onRowClick ? "button" : undefined} tabIndex={onRowClick ? 0 : undefined} className="ui-row"
               onClick={onRowClick ? () => onRowClick(r) : undefined}
               onKeyDown={onRowClick ? (e) => { if (e.key === "Enter") onRowClick(r); } : undefined}
-              style={{ padding: "12px 2px", borderBottom: `1px solid ${C.bds}`, cursor: onRowClick ? "pointer" : "default", background: selectedKey === rowKey(r) ? C.hover3 : undefined }}>
+              style={{ padding: "12px 2px", borderBottom: `1px solid ${C.bds}`, cursor: onRowClick ? "pointer" : "default", background: selectedKey != null && selectedKey === rowKey(r) ? C.hover3 : undefined }}>
               {mobile(r)}
             </div>
           ))}
@@ -304,7 +326,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
                 <tr key={k} className="ui-row" tabIndex={onRowClick ? 0 : undefined}
                   onClick={onRowClick ? () => onRowClick(r) : undefined}
                   onKeyDown={onRowClick ? (e) => { if (e.key === "Enter") onRowClick(r); } : undefined}
-                  style={{ cursor: onRowClick ? "pointer" : "default", background: selectedKey === k ? C.hover3 : undefined }}>
+                  style={{ cursor: onRowClick ? "pointer" : "default", background: selectedKey != null && selectedKey === k ? C.hover3 : undefined }}>
                   {cols.map((c) => (
                     <td key={c.key} style={{ padding: "11px 12px", borderBottom: `1px solid ${C.bds}`, textAlign: c.align ?? "left", verticalAlign: "middle", color: C.t1, fontVariantNumeric: "tabular-nums", width: c.width }}>
                       {c.render(r)}
@@ -363,4 +385,17 @@ export const LAYOUT_CSS = `
 .ly-tab:hover { color: var(--a-t1) }
 .ly-tab:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 @media (max-width: 640px) { .ly-stat { padding-left: 0 !important; border-left: none !important } }
+.ly-tabs::-webkit-scrollbar { display: none }
+.ly-tabs { --fl: 0px; --fr: 0px; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%); }
+.ly-tabs[data-left="1"] { --fl: 28px }
+.ly-tabs[data-right="1"] { --fr: 40px }
+/* Téléphone : recherche sur toute la largeur, menus de filtre côte à côte. */
+@media (max-width: 640px) {
+  .ly-search { flex: 1 1 100% !important; min-width: 0 !important; }
+  /* Filtres : une seule ligne qui défile de côté, au lieu de plusieurs lignes empilées. */
+  .ly-chips { flex-wrap: nowrap !important; overflow-x: auto; max-width: 100%; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); padding-right: 24px; }
+  .ly-chips::-webkit-scrollbar { display: none; }
+  .ly-chips > button { flex-shrink: 0; }
+  .sh-page select { flex: 1 1 calc(50% - 6px); min-width: 0; max-width: 100%; }
+}
 `;

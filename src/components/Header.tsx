@@ -37,7 +37,7 @@ const Header = ({ inverted }: { inverted?: boolean }) => {
   const close = () => setOpen(false);
 
   return (
-    <header className={cn("pt-safe relative z-40 bg-transparent", inverted && "text-background")}>
+    <header className={cn("pt-safe pt-safe-page relative z-40 bg-transparent", inverted && "text-background")}>
       <div className="mx-auto flex h-[76px] max-w-[1200px] items-center justify-between gap-8 px-6 sm:px-10">
         <Logo inverted={inverted} />
 

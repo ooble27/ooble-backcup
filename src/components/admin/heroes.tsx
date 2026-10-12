@@ -17,7 +17,8 @@ import { C, FONT } from "./adminTheme";
 const nf = new Intl.NumberFormat("fr-CA");
 const nf0 = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 0 });
 const plural = (n: number, one: string, many = `${one}s`) => (n > 1 ? many : one);
-const money = (n: number) => (n >= 10_000 ? `${nf0.format(n / 1000)} k $` : `${nf0.format(n)} $`);
+// Espaces insécables : le montant et son symbole ne sont jamais séparés en fin de ligne.
+const money = (n: number) => (n >= 10_000 ? `${nf0.format(n / 1000)}\u00a0k\u00a0$` : `${nf0.format(n)}\u00a0$`).replace(/\s/g, "\u00a0");
 const ago = (iso: string) => {
   const m = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   return m < 60 ? `${m} min` : m < 1440 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} j`;

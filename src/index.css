@@ -374,6 +374,9 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
+  /* Bannière d'annonce affichée : elle couvre déjà la barre d'état, la page ne réserve pas cet espace une deuxième fois. */
+  html.has-notice .pt-safe-page { padding-top: 0; }
+  html.has-notice .app-top { padding-top: 1.25rem; }
 
   /* App installée sur iPhone / iPad : bande du haut floutée par iOS 26. Elle reste d'une couleur unie
      (le flou d'une couleur unie est invisible) et le contenu commence en dessous. */

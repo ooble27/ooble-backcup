@@ -62,7 +62,7 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
       panes
       actions={list.length > 1 && (
         <>
-          <span style={{ fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{index + 1} / {list.length}</span>
+          <span style={{ fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", flexShrink: 0 }}>{index + 1} / {list.length}</span>
           <Button variant="ghost" size="sm" aria-label="Précédent" disabled={index === 0} onClick={() => onIndex(index - 1)} icon={<ChevronLeft style={{ width: 16, height: 16 }} />} />
           <Button variant="ghost" size="sm" aria-label="Suivant" disabled={index === list.length - 1} onClick={() => onIndex(index + 1)} icon={<ChevronRight style={{ width: 16, height: 16 }} />} />
         </>

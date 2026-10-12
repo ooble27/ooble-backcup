@@ -27,10 +27,11 @@ interface KpiDashboardProps {
 type Period = "1" | "7" | "30";
 const PERIODS: { id: Period; label: string }[] = [{ id: "1", label: "24 h" }, { id: "7", label: "7 jours" }, { id: "30", label: "30 jours" }];
 
-const money = (n: number) =>
+const money = (n: number) => (
   n >= 1_000_000 ? `${(n / 1_000_000).toLocaleString("fr-CA", { maximumFractionDigits: 1 })} M $`
     : n >= 10_000 ? `${(n / 1000).toLocaleString("fr-CA", { maximumFractionDigits: 1 })} k $`
-      : `${nfCad.format(n)} $`;
+      : `${nfCad.format(n)} $`
+).replace(/\s/g, "\u00a0"); // le montant et son symbole restent sur la même ligne
 
 const pct = (p: number | null) => (p === null || !Number.isFinite(p) ? null : `${p >= 0 ? "+" : ""}${p.toFixed(1)} %`);
 

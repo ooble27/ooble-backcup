@@ -128,7 +128,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
         </p>
         {/* Les chiffres du client, en une phrase (au lieu de cases). */}
         <p style={{ margin: "14px 0 0", fontSize: "clamp(18px, 1.8vw, 22px)", lineHeight: 1.35, letterSpacing: "-0.02em", color: C.t2, maxWidth: 820 }}>
-          <b style={{ color: C.sun, fontWeight: 600 }}>{nfCad.format(profile?.totalCad ?? 0)} $</b> échangés en{" "}
+          <b style={{ color: C.sun, fontWeight: 600, whiteSpace: "nowrap" }}>{nfCad.format(profile?.totalCad ?? 0)} $</b> échangés en{" "}
           <b style={{ color: C.coral, fontWeight: 600 }}>{Math.max(profile?.orderCount ?? 0, orders.length)}</b> commande{Math.max(profile?.orderCount ?? 0, orders.length) > 1 ? "s" : ""}
           {completed.length ? <>, dont {completed.length} terminée{completed.length > 1 ? "s" : ""}</> : null}.{" "}
           <span style={{ color: C.t3 }}>

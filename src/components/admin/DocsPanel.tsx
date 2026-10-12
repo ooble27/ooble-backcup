@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, Download, Pencil, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchCached, peek, put } from "@/lib/adminCache";
@@ -20,11 +20,21 @@ import Markdown, { MARKDOWN_CSS } from "./Markdown";
 const DOCS_CSS = `
 .dk-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
 .dk-split { display: grid; gap: 16px; }
-@media (min-width: 1000px) { .dk-split { grid-template-columns: 300px minmax(0, 1fr); align-items: start; } .dk-list { position: sticky; top: 0; max-height: calc(100vh - 150px); overflow-y: auto; } }
-.dk-item { all: unset; box-sizing: border-box; width: 100%; display: flex; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-family: inherit; }
-.dk-item:hover { background: var(--a-hover2); }
-.dk-item[aria-current="true"] { background: var(--a-hover3); }
-.dk-item:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }
+/* Ordinateur et tablette : la liste et la fiche défilent chacune de leur côté, la page ne bouge pas. */
+@media (min-width: 1000px) {
+  .dk-split { grid-template-columns: 300px minmax(0, 1fr); height: calc(100dvh - 112px); min-height: 460px; margin-bottom: -72px; }
+  .dk-list, .dk-split > .dk-read { height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+}
+.dk-item { all: unset; box-sizing: border-box; width: 100%; display: flex; gap: 12px; padding: 9px 12px; cursor: pointer; font-family: inherit; transition: transform .18s cubic-bezier(.22,1,.36,1); }
+.dk-item .dk-t { color: var(--a-t2); text-decoration-line: underline; text-decoration-color: transparent; text-underline-offset: 3px; text-decoration-thickness: 1px; transition: text-decoration-color .15s, color .15s; }
+.dk-item:hover { transform: translateX(3px); }
+.dk-item:hover .dk-t { color: var(--a-t1); text-decoration-color: currentColor; }
+.dk-item[aria-current="true"] .dk-t { color: var(--a-t1); font-weight: 600; }
+.dk-item[aria-current="true"] .dk-n { color: var(--a-coral); }
+.dk-item:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { .dk-item { transition: none; } .dk-item:hover { transform: none; } }
+.dk-seg { all: unset; cursor: pointer; height: 100%; border-radius: 3px; transition: opacity .15s, transform .15s; }
+.dk-seg:hover, .dk-seg:focus-visible { transform: scaleY(1.18); }
 .dk-read { border-radius: 16px; background: var(--a-bg); box-shadow: 0 0 0 1px var(--a-bds), 0 1px 3px rgba(0,0,0,.05); padding: 28px 32px 32px; min-width: 0; }
 @media (max-width: 640px) { .dk-read { padding: 22px 18px 26px; } }
 .dk-spine { all: unset; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; border-radius: 6px 6px 3px 3px; transition: transform .18s, opacity .18s; }
@@ -44,7 +54,7 @@ const META: Record<DocSection, { noun: string; nounPlural: string; newLabel: str
 
 const dayFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric" });
 const SPINE_COLORS = [C.vzGreen, C.vzCoral, C.vzIndigo, C.sun, C.sage, C.vzGray];
-const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const readDoc = () => new URLSearchParams(window.location.search).get("doc");
 const writeDoc = (slug: string | null) => {
   const url = new URL(window.location.href);
@@ -73,28 +83,28 @@ function Shelf({ groups, active, onPick }: { groups: [string, number][]; active:
   );
 }
 
-function ReadingBars({ docs, onOpen }: { docs: DocArticle[]; onOpen: (d: DocArticle) => void }) {
-  // Longueur réelle de chaque chapitre (en mots) ; les minutes sont arrondies à la demi-minute.
+/** Le manuel d'un coup d'œil : un ruban, un segment par chapitre, large comme sa longueur. */
+function ReadingRibbon({ docs, onOpen }: { docs: DocArticle[]; onOpen: (d: DocArticle) => void }) {
+  const [hover, setHover] = useState<number | null>(null);
   const words = docs.map((d) => d.body.split(/\s+/).filter(Boolean).length);
-  const max = Math.max(1, ...words);
-  const mins = words.map((w) => Math.max(0.5, Math.round((w / 200) * 2) / 2));
   const total = Math.max(1, Math.round(words.reduce((s, n) => s + n, 0) / 200));
-  const fmt = (m: number) => `${String(m).replace(".", ",")} min`;
+  const mins = (w: number) => `${String(Math.max(0.5, Math.round((w / 200) * 2) / 2)).replace(".", ",")} min`;
+  const h = hover ?? 0;
   return (
-    <div style={{ display: "grid", gap: 8 }}>
-      <span style={{ fontSize: 12.5, color: C.t3 }}>Temps de lecture par chapitre · {total} min en tout</span>
-      <div style={{ display: "grid", gap: 5 }}>
+    <div style={{ display: "grid", gap: 10 }}>
+      <span style={{ fontSize: 12.5, color: C.t3 }}>{docs.length} chapitres · {total} min de lecture, un segment par chapitre</span>
+      <div style={{ display: "flex", gap: 3, height: 34, alignItems: "stretch" }} onMouseLeave={() => setHover(null)}>
         {docs.map((d, i) => (
-          <button key={d.id} type="button" onClick={() => onOpen(d)} title={`${d.title} · ${fmt(mins[i])}`}
-            style={{ all: "unset", cursor: "pointer", display: "grid", gridTemplateColumns: "22px minmax(0, 1fr) 52px", alignItems: "center", gap: 8, fontSize: 12, color: C.t3 }}>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>{String(i + 1).padStart(2, "0")}</span>
-            <span style={{ height: 8, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
-              <span style={{ display: "block", height: "100%", width: `${(words[i] / max) * 100}%`, borderRadius: 99, background: i === 0 ? C.sun : C.vzGreen }} />
-            </span>
-            <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(mins[i])}</span>
-          </button>
+          <button key={d.id} type="button" className="dk-seg" onClick={() => onOpen(d)} onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)}
+            aria-label={`${i + 1}. ${d.title}, ${mins(words[i])}`}
+            style={{ flex: `${Math.max(words[i], 60)} 1 0`, minWidth: 4, background: i === h ? C.sun : i % 2 ? C.vzGreen : C.sage, opacity: hover === null || i === hover ? 1 : 0.55 }} />
         ))}
       </div>
+      <p style={{ margin: 0, fontSize: 13, color: C.t2, minHeight: 20, display: "flex", gap: 8, alignItems: "baseline" }}>
+        <span style={{ color: C.coral, fontVariantNumeric: "tabular-nums" }}>{String(h + 1).padStart(2, "0")}</span>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: C.t1 }}>{docs[h]?.title}</span>
+        <span style={{ color: C.t3, fontVariantNumeric: "tabular-nums" }}>{mins(words[h] ?? 0)}</span>
+      </p>
     </div>
   );
 }
@@ -220,6 +230,7 @@ export default function DocsPanel({ section }: { section: DocSection }) {
   const [editing, setEditing] = useState<{ doc: DocArticle | null } | null>(null);
   const [wide, setWide] = useState(() => typeof window === "undefined" || window.innerWidth >= 1000);
   const [pdf, setPdf] = useState<"idle" | "busy" | "error">("idle");
+  const readRef = useRef<HTMLElement | null>(null);
   // PDF construit dans le navigateur à partir des chapitres en base : toujours la dernière version.
   const downloadPdf = async () => {
     if (section === "kb" || !docs?.length || pdf === "busy") return;
@@ -258,6 +269,8 @@ export default function DocsPanel({ section }: { section: DocSection }) {
   const all = docs ?? [];
   const current = all.find((d) => d.slug === openSlug) ?? (wide && !needle && cat === "all" ? all[0] : wide ? list[0] : undefined) ?? null;
   const idx = current ? all.findIndex((d) => d.id === current.id) : -1;
+  // Nouvelle fiche : la lecture reprend en haut du volet.
+  useEffect(() => { readRef.current?.scrollTo({ top: 0 }); }, [current?.id]);
 
   const open = (d: DocArticle | null) => {
     setOpenSlug(d?.slug ?? null);
@@ -302,7 +315,7 @@ export default function DocsPanel({ section }: { section: DocSection }) {
       {docs !== null && total > 0 && (
         <div style={{ minWidth: 0 }}>
           {section === "kb" && <Shelf groups={groups} active={cat} onPick={setCat} />}
-          {section === "manual" && <ReadingBars docs={all} onOpen={open} />}
+          {section === "manual" && <ReadingRibbon docs={all} onOpen={open} />}
           {section === "tech" && <Layers />}
         </div>
       )}
@@ -321,9 +334,11 @@ export default function DocsPanel({ section }: { section: DocSection }) {
             const n = all.indexOf(d) + 1;
             return (
               <button key={d.id} type="button" className="dk-item" aria-current={current?.id === d.id} onClick={() => open(d)}>
-                {meta.numbered && <span style={{ width: 20, fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums", paddingTop: 1 }}>{String(n).padStart(2, "0")}</span>}
+                {meta.numbered
+                  ? <span className="dk-n" style={{ width: 20, fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums", paddingTop: 1 }}>{String(n).padStart(2, "0")}</span>
+                  : <span className="dk-n" aria-hidden style={{ width: 6, height: 6, marginTop: 8, borderRadius: 99, flexShrink: 0, background: "currentColor", color: "transparent" }} />}
                 <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: "block", fontSize: 13.5, color: C.t1, lineHeight: 1.4 }}>{d.title}</span>
+                  <span className="dk-t" style={{ display: "block", fontSize: 13.5, lineHeight: 1.4 }}>{d.title}</span>
                   {d.summary && <span style={{ marginTop: 2, fontSize: 12.5, color: C.t3, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{d.summary}</span>}
                 </span>
               </button>
@@ -335,7 +350,7 @@ export default function DocsPanel({ section }: { section: DocSection }) {
   );
 
   const reader = current && (
-    <article className="dk-read">
+    <article className="dk-read" ref={readRef}>
       {!wide && (
         <button type="button" onClick={() => open(null)} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.t3, marginBottom: 16 }}>
           <ArrowLeft style={{ width: 15, height: 15 }} /> Toutes les {meta.nounPlural}

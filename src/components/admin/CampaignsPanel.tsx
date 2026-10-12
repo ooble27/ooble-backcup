@@ -157,6 +157,8 @@ function useDebounced<T>(value: T, ms: number): T {
 // ─── Styles (animations) ────────────────────────────────────
 
 const PANEL_CSS = `
+.admin-scope { --cmp-stage: #e9e6df; }
+:root:not(.dark) .admin-scope { --cmp-stage: #f5f5f3; }
 @keyframes cmp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes cmp-shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
 .cmp-rise { animation: cmp-rise 0.5s ${EASE} both; }
@@ -425,11 +427,27 @@ function InboxRow({ subject, preheader }: { subject: string; preheader: string }
   );
 }
 
+/** Mode clair : l'aperçu du courriel prend le blanc des volets (comme Audience) au lieu du beige du courriel. */
+function useLightTheme() {
+  const read = () => typeof document !== "undefined" && !document.documentElement.classList.contains("dark");
+  const [light, setLight] = useState(read);
+  useEffect(() => {
+    const obs = new MutationObserver(() => setLight(read()));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return light;
+}
+const STAGE_LIGHT = "#f5f5f3"; // = fond des volets en mode clair (C.bg)
+const onStage = (html: string, light: boolean) => (light ? html.replace(/#e9e6df/gi, STAGE_LIGHT) : html);
+
 /**
  * Aperçu ordinateur ou téléphone. `fit` : l'appareil remplit toute la hauteur
  * disponible et le courriel défile à l'intérieur (aucun vide sous l'aperçu).
  */
-function DevicePreview({ html, device, title, fit }: { html: string; device: "desktop" | "mobile"; title: string; fit?: boolean }) {
+function DevicePreview({ html: raw, device, title, fit }: { html: string; device: "desktop" | "mobile"; title: string; fit?: boolean }) {
+  const light = useLightTheme();
+  const html = onStage(raw, light);
   if (device === "mobile") {
     return (
       <div style={{ display: "flex", justifyContent: "center", height: fit ? "100%" : undefined, padding: fit ? 0 : "8px 0 24px" }}>
@@ -437,7 +455,7 @@ function DevicePreview({ html, device, title, fit }: { html: string; device: "de
           height: fit ? "100%" : 660, maxHeight: fit ? 860 : undefined, aspectRatio: "326 / 660", maxWidth: "100%",
           boxSizing: "border-box", borderRadius: 46, padding: 10, background: "#0b0b0c", boxShadow: "0 30px 60px -30px rgba(0,0,0,0.6), inset 0 0 0 1px #2a2a2c",
         }}>
-          <div style={{ position: "relative", borderRadius: 36, overflow: "hidden", background: "#e9e6df", height: "100%" }}>
+          <div style={{ position: "relative", borderRadius: 36, overflow: "hidden", background: "var(--cmp-stage)", height: "100%" }}>
             <div aria-hidden style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 92, height: 24, borderRadius: 14, background: "#0b0b0c", zIndex: 2 }} />
             <div style={{ height: "100%", overflowY: "auto", paddingTop: 40, boxSizing: "border-box" }}>
               <ScaledFrame key="m" html={html} frameWidth={390} title={title} />
@@ -450,7 +468,7 @@ function DevicePreview({ html, device, title, fit }: { html: string; device: "de
   // Ordinateur : le courriel seul, à sa vraie largeur (680 px), centré ; pas de fenêtre de navigateur autour.
   return (
     <div style={{ display: "flex", justifyContent: "center", height: fit ? "100%" : undefined }}>
-      {/* Le fond du courriel (#e9e6df) se fond dans le volet : on ne voit qu'une carte, le courriel lui-même. */}
+      {/* Le fond du courriel se fond dans le volet (beige en sombre, blanc des volets en clair) : on ne voit qu'une carte. */}
       <div style={{ width: "100%", maxWidth: 680, ...(fit ? { height: "100%", overflowY: "auto", scrollbarWidth: "thin" } : null) }}>
         <ScaledFrame key="d" html={html} frameWidth={680} title={title} />
       </div>
@@ -743,7 +761,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto px-2 pb-2 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:content-stretch lg:overflow-hidden">
         {/* Courriel, dans un volet arrondi ; flèches flottantes pour parcourir les modèles. */}
-        <div className="h-[74vh] lg:h-auto" style={{ position: "relative", minHeight: 0, borderRadius: 16, background: "#e9e6df", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div className="h-[74vh] lg:h-auto" style={{ position: "relative", minHeight: 0, borderRadius: 16, background: "var(--cmp-stage)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div className="flex justify-center gap-2 pt-3 sm:hidden">{switches}</div>
           <div key={`${t.id}:${lang}:${device}`} className="cmp-rise" style={{ flex: 1, minHeight: 0, padding: "20px 62px 52px" }}>
             <DevicePreview html={html} device={device} title={`${t.name} (${lang})`} fit />
@@ -1112,7 +1130,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
       </div>
     </div>
   );
-  const stage: React.CSSProperties = { background: "#e9e6df", overflow: "hidden" };
+  const stage: React.CSSProperties = { background: "var(--cmp-stage)", overflow: "hidden" };
 
   const contentStep = wide ? (
     <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(400px, 520px) minmax(0, 1fr)" }}>
@@ -1354,7 +1372,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           <Segmented ariaLabel="Langue" size="sm" value={editLang} onChange={setEditLang} options={LANG_OPTIONS} />
           <Segmented ariaLabel="Appareil" size="sm" value={device} onChange={setDevice} options={DEVICE_OPTIONS} />
         </div>
-        <div style={{ flex: 1, minHeight: 0, margin: "0 8px 8px", borderRadius: 16, background: "#e9e6df", padding: "20px 16px" }}>
+        <div style={{ flex: 1, minHeight: 0, margin: "0 8px 8px", borderRadius: 16, background: "var(--cmp-stage)", padding: "20px 16px" }}>
           <DevicePreview html={html} device={device} title="Aperçu agrandi" fit />
         </div>
       </Modal>

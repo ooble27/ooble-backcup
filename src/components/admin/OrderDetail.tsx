@@ -293,15 +293,17 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
       <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div style={{ minWidth: 0 }}>
           {/* Montants */}
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 16, background: C.hover2 }}>
+          <style>{`@media (max-width: 480px) { .od-amt { grid-template-columns: minmax(0,1fr) !important; gap: 10px !important; } .od-amt > svg { transform: rotate(90deg); } .od-amt > div:last-child { text-align: left !important; } }`}</style>
+          {/* Téléphone : « envoie » au-dessus de « reçoit », les montants ne sont jamais coupés. */}
+          <div className="od-amt" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 16, background: C.hover2 }}>
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Le client envoie</p>
-              <p style={{ margin: "6px 0 0", fontSize: 28, fontWeight: 600, letterSpacing: "-0.035em", fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sends}</p>
+              <p style={{ margin: "6px 0 0", fontSize: "clamp(20px, 6vw, 28px)", fontWeight: 600, letterSpacing: "-0.035em", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{sends}</p>
             </div>
             <ArrowRight style={{ width: 18, height: 18, color: C.t3 }} />
             <div style={{ minWidth: 0, textAlign: "right" }}>
               <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Le client reçoit</p>
-              <p style={{ margin: "6px 0 0", fontSize: 28, fontWeight: 600, letterSpacing: "-0.035em", color: C.coral, fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receives}</p>
+              <p style={{ margin: "6px 0 0", fontSize: "clamp(20px, 6vw, 28px)", fontWeight: 600, letterSpacing: "-0.035em", color: C.coral, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{receives}</p>
             </div>
           </div>
 

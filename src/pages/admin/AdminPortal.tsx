@@ -435,7 +435,7 @@ const AdminPortal = () => {
 
       {panel ? (
         /* Écrin : posé sur le fond, coins arrondis, aucun trait ne croise la barre latérale. */
-        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 0" }}>
+        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 1px" }}>
           <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
             <header style={panel
               ? { flexShrink: 0, background: C.bg }
