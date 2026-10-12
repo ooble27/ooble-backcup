@@ -10,9 +10,8 @@ import { getTheme, onThemeChange, setTheme, type Theme } from "@/lib/theme";
  *
  * Au repos, seule une petite languette fléchée dépasse du bord gauche : la page reste libre.
  * Un toucher déploie un demi-cercle compact collé au bord ; les pages sont posées sur l'arc.
- * On fait tourner le cadran du doigt (avec de l'élan, il se cale sur chaque page) : la page en face
- * du repère corail est mise en avant, son nom s'affiche à côté. Un toucher l'ouvre, et le cadran
- * rentre dans la languette.
+ * On fait tourner le cadran du doigt (avec de l'élan, il se cale sur chaque page) ; la page en face
+ * est mise en avant. Toucher une icône ouvre sa page, et le cadran rentre dans la languette.
  */
 
 export interface DialItem { id: string; label: string; desc?: string; icon: React.ElementType; badge?: number }
@@ -27,7 +26,7 @@ const CSS = `
   transition: transform .3s ${EASE}, opacity .2s; -webkit-tap-highlight-color: transparent; }
 .dn-tab[data-hidden="true"] { transform: translateX(-100%); opacity: 0; pointer-events: none; }
 .dn-tab:active { transform: scale(.94); transform-origin: 0 50%; }
-.dn-tab:focus-visible, .dn-item:focus-visible, .dn-mini:focus-visible, .dn-pill:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
+.dn-tab:focus-visible, .dn-item:focus-visible, .dn-mini:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
 .dn-dial { position: fixed; left: 0; top: 50%; z-index: 89; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
   background: var(--a-l1); box-shadow: 0 0 0 1px var(--a-bds); transform-origin: 0 50%;
   animation: dn-in .4s ${EASE} both; }
@@ -40,15 +39,8 @@ const CSS = `
 .dn-item[data-current="true"]:not([data-on="true"]) { box-shadow: inset 0 0 0 1.5px var(--a-bd); }
 .dn-mini { position: absolute; width: 34px; height: 34px; border-radius: 99px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
   background: var(--a-hover2); color: var(--a-t2); -webkit-tap-highlight-color: transparent; }
-.dn-pill { position: fixed; z-index: 89; border: none; cursor: pointer; font-family: inherit; text-align: left;
-  display: flex; flex-direction: column; gap: 1px; padding: 8px 14px 8px 12px; border-radius: 14px;
-  background: var(--a-l1); box-shadow: 0 0 0 1px var(--a-bds); color: var(--a-t1);
-  animation: dn-pill .32s ${EASE} both; -webkit-tap-highlight-color: transparent; }
-.dn-pill[data-closing="true"] { animation: dn-pill-out .2s ease both; }
-@keyframes dn-pill { from { opacity: 0; transform: translate(-8px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
-@keyframes dn-pill-out { from { opacity: 1; transform: translate(0, -50%); } to { opacity: 0; transform: translate(-8px, -50%); } }
 @media (prefers-reduced-motion: reduce) {
-  .dn-dial, .dn-dial[data-closing="true"], .dn-pill, .dn-pill[data-closing="true"] { animation-duration: 1ms; }
+  .dn-dial, .dn-dial[data-closing="true"] { animation-duration: 1ms; }
   .dn-item, .dn-ticks, .dn-tab { transition: none !important; }
 }
 `;
@@ -88,6 +80,7 @@ function Dial({ items, current, closing, onClose, onPick }: {
   }, []);
   const R = Math.max(150, Math.min(176, vh * 0.22)); // rayon : compact, environ 45 % de la largeur d'un téléphone
   const r = R - 36; // rayon de l'arc des pages
+  const INSET = 32; // le cadran est en partie rentré dans le bord gauche : il prend moins de place
   const max = (items.length - 1) * STEP;
 
   const startIndex = Math.max(0, items.findIndex((i) => i.id === current));
@@ -168,7 +161,7 @@ function Dial({ items, current, closing, onClose, onPick }: {
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 88 }} />
       <div ref={box} className="dn-dial" data-closing={closing} role="dialog" aria-label="Menu du back-office"
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-        style={{ width: R, height: 2 * R, borderRadius: `0 ${R}px ${R}px 0` }}>
+        style={{ left: -INSET, width: R, height: 2 * R, borderRadius: `0 ${R}px ${R}px 0` }}>
         {/* Graduations : elles tournent avec le cadran. */}
         <svg className="dn-ticks" aria-hidden width={2 * R} height={2 * R}
           style={{ position: "absolute", left: -R, top: 0, transform: `rotate(${-rot / 3}deg)`, transformOrigin: `${R}px ${R}px`, transition: dragging ? "none" : `transform .45s ${EASE}` }}>
@@ -180,13 +173,11 @@ function Dial({ items, current, closing, onClose, onPick }: {
               stroke="var(--a-bd)" strokeWidth={long ? 1.4 : 1} strokeLinecap="round" />;
           })}
         </svg>
-        {/* Repère : la page qui lui fait face est celle qui s'ouvre. */}
-        <span aria-hidden style={{ position: "absolute", left: R - 9, top: R - 3, width: 6, height: 6, borderRadius: 99, background: "var(--a-coral)" }} />
 
         {items.map((it, i) => {
           const phi = i * STEP - rot;
-          const vis = Math.abs(phi) <= 96;
-          const fade = Math.max(0, Math.min(1, 1 - (Math.abs(phi) - 66) / 30));
+          const vis = Math.abs(phi) <= 80;
+          const fade = Math.max(0, Math.min(1, 1 - (Math.abs(phi) - 52) / 26));
           const Icon = it.icon;
           return (
             <button key={it.id} type="button" className="dn-item" data-on={i === focus} data-current={it.id === current}
@@ -207,23 +198,15 @@ function Dial({ items, current, closing, onClose, onPick }: {
         })}
 
         {/* Au cœur du cadran : fermer, thème, retour à l'app. */}
-        <ThemeMini style={{ left: 10, top: R - 62 }} />
-        <button type="button" className="dn-mini" aria-label="Fermer le menu" onClick={onClose} style={{ left: 10, top: R - 17 }}>
+        <ThemeMini style={{ left: INSET + 8, top: R - 62 }} />
+        <button type="button" className="dn-mini" aria-label="Fermer le menu" onClick={onClose} style={{ left: INSET + 8, top: R - 17 }}>
           <ChevronLeft style={{ width: 17, height: 17 }} strokeWidth={2.2} />
         </button>
-        <Link to="/app" className="dn-mini" aria-label="Retour à l'app" title="Retour à l'app" style={{ left: 10, top: R + 28 }}>
+        <Link to="/app" className="dn-mini" aria-label="Retour à l'app" title="Retour à l'app" style={{ left: INSET + 8, top: R + 28 }}>
           <ArrowLeft style={{ width: 16, height: 16 }} />
         </Link>
       </div>
 
-      {/* Nom de la page en face du repère, juste à côté du cadran ; un toucher l'ouvre. */}
-      {focused && (
-        <button key={focused.id} type="button" className="dn-pill" data-closing={closing} onClick={() => onPick(focused.id)}
-          style={{ left: R + 10, top: "50%", maxWidth: `calc(100vw - ${R + 22}px)` }}>
-          <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{focused.label}</span>
-          <span style={{ fontSize: 12, color: C.t3 }}>{focused.id === current ? "Vous y êtes" : "Toucher pour ouvrir"}</span>
-        </button>
-      )}
     </div>
   );
 }

@@ -475,15 +475,9 @@ const AdminPortal = () => {
                     );
                   })}
                 </ol>
-                <button type="button" className="sh-search" onClick={() => setPalette(true)} aria-label="Rechercher (⌘K)"
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: mode === "drawer" ? 0 : "0 10px 0 12px",
-                    width: mode === "drawer" ? 36 : 260, justifyContent: mode === "drawer" ? "center" : "flex-start",
-                    borderRadius: 9, border: `1px solid ${mode === "drawer" ? "transparent" : C.bds}`, background: mode === "drawer" ? "transparent" : "var(--a-inputBg)",
-                    color: C.t3, fontFamily: FONT, fontSize: 13, cursor: "pointer", flexShrink: 0,
-                  }}>
-                  <Search style={{ width: 15, height: 15 }} />
-                  {mode !== "drawer" && <><span style={{ flex: 1, textAlign: "left" }}>Rechercher</span><kbd style={{ fontFamily: FONT, fontSize: 11, padding: "2px 6px", borderRadius: 5, border: `1px solid ${C.bds}`, color: C.t3 }}>⌘K</kbd></>}
+                {/* Un simple bouton : la recherche s'ouvre au centre de l'écran (⌘K partout). */}
+                <button type="button" className="sh-round" onClick={() => setPalette(true)} aria-label="Rechercher (⌘K)" title="Rechercher · ⌘K">
+                  <Search style={{ width: 17, height: 17 }} strokeWidth={1.9} />
                 </button>
               </div>
             </header>
@@ -535,24 +529,25 @@ const AdminPortal = () => {
         <div style={{ minWidth: 0 }}>
         {/* Téléphone : pas de barre ni de bande ; deux boutons ronds et le nom de la page, qui défilent avec elle. */}
         <header style={{ paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
-          <div style={{ height: 64, display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
-            {DIAL_NAV ? <span aria-hidden style={{ width: 40, flexShrink: 0 }} /> : (
+          <div style={{ height: 64, display: "flex", alignItems: "center", gap: 12, padding: "0 14px 0 16px" }}>
+            {!DIAL_NAV && (
               <button type="button" className="sh-round" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}>
                 <Menu style={{ width: 18, height: 18 }} strokeWidth={1.9} />
               </button>
             )}
-            <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
+            {/* Nom de la page à gauche (rien d'autre n'occupe ce côté). */}
+            <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "flex-start" }}>
               {(() => {
                 const last = crumbs[crumbs.length - 1];
                 const back = crumbs.length > 1 ? crumbs[crumbs.length - 2] : undefined;
                 return back?.onClick ? (
                   <button type="button" onClick={back.onClick} aria-label={`Retour : ${back.label}`}
-                    style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%", fontSize: 14.5, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em" }}>
-                    <ChevronLeft style={{ width: 16, height: 16, color: C.t3, flexShrink: 0 }} />
+                    style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%", marginLeft: -4, fontSize: 15, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em" }}>
+                    <ChevronLeft style={{ width: 18, height: 18, color: C.t2, flexShrink: 0 }} />
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
                   </button>
                 ) : (
-                  <span style={{ minWidth: 0, fontSize: 14.5, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
+                  <span style={{ minWidth: 0, fontSize: 15, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
                 );
               })()}
             </div>
