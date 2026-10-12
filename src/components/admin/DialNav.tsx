@@ -1,74 +1,73 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Moon, Sun, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Moon, Sun } from "lucide-react";
 import { C, FONT } from "./adminTheme";
 import { getTheme, onThemeChange, setTheme, type Theme } from "@/lib/theme";
 
 /**
- * Navigation du back-office sur téléphone : un cadran.
+ * Navigation du back-office sur téléphone : un cadran qui sort du bord gauche.
  *
- * Un bouton rond au bas de l'écran, sous le pouce. Il s'ouvre en demi-cercle ; les pages sont posées
- * sur l'arc. On fait tourner le cadran du doigt (avec de l'élan, il se cale sur chaque page) : la page
- * arrivée sous le repère du haut s'affiche en grand au centre. Un toucher l'ouvre, et le cadran se
- * replie dans le bouton.
+ * Au repos, seule une petite languette fléchée dépasse du bord gauche : la page reste libre.
+ * Un toucher déploie un demi-cercle compact collé au bord ; les pages sont posées sur l'arc.
+ * On fait tourner le cadran du doigt (avec de l'élan, il se cale sur chaque page) : la page en face
+ * du repère corail est mise en avant, son nom s'affiche à côté. Un toucher l'ouvre, et le cadran
+ * rentre dans la languette.
  */
 
 export interface DialItem { id: string; label: string; desc?: string; icon: React.ElementType; badge?: number }
 
 const STEP = 30; // écart entre deux pages sur l'arc, en degrés
-const BASE = 92; // socle sous le demi-cercle : bouton du menu, thème, retour à l'app
 const EASE = "cubic-bezier(.22,1,.36,1)";
 
 const CSS = `
-.dn-fab { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 90; width: 58px; height: 58px; margin-left: -29px;
-  border-radius: 99px; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  background: var(--a-t1); color: var(--a-bg); box-shadow: 0 0 0 1px var(--a-bds); transition: transform .2s ${EASE}; -webkit-tap-highlight-color: transparent; }
-.dn-fab:active { transform: scale(.92); }
-.dn-fab:focus-visible, .dn-item:focus-visible, .dn-mini:focus-visible, .dn-open:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
-.dn-fab img { width: 30px; height: 30px; border-radius: 8px; transition: transform .3s ${EASE}, opacity .2s; }
-.dn-fab[data-open="true"] img { transform: rotate(-90deg) scale(.4); opacity: 0; }
-.dn-fab .dn-x { position: absolute; transform: rotate(90deg) scale(.4); opacity: 0; transition: transform .3s ${EASE}, opacity .2s; }
-.dn-fab[data-open="true"] .dn-x { transform: none; opacity: 1; }
-.dn-dial { position: fixed; left: 50%; bottom: 0; z-index: 89; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
-  background: var(--a-l1); box-shadow: 0 0 0 1px var(--a-bds); transform-origin: 50% 100%;
-  animation: dn-in .42s ${EASE} both; }
-.dn-dial[data-closing="true"] { animation: dn-out .26s cubic-bezier(.4,0,.6,1) both; }
-@keyframes dn-in { from { transform: translateX(-50%) scale(.18); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
-@keyframes dn-out { from { transform: translateX(-50%) scale(1); opacity: 1; } to { transform: translateX(-50%) scale(.18); opacity: 0; } }
-.dn-item { position: absolute; width: 50px; height: 50px; border-radius: 99px; border: none; padding: 0; cursor: pointer;
+.dn-tab { position: fixed; left: 0; top: 50%; z-index: 90; width: 22px; height: 60px; margin-top: -30px; padding: 0 2px 0 0; border: none; cursor: pointer;
+  border-radius: 0 14px 14px 0; display: flex; align-items: center; justify-content: center;
+  background: var(--a-l1); color: var(--a-t2); box-shadow: 0 0 0 1px var(--a-bds);
+  transition: transform .3s ${EASE}, opacity .2s; -webkit-tap-highlight-color: transparent; }
+.dn-tab[data-hidden="true"] { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+.dn-tab:active { transform: scale(.94); transform-origin: 0 50%; }
+.dn-tab:focus-visible, .dn-item:focus-visible, .dn-mini:focus-visible, .dn-pill:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
+.dn-dial { position: fixed; left: 0; top: 50%; z-index: 89; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: var(--a-l1); box-shadow: 0 0 0 1px var(--a-bds); transform-origin: 0 50%;
+  animation: dn-in .4s ${EASE} both; }
+.dn-dial[data-closing="true"] { animation: dn-out .24s cubic-bezier(.4,0,.6,1) both; }
+@keyframes dn-in { from { transform: translateY(-50%) scale(.12); opacity: 0; } to { transform: translateY(-50%) scale(1); opacity: 1; } }
+@keyframes dn-out { from { transform: translateY(-50%) scale(1); opacity: 1; } to { transform: translateY(-50%) scale(.12); opacity: 0; } }
+.dn-item { position: absolute; width: 48px; height: 48px; border-radius: 99px; border: none; padding: 0; cursor: pointer;
   display: flex; align-items: center; justify-content: center; background: transparent; color: var(--a-t2); -webkit-tap-highlight-color: transparent; }
 .dn-item[data-on="true"] { background: var(--a-t1); color: var(--a-bg); }
 .dn-item[data-current="true"]:not([data-on="true"]) { box-shadow: inset 0 0 0 1.5px var(--a-bd); }
-.dn-mini { position: absolute; width: 40px; height: 40px; border-radius: 99px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+.dn-mini { position: absolute; width: 34px; height: 34px; border-radius: 99px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
   background: var(--a-hover2); color: var(--a-t2); -webkit-tap-highlight-color: transparent; }
-.dn-open { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.dn-label { animation: dn-label .3s ${EASE} both; }
-@keyframes dn-label { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.dn-pill { position: fixed; z-index: 89; border: none; cursor: pointer; font-family: inherit; text-align: left;
+  display: flex; flex-direction: column; gap: 1px; padding: 8px 14px 8px 12px; border-radius: 14px;
+  background: var(--a-l1); box-shadow: 0 0 0 1px var(--a-bds); color: var(--a-t1);
+  animation: dn-pill .32s ${EASE} both; -webkit-tap-highlight-color: transparent; }
+.dn-pill[data-closing="true"] { animation: dn-pill-out .2s ease both; }
+@keyframes dn-pill { from { opacity: 0; transform: translate(-8px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
+@keyframes dn-pill-out { from { opacity: 1; transform: translate(0, -50%); } to { opacity: 0; transform: translate(-8px, -50%); } }
 @media (prefers-reduced-motion: reduce) {
-  .dn-dial, .dn-dial[data-closing="true"], .dn-label { animation-duration: 1ms; }
-  .dn-item, .dn-ticks { transition: none !important; }
+  .dn-dial, .dn-dial[data-closing="true"], .dn-pill, .dn-pill[data-closing="true"] { animation-duration: 1ms; }
+  .dn-item, .dn-ticks, .dn-tab { transition: none !important; }
 }
 `;
 
 export function DialNav({ items, current, onSelect }: { items: DialItem[]; current: string; onSelect: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
-  const fab = useRef<HTMLButtonElement | null>(null);
+  const tab = useRef<HTMLButtonElement | null>(null);
 
   const close = (then?: () => void) => {
     setClosing(true);
-    window.setTimeout(() => { setOpen(false); setClosing(false); then?.(); fab.current?.focus({ preventScroll: true }); }, 240);
+    window.setTimeout(() => { setOpen(false); setClosing(false); then?.(); tab.current?.focus({ preventScroll: true }); }, 220);
   };
 
   return (
     <>
       <style>{CSS}</style>
-      <button ref={fab} type="button" className="dn-fab" data-open={open && !closing}
-        aria-label={open ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={open}
-        onClick={() => (open ? close() : setOpen(true))}>
-        <img src="/icons/icon-192.png" alt="" />
-        <X className="dn-x" style={{ width: 22, height: 22 }} strokeWidth={2} />
+      <button ref={tab} type="button" className="dn-tab" data-hidden={open} aria-label="Ouvrir le menu" aria-expanded={open} onClick={() => setOpen(true)}>
+        <ChevronRight style={{ width: 16, height: 16 }} strokeWidth={2.2} />
       </button>
       {open && createPortal(
         <Dial items={items} current={current} closing={closing} onClose={() => close()} onPick={(id) => close(() => onSelect(id))} />,
@@ -81,14 +80,14 @@ export function DialNav({ items, current, onSelect }: { items: DialItem[]; curre
 function Dial({ items, current, closing, onClose, onPick }: {
   items: DialItem[]; current: string; closing: boolean; onClose: () => void; onPick: (id: string) => void;
 }) {
-  const [vw, setVw] = useState(() => window.innerWidth);
+  const [vh, setVh] = useState(() => window.innerHeight);
   useEffect(() => {
-    const on = () => setVw(window.innerWidth);
+    const on = () => setVh(window.innerHeight);
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
-  const R = Math.min(vw / 2 - 4, 236); // rayon du cadran
-  const r = R - 40; // rayon de l'arc des pages
+  const R = Math.max(150, Math.min(176, vh * 0.22)); // rayon : compact, environ 45 % de la largeur d'un téléphone
+  const r = R - 36; // rayon de l'arc des pages
   const max = (items.length - 1) * STEP;
 
   const startIndex = Math.max(0, items.findIndex((i) => i.id === current));
@@ -111,20 +110,18 @@ function Dial({ items, current, closing, onClose, onPick }: {
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); setRot((v) => Math.min(max, Math.round(v / STEP) * STEP + STEP)); }
-      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); setRot((v) => Math.max(0, Math.round(v / STEP) * STEP - STEP)); }
+      else if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); setRot((v) => Math.min(max, Math.round(v / STEP) * STEP + STEP)); }
+      else if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); setRot((v) => Math.max(0, Math.round(v / STEP) * STEP - STEP)); }
       else if (e.key === "Enter" && focused && !(e.target instanceof HTMLButtonElement || e.target instanceof HTMLAnchorElement)) { e.preventDefault(); onPick(focused.id); }
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
   }, [max, focused, onClose, onPick]);
 
-  // Angle du doigt autour du centre du cadran (0° = en haut, positif vers la droite).
+  // Angle du doigt autour du centre du cadran, posé sur le bord gauche (0° = vers la droite, positif vers le bas).
   const angleOf = (x: number, y: number) => {
     const b = box.current!.getBoundingClientRect();
-    const cx = b.left + b.width / 2;
-    const cy = b.bottom;
-    return (Math.atan2(x - cx, cy - y) * 180) / Math.PI;
+    return (Math.atan2(y - (b.top + b.height / 2), x - b.left) * 180) / Math.PI;
   };
   const rubber = (v: number) => (v < 0 ? v / 3 : v > max ? max + (v - max) / 3 : v);
 
@@ -135,16 +132,14 @@ function Dial({ items, current, closing, onClose, onPick }: {
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    const a = angleOf(e.clientX, e.clientY);
-    const delta = a - d.a0;
+    const delta = angleOf(e.clientX, e.clientY) - d.a0;
     d.moved = Math.max(d.moved, Math.abs(delta));
     if (d.moved < 3) return;
     if (!dragging) { setDragging(true); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }
     suppressClick.current = true;
     const next = rubber(d.rot0 - delta);
     const now = performance.now();
-    const dt = Math.max(1, now - d.t);
-    d.v = (next - d.last) / dt; // degrés par ms
+    d.v = (next - d.last) / Math.max(1, now - d.t); // degrés par ms
     d.last = next; d.t = now;
     setRot(next);
   };
@@ -166,7 +161,6 @@ function Dial({ items, current, closing, onClose, onPick }: {
   };
 
   const ticks = useMemo(() => Array.from({ length: 72 }, (_, k) => k * 5), []);
-  const trans = dragging ? "none" : `transform .45s ${EASE}, opacity .3s`;
 
   return (
     <div className="admin-scope" style={{ fontFamily: FONT }}>
@@ -174,22 +168,20 @@ function Dial({ items, current, closing, onClose, onPick }: {
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 88 }} />
       <div ref={box} className="dn-dial" data-closing={closing} role="dialog" aria-label="Menu du back-office"
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-        style={{ width: 2 * R, height: `calc(${R + BASE}px + env(safe-area-inset-bottom, 0px))`, borderRadius: `${R}px ${R}px 0 0` }}>
-        {/* Graduations (moitié haute seulement) : elles tournent avec le cadran. */}
-        <div aria-hidden style={{ position: "absolute", left: 0, top: 0, width: 2 * R, height: R, overflow: "hidden" }}>
-        <svg className="dn-ticks" width={2 * R} height={2 * R}
-          style={{ position: "absolute", left: 0, top: 0, transform: `rotate(${-rot / 3}deg)`, transformOrigin: `${R}px ${R}px`, transition: dragging ? "none" : `transform .45s ${EASE}` }}>
+        style={{ width: R, height: 2 * R, borderRadius: `0 ${R}px ${R}px 0` }}>
+        {/* Graduations : elles tournent avec le cadran. */}
+        <svg className="dn-ticks" aria-hidden width={2 * R} height={2 * R}
+          style={{ position: "absolute", left: -R, top: 0, transform: `rotate(${-rot / 3}deg)`, transformOrigin: `${R}px ${R}px`, transition: dragging ? "none" : `transform .45s ${EASE}` }}>
           {ticks.map((deg) => {
             const long = deg % 30 === 0;
             const a = (deg * Math.PI) / 180;
-            const r1 = R - 8, r2 = R - (long ? 16 : 12);
-            return <line key={deg} x1={R + r1 * Math.sin(a)} y1={R - r1 * Math.cos(a)} x2={R + r2 * Math.sin(a)} y2={R - r2 * Math.cos(a)}
+            const r1 = R - 7, r2 = R - (long ? 14 : 11);
+            return <line key={deg} x1={R + r1 * Math.cos(a)} y1={R + r1 * Math.sin(a)} x2={R + r2 * Math.cos(a)} y2={R + r2 * Math.sin(a)}
               stroke="var(--a-bd)" strokeWidth={long ? 1.4 : 1} strokeLinecap="round" />;
           })}
         </svg>
-        </div>
-        {/* Repère du haut : la page qui s'y trouve est celle qui s'ouvre. */}
-        <span aria-hidden style={{ position: "absolute", left: R - 3, top: 4, width: 6, height: 6, borderRadius: 99, background: "var(--a-coral)" }} />
+        {/* Repère : la page qui lui fait face est celle qui s'ouvre. */}
+        <span aria-hidden style={{ position: "absolute", left: R - 9, top: R - 3, width: 6, height: 6, borderRadius: 99, background: "var(--a-coral)" }} />
 
         {items.map((it, i) => {
           const phi = i * STEP - rot;
@@ -200,13 +192,13 @@ function Dial({ items, current, closing, onClose, onPick }: {
             <button key={it.id} type="button" className="dn-item" data-on={i === focus} data-current={it.id === current}
               aria-label={it.label} tabIndex={vis ? 0 : -1} onClick={() => pick(i)}
               style={{
-                // Posée au centre puis tournée autour : en se calant, la page suit l'arc (et non une ligne droite).
-                left: R - 25, top: R - 25,
+                // Posée au centre puis tournée autour : en se calant, la page suit l'arc.
+                left: -24, top: R - 24,
                 opacity: vis ? fade : 0, pointerEvents: vis && fade > 0.3 ? "auto" : "none",
-                transform: `rotate(${phi}deg) translateY(${-r}px) rotate(${-phi}deg) scale(${i === focus ? 1.12 : 1})`,
-                transition: dragging ? "background .2s, color .2s" : `${trans}, background .2s, color .2s`,
+                transform: `rotate(${phi}deg) translateX(${r}px) rotate(${-phi}deg) scale(${i === focus ? 1.1 : 1})`,
+                transition: dragging ? "background .2s, color .2s" : `transform .45s ${EASE}, opacity .3s, background .2s, color .2s`,
               }}>
-              <Icon style={{ width: 21, height: 21 }} strokeWidth={i === focus ? 2 : 1.7} />
+              <Icon style={{ width: 20, height: 20 }} strokeWidth={i === focus ? 2 : 1.7} />
               {!!it.badge && (
                 <span style={{ position: "absolute", top: -2, right: -4, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{it.badge}</span>
               )}
@@ -214,27 +206,24 @@ function Dial({ items, current, closing, onClose, onPick }: {
           );
         })}
 
-        {/* Centre : la page sous le repère, en grand ; un toucher l'ouvre. */}
-        {focused && (
-          <div style={{ position: "absolute", left: R - (r - 46), width: 2 * (r - 46), top: R - r + 46, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
-            <button key={focused.id} type="button" className="dn-open dn-label" onClick={() => onPick(focused.id)} style={{ pointerEvents: "auto" }}>
-              <span style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", color: C.t1, lineHeight: 1.1 }}>{focused.label}</span>
-              {focused.desc && (
-                <span style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.4, color: C.t3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{focused.desc}</span>
-              )}
-              <span style={{ marginTop: 10, fontSize: 12, color: focused.id === current ? C.t3 : C.t1, display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 99, background: C.hover2 }}>
-                {focused.id === current ? "Vous y êtes" : "Ouvrir"}
-              </span>
-            </button>
-          </div>
-        )}
-
-        <ThemeMini style={{ left: 22, bottom: "calc(25px + env(safe-area-inset-bottom, 0px))" }} />
-        <Link to="/app" className="dn-mini" aria-label="Retour à l'app" title="Retour à l'app"
-          style={{ right: 22, bottom: "calc(25px + env(safe-area-inset-bottom, 0px))" }}>
-          <ArrowLeft style={{ width: 18, height: 18 }} />
+        {/* Au cœur du cadran : fermer, thème, retour à l'app. */}
+        <ThemeMini style={{ left: 10, top: R - 62 }} />
+        <button type="button" className="dn-mini" aria-label="Fermer le menu" onClick={onClose} style={{ left: 10, top: R - 17 }}>
+          <ChevronLeft style={{ width: 17, height: 17 }} strokeWidth={2.2} />
+        </button>
+        <Link to="/app" className="dn-mini" aria-label="Retour à l'app" title="Retour à l'app" style={{ left: 10, top: R + 28 }}>
+          <ArrowLeft style={{ width: 16, height: 16 }} />
         </Link>
       </div>
+
+      {/* Nom de la page en face du repère, juste à côté du cadran ; un toucher l'ouvre. */}
+      {focused && (
+        <button key={focused.id} type="button" className="dn-pill" data-closing={closing} onClick={() => onPick(focused.id)}
+          style={{ left: R + 10, top: "50%", maxWidth: `calc(100vw - ${R + 22}px)` }}>
+          <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{focused.label}</span>
+          <span style={{ fontSize: 12, color: C.t3 }}>{focused.id === current ? "Vous y êtes" : "Toucher pour ouvrir"}</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -246,7 +235,7 @@ function ThemeMini({ style }: { style: React.CSSProperties }) {
   return (
     <button type="button" className="dn-mini" style={style} aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
       onClick={() => { const n: Theme = dark ? "light" : "dark"; setTheme(n); setT(n); }}>
-      {dark ? <Sun style={{ width: 18, height: 18 }} /> : <Moon style={{ width: 18, height: 18 }} />}
+      {dark ? <Sun style={{ width: 16, height: 16 }} /> : <Moon style={{ width: 16, height: 16 }} />}
     </button>
   );
 }
