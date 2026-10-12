@@ -163,7 +163,7 @@ const PANEL_CSS = `
 @keyframes cmp-shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
 .cmp-rise { animation: cmp-rise 0.5s ${EASE} both; }
 .cmp-card .cmp-thumb-wrap { transition: box-shadow 0.25s ${EASE}; box-shadow: 0 0 0 1px var(--a-bds); }
-.cmp-card:hover .cmp-thumb-wrap, .cmp-card:focus-within .cmp-thumb-wrap { box-shadow: 0 0 0 1px var(--a-bd), 0 14px 32px -18px rgba(0,0,0,0.45); }
+.cmp-card:hover .cmp-thumb-wrap, .cmp-card:focus-within .cmp-thumb-wrap { box-shadow: 0 0 0 1px var(--a-bd); }
 .cmp-thumb-inner { transition: transform 3.2s ${EASE}; }
 .cmp-card:hover .cmp-thumb-inner, .cmp-card:focus-within .cmp-thumb-inner { transform: translateY(var(--cmp-scroll, 0px)); }
 .cmp-overlay { opacity: 0; transform: translateY(6px); transition: opacity 0.25s, transform 0.3s ${EASE}; }
@@ -185,7 +185,7 @@ const PANEL_CSS = `
   .cmp-sheet[data-show="true"] { transform: translate(-50%, -50%) !important; }
 }
 .cmp-img-opt { transition: transform 0.25s ${EASE}, box-shadow 0.25s, outline-color 0.2s; }
-.cmp-img-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(0,0,0,0.4); }
+.cmp-img-opt:hover { transform: translateY(-2px); }
 .cmp-row { transition: background 0.15s, border-color 0.15s; }
 @media (max-width: 520px) { .cmp-hide-sm { display: none } }
 @keyframes cmp-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)) } 50% { transform: translateY(-8px) rotate(var(--r, 0deg)) } }
@@ -201,9 +201,9 @@ const PANEL_CSS = `
 .cmp-ghost:focus { background: var(--a-hover2); }
 .cmp-tile { transition: background .15s; }
 .cmp-tile:hover:not(:disabled) { background: var(--a-hover4); }
-.cmp-fab { width: 44px; height: 44px; border-radius: 12px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds), 0 8px 24px -10px rgba(0,0,0,.45); }
+.cmp-fab { width: 44px; height: 44px; border-radius: 12px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds); }
 .cmp-fab:focus-visible, .cmp-cta:focus-visible, .cmp-ico:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
-.cmp-ico { width: 34px; height: 34px; border-radius: 10px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
+.cmp-ico { width: 34px; height: 34px; border-radius: 10px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
 @media (hover: none) { .cmp-ico { width: 30px; height: 30px; } }
 @media (prefers-reduced-motion: reduce) {
   .cmp-rise, .cmp-skeleton, .cmp-float { animation: none; }
@@ -452,14 +452,15 @@ function DevicePreview({ html: raw, device, title, fit }: { html: string; device
   const html = onStage(raw, light);
   if (device === "mobile") {
     return (
-      <div style={{ display: "flex", justifyContent: "center", height: fit ? "100%" : undefined, padding: fit ? 0 : "8px 0 24px" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", height: fit ? "100%" : undefined, padding: fit ? 0 : "8px 0 24px" }}>
+        {/* Téléphone fin et sobre : bord mince, sans ombre, taille d'un vrai écran. */}
         <div style={{
-          height: fit ? "100%" : 660, maxHeight: fit ? 860 : undefined, aspectRatio: "326 / 660", maxWidth: "100%",
-          boxSizing: "border-box", borderRadius: 46, padding: 10, background: "#0b0b0c", boxShadow: "0 30px 60px -30px rgba(0,0,0,0.6), inset 0 0 0 1px #2a2a2c",
+          height: fit ? "100%" : 600, maxHeight: 600, aspectRatio: "9 / 19", maxWidth: "min(100%, 290px)",
+          boxSizing: "border-box", borderRadius: 34, padding: 4, background: "#161618",
         }}>
-          <div style={{ position: "relative", borderRadius: 36, overflow: "hidden", background: "var(--cmp-stage)", height: "100%" }}>
-            <div aria-hidden style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 92, height: 24, borderRadius: 14, background: "#0b0b0c", zIndex: 2 }} />
-            <div style={{ height: "100%", overflowY: "auto", paddingTop: 40, boxSizing: "border-box" }}>
+          <div style={{ position: "relative", borderRadius: 30, overflow: "hidden", background: "var(--cmp-stage)", height: "100%" }}>
+            <div aria-hidden style={{ position: "absolute", top: 7, left: "50%", transform: "translateX(-50%)", width: 62, height: 18, borderRadius: 10, background: "#161618", zIndex: 2 }} />
+            <div style={{ height: "100%", overflowY: "auto", paddingTop: 30, boxSizing: "border-box", scrollbarWidth: "none" }}>
               <ScaledFrame key="m" html={html} frameWidth={390} title={title} />
             </div>
           </div>
@@ -1155,7 +1156,8 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
         <Segmented ariaLabel="Affichage" value={mobilePane} onChange={setMobilePane}
           options={[{ id: "edit", label: "Modifier" }, { id: "preview", label: <><Eye style={{ width: 13, height: 13 }} /> Aperçu</> }]} />
       </div>
-      {mobilePane === "edit" ? <WsPane style={{ flex: 1 }}>{editor}</WsPane> : <WsPane style={{ flex: 1, ...stage }}>{preview}</WsPane>}
+      {/* Clés distinctes : chaque volet a son propre élément (sinon l'aperçu retirait le défilement de « Modifier »). */}
+      {mobilePane === "edit" ? <WsPane key="edit" style={{ flex: 1 }}>{editor}</WsPane> : <WsPane key="preview" style={{ flex: 1, ...stage }}>{preview}</WsPane>}
     </div>
   );
 
