@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight,
+  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight, BookOpen, BookMarked, FileCode2,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { type AdminOrder } from "@/lib/adminOrders";
@@ -24,6 +24,7 @@ import MailboxPanel from "@/components/admin/MailboxPanel";
 import CampaignsPanel from "@/components/admin/CampaignsPanel";
 import PlatformPanel from "@/components/admin/PlatformPanel";
 import ClientsPanel from "@/components/admin/ClientsPanel";
+import DocsPanel from "@/components/admin/DocsPanel";
 import CommandPalette from "@/components/admin/CommandPalette";
 import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG } from "@/components/admin/adminTheme";
 import { UI_CSS } from "@/components/admin/ui";
@@ -35,7 +36,7 @@ import { AutoSettle } from "@/components/admin/icons";
 import { prefetchAdmin } from "@/lib/adminData";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 
-export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform";
+export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
 
 interface NavItem { id: TabId; label: string; desc: string; icon: typeof Inbox }
 interface NavGroup { label: string | null; items: NavItem[] }
@@ -66,16 +67,21 @@ const GROUPS: NavGroup[] = [
     { id: "team", label: "Équipe", desc: "Membres, rôles et permissions, et le journal de toutes les actions de l'équipe.", icon: Users },
     { id: "platform", label: "Plateforme", desc: "Lancement, données de test et sauvegardes.", icon: Power },
   ] },
+  { label: "Ressources", items: [
+    { id: "kb", label: "Base de connaissances", desc: "Une fiche par geste du quotidien, pour toute l'équipe.", icon: BookOpen },
+    { id: "manual", label: "Manuel", desc: "La référence de fonctionnement d'Ooble, chapitre par chapitre.", icon: BookMarked },
+    { id: "techdocs", label: "Documentation technique", desc: "Architecture, base de données, fonctions, secrets et reprise. Administrateurs.", icon: FileCode2 },
+  ] },
 ];
 const NAV = GROUPS.flatMap((g) => g.items);
 const GROUP_OF = new Map(GROUPS.flatMap((g) => g.items.map((i) => [i.id, g.label] as const)));
 
 const ROLE_TABS: Record<AppRole, TabId[]> = {
-  admin:        ["dashboard", "queue", "orders", "clients", "kyc", "accounting", "compliance", "settlement", "mailbox", "campaigns", "announcements", "team", "platform"],
-  operator:     ["queue", "orders", "clients", "settlement", "mailbox"],
-  kyc_reviewer: ["kyc", "mailbox"],
-  support:      ["queue", "orders", "clients", "mailbox"],
-  marketing:    ["mailbox", "campaigns", "announcements", "accounting"],
+  admin:        ["dashboard", "queue", "orders", "clients", "kyc", "accounting", "compliance", "settlement", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"],
+  operator:     ["queue", "orders", "clients", "settlement", "mailbox", "kb", "manual"],
+  kyc_reviewer: ["kyc", "mailbox", "kb", "manual"],
+  support:      ["queue", "orders", "clients", "mailbox", "kb", "manual"],
+  marketing:    ["mailbox", "campaigns", "announcements", "accounting", "kb", "manual"],
 };
 
 const ROLE_LABEL: Partial<Record<AppRole, string>> = {
@@ -157,6 +163,7 @@ const AdminPortal = () => {
     setDrawer(false);
     const url = new URL(window.location.href);
     url.searchParams.set("tab", id);
+    url.searchParams.delete("doc");
     window.history.pushState({ tab: id }, "", url);
     toTop();
   }, [toTop]);
@@ -455,6 +462,9 @@ const AdminPortal = () => {
                           </>
                         )}
                         {tab === "platform" && <PlatformPanel />}
+                        {tab === "kb" && <DocsPanel section="kb" />}
+                        {tab === "manual" && <DocsPanel section="manual" />}
+                        {tab === "techdocs" && <DocsPanel section="tech" />}
                       </>
                     )}
                   </>
@@ -535,6 +545,9 @@ const AdminPortal = () => {
                     </>
                   )}
                   {tab === "platform" && <PlatformPanel />}
+                  {tab === "kb" && <DocsPanel section="kb" />}
+                  {tab === "manual" && <DocsPanel section="manual" />}
+                  {tab === "techdocs" && <DocsPanel section="tech" />}
                 </>
               )}
             </>
