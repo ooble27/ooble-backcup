@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Pencil, Plus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Download, Pencil, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { logAdminAction } from "@/lib/audit";
@@ -219,6 +219,21 @@ export default function DocsPanel({ section }: { section: DocSection }) {
   const [openSlug, setOpenSlug] = useState<string | null>(() => readDoc());
   const [editing, setEditing] = useState<{ doc: DocArticle | null } | null>(null);
   const [wide, setWide] = useState(() => typeof window === "undefined" || window.innerWidth >= 1000);
+  const [pdf, setPdf] = useState<"idle" | "busy" | "error">("idle");
+  // PDF construit dans le navigateur à partir des chapitres en base : toujours la dernière version.
+  const downloadPdf = async () => {
+    if (section === "kb" || !docs?.length || pdf === "busy") return;
+    setPdf("busy");
+    try {
+      const { downloadDocsPdf } = await import("@/lib/docsPdf");
+      await downloadDocsPdf(section, docs);
+      void logAdminAction({ action: "docs.pdf", entityKind: "kb_article", metadata: { section } });
+      setPdf("idle");
+    } catch (e) {
+      console.error("PDF des ressources", e);
+      setPdf("error");
+    }
+  };
 
   useEffect(() => {
     const on = () => setWide(window.innerWidth >= 1000);
@@ -273,6 +288,16 @@ export default function DocsPanel({ section }: { section: DocSection }) {
           {section === "tech" && "Architecture, base de données, fonctions serveur, secrets (noms et emplacements, jamais les valeurs), sauvegardes et publication. Réservé aux administrateurs."}
           {lastUpdate && <> Dernière mise à jour le {dayFmt.format(new Date(lastUpdate))}.</>}
         </p>
+        {section !== "kb" && docs !== null && total > 0 && (
+          <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <Button variant="primary" onClick={downloadPdf} disabled={pdf === "busy"} icon={<Download style={{ width: 15, height: 15 }} />}>
+              {pdf === "busy" ? "Préparation du PDF…" : "Télécharger le PDF"}
+            </Button>
+            <span style={{ fontSize: 12.5, color: pdf === "error" ? C.coral : C.t3 }}>
+              {pdf === "error" ? "Le PDF n'a pas pu être créé. Réessayez." : `Couverture, sommaire et ${total} ${meta.nounPlural}, prêt à imprimer.`}
+            </span>
+          </div>
+        )}
       </div>
       {docs !== null && total > 0 && (
         <div style={{ minWidth: 0 }}>

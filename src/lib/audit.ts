@@ -236,6 +236,10 @@ export const ACTION_LABELS: Record<string, { fr: string; en: string }> = {
   "kyb.reset":                      { fr: "Vérification d'entreprise rouverte", en: "Business check reopened" },
   "team.remove":                    { fr: "Membre retiré",              en: "Member removed" },
   "platform.launch":                { fr: "Lancement des activités",    en: "Launch" },
+  "docs.create":                    { fr: "Ressource ajoutée",          en: "Resource added" },
+  "docs.update":                    { fr: "Ressource modifiée",         en: "Resource updated" },
+  "docs.archive":                   { fr: "Ressource archivée",         en: "Resource archived" },
+  "docs.pdf":                       { fr: "PDF des ressources téléchargé", en: "Resources PDF downloaded" },
   "platform.reset_test_orders":     { fr: "Commandes de test effacées", en: "Test orders cleared" },
 };
 
