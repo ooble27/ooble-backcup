@@ -25,7 +25,7 @@ import { C, FONT } from "./adminTheme";
 import { Button, Field, Group, Notice, SidePanel, TextArea, TextInput, Workspace, fieldInput } from "./ui";
 import { ComplianceHero } from "./heroes";
 import {
-  DataTable, EmptyState, FilterChips, KeyValues, Pill, Section, StatStrip, Tabs, Toolbar, TwoLine,
+  DataTable, EmptyState, FilterChips, KeyValues, Pill, Section, Tabs, Toolbar, TwoLine,
   type Column, type Tone,
 } from "./layout";
 
@@ -704,12 +704,13 @@ function RegistreView({ stats, onExport, busyKind }: {
 
   return (
     <>
-      <StatStrip style={{ marginTop: 20 }} items={[
-        { label: "Opérations au registre", value: stats?.operations ?? "…", hint: "payées" },
-        { label: "Conservation", value: `${RECORD_RETENTION_YEARS} ans`, hint: "obligation LRPCFAT" },
-        { label: "Plus ancienne", value: oldest ? monthFr(oldest) : "N/D", hint: purge ? `conservée jusqu'en ${monthFr(purge)}` : undefined },
-        { label: "Journal d'audit", value: stats?.journal ?? "…", hint: "actions de l'équipe" },
-      ]} />
+      {/* Le registre en une phrase : chiffres en couleur, pas de cases. */}
+      <p style={{ margin: "22px 0 0", fontSize: "clamp(18px, 1.8vw, 22px)", lineHeight: 1.4, letterSpacing: "-0.02em", color: C.t2, maxWidth: 860 }}>
+        <b style={{ color: C.coral, fontWeight: 600 }}>{stats?.operations ?? "…"}</b> opérations payées au registre et{" "}
+        <b style={{ color: C.sun, fontWeight: 600 }}>{stats?.journal ?? "…"}</b> actions de l'équipe au journal, conservées{" "}
+        <b style={{ color: C.t1, fontWeight: 600 }}>{RECORD_RETENTION_YEARS} ans</b> (LRPCFAT).{" "}
+        <span style={{ color: C.t3 }}>{oldest ? `La plus ancienne date de ${monthFr(oldest)}${purge ? `, conservée jusqu'en ${monthFr(purge)}` : ""}.` : ""}</span>
+      </p>
 
       <Toolbar style={{ marginTop: 24 }}>
         <span style={{ fontSize: 12.5, color: C.t3, marginRight: 4 }}>Période exportée</span>

@@ -293,7 +293,7 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
           </div>
           <Button variant="ghost" aria-label="Fermer" onClick={onClose} icon={<X style={{ width: 17, height: 17 }} />} />
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>{children}</div>
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "20px", minWidth: 0 }}>{children}</div>
         {footer && <div style={{ padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${C.bds}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
       </aside>
     </div>,

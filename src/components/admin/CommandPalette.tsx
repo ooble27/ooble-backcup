@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { fetchCached, peek } from "@/lib/adminCache";
 import { createPortal } from "react-dom";
 import { CornerDownLeft, Search, ShoppingCart, User } from "lucide-react";
 import { fetchClientDirectory, type ClientDirectoryEntry } from "@/lib/adminClient";
@@ -25,15 +26,16 @@ export default function CommandPalette({ nav, orders, onClose, onTab, onOrder, o
 }) {
   const [q, setQ] = useState("");
   const [index, setIndex] = useState(0);
-  const [clients, setClients] = useState<ClientDirectoryEntry[] | null>(null);
+  const [clients, setClients] = useState<ClientDirectoryEntry[] | null>(() => peek<ClientDirectoryEntry[]>("clients.directory2000")?.value ?? null);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
 
+  // Focus pendant le même toucher que l'ouverture : iPhone et iPad n'ouvrent le clavier qu'à cette condition.
+  useLayoutEffect(() => { input.current?.focus({ preventScroll: true }); }, []);
   useEffect(() => {
-    input.current?.focus();
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    if (canSeeClients) fetchClientDirectory(2000).then(setClients).catch(() => setClients([]));
+    if (canSeeClients) fetchCached("clients.directory2000", () => fetchClientDirectory(2000)).then(setClients).catch(() => setClients((c) => c ?? []));
     return () => { document.body.style.overflow = prev; };
   }, [canSeeClients]);
 
@@ -86,8 +88,11 @@ export default function CommandPalette({ nav, orders, onClose, onTab, onOrder, o
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 16px", borderBottom: `1px solid ${C.bds}` }}>
           <Search style={{ width: 17, height: 17, color: C.t3, flexShrink: 0 }} />
+          {/* Champ de recherche, pas un formulaire : Safari ne propose ni contact ni adresse à préremplir. */}
           <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Page, commande, client, courriel…" aria-label="Rechercher"
-            style={{ flex: 1, height: 54, border: "none", outline: "none", background: "transparent", color: C.t1, fontFamily: FONT, fontSize: 16 }} />
+            type="search" name="ooble-admin-search" autoFocus autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} enterKeyHint="go"
+            data-1p-ignore data-lpignore="true" data-form-type="other"
+            style={{ WebkitAppearance: "none", appearance: "none", minWidth: 0, flex: 1, height: 54, border: "none", outline: "none", background: "transparent", color: C.t1, fontFamily: FONT, fontSize: 16 }} />
           <kbd style={{ fontFamily: FONT, fontSize: 11, padding: "2px 6px", borderRadius: 5, border: `1px solid ${C.bds}`, color: C.t3 }}>Échap</kbd>
         </div>
         <div ref={list} style={{ maxHeight: "min(60vh, 460px)", overflowY: "auto", padding: 6 }}>

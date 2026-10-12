@@ -263,12 +263,14 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
       <header style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 28 }}>
         <div style={{ flex: "1 1 320px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em" }}>{TYPE_META[order.type].label} de USDT</h1>
-            <OrderStatusPill status={order.status} />
+            <h1 className="hz-title">
+              {TYPE_META[order.type].label} <span className="mute">de</span> <span style={{ color: C.sun }}>{nfUsdt.format(order.usdt)} USDT</span>
+            </h1>
           </div>
-          <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t3, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <p style={{ margin: "10px 0 0", fontSize: 13.5, color: C.t3, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <OrderStatusPill status={order.status} />
             <CopyValue value={order.ref} k="ref" copy={copy} copied={copied} />
-            <span>·</span><span>{createdAt}</span>
+            <span>·</span><span>{createdAt}</span><span>·</span><span>{order.clientName}</span>
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{actions}</div>
@@ -291,15 +293,15 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
       <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div style={{ minWidth: 0 }}>
           {/* Montants */}
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", alignItems: "center", gap: 16, padding: "20px 0", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 16, background: C.hover2 }}>
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Le client envoie</p>
-              <p style={{ margin: "6px 0 0", fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sends}</p>
+              <p style={{ margin: "6px 0 0", fontSize: 28, fontWeight: 600, letterSpacing: "-0.035em", fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sends}</p>
             </div>
             <ArrowRight style={{ width: 18, height: 18, color: C.t3 }} />
             <div style={{ minWidth: 0, textAlign: "right" }}>
               <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Le client reçoit</p>
-              <p style={{ margin: "6px 0 0", fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receives}</p>
+              <p style={{ margin: "6px 0 0", fontSize: 28, fontWeight: 600, letterSpacing: "-0.035em", color: C.coral, fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receives}</p>
             </div>
           </div>
 

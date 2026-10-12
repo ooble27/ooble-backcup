@@ -188,8 +188,8 @@ const PANEL_CSS = `
 .cmp-float { animation: cmp-float 7s ease-in-out infinite; }
 .cmp-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; padding: 8px 0 4px; }
 .cmp-hero-title { margin: 14px 0 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 0.98; font-weight: 600; letter-spacing: -0.05em; color: var(--a-t1); text-wrap: balance; }
-.cmp-hero-art { display: none; position: relative; height: 260px; }
-@media (min-width: 1100px) { .cmp-hero { grid-template-columns: minmax(0, 1fr) 380px; } .cmp-hero-art { display: block; } }
+.cmp-hero-art { display: none; }
+@media (min-width: 900px) { .cmp-hero { grid-template-columns: minmax(0, 1fr) minmax(260px, 400px); } .cmp-hero-art { display: block; } }
 /* Champs « à même la page » : pas de cadre, juste une teinte au survol et pendant la saisie. */
 .cmp-ghost { display: block; box-sizing: border-box; width: calc(100% + 20px); margin: 0 -10px; padding: 7px 10px; border: none; outline: none; border-radius: 10px; background: transparent; color: var(--a-t1); font-family: inherit; resize: none; transition: background .15s; field-sizing: content; }
 .cmp-ghost::placeholder { color: var(--a-t3); }
@@ -447,15 +447,11 @@ function DevicePreview({ html, device, title, fit }: { html: string; device: "de
       </div>
     );
   }
+  // Ordinateur : le courriel seul, à sa vraie largeur (680 px), centré ; pas de fenêtre de navigateur autour.
   return (
-    <div style={{
-      maxWidth: 760, margin: "0 auto", borderRadius: 14, overflow: "hidden", boxShadow: "0 24px 60px -36px rgba(0,0,0,0.55)", background: "#e9e6df",
-      ...(fit ? { height: "100%", display: "flex", flexDirection: "column" } : null),
-    }}>
-      <div style={{ height: 30, flexShrink: 0, background: "#d9d5cc", display: "flex", alignItems: "center", gap: 6, padding: "0 12px" }}>
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => <span key={c} style={{ width: 10, height: 10, borderRadius: 99, background: c }} />)}
-      </div>
-      <div style={fit ? { flex: 1, minHeight: 0, overflowY: "auto" } : undefined}>
+    <div style={{ display: "flex", justifyContent: "center", height: fit ? "100%" : undefined }}>
+      {/* Le fond du courriel (#e9e6df) se fond dans le volet : on ne voit qu'une carte, le courriel lui-même. */}
+      <div style={{ width: "100%", maxWidth: 680, ...(fit ? { height: "100%", overflowY: "auto", scrollbarWidth: "thin" } : null) }}>
         <ScaledFrame key="d" html={html} frameWidth={680} title={title} />
       </div>
     </div>
@@ -533,20 +529,7 @@ const CampaignsPanel = () => {
           </div>
         </div>
         <div aria-hidden className="cmp-hero-art">
-          <div className="cmp-float" style={{ ["--r" as string]: "-8deg", position: "absolute", left: 0, top: 30, width: 170, height: 210, borderRadius: 18, background: "#fffaf0", boxShadow: "0 24px 50px -24px rgba(0,0,0,.5)", padding: 13 } as React.CSSProperties}>
-            <div style={{ height: 62, borderRadius: 10, background: "#ffc94d" }} />
-            <div style={{ height: 9, width: "80%", borderRadius: 5, background: "#14110f", marginTop: 13 }} />
-            <div style={{ height: 7, width: "95%", borderRadius: 4, background: "#e9dfcb", marginTop: 9 }} />
-            <div style={{ height: 7, width: "70%", borderRadius: 4, background: "#e9dfcb", marginTop: 5 }} />
-            <div style={{ height: 24, width: 82, borderRadius: 8, background: "#0f5c45", marginTop: 14 }} />
-          </div>
-          <div className="cmp-float" style={{ ["--r" as string]: "7deg", position: "absolute", right: 0, top: 0, width: 170, height: 230, borderRadius: 18, background: "#ff7a59", boxShadow: "0 24px 50px -24px rgba(0,0,0,.55)", padding: 13, animationDelay: "-3s" } as React.CSSProperties}>
-            <div style={{ height: 9, width: "50%", borderRadius: 5, background: "#14110f", opacity: 0.8 }} />
-            <div style={{ height: 15, width: "85%", borderRadius: 6, background: "#fffaf0", marginTop: 13 }} />
-            <div style={{ height: 15, width: "60%", borderRadius: 6, background: "#fffaf0", marginTop: 6 }} />
-            <div style={{ height: 82, borderRadius: 10, background: "#ffd2c4", marginTop: 13 }} />
-            <div style={{ height: 24, width: 82, borderRadius: 8, background: "#14110f", marginTop: 13 }} />
-          </div>
+          <img src="/email-assets/ill-mail.png" alt="" style={{ display: "block", width: "100%", height: "auto" }} />
         </div>
       </section>
 
@@ -760,7 +743,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto px-2 pb-2 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:content-stretch lg:overflow-hidden">
         {/* Courriel, dans un volet arrondi ; flèches flottantes pour parcourir les modèles. */}
-        <div className="h-[74vh] lg:h-auto" style={{ position: "relative", minHeight: 0, borderRadius: 16, background: "#e4e0d7", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div className="h-[74vh] lg:h-auto" style={{ position: "relative", minHeight: 0, borderRadius: 16, background: "#e9e6df", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div className="flex justify-center gap-2 pt-3 sm:hidden">{switches}</div>
           <div key={`${t.id}:${lang}:${device}`} className="cmp-rise" style={{ flex: 1, minHeight: 0, padding: "20px 62px 52px" }}>
             <DevicePreview html={html} device={device} title={`${t.name} (${lang})`} fit />
@@ -1129,7 +1112,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
       </div>
     </div>
   );
-  const stage: React.CSSProperties = { background: "#e4e0d7", overflow: "hidden" };
+  const stage: React.CSSProperties = { background: "#e9e6df", overflow: "hidden" };
 
   const contentStep = wide ? (
     <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(400px, 520px) minmax(0, 1fr)" }}>
@@ -1371,7 +1354,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           <Segmented ariaLabel="Langue" size="sm" value={editLang} onChange={setEditLang} options={LANG_OPTIONS} />
           <Segmented ariaLabel="Appareil" size="sm" value={device} onChange={setDevice} options={DEVICE_OPTIONS} />
         </div>
-        <div style={{ flex: 1, minHeight: 0, margin: "0 8px 8px", borderRadius: 16, background: "#e4e0d7", padding: "20px 16px" }}>
+        <div style={{ flex: 1, minHeight: 0, margin: "0 8px 8px", borderRadius: 16, background: "#e9e6df", padding: "20px 16px" }}>
           <DevicePreview html={html} device={device} title="Aperçu agrandi" fit />
         </div>
       </Modal>

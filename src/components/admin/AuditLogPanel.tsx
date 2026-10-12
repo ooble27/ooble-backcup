@@ -42,7 +42,7 @@ function JsonBlock({ value }: { value: unknown }) {
   return (
     <pre style={{
       margin: 0, padding: "10px 12px", borderRadius: 8, background: C.hover2, color: empty ? C.t3 : C.t2,
-      overflowX: "auto", whiteSpace: "pre", lineHeight: 1.55, ...mono,
+      whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.55, minWidth: 0, ...mono,
     }}>
       {empty ? "Aucune donnée" : JSON.stringify(value, null, 2)}
     </pre>
@@ -224,7 +224,7 @@ const AuditLogPanel = () => {
             ["Identifiant", open.entityId ? <span style={mono}>{open.entityId}</span> : "N/D"],
             ["Code de l'action", <span key="a" style={mono}>{open.action}</span>],
           ]} />
-          <div style={{ display: "grid", gap: 18, marginTop: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 18, marginTop: 24 }}>
             <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Avant</p><JsonBlock value={open.before} /></div>
             <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Après</p><JsonBlock value={open.after} /></div>
             <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Métadonnées</p><JsonBlock value={open.metadata} /></div>

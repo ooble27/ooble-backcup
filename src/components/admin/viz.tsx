@@ -18,7 +18,7 @@ export const VIZ_CSS = `
 .vz-head { margin: 0; font-size: clamp(24px, 2.6vw, 34px); line-height: 1.08; font-weight: 600; letter-spacing: -0.04em; color: var(--a-t1); text-wrap: balance; }
 .vz-head .mute { color: var(--a-t3); }
 .vz-sub { margin: 8px 0 0; font-size: 14px; color: var(--a-t2); line-height: 1.5; }
-.vz-cap { min-height: 18px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
+.vz-cap { min-height: 36px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
 .vz-lbl { paint-order: stroke; stroke: var(--a-bg); stroke-width: 4px; stroke-linejoin: round; }
 .vz-hit { cursor: pointer; }
 .vz-waffle { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; max-width: 340px; }
@@ -81,15 +81,20 @@ export function OrderFlow({ s: raw }: { s: OrderStatusCounts }) {
     { id: "done", label: "Terminées", n: s.completed, color: C.vzGreen, col: 2 },
     { id: "refd", label: "Remboursées", n: s.refunded, color: C.vzGray, col: 2 },
   ];
-  const W = Math.max(300, boxW), H = narrow ? 230 : 250, NW = 10, GAP1 = 16, GAP2 = 12;
+  const W = Math.max(300, boxW), HMAX = narrow ? 230 : 250, NW = 10, GAP1 = 30, GAP2 = 12;
   const X = [0, Math.round(W * (narrow ? 0.42 : 0.38)), W - (narrow ? 96 : 150)];
   const col1 = nodes.filter((n) => n.col === 1 && n.n > 0);
   const col2 = nodes.filter((n) => n.col === 2 && n.n > 0);
-  const k = (H - GAP1 * Math.max(0, col1.length - 1)) / total;
-  const k2 = Math.min(k, paid ? (H - GAP2 * Math.max(0, col2.length - 1)) / paid : k);
+  const top = 28;
+  // Épaisseur plafonnée : avec peu de commandes, les flux restent des rubans, pas des blocs.
+  const k = Math.min(12, (HMAX - 20 - GAP1 * Math.max(0, col1.length - 1)) / total);
+  const k2 = Math.min(k, paid ? (HMAX - 20 - GAP2 * Math.max(0, col2.length - 1)) / paid : k);
+  const stack1 = total * k + GAP1 * Math.max(0, col1.length - 1);
+  const stack2 = paid * k2 + GAP2 * Math.max(0, col2.length - 1);
+  const H = Math.max(150, top + Math.max(stack1, stack2) + 16);
   const pos = new Map<string, { y: number; h: number }>();
-  pos.set("all", { y: (H - total * k) / 2, h: total * k });
-  let y = 0;
+  pos.set("all", { y: top + (stack1 - total * k) / 2, h: total * k });
+  let y = top;
   for (const n of col1) { pos.set(n.id, { y, h: n.n * k }); y += n.n * k + GAP1; }
   y = pos.get("paid")?.y ?? 0;
   for (const n of col2) { const h = n.n * k2; pos.set(n.id, { y, h }); y += h + GAP2; }
@@ -120,7 +125,7 @@ export function OrderFlow({ s: raw }: { s: OrderStatusCounts }) {
 
   // Étiquettes de la colonne de droite : jamais l'une sur l'autre.
   const right = col2.map((n) => ({ id: n.id, y: pos.get(n.id)!.y + pos.get(n.id)!.h / 2 }));
-  if (right.length) right[0].y = Math.max(right[0].y, 10);
+  if (right.length) right[0].y = Math.max(right[0].y, 14);
   for (let i = 1; i < right.length; i++) right[i].y = Math.max(right[i].y, right[i - 1].y + 40);
   const overflow = right.length ? right[right.length - 1].y - (H - 26) : 0;
   if (overflow > 0) for (const r of right) r.y -= overflow;
@@ -159,11 +164,12 @@ export function OrderFlow({ s: raw }: { s: OrderStatusCounts }) {
             className="vz-hit" onMouseEnter={() => setHover(n.id)} />;
         })}
         {/* Étiquettes : colonne du milieu avant ses nœuds, colonne de droite après. */}
-        <text className="vz-lbl" x={X[0] + NW + 8} y={src.y + src.h / 2} dy="0.35em" fontSize={13.5} fill={C.t2}>Toutes · <tspan fill={C.t1} fontWeight={600}>{nf.format(total)}</tspan></text>
+        {/* Étiquettes des deux premières colonnes : juste au-dessus de leur nœud, jamais sur un flux. */}
+        <text className="vz-lbl" x={X[0]} y={src.y - 9} fontSize={13.5} fill={C.t2}>Toutes · <tspan fill={C.t1} fontWeight={600}>{nf.format(total)}</tspan></text>
         {col1.map((n) => {
           const q = pos.get(n.id)!;
           return (
-            <text key={n.id} className="vz-lbl" x={X[1] - 8} y={q.y + q.h / 2} dy="0.35em" textAnchor="end" fontSize={13.5} fill={C.t2}>
+            <text key={n.id} className="vz-lbl" x={X[1] + NW} y={q.y - 9} textAnchor="end" fontSize={13.5} fill={C.t2}>
               {n.label} · <tspan fill={C.t1} fontWeight={600}>{nf.format(n.n)}</tspan>
             </text>
           );
@@ -382,7 +388,8 @@ export function OrdersCalendar({ orders }: { orders: AdminOrder[] }) {
           {data.inRange ? <>Le <b style={{ color: C.t1, fontWeight: 500 }}>{WEEKDAYS[best]}</b> est le jour le plus actif ({data.byDow[best]} {plural(data.byDow[best], "commande")}).</> : "Le calendrier se remplira avec les premières commandes."}
         </p>
       </div>
-      <div style={{ overflowX: "auto", scrollbarWidth: "none" }}>
+      {/* Largeur fixe : la légende qui change au survol ne fait plus bouger la phrase à gauche. */}
+      <div style={{ width: W, maxWidth: "100%", overflowX: "auto", scrollbarWidth: "none" }}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: W, maxWidth: "100%", height: "auto", display: "block" }} role="img"
           aria-label={`Commandes par jour sur ${weeks} semaines : ${data.inRange} au total.`} onMouseLeave={() => setHover(null)}>
           {months.map((m) => <text key={m.col} x={LEFT + m.col * (CELL + G)} y={11} fontSize={10.5} fill={C.t3}>{m.label}</text>)}

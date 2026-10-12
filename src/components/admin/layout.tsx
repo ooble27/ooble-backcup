@@ -67,14 +67,14 @@ export interface Stat { label: string; value: React.ReactNode; hint?: React.Reac
 export function StatStrip({ items, style }: { items: Stat[]; style?: React.CSSProperties }) {
   return (
     <dl style={{
-      margin: 0, display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(150px, 1fr))`,
-      borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, ...style,
+      // Chiffres posés sur la page : grands, en couleur, séparés par de l'espace (aucun cadre, aucun trait).
+      margin: 0, display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(150px, 1fr))`, gap: "18px 28px", ...style,
     }}>
-      {items.map((s, i) => (
-        <div key={s.label} className="ly-stat" style={{ padding: "16px 20px 16px 0", paddingLeft: i ? 20 : 0, borderLeft: i ? `1px solid ${C.bds}` : "none", minWidth: 0 }}>
+      {items.map((s) => (
+        <div key={s.label} className="ly-stat" style={{ minWidth: 0 }}>
           <dt style={{ fontSize: 12.5, color: C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</dt>
           <dd style={{
-            margin: "6px 0 0", fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1.15,
+            margin: "6px 0 0", fontSize: 28, fontWeight: 600, letterSpacing: "-0.035em", fontVariantNumeric: "tabular-nums", lineHeight: 1.1,
             color: s.color ? s.color : s.tone === "danger" ? C.dangerText : s.tone === "warn" ? C.warnText : s.tone === "ok" ? C.successText : C.t1,
           }}>{s.value}</dd>
           {s.hint && <dd style={{ margin: "4px 0 0", fontSize: 12, color: C.t3 }}>{s.hint}</dd>}

@@ -12,7 +12,7 @@ import { resetKyb } from "@/lib/adminKyb";
 import { fetchOrigin, placeLabel, type SignupOrigin } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
-import { Avatar, DataTable, EmptyState, KeyValues, Pill, StatStrip, TwoLine, type Column, type Tone } from "./layout";
+import { Avatar, DataTable, EmptyState, KeyValues, Pill, TwoLine, type Column, type Tone } from "./layout";
 import ClientNotes from "./ClientNotes";
 import ClientTimeline from "./ClientTimeline";
 import RiskScoreCard from "./RiskScoreCard";
@@ -112,37 +112,39 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
 
   return (
     <div>
-      <header style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginBottom: 24 }}>
-        <Avatar name={name} size={52} />
-        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em" }}>{profile?.accountType === "business" && profile.businessName ? profile.businessName : name}</h1>
-            {profile && <Pill tone={KYC_TONE[profile.kycStatus] ?? "neutral"} dot>{KYC_LABEL[profile.kycStatus]}</Pill>}
-            {profile?.accountType === "business" && <Pill>Entreprise</Pill>}
-          </div>
-          <p style={{ margin: "4px 0 0", fontSize: 13.5, color: C.t3 }}>
-            {profile?.email ?? "—"}{profile?.createdAt && <> · client depuis le {dateFmt.format(new Date(profile.createdAt))}</>}
-          </p>
+      <header style={{ marginBottom: 26 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <Avatar name={name} size={44} />
+          {profile && <Pill tone={KYC_TONE[profile.kycStatus] ?? "neutral"} dot>{KYC_LABEL[profile.kycStatus]}</Pill>}
+          {profile?.accountType === "business" && <Pill>Entreprise</Pill>}
+          <span style={{ flex: 1 }} />
+          <Button icon={aiBusy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Wand2 style={{ width: 15, height: 15 }} />} onClick={runSummary} disabled={aiBusy || !profile}>
+            {aiBusy ? "Analyse…" : aiSummary ? "Régénérer le résumé" : "Résumé par l'assistant"}
+          </Button>
         </div>
-        <Button icon={aiBusy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Wand2 style={{ width: 15, height: 15 }} />} onClick={runSummary} disabled={aiBusy || !profile}>
-          {aiBusy ? "Analyse…" : aiSummary ? "Régénérer le résumé" : "Résumé par l'assistant"}
-        </Button>
+        <h1 className="hz-title" style={{ marginTop: 16 }}>{profile?.accountType === "business" && profile.businessName ? profile.businessName : name}</h1>
+        <p className="hz-sub" style={{ maxWidth: 760 }}>
+          {profile?.email ?? "—"}{profile?.createdAt && <> · client depuis le {dateFmt.format(new Date(profile.createdAt))}</>}
+        </p>
+        {/* Les chiffres du client, en une phrase (au lieu de cases). */}
+        <p style={{ margin: "14px 0 0", fontSize: "clamp(18px, 1.8vw, 22px)", lineHeight: 1.35, letterSpacing: "-0.02em", color: C.t2, maxWidth: 820 }}>
+          <b style={{ color: C.sun, fontWeight: 600 }}>{nfCad.format(profile?.totalCad ?? 0)} $</b> échangés en{" "}
+          <b style={{ color: C.coral, fontWeight: 600 }}>{Math.max(profile?.orderCount ?? 0, orders.length)}</b> commande{Math.max(profile?.orderCount ?? 0, orders.length) > 1 ? "s" : ""}
+          {completed.length ? <>, dont {completed.length} terminée{completed.length > 1 ? "s" : ""}</> : null}.{" "}
+          <span style={{ color: C.t3 }}>
+            {orders[0] ? `Dernière commande le ${dateShort.format(new Date(orders[0].createdAt))}. ` : "Aucune commande pour l'instant. "}
+            {profile ? `Limite quotidienne : ${nfCad.format(profile.dailyLimitCad)} $.` : ""}
+          </span>
+        </p>
       </header>
 
       {(aiSummary || aiError) && (
         <div style={{ marginBottom: 24 }}>
           {aiError ? <Notice tone="err">{aiError}</Notice> : (
-            <div style={{ padding: "14px 0", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, fontSize: 13.5, lineHeight: 1.7, whiteSpace: "pre-wrap", color: C.t1 }}>{aiSummary}</div>
+            <div style={{ padding: "16px 18px", borderRadius: 16, background: C.hover2, fontSize: 13.5, lineHeight: 1.7, whiteSpace: "pre-wrap", color: C.t1 }}>{aiSummary}</div>
           )}
         </div>
       )}
-
-      <StatStrip items={[
-        { label: "Volume traité", value: `${nfCad.format(profile?.totalCad ?? 0)} $` },
-        { label: "Commandes", value: Math.max(profile?.orderCount ?? 0, orders.length), hint: `${completed.length} terminée${completed.length > 1 ? "s" : ""}` },
-        { label: "Limite quotidienne", value: profile ? `${nfCad.format(profile.dailyLimitCad)} $` : "—" },
-        { label: "Dernière commande", value: orders[0] ? dateShort.format(new Date(orders[0].createdAt)) : "Aucune" },
-      ]} />
 
       <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div style={{ minWidth: 0 }}>

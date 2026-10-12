@@ -73,7 +73,7 @@ const LIGHT = {
   ground:         "#e9e9e5",
   brand:          "#0B8A5F",
   coral:          "#f2613d",
-  sun:            "#c98a00",
+  sun:            "#ffb81f",
   sage:           "#0f5c45",
   vzGreen:        "#1f8a63",
   vzCoral:        "#e45a35",

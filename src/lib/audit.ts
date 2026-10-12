@@ -227,6 +227,16 @@ export const ACTION_LABELS: Record<string, { fr: string; en: string }> = {
   "compliance.classify":            { fr: "Alerte classée",             en: "Alert closed" },
   "compliance.declaration_draft":   { fr: "Déclaration · brouillon",    en: "Declaration draft" },
   "compliance.declaration_submit":  { fr: "Déclaration soumise",        en: "Declaration submitted" },
+  "compliance.declaration_status":  { fr: "Statut de déclaration",      en: "Declaration status" },
+  "compliance.alert_create":        { fr: "Client signalé",             en: "Client flagged" },
+  "compliance.program_toggle":      { fr: "Programme mis à jour",       en: "Program updated" },
+  "compliance.register_export":     { fr: "Registre téléchargé",        en: "Register exported" },
+  "kyb.approve":                    { fr: "Entreprise approuvée",       en: "Business approved" },
+  "kyb.reject":                     { fr: "Entreprise refusée",         en: "Business rejected" },
+  "kyb.reset":                      { fr: "Vérification d'entreprise rouverte", en: "Business check reopened" },
+  "team.remove":                    { fr: "Membre retiré",              en: "Member removed" },
+  "platform.launch":                { fr: "Lancement des activités",    en: "Launch" },
+  "platform.reset_test_orders":     { fr: "Commandes de test effacées", en: "Test orders cleared" },
 };
 
 export const ENTITY_LABELS: Record<string, { fr: string; en: string }> = {
@@ -236,4 +246,8 @@ export const ENTITY_LABELS: Record<string, { fr: string; en: string }> = {
   compliance_declaration: { fr: "Déclaration",    en: "Declaration" },
   kyc:                    { fr: "KYC",            en: "KYC" },
   team_member:            { fr: "Membre équipe",  en: "Team member" },
+  compliance_program:     { fr: "Programme de conformité", en: "Compliance program" },
+  compliance_register:    { fr: "Registre CANAFE", en: "FINTRAC register" },
+  kyb:                    { fr: "Entreprise",     en: "Business" },
+  platform:               { fr: "Plateforme",     en: "Platform" },
 };
