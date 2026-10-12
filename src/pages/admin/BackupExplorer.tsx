@@ -468,8 +468,8 @@ function Overview({ when, intact, backup, counts, docs, owners, people, hasCsv, 
 
       {!hasCsv && (
         <p style={{ margin: "24px 0 0", padding: "12px 14px", borderRadius: 10, fontSize: 13, lineHeight: 1.6, background: C.warnBg, color: C.warnText }}>
-          Cette sauvegarde a été faite avant l'ajout des tableaux lisibles : les documents s'affichent, mais pas les données.
-          Les sauvegardes suivantes (dès cette nuit) contiennent tout.
+          Lecture de la base sauvegardée… Si les tableaux restent grisés, cette sauvegarde doit être restaurée pour lire ses données
+          (les documents, eux, s'affichent). Les sauvegardes récentes contiennent aussi des tableaux lisibles directement.
         </p>
       )}
 
