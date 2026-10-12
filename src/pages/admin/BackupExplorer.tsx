@@ -12,6 +12,7 @@ import { BackupOpenError, openBackup, type BackupEntry, type OpenStep, type Open
 import { MAIN_TABLES, columnLabel, docInfo, formatValue, parseCsv, tableLabel } from "@/lib/backupLabels";
 import { useNoZoom } from "@/lib/noZoom";
 import { readCopySql, readPgDump, type DumpTable } from "@/lib/pgDump";
+import { exportBackup, type ExportTable } from "@/lib/backupExport";
 
 /*
  * Explorateur de sauvegarde (/admin/sauvegarde) : on choisit le fichier .gpg
@@ -77,6 +78,12 @@ const EXPLORER_CSS = `
 @keyframes bx-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 @keyframes bx-sheet { from { transform: translateX(24px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes bx-fade { from { opacity: 0 } to { opacity: 1 } }
+.bx-side { transition: color .2s }
+.bx-side:hover:not(:disabled) { color: var(--a-t1) !important; background: transparent !important }
+.bx-tx { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px; padding-bottom: 3px; transition: background-size .4s cubic-bezier(.22,1,.36,1) }
+.bx-side:hover:not(:disabled) .bx-tx, .bx-side[aria-current="page"] .bx-tx { background-size: 100% 1.5px }
+.bx-ic { transition: background .25s, color .2s, transform .3s cubic-bezier(.22,1,.36,1) }
+.bx-side:hover:not(:disabled) .bx-ic { transform: scale(1.1) }
 @media (max-width: 767px) { .a-veil { background: transparent !important; } }
 @keyframes spin { to { transform: rotate(360deg) } }
 .bx-row:hover { background: var(--a-hover1) }
@@ -92,7 +99,7 @@ export default function BackupExplorer() {
   const [opened, setOpened] = useState<OpenedBackup | null>(null);
 
   return (
-    <div className="admin-scope" style={{ background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
+    <div className="admin-scope" style={{ background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT, overflowX: "clip" }}>
       {opened ? <Explorer backup={opened} onClose={() => setOpened(null)} /> : <Unlock onOpened={setOpened} />}
     </div>
   );
@@ -224,7 +231,7 @@ function TopBar({ title, children, onBack }: { title: string; children?: React.R
     <header style={{
       position: "sticky", top: 0, zIndex: 20, height: 56, boxSizing: "content-box",
       display: "flex", alignItems: "center", gap: 10, padding: "0 12px", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))",
-      background: C.bg, borderBottom: `1px solid ${C.bds}`,
+      background: C.bg,
     }}>
       {onBack
         ? <button type="button" className="bx-nav" onClick={onBack} aria-label="Retour" style={{ ...back, background: "none", border: "none", cursor: "pointer" }}><ChevronLeft style={{ width: 20, height: 20 }} /></button>
@@ -342,6 +349,22 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
   const when = backupDate(backup.manifest?.created_utc);
   const go = (v: View) => { setView(v); window.scrollTo({ top: 0 }); };
 
+  const doExport = async () => {
+    const tables = [...tableNames.main, ...tableNames.rest]
+      .map((n) => { const t = table(n); return t ? { name: n, label: tableLabel(n), columns: t.columns, rows: t.rows } : null; })
+      .filter((t): t is ExportTable => !!t);
+    const files = docs.map((d) => ({
+      path: d.entry.path, data: d.entry.data, owner: d.owner, kind: d.kind, date: d.date,
+      ownerName: d.owner ? people.get(d.owner)?.name ?? `Client ${d.owner.slice(0, 8)}` : "Autres fichiers",
+    }));
+    const blob = await exportBackup(when ?? "", backup.manifest?.created_utc ?? new Date().toISOString().slice(0, 10), tables, files);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `ooble-sauvegarde-${backup.manifest?.created_utc ?? "export"}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
+  };
+
   const sidebar = (
     <nav aria-label="Contenu de la sauvegarde" style={{ padding: "12px 10px 40px", display: "grid", gap: 2 }}>
       <NavItem icon={LayoutGrid} label="Vue d'ensemble" on={view?.kind === "overview"} onClick={() => go({ kind: "overview" })} />
@@ -369,7 +392,7 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
     <div key={JSON.stringify(view)} className="bx-anim" style={{ animation: "bx-in .22s ease" }}>
       {view.kind === "overview" && (
         <Overview when={when} intact={intact} backup={backup} counts={counts} docs={docs} owners={owners} people={people}
-          hasCsv={csvs.size > 0 || !!dump?.size} go={go} />
+          hasCsv={csvs.size > 0 || !!dump?.size} go={go} onExport={doExport} />
       )}
       {view.kind === "table" && <TableView key={view.name} table={table(view.name)} label={tableLabel(view.name)} people={people} />}
       {view.kind === "docs" && (
@@ -398,7 +421,7 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
         <div>{view ? <div style={{ padding: "20px 16px 60px" }}>{content}</div> : sidebar}</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "264px minmax(0, 1fr)", minHeight: "calc(100vh - 57px)" }}>
-          <aside style={{ borderRight: `1px solid ${C.bds}`, position: "sticky", top: 57, alignSelf: "start", maxHeight: "calc(100vh - 57px)", overflowY: "auto" }}>
+          <aside style={{ position: "sticky", top: 57, alignSelf: "start", maxHeight: "calc(100vh - 57px)", overflowY: "auto", overflowX: "hidden", minWidth: 0 }}>
             {sidebar}
           </aside>
           <main style={{ padding: "28px 32px 80px", minWidth: 0 }}>{content}</main>
@@ -411,32 +434,41 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
 }
 
 function NavGroup({ label }: { label: string }) {
-  return <p style={{ margin: "18px 10px 6px", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: C.t3 }}>{label}</p>;
+  return <p style={{ margin: "20px 10px 6px", fontSize: 10.5, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: C.t3 }}>{label}</p>;
 }
 
 function NavItem({ icon: Icon, label, count, on, disabled, onClick }: {
   icon?: typeof Database; label: string; count?: number; on?: boolean; disabled?: boolean; onClick: () => void;
 }) {
+  // Même langage que la barre latérale du back-office : rond plein pour la page ouverte, nom souligné.
   return (
-    <button type="button" className="bx-nav" onClick={onClick} disabled={disabled}
+    <button type="button" className="bx-nav bx-side" onClick={onClick} disabled={disabled} aria-current={on ? "page" : undefined}
       style={{
-        display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 36, padding: "7px 10px", borderRadius: 8,
-        border: "none", textAlign: "left", fontFamily: FONT, fontSize: 13, cursor: disabled ? "default" : "pointer",
-        background: on ? C.l2 : "transparent", color: disabled ? C.t3 : on ? C.t1 : C.t2, opacity: disabled ? 0.55 : 1,
+        display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0, minHeight: 38, padding: "3px 10px 3px 6px", borderRadius: 10,
+        border: "none", textAlign: "left", fontFamily: FONT, fontSize: 13.5, letterSpacing: "-0.01em", cursor: disabled ? "default" : "pointer",
+        background: "transparent", color: disabled ? C.t3 : on ? C.t1 : C.t2, fontWeight: on ? 500 : 400, opacity: disabled ? 0.55 : 1,
       }}>
-      {Icon ? <Icon style={{ width: 15, height: 15, flexShrink: 0, color: on ? C.t1 : C.t3 }} strokeWidth={1.8} /> : <span style={{ width: 15, flexShrink: 0 }} />}
-      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-      {count !== undefined && <span style={{ ...numeric, fontSize: 12, color: C.t3 }}>{fmtNum(count)}</span>}
+      <span className="bx-ic" style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: on ? C.t1 : "transparent", color: on ? C.bg : C.t3 }}>
+        {Icon ? <Icon style={{ width: 15, height: 15 }} strokeWidth={on ? 1.9 : 1.6} /> : <span style={{ width: 5, height: 5, borderRadius: 99, background: "currentColor", opacity: 0.6 }} />}
+      </span>
+      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "4px 0" }}><span className="bx-tx">{label}</span></span>
+      {count !== undefined && <span style={{ ...numeric, fontSize: 12, color: C.t3, flexShrink: 0 }}>{fmtNum(count)}</span>}
     </button>
   );
 }
 
 /* ───────────────────────────── Vue d'ensemble ───────────────────────────── */
 
-function Overview({ when, intact, backup, counts, docs, owners, people, hasCsv, go }: {
+function Overview({ when, intact, backup, counts, docs, owners, people, hasCsv, go, onExport }: {
   when: string | null; intact: boolean; backup: OpenedBackup; counts: Record<string, number>; docs: Doc[];
   owners: [string, number][]; people: Map<string, { name: string; sub: string }>; hasCsv: boolean; go: (v: View) => void;
+  onExport: () => Promise<void>;
 }) {
+  const [exporting, setExporting] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const runExport = async () => {
+    setExporting("busy");
+    try { await onExport(); setExporting("done"); } catch { setExporting("error"); }
+  };
   const totalRows = Object.values(backup.manifest?.tables_after ?? counts).reduce((a, b) => a + b, 0);
   const stats: [string, number | string][] = [
     ["Clients", counts.profiles ?? 0],
@@ -457,9 +489,9 @@ function Overview({ when, intact, backup, counts, docs, owners, people, hasCsv, 
           : <><X style={{ width: 16, height: 16, flexShrink: 0, marginTop: 2 }} />{backup.mismatched.length + backup.missing.length} fichier(s) ne correspondent pas : {[...backup.mismatched, ...backup.missing].slice(0, 3).join(", ")}.</>}
       </p>
 
-      <dl style={{ margin: "28px 0 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>
-        {stats.map(([label, value], i) => (
-          <div key={label} style={{ padding: "18px 0 18px", paddingLeft: i ? 20 : 0, borderLeft: i ? `1px solid ${C.bds}` : "none" }}>
+      <dl style={{ margin: "28px 0 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+        {stats.map(([label, value]) => (
+          <div key={label} style={{ padding: "16px 18px", borderRadius: 16, background: C.l1, boxShadow: `0 0 0 1px ${C.bds}` }}>
             <dt style={{ fontSize: 12, color: C.t3 }}>{label}</dt>
             <dd style={{ ...numeric, margin: "6px 0 0", fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em" }}>{typeof value === "number" ? fmtNum(value) : value}</dd>
           </div>
@@ -474,6 +506,23 @@ function Overview({ when, intact, backup, counts, docs, owners, people, hasCsv, 
       )}
 
       <section style={{ marginTop: 36 }}>
+        {/* Pour un organisme (CANAFE, auditeur) : un dossier lisible partout, sans la plateforme. */}
+        <div style={{ margin: "0 0 32px", padding: "18px 20px", borderRadius: 16, background: C.l1, boxShadow: `0 0 0 1px ${C.bds}`, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 280px", minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 14.5, fontWeight: 500 }}>Exporter pour un organisme</p>
+            <p style={{ margin: "4px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>
+              Un dossier ZIP qui s'ouvre partout : sommaire PDF, chaque table en CSV (Excel) et les documents rangés par client.
+              Il n'est pas chiffré : transmettez-le uniquement par un canal sûr.
+            </p>
+            {exporting === "error" && <p style={{ margin: "6px 0 0", fontSize: 12.5, color: C.dangerText }}>L'export n'a pas abouti. Réessayez.</p>}
+          </div>
+          <button type="button" className="bx-btn" onClick={runExport} disabled={exporting === "busy"}
+            style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "none", background: C.t1, color: C.bg, fontFamily: FONT, fontSize: 13.5, fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {exporting === "busy" ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : exporting === "done" ? <Check style={{ width: 15, height: 15 }} /> : <FileArchive style={{ width: 15, height: 15 }} />}
+            {exporting === "busy" ? "Préparation…" : exporting === "done" ? "Téléchargé" : "Exporter (ZIP)"}
+          </button>
+        </div>
+
         <SectionTitle>Documents par client</SectionTitle>
         <List>
           {owners.map(([owner, n]) => {
@@ -504,7 +553,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 500, color: C.t1 }}>{children}</h2>;
 }
 function List({ children }: { children: React.ReactNode }) {
-  return <div style={{ borderTop: `1px solid ${C.bds}` }}>{children}</div>;
+  return <div>{children}</div>;
 }
 function ListRow({ title, sub, right, onClick }: { title: string; sub?: string; right?: string; onClick: () => void }) {
   return (
@@ -571,7 +620,7 @@ function TableView({ table, label, people }: { table: Table | null; label: strin
         </label>
       </div>
 
-      <div ref={box} style={{ marginTop: 18, border: `1px solid ${C.bds}`, borderRadius: 10, overflow: "auto", maxHeight: "calc(100vh - 220px)" }}>
+      <div ref={box} style={{ marginTop: 18, borderRadius: 14, background: C.l1, boxShadow: `0 0 0 1px ${C.bds}`, overflow: "auto", maxHeight: "calc(100vh - 220px)" }}>
         <table style={{ borderCollapse: "separate", borderSpacing: 0, width: "100%", fontSize: 12.5 }}>
           <thead>
             <tr>

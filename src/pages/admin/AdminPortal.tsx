@@ -103,7 +103,7 @@ const SHELL_CSS = `
 .sh-tx { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px;
   padding-bottom: 3px; transition: background-size .4s cubic-bezier(.22,1,.36,1) }
 .sh-nav:hover .sh-tx, .sh-nav:focus-visible .sh-tx { background-size: 100% 1.5px }
-.sh-nav[aria-current="page"] .sh-tx { background-size: 0 1.5px }
+.sh-nav[aria-current="page"] .sh-tx { background-size: 100% 1.5px }
 .sh-ic { transition: background .25s, color .2s, transform .3s cubic-bezier(.22,1,.36,1) }
 .sh-nav:hover .sh-ic { transform: scale(1.1); color: var(--a-t1) }
 /* Noms de groupes : petites capitales espacées, discrètes. */
