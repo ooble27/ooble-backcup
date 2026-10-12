@@ -206,7 +206,7 @@ export function EmptyState({ icon: Icon, title, text, action }: {
 }) {
   return (
     <div style={{ padding: "56px 20px", textAlign: "center", color: C.t3 }}>
-      {Icon && <Icon style={{ width: 28, height: 28, marginBottom: 12, color: C.t3 }} strokeWidth={1.4} />}
+      {Icon && <Icon style={{ display: "block", width: 28, height: 28, margin: "0 auto 12px", color: C.t3 }} strokeWidth={1.4} />}
       <p style={{ margin: 0, fontSize: 14, color: C.t1 }}>{title}</p>
       {text && <p style={{ margin: "6px auto 0", fontSize: 13, lineHeight: 1.55, maxWidth: 380 }}>{text}</p>}
       {action && <div style={{ marginTop: 16 }}>{action}</div>}

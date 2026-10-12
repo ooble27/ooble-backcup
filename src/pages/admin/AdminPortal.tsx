@@ -441,6 +441,8 @@ const AdminPortal = () => {
         /* Écrin : posé sur le fond, coins arrondis, aucun trait ne croise la barre latérale. */
         <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 1px" }}>
           <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
+            {/* L'en-tête (fil d'Ariane, recherche) défile avec la page : aucun bandeau ne cache le haut de l'écrin. */}
+            <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
             <header style={panel
               ? { flexShrink: 0, background: C.bg }
               : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
@@ -477,8 +479,6 @@ const AdminPortal = () => {
                 </button>
               </div>
             </header>
-
-            <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
               <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
                 style={{ maxWidth: 1320, margin: "0 auto", padding: mode === "drawer" ? "24px 16px 96px" : "32px 32px 96px" }}>
                 {clientView ? (

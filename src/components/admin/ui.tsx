@@ -35,6 +35,8 @@ export const UI_CSS = `
   /* Aucun voile sombre : iOS n'assombrit pas la zone de l'heure, le haut paraîtrait coupé en deux. */
   .a-veil { background: transparent !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }
+/* Une icône posée dans un bloc centré se centre avec le texte (et non à gauche). */
+.admin-scope :where([style*="text-align: center"]) > svg { display: inline-block; vertical-align: middle; }
 @keyframes ui-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 @keyframes ui-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes ui-slide { from { opacity: 0; transform: translateX(28px) } to { opacity: 1; transform: none } }
