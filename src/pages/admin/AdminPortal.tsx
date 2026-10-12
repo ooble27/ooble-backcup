@@ -98,7 +98,7 @@ const SHELL_CSS = `
    un peu en dessous ; aucun réglage ne l'enlève. On laisse une petite bande au fond uni (le flou
    d'une couleur unie ne se voit pas) et tout le contenu commence en dessous. */
 :root { --a-top: env(safe-area-inset-top, 0px); }
-html.ooble-ios-pwa { --a-top: calc(env(safe-area-inset-top, 0px) + 20px); } /* classe posée au démarrage (main.tsx) */
+html.ooble-ios-pwa { --a-top: calc(env(safe-area-inset-top, 0px) + 10px); } /* classe posée au démarrage (main.tsx) */
 @media (orientation: landscape) and (max-height: 500px) { html.ooble-ios-pwa { --a-top: env(safe-area-inset-top, 0px); } }
 /* iPhone et iPad : Safari agrandit la page dès qu'on touche un champ dont le texte fait moins de 16 px. */
 @supports (-webkit-touch-callout: none) {

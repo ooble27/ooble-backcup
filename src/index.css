@@ -592,5 +592,5 @@
   }
 }
 
-html.ooble-ios-pwa { --ios-top: calc(env(safe-area-inset-top, 0px) + 20px); }
+html.ooble-ios-pwa { --ios-top: calc(env(safe-area-inset-top, 0px) + 10px); }
 @media (orientation: landscape) and (max-height: 500px) { html.ooble-ios-pwa { --ios-top: env(safe-area-inset-top, 0px); } }

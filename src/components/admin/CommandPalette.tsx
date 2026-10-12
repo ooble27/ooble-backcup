@@ -82,8 +82,9 @@ export default function CommandPalette({ nav, orders, onClose, onTab, onOrder, o
   return createPortal(
     <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147482800, fontFamily: FONT, color: C.t1 }} onKeyDown={onKey}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "ui-fade .15s ease" }} />
+      {/* Centrée par une boîte pleine largeur (pas de transform) : l'animation d'entrée ne la décale plus à droite. */}
       <div role="dialog" aria-modal="true" aria-label="Recherche" style={{
-        position: "absolute", left: "50%", top: "calc(var(--a-top, env(safe-area-inset-top, 0px)) + min(10vh, 96px))", transform: "translateX(-50%)", width: "min(620px, calc(100vw - 24px))",
+        position: "absolute", left: 0, right: 0, marginInline: "auto", top: "calc(var(--a-top, env(safe-area-inset-top, 0px)) + min(10vh, 96px))", width: "min(620px, calc(100vw - 24px))",
         background: C.l1, border: `1px solid ${C.bd}`, borderRadius: 14, boxShadow: C.shadowHeavy, overflow: "hidden", animation: "ui-in .2s cubic-bezier(.22,1,.36,1)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 16px", borderBottom: `1px solid ${C.bds}` }}>

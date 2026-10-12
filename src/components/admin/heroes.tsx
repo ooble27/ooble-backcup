@@ -193,6 +193,33 @@ export function ArcStat({ title, center, segments }: {
 
 /* ─── Conformité ───────────────────────────────────────────── */
 
+/** Programme de conformité par thème : une pastille par point, pleine quand il est fait. */
+function ProgramMatrix({ items }: { items: { label: string; done: boolean; category: string }[] }) {
+  const groups = new Map<string, { label: string; done: boolean }[]>();
+  for (const it of items) groups.set(it.category, [...(groups.get(it.category) ?? []), it]);
+  const rows = [...groups.entries()].slice(0, 7);
+  return (
+    <div style={{ display: "grid", gap: 9 }}>
+      <span style={{ fontSize: 12.5, color: C.t3 }}>Programme de conformité, par thème</span>
+      {rows.map(([cat, list]) => {
+        const d = list.filter((x) => x.done).length;
+        return (
+          <div key={cat} style={{ display: "grid", gridTemplateColumns: "minmax(110px, 1fr) auto 34px", gap: 12, alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: C.t2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat}</span>
+            <span style={{ display: "inline-flex", gap: 4 }}>
+              {list.map((x, i) => (
+                <span key={i} title={`${x.label} · ${x.done ? "fait" : "à faire"}`}
+                  style={{ width: 11, height: 11, borderRadius: 99, background: x.done ? C.vzGreen : "transparent", boxShadow: x.done ? "none" : `inset 0 0 0 1.5px ${C.bd}` }} />
+              ))}
+            </span>
+            <span style={{ fontSize: 12.5, color: d === list.length ? C.sage : C.t3, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{d}/{list.length}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ComplianceHero({ alerts, pendingDecl, nextDeadline, checklist, loaded }: {
   alerts: number; pendingDecl: number; nextDeadline: string | null; checklist: { label: string; done: boolean; category: string }[]; loaded: boolean;
 }) {
@@ -212,10 +239,7 @@ export function ComplianceHero({ alerts, pendingDecl, nextDeadline, checklist, l
         Seuil DOIMV : 10 000 $ reçus en monnaie virtuelle, à déclarer dans les 5 jours ouvrables.
       </>}
     >
-      {checklist.length > 0 && (
-        <ArcStat title="Programme de conformité" center={`${pct} %`}
-          segments={[{ label: plural(done, "point fait", "points faits"), value: done, color: C.vzGreen }, { label: "à faire", value: checklist.length - done, color: C.vzGray }]} />
-      )}
+      {checklist.length > 0 && <ProgramMatrix items={checklist} />}
     </Hero>
   );
 }
@@ -264,7 +288,41 @@ export function SettlementHero({ tanks, auto, maxCad, loading, toReview }: { tan
 
 /* ─── Messagerie ───────────────────────────────────────────── */
 
-export function MailboxHero({ threads, unread, loading }: { threads: { lastMessageAt: string; hasUnread: boolean; status: string }[]; unread: number; loading: boolean }) {
+interface HeroThread { lastMessageAt: string; hasUnread: boolean; status: string; clientName?: string | null; clientEmail?: string; subject?: string; lastSnippet?: string }
+
+/** Les trois dernières conversations, empilées comme des notifications. */
+function ThreadStack({ threads }: { threads: HeroThread[] }) {
+  const recent = [...threads].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)).slice(0, 3);
+  return (
+    <div style={{ position: "relative", paddingBottom: (recent.length - 1) * 10 }}>
+      {recent.map((t, i) => {
+        const who = t.clientName || t.clientEmail || "Client";
+        return (
+          <div key={i} style={{
+            position: i ? "absolute" : "relative", left: i * 10, right: i * 10, top: i ? i * 10 : undefined, zIndex: 3 - i,
+            display: i ? "block" : "flex", gap: 12, alignItems: "flex-start", padding: i ? 0 : "14px 16px", height: i ? "100%" : undefined,
+            borderRadius: 12, background: i ? C.hover3 : C.l1, boxShadow: i ? "none" : `0 0 0 1px ${C.bds}, 0 10px 24px -16px rgba(0,0,0,.45)`, opacity: i ? 1 - i * 0.25 : 1,
+          }}>
+            {!i && <>
+              <span style={{ width: 34, height: 34, borderRadius: 99, background: t.hasUnread ? "#ffd2c4" : "#bfe8d6", color: "#14110f", fontSize: 13.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{who[0]?.toUpperCase()}</span>
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <b style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</b>
+                  <span style={{ fontSize: 11.5, color: C.t3 }}>il y a {ago(t.lastMessageAt)}</span>
+                  {t.hasUnread && <span aria-label="non lue" style={{ width: 8, height: 8, borderRadius: 99, background: C.vzCoral, flexShrink: 0 }} />}
+                </span>
+                <span style={{ display: "block", fontSize: 13, color: C.t1, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span>
+                {t.lastSnippet && <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.lastSnippet}</span>}
+              </span>
+            </>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function MailboxHero({ threads, unread, loading }: { threads: HeroThread[]; unread: number; loading: boolean }) {
   const open = threads.filter((t) => t.status === "open").length;
   return (
     <Hero
@@ -276,8 +334,10 @@ export function MailboxHero({ threads, unread, loading }: { threads: { lastMessa
       sub={`${open} ${plural(open, "conversation ouverte", "conversations ouvertes")}. Les réponses partent de bonjour@ooble.ca ; le desk gros volumes reçoit sur otc@ooble.ca.`}
     >
       {threads.length > 0 && (
-        <ArcStat title="Conversations" center={`${Math.round(((threads.length - unread) / threads.length) * 100)} %`}
-          segments={[{ label: "à jour", value: Math.max(0, threads.length - unread), color: C.vzGreen }, { label: plural(unread, "non lue", "non lues"), value: Math.min(unread, threads.length), color: C.vzCoral }]} />
+        <div style={{ display: "grid", gap: 8 }}>
+          <span style={{ fontSize: 12.5, color: C.t3 }}>Dernières conversations</span>
+          <ThreadStack threads={threads} />
+        </div>
       )}
     </Hero>
   );
@@ -359,11 +419,22 @@ export function TeamHero({ members, loading }: { members: { name: string; role: 
 export function PlatformHero({ launchedAt, testOrders, runs, loading }: {
   launchedAt: string | null; testOrders: number; runs: { started_at: string; finished_at: string | null; status: string }[] | null; loading: boolean;
 }) {
-  const [hover, setHover] = useState<number | null>(null);
   const days = launchedAt ? Math.max(0, Math.floor((Date.now() - new Date(launchedAt).getTime()) / 86400000)) : 0;
-  const recent = (runs ?? []).slice(0, 14).reverse();
+  const recent = (runs ?? []).slice(0, 14);
+  const okCount = recent.filter((r) => r.status === "success").length;
   const lastOk = (runs ?? []).find((r) => r.status === "success");
-  const h = hover !== null ? recent[hover] : null;
+  const lastFailed = recent[0]?.status === "failed";
+  const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" });
+  // Trois lignes d'état, comme une page de statut : rond plein = en ordre, rond corail = à regarder.
+  const lines: { ok: boolean; title: string; sub: string }[] = [
+    launchedAt
+      ? { ok: true, title: "Activités démarrées", sub: `Depuis le ${fmtDay(launchedAt)}` }
+      : { ok: false, title: "Mode test", sub: `${testOrders} ${plural(testOrders, "commande")} de test à effacer avant le lancement` },
+    lastOk
+      ? { ok: !lastFailed, title: lastFailed ? "Dernière sauvegarde en échec" : `Sauvegarde il y a ${ago(lastOk.finished_at ?? lastOk.started_at)}`, sub: `${okCount} ${plural(okCount, "réussie")} sur les ${recent.length} dernières nuits, chiffrées` }
+      : { ok: false, title: "Aucune sauvegarde encore", sub: "La première a lieu cette nuit à 3 h 17" },
+    { ok: true, title: "Registre conservé 5 ans", sub: "Opérations et journal d'audit (CANAFE)" },
+  ];
   return (
     <Hero
       title={loading ? <span className="mute">…</span> : launchedAt ? (
@@ -373,17 +444,21 @@ export function PlatformHero({ launchedAt, testOrders, runs, loading }: {
       )}
       sub={lastOk ? <>Dernière sauvegarde réussie il y a <b style={{ color: C.t1, fontWeight: 600 }}>{ago(lastOk.finished_at ?? lastOk.started_at)}</b>, chiffrée et testée chaque nuit.</> : "Les sauvegardes nocturnes apparaîtront ici."}
     >
-      {recent.length > 0 && (
-        <div onMouseLeave={() => setHover(null)}>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }} role="img" aria-label={`${recent.filter((r) => r.status === "success").length} sauvegardes réussies sur ${recent.length}`}>
-            {recent.map((r, i) => (
-              <span key={i} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)}
-                style={{ flex: 1, maxWidth: 26, aspectRatio: "1", borderRadius: 99, background: r.status === "success" ? C.vzGreen : r.status === "failed" ? C.vzCoral : C.vzIndigo, opacity: hover !== null && hover !== i ? 0.4 : 1, transition: "opacity .15s" }} />
-            ))}
-          </div>
-          <div className="hz-cap">
-            {h ? `${new Date(h.started_at).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" })} · ${h.status === "success" ? "réussie" : h.status === "failed" ? "échec" : "en cours"}` : "Une pastille par sauvegarde : vert réussie, corail échec."}
-          </div>
+      {!loading && (
+        <div style={{ display: "grid", gap: 14 }}>
+          {lines.map((l) => (
+            <div key={l.title} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <span aria-hidden style={{ width: 22, height: 22, borderRadius: 99, flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center", background: l.ok ? C.vzGreen : C.vzCoral, color: "#fff" }}>
+                {l.ok
+                  ? <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 6.2 5 8.6 9.5 3.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  : <svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 3v3.6M6 8.8v.1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>}
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14, color: C.t1, fontWeight: 500 }}>{l.title}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>{l.sub}</span>
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </Hero>
