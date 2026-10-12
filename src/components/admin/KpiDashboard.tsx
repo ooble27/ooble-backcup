@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCached, peek } from "@/lib/adminCache";
 import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import {
   getVolumeMetrics, getMarginMetrics, getOrderStatusCounts, getDailyVolume,
@@ -33,31 +34,36 @@ const money = (n: number) =>
 
 const pct = (p: number | null) => (p === null || !Number.isFinite(p) ? null : `${p >= 0 ? "+" : ""}${p.toFixed(1)} %`);
 
+type Snapshot = {
+  v: VolumeMetrics; m: MarginMetrics; s: OrderStatusCounts; p: number; f: CustomerFunnel; c: ComplianceAlertsCount; d: DailyVolumePoint[];
+};
+
+/** Chiffres agrégés seulement (aucune donnée client) : gardés aussi pour la prochaine ouverture. */
+const fetchSnapshot = async (days: number): Promise<Snapshot> => {
+  const [v, m, s, p, f, c, d] = await Promise.all([
+    getVolumeMetrics({ periodDays: days }),
+    getMarginMetrics({ periodDays: days }),
+    getOrderStatusCounts(),
+    getPendingActionsCount(),
+    getCustomerFunnel(),
+    getComplianceAlertsCount(),
+    getDailyVolume({ days: Math.max(14, days) }),
+  ]);
+  return { v, m, s, p, f, c, d };
+};
+
 const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
   const [period, setPeriod] = useState<Period>("7");
-  const [loading, setLoading] = useState(true);
-  const [volume, setVolume] = useState<VolumeMetrics | null>(null);
-  const [margin, setMargin] = useState<MarginMetrics | null>(null);
-  const [statuses, setStatuses] = useState<OrderStatusCounts | null>(null);
-  const [pending, setPending] = useState(0);
-  const [funnel, setFunnel] = useState<CustomerFunnel | null>(null);
-  const [daily, setDaily] = useState<DailyVolumePoint[]>([]);
-  const [compliance, setCompliance] = useState<ComplianceAlertsCount>({ open: 0, critical: 0 });
-
   const days = Number(period);
+  // Le dernier état connu s'affiche tout de suite ; la mise à jour arrive en arrière-plan.
+  const [snap, setSnap] = useState<Snapshot | undefined>(() => peek<Snapshot>(`kpi.${days}`)?.value);
+  useEffect(() => { setSnap((cur) => peek<Snapshot>(`kpi.${days}`)?.value ?? cur); }, [days]);
   const load = useCallback(async () => {
-    const [v, m, s, p, f, c, d] = await Promise.all([
-      getVolumeMetrics({ periodDays: days }),
-      getMarginMetrics({ periodDays: days }),
-      getOrderStatusCounts(),
-      getPendingActionsCount(),
-      getCustomerFunnel(),
-      getComplianceAlertsCount(),
-      getDailyVolume({ days: Math.max(14, days) }),
-    ]);
-    setVolume(v); setMargin(m); setStatuses(s); setPending(p); setFunnel(f); setCompliance(c); setDaily(d);
-    setLoading(false);
+    setSnap(await fetchCached(`kpi.${days}`, () => fetchSnapshot(days), { persist: true }));
   }, [days]);
+  const loading = !snap;
+  const volume = snap?.v ?? null, margin = snap?.m ?? null, statuses = snap?.s ?? null, pending = snap?.p ?? 0;
+  const funnel = snap?.f ?? null, daily = snap?.d ?? [], compliance = snap?.c ?? { open: 0, critical: 0 };
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {

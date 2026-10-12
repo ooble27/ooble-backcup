@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { fetchCached, peek, put } from "@/lib/adminCache";
 import { Check, Clock, Download, FileText, Flag, RefreshCw, Shield, UserCheck } from "lucide-react";
 import { nfCad, type AdminOrder } from "@/lib/adminOrders";
 import {
@@ -22,6 +23,7 @@ import {
 import { logAdminAction } from "@/lib/audit";
 import { C, FONT } from "./adminTheme";
 import { Button, Field, Group, Notice, SidePanel, TextArea, TextInput, Workspace, fieldInput } from "./ui";
+import { ComplianceHero } from "./heroes";
 import {
   DataTable, EmptyState, FilterChips, KeyValues, Pill, Section, StatStrip, Tabs, Toolbar, TwoLine,
   type Column, type Tone,
@@ -826,11 +828,14 @@ type Overlay = null | "alert" | "classer" | "declarer" | "decl-detail" | "signal
 const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [tab, setTab] = useState<ComplianceTab>("alertes");
-  const [alerts, setAlerts] = useState<ComplianceAlert[]>([]);
-  const [declarations, setDeclarations] = useState<ComplianceDeclaration[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-  const [stats, setStats] = useState<RegisterStats | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  // Dernier état connu affiché tout de suite (mémoire de la session), mis à jour ensuite.
+  type Lists = { a: ComplianceAlert[]; d: ComplianceDeclaration[]; c: ChecklistItem[] };
+  const cached = peek<Lists>("cmp")?.value;
+  const [alerts, setAlerts] = useState<ComplianceAlert[]>(cached?.a ?? []);
+  const [declarations, setDeclarations] = useState<ComplianceDeclaration[]>(cached?.d ?? []);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(cached?.c ?? []);
+  const [stats, setStats] = useState<RegisterStats | null>(peek<RegisterStats>("cmp.stats")?.value ?? null);
+  const [loaded, setLoaded] = useState(!!cached);
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState<RecordCategoryId | null>(null);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
@@ -849,15 +854,19 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
 
   const load = useCallback(async () => {
     try {
-      const [a, d, c] = await Promise.all([fetchAlerts(), fetchDeclarations(), fetchChecklist()]);
+      const { a, d, c } = await fetchCached<Lists>("cmp", async () => {
+        const [a, d, c] = await Promise.all([fetchAlerts(), fetchDeclarations(), fetchChecklist()]);
+        return { a, d, c };
+      });
       setAlerts(a); setDeclarations(d); setChecklist(c);
     } catch (e) {
       setErrorMsg(`Chargement impossible : ${(e as Error).message}`);
     } finally {
       setLoaded(true);
     }
-    fetchRegisterStats().then(setStats).catch(() => setStats(null));
+    fetchCached("cmp.stats", fetchRegisterStats).then(setStats).catch(() => setStats(null));
   }, []);
+  useEffect(() => { if (loaded) put<Lists>("cmp", { a: alerts, d: declarations, c: checklist }); }, [alerts, declarations, checklist, loaded]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -869,7 +878,6 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
 
   const activeAlerts = alerts.filter(isOpen).length;
   const pendingDecl = declarations.filter((d) => d.status === "brouillon" || d.status === "soumise").length;
-  const checklistDone = checklist.filter((c) => c.done).length;
 
   // Prochaine échéance DOIMV : alerte ouverte ou brouillon.
   const nextDeadline = useMemo(() => {
@@ -1048,7 +1056,6 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
   const selectedAlert = selectedAlertId ? alerts.find((a) => a.id === selectedAlertId) : null;
   const selectedDecl = selectedDeclId ? declarations.find((d) => d.id === selectedDeclId) : null;
   const editingDecl = editingDeclId ? declarations.find((d) => d.id === editingDeclId) : null;
-  const programPct = checklist.length > 0 ? Math.round((checklistDone / checklist.length) * 100) : 0;
 
   return (
     <div>
@@ -1059,14 +1066,10 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
         </div>
       )}
 
-      <StatStrip items={[
-        { label: "Alertes actives", value: loaded ? activeAlerts : "…", tone: activeAlerts ? "warn" : undefined, hint: activeAlerts ? "à traiter" : "rien en attente" },
-        { label: "Déclarations en cours", value: pendingDecl, hint: nextDeadline ? `prochaine échéance ${nextDeadline}` : undefined },
-        { label: "Seuil DOIMV", value: `${DOIMV_THRESHOLD.toLocaleString("fr-CA")} $`, hint: "réception en monnaie virtuelle" },
-        { label: "Programme", value: `${programPct} %`, hint: `${checklistDone} sur ${checklist.length} points` },
-      ]} />
+      <ComplianceHero loaded={loaded} alerts={activeAlerts} pendingDecl={pendingDecl} nextDeadline={nextDeadline}
+        checklist={checklist.map((c) => ({ label: c.label, done: c.done, category: c.category }))} />
 
-      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+      <Tabs value={tab} onChange={setTab} items={[
         { id: "alertes", label: "Alertes", count: activeAlerts || undefined, tone: "warn" },
         { id: "declarations", label: "Déclarations", count: pendingDecl || undefined },
         { id: "dossiers", label: "Registre" },

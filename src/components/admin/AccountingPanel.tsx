@@ -4,7 +4,8 @@ import { NETWORKS } from "@/components/app/networks";
 import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
-import { DataTable, Section, StatStrip, type Column } from "./layout";
+import { DataTable, Section, type Column } from "./layout";
+import { AccountingHero } from "./heroes";
 
 const MARGIN = 0.02; // marché + 2 %
 
@@ -80,20 +81,39 @@ const AccountingPanel = ({ orders }: { orders: AdminOrder[] }) => {
 
   return (
     <div>
-      <StatStrip items={[
-        { label: "Revenus estimés", value: money(stats.margin), tone: "ok", hint: `marge de ${nfUsdt.format(MARGIN * 100)} % sur le volume` },
-        { label: "Volume traité", value: money(stats.volume), hint: `${stats.count} commande${stats.count > 1 ? "s" : ""} terminée${stats.count > 1 ? "s" : ""}` },
-        { label: "Achats", value: money(stats.buyVol), hint: `${stats.buyN} commande${stats.buyN > 1 ? "s" : ""}` },
-        { label: "Ventes", value: money(stats.sellVol), hint: `${stats.sellN} commande${stats.sellN > 1 ? "s" : ""}` },
-        { label: "Panier moyen", value: money(stats.avg) },
-      ]} />
+      <AccountingHero margin={MARGIN} orders={done.map((o) => {
+        const id = o.type === "sell" && !o.network ? "interac" : o.network ?? "autre";
+        const known = NETWORKS.some((n) => n.id === id);
+        return { cad: o.cad, minsAgo: o.createdMinsAgo, net: id, netName: NETWORKS.find((n) => n.id === id)?.name ?? (id === "interac" ? "Interac" : "Autre"), logo: known ? `/coins/${id}.svg` : undefined };
+      })} note={`Achats ${money(stats.buyVol)} (${stats.buyN}) · Ventes ${money(stats.sellVol)} (${stats.sellN}) · Panier moyen ${money(stats.avg)}`} />
 
       <Section title="Par mois" description="Commandes terminées, regroupées par mois de création." actions={<Button size="sm" variant="ghost" onClick={exportCsv} disabled={!months.length} icon={<Download style={{ width: 14, height: 14 }} />}>Exporter pour la comptabilité</Button>}>
-        <DataTable rows={months} columns={monthCols} rowKey={(r) => r.key} empty={<p style={{ padding: "28px 0", margin: 0, fontSize: 13.5, color: C.t3 }}>Aucune commande terminée pour l'instant.</p>} />
+        <DataTable rows={months} columns={monthCols} rowKey={(r) => r.key}
+          mobile={(r) => (
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, color: C.t1, textTransform: "capitalize" }}>{r.label}</div>
+                <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{r.buyN + r.sellN} commandes · {money(r.buy + r.sell)}</div>
+              </div>
+              <span style={{ fontSize: 14, color: C.successText, fontVariantNumeric: "tabular-nums" }}>{money((r.buy + r.sell) * MARGIN)}</span>
+            </div>
+          )}
+          empty={<p style={{ padding: "28px 0", margin: 0, fontSize: 13.5, color: C.t3 }}>Aucune commande terminée pour l'instant.</p>} />
       </Section>
 
       <Section title="Par réseau">
-        <DataTable rows={nets} columns={netCols} rowKey={(r) => r.id} empty={<p style={{ padding: "28px 0", margin: 0, fontSize: 13.5, color: C.t3 }}>Aucune donnée.</p>} />
+        <DataTable rows={nets} columns={netCols} rowKey={(r) => r.id}
+          mobile={(r) => (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {NETWORKS.some((n) => n.id === r.id) && <img src={`/coins/${r.id}.svg`} alt="" width={20} height={20} style={{ borderRadius: 99 }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, color: C.t1 }}>{r.name}</div>
+                <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{r.n} commandes · {nfUsdt.format(r.usdt)} USDT</div>
+              </div>
+              <span style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{money(r.volume)}</span>
+            </div>
+          )}
+          empty={<p style={{ padding: "28px 0", margin: 0, fontSize: 13.5, color: C.t3 }}>Aucune donnée.</p>} />
       </Section>
 
       <p style={{ margin: "20px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.6, maxWidth: 720 }}>

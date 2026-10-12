@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { peek, put } from "@/lib/adminCache";
 import { AlertTriangle, Info, Megaphone, Plus, ShieldAlert, Wrench, X } from "lucide-react";
 import {
   createAnnouncement, createMaintenance,
@@ -9,8 +10,9 @@ import {
   type MaintenanceDraft, type MaintenanceWindow,
 } from "@/lib/announcements";
 import { C } from "./adminTheme";
+import { BannerHero } from "./heroes";
 import { Button, Field, Notice, SidePanel, Switch, TextArea, TextInput } from "./ui";
-import { DataTable, EmptyState, FilterChips, KeyValues, Pill, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
+import { DataTable, EmptyState, FilterChips, Pill, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
 
 /*
  * Bannière (message en haut de l'app) et fenêtres de maintenance (écran qui
@@ -215,13 +217,15 @@ type EditState =
 
 const AnnouncementsPanel = () => {
   const [tab, setTab] = useState<SubTab>("banner");
-  const [anns, setAnns] = useState<Announcement[]>([]);
-  const [mnts, setMnts] = useState<MaintenanceWindow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = peek<{ a: Announcement[]; m: MaintenanceWindow[] }>("announcements")?.value;
+  const [anns, setAnns] = useState<Announcement[]>(cached?.a ?? []);
+  const [mnts, setMnts] = useState<MaintenanceWindow[]>(cached?.m ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [edit, setEdit] = useState<EditState>({ kind: "none" });
 
   const refresh = async () => {
     const [a, m] = await Promise.all([listAnnouncements(), listMaintenanceWindows()]);
+    put("announcements", { a, m });
     setAnns(a);
     setMnts(m);
     setLoading(false);
@@ -255,16 +259,12 @@ const AnnouncementsPanel = () => {
 
   return (
     <div>
-      <KeyValues items={[
-        ["Bannière en ligne", liveBanner
-          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>{liveBanner.title_fr}<Pill tone={KIND_META[liveBanner.kind].tone}>{KIND_META[liveBanner.kind].label}</Pill></span>
-          : <span style={{ color: C.t3 }}>{loading ? "…" : "Aucune"}</span>],
-        ["Maintenance", liveMnt
-          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><Pill tone="warn" dot>Active</Pill>{liveMnt.title_fr}{liveMnt.ends_at && <span style={{ color: C.t3 }}>jusqu'au {fmt(liveMnt.ends_at)}</span>}</span>
-          : <span style={{ color: C.t3 }}>{loading ? "…" : "Aucune, l'app est ouverte"}</span>],
-      ]} />
+      <BannerHero loading={loading}
+        banner={liveBanner ? { title: liveBanner.title_fr, body: liveBanner.body_fr, kind: liveBanner.kind } : null}
+        maintenance={liveMnt ? { title: liveMnt.title_fr, until: liveMnt.ends_at } : null} />
+      
 
-      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+      <Tabs value={tab} onChange={setTab} items={[
         { id: "banner", label: "Bannières", count: anns.length },
         { id: "maintenance", label: "Maintenance", count: mnts.length, tone: liveMnt ? "warn" : undefined },
       ]} />

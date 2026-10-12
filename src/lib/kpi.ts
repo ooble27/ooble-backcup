@@ -179,6 +179,7 @@ const zeroStatuses = (): OrderStatusCounts => ({
   completed: 0,
   cancelled: 0,
   expired: 0,
+  refunded: 0,
 });
 
 export async function getOrderStatusCounts(): Promise<OrderStatusCounts> {

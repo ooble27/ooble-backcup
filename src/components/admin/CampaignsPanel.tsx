@@ -21,6 +21,7 @@ import {
   Search, Eye, Trash2, ArrowUp, ArrowDown, Maximize2, RotateCcw, Link2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { fetchCached, peek } from "@/lib/adminCache";
 import { sendCampaignEmail } from "@/lib/email";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientDirectory, type ClientDirectoryEntry } from "@/lib/adminClient";
@@ -195,7 +196,7 @@ const PANEL_CSS = `
 .cmp-ghost:hover { background: var(--a-hover1); }
 .cmp-ghost:focus { background: var(--a-hover2); }
 .cmp-tile { transition: background .15s; }
-.cmp-tile:hover:not(:disabled) { background: var(--a-hover3); }
+.cmp-tile:hover:not(:disabled) { background: var(--a-hover4); }
 .cmp-fab { width: 44px; height: 44px; border-radius: 99px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds), 0 8px 24px -10px rgba(0,0,0,.45); }
 .cmp-fab:focus-visible, .cmp-cta:focus-visible, .cmp-ico:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 .cmp-ico { width: 34px; height: 34px; border-radius: 99px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
@@ -491,12 +492,12 @@ const CampaignsPanel = () => {
   const myEmail = user?.email ?? "";
   const [tab, setTab] = useState<SubTab>("templates");
   const [studio, setStudio] = useState<{ templateId: string; lang: EmailLang } | null>(null);
-  const [clients, setClients] = useState<ClientDirectoryEntry[]>([]);
-  const [clientsLoading, setClientsLoading] = useState(true);
+  const [clients, setClients] = useState<ClientDirectoryEntry[]>(() => peek<ClientDirectoryEntry[]>("clients.directory2000")?.value ?? []);
+  const [clientsLoading, setClientsLoading] = useState(() => !peek("clients.directory2000"));
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
 
   useEffect(() => {
-    fetchClientDirectory(2000).then((c) => { setClients(c); setClientsLoading(false); });
+    fetchCached("clients.directory2000", () => fetchClientDirectory(2000)).then((c) => { setClients(c); setClientsLoading(false); });
     setCampaigns(loadCampaigns());
   }, []);
 
@@ -778,7 +779,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
         </div>
 
         {/* Infos et actions, dans un second volet. */}
-        <aside style={{ minHeight: 0, borderRadius: 16, background: C.bg, padding: 22, display: "flex", flexDirection: "column", gap: 22, overflowY: "auto" }}>
+        <aside style={{ minHeight: 0, padding: "14px 14px 14px 22px", display: "flex", flexDirection: "column", gap: 22, overflowY: "auto" }}>
           <div>
             <p style={{ margin: "0 0 10px", fontSize: 12, color: C.t3 }}>Dans la boîte de réception</p>
             <InboxRow subject={inbox.subject} preheader={inbox.preheader} />
@@ -1060,7 +1061,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
       </div>
 
       <StudioSection title="Dans la boîte de réception">
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px 10px", borderRadius: 16, background: C.hover1 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px 10px", borderRadius: 16, background: C.hover3 }}>
           <img src="/icons/icon-192.png" alt="" width={36} height={36} style={{ borderRadius: 10, flexShrink: 0, marginTop: 4 }} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "0 0 2px" }}>
@@ -1092,7 +1093,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
 
       <StudioSection title="Rédaction assistée">
         {/* Barre de demande, comme une conversation : on écrit, on envoie. */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 8px 8px 16px", borderRadius: 22, background: C.hover1 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 8px 8px 16px", borderRadius: 22, background: C.hover3 }}>
           <Sparkles style={{ width: 16, height: 16, color: "var(--a-sun)", flexShrink: 0, marginBottom: 10 }} />
           <textarea className="cmp-ghost" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} rows={2}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generateWithAI(); }}
@@ -1131,8 +1132,8 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const stage: React.CSSProperties = { background: "#e4e0d7", overflow: "hidden" };
 
   const contentStep = wide ? (
-    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(400px, 520px) minmax(0, 1fr)", gap: 8 }}>
-      <WsPane>{editor}</WsPane>
+    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(400px, 520px) minmax(0, 1fr)" }}>
+      <WsPane flat>{editor}</WsPane>
       <WsPane style={stage}>{preview}</WsPane>
     </div>
   ) : (
@@ -1157,7 +1158,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
             const n = clientsLoading ? null : filterBySegment(clients, s).length;
             return (
               <button key={s} type="button" className="cmp-tile" onClick={() => addSegment(s)} disabled={!n}
-                style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, padding: "12px 12px 11px", borderRadius: 14, border: "none", background: C.hover1, color: C.t1, fontFamily: FONT, textAlign: "left", cursor: n ? "pointer" : "default", opacity: n === 0 ? 0.5 : 1 }}>
+                style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, padding: "12px 12px 11px", borderRadius: 14, border: "none", background: C.hover3, color: C.t1, fontFamily: FONT, textAlign: "left", cursor: n ? "pointer" : "default", opacity: n === 0 ? 0.5 : 1 }}>
                 <span style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
                   <Icon style={{ width: 16, height: 16, color: C.t2 }} strokeWidth={1.7} />
                   <Plus style={{ width: 14, height: 14, color: C.t3 }} />
@@ -1236,14 +1237,14 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   );
 
   const audienceStep = wide ? (
-    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(360px, 440px) minmax(0, 1fr)", gap: 8 }}>
-      <WsPane>{audienceSide}</WsPane>
+    <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(360px, 440px) minmax(0, 1fr)" }}>
+      <WsPane flat>{audienceSide}</WsPane>
       <WsPane>{audienceList}</WsPane>
     </div>
   ) : (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "grid", alignContent: "start", gap: 8 }}>
-      <WsPane style={{ overflow: "visible" }}>{audienceSide}</WsPane>
-      <WsPane style={{ overflow: "visible" }}>{audienceList}</WsPane>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <WsPane flat style={{ overflow: "visible" }}>{audienceSide}</WsPane>
+      <WsPane style={{ overflow: "visible", minHeight: 260 }}>{audienceList}</WsPane>
     </div>
   );
 
@@ -1286,15 +1287,23 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
 
         <div style={{ marginTop: 30 }}>
           <StudioSection title="Un test d'abord" hint="Un seul courriel par clic : vérifiez le rendu dans votre boîte." flush>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 6px 6px 16px", borderRadius: 99, background: C.hover1, flexWrap: "wrap" }}>
-              <AtSign style={{ width: 15, height: 15, color: C.t3, flexShrink: 0 }} />
-              <input className="cmp-ghost" type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="votre@adresse.ca" aria-label="Adresse du test"
-                style={{ flex: "1 1 180px", width: "auto", margin: 0, fontSize: 14, background: "transparent" }} />
-              <Button onClick={() => sendTest([editLang])} disabled={testState?.kind === "busy"}
-                icon={testState?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 14, height: 14 }} />}>
-                {editLang.toUpperCase()}
-              </Button>
-              <Button variant="ghost" onClick={() => sendTest(["fr", "en"])} disabled={testState?.kind === "busy"}>FR + EN</Button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <label style={{ flex: "1 1 260px", minWidth: 0, display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 16px", borderRadius: 99, background: C.hover3 }}>
+                <AtSign style={{ width: 15, height: 15, color: C.t3, flexShrink: 0 }} />
+                <input className="cmp-ghost" type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="votre@adresse.ca" aria-label="Adresse du test"
+                  style={{ flex: 1, width: "auto", minWidth: 0, margin: 0, padding: "4px 0", fontSize: 14, background: "transparent" }} />
+              </label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button type="button" onClick={() => sendTest([editLang])} disabled={testState?.kind === "busy"}
+                  style={{ height: 46, padding: "0 18px", borderRadius: 99, border: "none", background: C.t1, color: C.bg, fontFamily: FONT, fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {testState?.kind === "busy" ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 15, height: 15 }} />}
+                  Tester en {editLang.toUpperCase()}
+                </button>
+                <button type="button" onClick={() => sendTest(["fr", "en"])} disabled={testState?.kind === "busy"}
+                  style={{ height: 46, padding: "0 16px", borderRadius: 99, border: "none", background: C.hover4, color: C.t1, fontFamily: FONT, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  FR + EN
+                </button>
+              </div>
             </div>
             {testState && testState.kind !== "busy" && <div style={{ marginTop: 10 }}><Notice tone={testState.kind === "ok" ? "ok" : "err"}>{testState.text}</Notice></div>}
           </StudioSection>
@@ -1451,7 +1460,7 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
         type="button"
         onClick={() => setOpen(true)}
         className="cmp-tile"
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: 6, marginTop: 4, borderRadius: 16, border: "none", background: C.hover1, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: 6, marginTop: 4, borderRadius: 16, border: "none", background: C.hover3, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
       >
         <span style={{ width: 112, height: 64, borderRadius: 11, overflow: "hidden", flexShrink: 0, background: "#f3efe6", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <img src={current.url} alt="" style={{ width: "100%", height: "100%", objectFit: current.group === "guide" ? "cover" : "contain" }} />
@@ -1554,7 +1563,7 @@ function LinesEditor({ field, value, onChange }: { field: TemplateField; value: 
       <FieldLabel right={<span style={{ fontSize: 11, color: C.t3 }}>{rows.length} ligne{rows.length > 1 ? "s" : ""}</span>}>{field.label}</FieldLabel>
       <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
         {rows.map((r, ri) => (
-          <div key={ri} style={{ display: "flex", gap: 10, padding: "8px 6px 8px 10px", borderRadius: 14, background: C.hover1 }}>
+          <div key={ri} style={{ display: "flex", gap: 10, padding: "8px 6px 8px 10px", borderRadius: 14, background: C.hover3 }}>
             <span style={{ width: 22, height: 22, borderRadius: 99, background: C.bg, color: C.t2, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{ri + 1}</span>
             <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 0, alignContent: "start", paddingLeft: 10 }}>
               {cols.map((c, ci) => {
@@ -1740,7 +1749,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove, 
         )}
       </div>}
 
-      <div style={bare ? { display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 16px", borderRadius: 99, background: C.hover1 } : {
+      <div style={bare ? { display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 16px", borderRadius: 99, background: C.hover3 } : {
         display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center",
         minHeight: 32,
       }}>

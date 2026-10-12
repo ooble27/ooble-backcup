@@ -27,6 +27,7 @@
  *                  la réception (Resend Inbound + webhook).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fetchCached, peek, put } from "@/lib/adminCache";
 import {
   Send, Mail, Inbox, Eye, Bold, Italic,
   List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus,
@@ -53,6 +54,7 @@ import {
 } from "@/lib/mailThreads";
 import { C, FONT, inputStyle } from "./adminTheme";
 import { Button, Notice, Workspace } from "./ui";
+import { MailboxHero } from "./heroes";
 import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, type Column } from "./layout";
 
 // ──────────────────── Recipient model ────────────────────
@@ -1330,8 +1332,8 @@ function Conversation({ thread, messages, loading, onBack, onReply, onArchive }:
 }
 
 function InboxView({ onReply, onCount }: { onReply: (thread: MailThread) => void; onCount: () => void }) {
-  const [threads, setThreads] = useState<MailThread[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [threads, setThreads] = useState<MailThread[]>(() => peek<MailThread[]>("mail.threads")?.value ?? []);
+  const [loading, setLoading] = useState(() => !peek("mail.threads"));
   const [selected, setSelected] = useState<MailThread | null>(null);
   const [messages, setMessages] = useState<MailMessage[]>([]);
   const [msgsLoading, setMsgsLoading] = useState(false);
@@ -1345,8 +1347,9 @@ function InboxView({ onReply, onCount }: { onReply: (thread: MailThread) => void
     return () => window.removeEventListener("resize", on);
   }, []);
   useEffect(() => {
-    fetchThreads().then((t) => { setThreads(t); setLoading(false); });
+    fetchCached("mail.threads", fetchThreads).then((t) => { setThreads(t); setLoading(false); });
   }, []);
+  useEffect(() => { if (!loading) put("mail.threads", threads); }, [threads, loading]);
 
   const openThread = async (t: MailThread) => {
     setSelected(t);
@@ -1433,7 +1436,7 @@ function InboxView({ onReply, onCount }: { onReply: (thread: MailThread) => void
   return (
     <div className="mb-pane mb-split">
       {listPane}
-      <div style={{ borderLeft: `1px solid ${C.bds}`, minHeight: 0, minWidth: 0 }}>
+      <div className="mb-read">
         {conversation ?? (
           <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <EmptyState icon={MailOpen} title="Choisissez une conversation" text="Elle s'affiche ici, avec l'historique complet des échanges." />
@@ -1456,10 +1459,14 @@ const MAIL_CSS = `
 .mb-compose > div:first-child { min-height: 100%; }
 @media (min-width: 1100px) {
   .mb-compose[data-preview="1"] { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); overflow: hidden; }
+  .mb-compose[data-preview="1"] { gap: 0; }
   .mb-compose[data-preview="1"] > div { overflow-y: auto; min-height: 0; }
+  .mb-compose[data-preview="1"] > div:first-child { background: transparent; box-shadow: none; border-radius: 0; }
 }
-.mb-pane { margin-top: 16px; border-top: 1px solid ${C.bds}; border-bottom: 1px solid ${C.bds}; }
-.mb-split { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: calc(100vh - 290px); min-height: 480px; }
+.mb-pane { margin-top: 16px; }
+/* Liste posée sur la page, conversation dans un volet arrondi : aucun trait qui se croise. */
+.mb-split { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 12px; height: calc(100vh - 290px); min-height: 480px; }
+.mb-read { min-height: 0; min-width: 0; border-radius: 16px; background: var(--a-hover2); overflow: hidden; }
 @media (max-width: 520px) { .mb-hide-sm { display: none } }
 `;
 
@@ -1467,16 +1474,18 @@ const MailboxPanel = () => {
   const [tab, setTab] = useState<SubTab>("inbox");
   const [sent, setSent] = useState<SentMail[]>([]);
   const [composer, setComposer] = useState<{ state: ComposerState | null; threadId: string | null; mailbox: MailboxId; title: string } | null>(null);
-  const [clients, setClients] = useState<ClientDirectoryEntry[]>([]);
-  const [clientsLoading, setClientsLoading] = useState(true);
+  const [clients, setClients] = useState<ClientDirectoryEntry[]>(() => peek<ClientDirectoryEntry[]>("clients.directory")?.value ?? []);
+  const [clientsLoading, setClientsLoading] = useState(() => !peek("clients.directory"));
   const [unreadCount, setUnreadCount] = useState(0);
+  const [heroThreads, setHeroThreads] = useState<MailThread[] | null>(() => peek<MailThread[]>("mail.threads")?.value ?? null);
+  useEffect(() => { fetchCached("mail.threads", fetchThreads).then(setHeroThreads).catch(() => setHeroThreads([])); }, [unreadCount]);
   const [done, setDone] = useState<string | null>(null);
   const dirty = useRef(false);
 
   useEffect(() => { setSent(loadSent()); }, []);
   useEffect(() => {
     let active = true;
-    fetchClientDirectory().then((rows) => {
+    fetchCached("clients.directory", () => fetchClientDirectory()).then((rows) => {
       if (!active) return;
       setClients(rows);
       setClientsLoading(false);
@@ -1515,6 +1524,7 @@ const MailboxPanel = () => {
     <div>
       <style>{MAIL_CSS}</style>
       {done && <div style={{ marginBottom: 16 }}><Notice tone="ok">{done}</Notice></div>}
+      <MailboxHero threads={heroThreads ?? []} unread={unreadCount} loading={heroThreads === null} />
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: `1px solid ${C.bds}` }}>
         <Tabs style={{ borderBottom: "none", flex: 1, minWidth: 0 }} value={tab} onChange={setTab} items={[

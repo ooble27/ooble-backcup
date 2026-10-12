@@ -29,9 +29,11 @@ import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG } from "@/components/admin/adminThem
 import { UI_CSS } from "@/components/admin/ui";
 import { LAYOUT_CSS, PageHeader, Section } from "@/components/admin/layout";
 import { VIZ_CSS } from "@/components/admin/viz";
+import { HERO_CSS } from "@/components/admin/heroes";
 import ThemeToggle from "@/components/app/ThemeToggle";
 import { AutoSettle } from "@/components/admin/icons";
 import { prefetchAdmin } from "@/lib/adminData";
+import { fetchCached, peek, put } from "@/lib/adminCache";
 
 export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform";
 
@@ -111,8 +113,9 @@ const readTab = () => new URLSearchParams(window.location.search).get("tab") as 
 
 const AdminPortal = () => {
   const { roles, user } = useAuth();
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Les commandes déjà chargées dans cette session s'affichent tout de suite (mémoire seulement : données clients).
+  const [orders, setOrders] = useState<AdminOrder[]>(() => peek<AdminOrder[]>("orders")?.value ?? []);
+  const [loading, setLoading] = useState(() => !peek("orders"));
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
   const [drawer, setDrawer] = useState(false);
@@ -171,7 +174,7 @@ const AdminPortal = () => {
     const prevHtmlBg = html.style.backgroundColor;
     const prevBodyBg = body.style.backgroundColor;
     const style = document.createElement("style");
-    style.textContent = ADMIN_THEME_CSS + UI_CSS + LAYOUT_CSS + VIZ_CSS + SHELL_CSS;
+    style.textContent = ADMIN_THEME_CSS + UI_CSS + LAYOUT_CSS + VIZ_CSS + HERO_CSS + SHELL_CSS;
     document.head.appendChild(style);
     const meta = document.querySelector('meta[name="theme-color"]');
     const prevTheme = meta?.getAttribute("content") ?? "";
@@ -205,13 +208,16 @@ const AdminPortal = () => {
   // Préchargement discret des pages lentes (soldes des portefeuilles, plateforme) : elles s'ouvrent remplies.
   useEffect(() => {
     if (!allowedTabs.size) return;
-    const go = () => prefetchAdmin({ settlement: allowedTabs.has("settlement"), platform: allowedTabs.has("platform") });
+    const go = () => prefetchAdmin({
+      settlement: allowedTabs.has("settlement"), platform: allowedTabs.has("platform"), kyc: allowedTabs.has("kyc"),
+      clients: allowedTabs.has("clients"), compliance: allowedTabs.has("compliance"), mailbox: allowedTabs.has("mailbox"), team: allowedTabs.has("team"),
+    });
     const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
     const t = w.requestIdleCallback ? w.requestIdleCallback(go) : window.setTimeout(go, 1200);
     return () => { if (!w.requestIdleCallback) clearTimeout(t); };
   }, [allowedTabs]);
 
-  const refresh = () => fetchAdminOrders().then((rows) => {
+  const refresh = () => fetchCached("orders", fetchAdminOrders).then((rows) => {
     setOrders(rows);
     setSelected((s) => (s ? rows.find((r) => r.id === s.id) ?? s : s));
     setLoading(false);
@@ -225,6 +231,8 @@ const AdminPortal = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => { if (!loading) put("orders", orders); }, [orders, loading]);
 
   const patch = (id: string, changes: Partial<AdminOrder>) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...changes } : o)));

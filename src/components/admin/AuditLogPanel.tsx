@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { fetchCached, peek } from "@/lib/adminCache";
 import { Download, RefreshCw, ShieldCheck, X } from "lucide-react";
 import {
   fetchAuditLog, fetchAuditFacets,
@@ -88,9 +89,11 @@ function downloadCsv(content: string, filename: string) {
 // ────────────────────────────────────────────────────────────
 
 const AuditLogPanel = () => {
-  const [rows, setRows] = useState<AuditLogEntry[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  // Première page sans filtre : gardée pour la session, affichée tout de suite au retour.
+  const first = peek<{ rows: AuditLogEntry[]; total: number }>("audit.p0")?.value;
+  const [rows, setRows] = useState<AuditLogEntry[]>(first?.rows ?? []);
+  const [total, setTotal] = useState(first?.total ?? 0);
+  const [loading, setLoading] = useState(!first);
   const [open, setOpen] = useState<AuditLogEntry | null>(null);
   const [page, setPage] = useState(0);
 
@@ -104,8 +107,9 @@ const AuditLogPanel = () => {
   const [facets, setFacets] = useState<{ actions: string[]; entityKinds: string[] }>({ actions: [], entityKinds: [] });
 
   const load = useCallback(async () => {
-    setLoading(true);
-    const { rows: data, total: t } = await fetchAuditLog({
+    const plain = !from && !to && !actorEmail.trim() && !action && !entityKind && page === 0;
+    if (!plain) setLoading(true);
+    const query = () => fetchAuditLog({
       from: localToIso(from), to: localToIso(to),
       actorEmail: actorEmail.trim() || undefined,
       action: action || undefined,
@@ -113,13 +117,14 @@ const AuditLogPanel = () => {
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     });
+    const { rows: data, total: t } = plain ? await fetchCached("audit.p0", query) : await query();
     setRows(data);
     setTotal(t);
     setLoading(false);
   }, [from, to, actorEmail, action, entityKind, page]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { fetchAuditFacets().then(setFacets); }, []);
+  useEffect(() => { fetchCached("audit.facets", fetchAuditFacets).then(setFacets); }, []);
 
   // Revient à la première page quand un filtre change.
   useEffect(() => { setPage(0); }, [from, to, actorEmail, action, entityKind]);

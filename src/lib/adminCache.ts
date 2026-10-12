@@ -48,3 +48,12 @@ export function prefetch<T>(key: string, fn: () => Promise<T>, opts: { persist?:
   if (hit && Date.now() - hit.at < (opts.maxAgeMs ?? 60_000)) return;
   void fetchCached(key, fn, opts).catch(() => undefined);
 }
+
+/** Remplace la valeur gardée (après une modification faite sur la page). */
+export function put<T>(key: string, value: T, persist = false) {
+  const entry = { at: Date.now(), value };
+  mem.set(key, entry);
+  if (persist) {
+    try { localStorage.setItem(PREFIX + key, JSON.stringify(entry)); } catch { /* stockage plein ou bloqué */ }
+  }
+}

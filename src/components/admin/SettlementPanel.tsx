@@ -10,7 +10,8 @@ import {
 } from "@/lib/settlement";
 import { C } from "./adminTheme";
 import { Button, Field, Notice, SidePanel, Switch, TextInput, fieldInput } from "./ui";
-import { DataTable, EmptyState, KeyValues, Pill, Section, StatStrip, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
+import { DataTable, EmptyState, KeyValues, Pill, Section, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
+import { SettlementHero } from "./heroes";
 import { DEPOSIT_PILL, PAYOUT_PILL } from "./orderBits";
 
 /*
@@ -189,10 +190,7 @@ const SettlementPanel = () => {
   };
 
   const all = wallets ?? [];
-  const configured = all.filter((w) => w.configured);
-  const ready = configured.filter((w) => !w.error);
   const lowGas = (w: WalletState) => w.configured && !w.error && (w.gas ?? 0) < (w.minGas ?? 0);
-  const total = configured.reduce((s, w) => s + (w.usdt ?? 0), 0);
   const receiptsToCheck = receipts.filter((r) => r.status === "mismatch" || r.status === "unmatched").length;
   const payoutsToCheck = payouts.filter((p) => p.status === "review" || p.status === "failed").length;
   const depositsToCheck = deposits.filter((d) => d.status === "review" || d.status === "unmatched").length;
@@ -267,14 +265,13 @@ const SettlementPanel = () => {
     <div>
       {err && <div style={{ marginBottom: 16 }}><Notice tone="err">{err}</Notice></div>}
 
-      <StatStrip items={[
-        { label: "Portefeuille d'envoi", value: wallets === null && !err ? "…" : `${nf(total)} USDT`, hint: `${ready.length} réseau(x) sur ${all.length || 5} prêts` },
-        { label: "Envoi des USDT", value: settings?.auto_payout ? "Automatique" : "Manuel", hint: settings?.auto_payout ? `jusqu'à ${nf(settings.auto_payout_max_cad, 0)} $ par commande` : "l'équipe clique « Envoyer »" },
-        { label: "Plafond sur 24 h", value: settings ? `${nf(settings.daily_payout_max_usdt, 0)} USDT` : "…" },
-        { label: "À vérifier", value: toReview, tone: toReview ? "warn" : undefined, hint: toReview ? "avis, envois ou dépôts" : "rien en suspens" },
-      ]} />
+      <SettlementHero loading={wallets === null && !err} auto={!!settings?.auto_payout} maxCad={settings ? Number(settings.auto_payout_max_cad) : null} toReview={toReview}
+        tanks={all.filter((w) => w.configured).map((w) => ({
+          network: w.network, label: w.label, usdt: w.usdt ?? 0, gas: w.gas ?? 0, minGas: w.minGas ?? 0, gasSymbol: w.gasSymbol,
+          ok: !w.error, logo: <NetLogo network={w.network} size={20} />,
+        }))} />
 
-      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+      <Tabs value={tab} onChange={setTab} items={[
         { id: "wallet", label: "Portefeuille et réglages" },
         { id: "receipts", label: "Avis Interac", count: receipts.length, tone: receiptsToCheck ? "warn" : undefined },
         { id: "payouts", label: "Envois USDT", count: payouts.length, tone: payoutsToCheck ? "danger" : undefined },
@@ -444,13 +441,14 @@ const SettlementPanel = () => {
       )}
 
       <style>{`
-        .st-grid { display: grid; gap: 40px; grid-template-columns: minmax(0, 1fr); }
-        .st-aside { padding-top: 8px; }
+        .st-grid { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); }
+        /* Réglages dans un volet arrondi à côté de la liste : pas de trait vertical. */
+        .st-aside { padding: 20px; border-radius: 16px; background: var(--a-hover2); align-self: start; }
         .st-pick { transition: box-shadow .15s }
         .st-pick:hover, .st-pick:focus-within { box-shadow: inset 0 0 0 1px ${C.bd} !important }
         @media (min-width: 1180px) {
           .st-grid { grid-template-columns: minmax(0, 1fr) 360px; }
-          .st-aside { padding: 20px 0 0 32px; border-left: 1px solid ${C.bds}; margin-top: 16px; }
+          .st-aside { padding: 22px 22px 24px; margin-top: 16px; }
         }
       `}</style>
     </div>

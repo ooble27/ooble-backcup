@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Lock, RotateCcw } from "lucide-react";
 import { peek } from "@/lib/adminCache";
-import { loadPlatformPreview, resetTestData } from "@/lib/adminData";
+import { loadBackupRuns, loadPlatformPreview, resetTestData } from "@/lib/adminData";
 import BackupsCard from "@/components/admin/BackupsCard";
 import { C, FONT } from "@/components/admin/adminTheme";
 import { Button, Notice, Switch, TextInput } from "@/components/admin/ui";
-import { Section, StatStrip } from "@/components/admin/layout";
+import { Section } from "@/components/admin/layout";
+import { PlatformHero } from "@/components/admin/heroes";
 
 /*
  * Plateforme : remettre à zéro les commandes de test, puis démarrer les
@@ -71,6 +72,9 @@ const Confirm = ({ word, value, onChange, onSubmit, disabled, busy, label, dange
 
 export default function PlatformPanel() {
   const [p, setP] = useState<Preview | null>(() => peek<Preview>("pf.preview")?.value ?? null);
+  type HeroRun = { started_at: string; finished_at: string | null; status: string };
+  const [runs, setRuns] = useState<HeroRun[] | null>(() => peek<HeroRun[]>("pf.backups")?.value ?? null);
+  useEffect(() => { void loadBackupRuns<HeroRun>().then(setRuns).catch(() => setRuns([])); }, []);
   const [err, setErr] = useState<string | null>(null);
   const [mail, setMail] = useState(true);
   const [logs, setLogs] = useState(true);
@@ -97,15 +101,7 @@ export default function PlatformPanel() {
 
   return (
     <div style={{ fontFamily: FONT }}>
-      <StatStrip items={!p ? [{ label: "État", value: "…" }] : launched ? [
-        { label: "État", value: "Activités démarrées", tone: "ok" },
-        { label: "Depuis le", value: fmtDate(p.launchedAt!) },
-        { label: "Conservation", value: "5 ans", hint: "registre des opérations (CANAFE)" },
-      ] : [
-        { label: "État", value: "En test", tone: "warn" },
-        { label: "Commandes de test", value: orders },
-        { label: "Remise à zéro", value: p.lastResetAt ? new Date(p.lastResetAt).toLocaleDateString("fr-CA", { day: "numeric", month: "short" }) : "Jamais" },
-      ]} />
+      <PlatformHero loading={!p} launchedAt={p?.launchedAt ?? null} testOrders={orders} runs={runs} />
 
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
 

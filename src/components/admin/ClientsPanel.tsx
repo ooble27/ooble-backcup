@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { fetchCached, peek } from "@/lib/adminCache";
 import { Download, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { nfCad } from "@/lib/adminOrders";
@@ -80,7 +81,7 @@ function toCsv(rows: Client[]): string {
 }
 
 export default function ClientsPanel({ onOpen }: { onOpen: (userId: string, name: string) => void }) {
-  const [rows, setRows] = useState<Client[] | null>(null);
+  const [rows, setRows] = useState<Client[] | null>(() => peek<Client[]>("clients.admin")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -88,10 +89,12 @@ export default function ClientsPanel({ onOpen }: { onOpen: (userId: string, name
   const [sort, setSort] = useState<Sort>("recent");
 
   useEffect(() => {
-    supabase.rpc("admin_clients" as never).then(({ data, error }) => {
-      if (error) setErr(error.message);
-      else setRows((data ?? []) as unknown as Client[]);
-    });
+    // Mémoire de la session seulement : la liste revient instantanément, puis se met à jour.
+    fetchCached("clients.admin", async () => {
+      const { data, error } = await supabase.rpc("admin_clients" as never);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as Client[];
+    }).then(setRows).catch((e: Error) => setErr(e.message));
   }, []);
 
   const all = rows ?? [];

@@ -30,6 +30,10 @@ export const UI_CSS = `
 .ui-row { transition: background .12s }
 .ui-row:hover { background: var(--a-hover1) }
 .ui-step:hover { color: var(--a-t1) }
+.ui-sum { display: grid; grid-template-columns: minmax(110px, 180px) minmax(0, 1fr) auto; grid-template-areas: "l v a"; gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--a-bds); }
+.ui-sum-l { grid-area: l } .ui-sum-v { grid-area: v } .ui-sum-a { grid-area: a; justify-self: end }
+/* Téléphone : le libellé au-dessus, la valeur sur toute la largeur. */
+@media (max-width: 640px) { .ui-sum { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l a" "v v"; gap: 4px 12px; align-items: center; padding: 12px 0; } }
 @media (prefers-reduced-motion: reduce) { .ui-in { animation: none } }
 `;
 
@@ -145,10 +149,10 @@ export function Group({ title, description, right, children, first }: {
 /** Rangée « libellé · valeur » pour les récapitulatifs. */
 export function SummaryRow({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 180px) minmax(0, 1fr) auto", gap: 16, alignItems: "baseline", padding: "14px 0", borderBottom: `1px solid ${C.bds}` }}>
-      <span style={{ fontSize: 12.5, color: C.t3 }}>{label}</span>
-      <span style={{ fontSize: 14, color: C.t1, minWidth: 0, overflowWrap: "anywhere" }}>{children}</span>
-      {action ?? <span />}
+    <div className="ui-sum">
+      <span className="ui-sum-l" style={{ fontSize: 12.5, color: C.t3 }}>{label}</span>
+      <span className="ui-sum-v" style={{ fontSize: 14, color: C.t1, minWidth: 0, overflowWrap: "anywhere" }}>{children}</span>
+      <span className="ui-sum-a">{action}</span>
     </div>
   );
 }
@@ -173,11 +177,13 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "ok" | "wa
 export interface WorkspaceStep { id: string; label: string; badge?: number | string; done?: boolean }
 
 /** Volet arrondi posé sur le fond de l'espace de travail (même écrin que le back-office). */
-export function WsPane({ children, style, className }: { children: React.ReactNode; style?: React.CSSProperties; className?: string }) {
+export function WsPane({ children, style, className, flat }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; flat?: boolean }) {
+  // `flat` : posé directement sur le fond, sans écrin (comme la barre latérale à côté de l'écrin du back-office).
   return (
     <div className={className} style={{
-      minWidth: 0, minHeight: 0, borderRadius: 16, background: C.bg, overflowY: "auto",
-      boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, ...style,
+      minWidth: 0, minHeight: 0, overflowY: "auto",
+      ...(flat ? { background: "transparent" } : { borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }),
+      ...style,
     }}>
       {children}
     </div>
@@ -211,10 +217,10 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
     return (
       <button key={s.id} type="button" className="ui-step" onClick={() => onStep?.(s.id)} aria-current={on ? "step" : undefined}
         style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, height: 36, padding: "0 14px 0 8px", borderRadius: 99, border: "none",
-          flex: phone ? "1 0 auto" : undefined,
+          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: phone ? 6 : 8, height: 36, padding: phone ? "0 8px 0 6px" : "0 14px 0 8px", borderRadius: 99, border: "none",
+          flex: phone ? "1 1 0" : undefined, minWidth: 0, whiteSpace: "nowrap",
           background: on ? C.bg : "transparent", boxShadow: on ? `0 0 0 1px ${C.bds}, 0 1px 2px rgba(0,0,0,.06)` : "none",
-          color: on ? C.t1 : C.t3, fontFamily: FONT, fontSize: 13.5, cursor: "pointer", transition: `background .2s ${UI_EASE}, color .2s`,
+          color: on ? C.t1 : C.t3, fontFamily: FONT, fontSize: phone ? 13 : 13.5, cursor: "pointer", transition: `background .2s ${UI_EASE}, color .2s`,
         }}>
         <span style={{
           width: 22, height: 22, borderRadius: 99, fontSize: 11.5, display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -248,7 +254,7 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", justifyContent: "flex-end", minWidth: 0 }}>{actions}</div>
         </div>
         {steps && (
-          <div className="md:hidden"><nav aria-label="Étapes" style={{ display: "flex", gap: 4, padding: "0 8px 8px", overflowX: "auto", scrollbarWidth: "none" }}>
+          <div className="md:hidden"><nav aria-label="Étapes" style={{ display: "flex", gap: 2, padding: "0 8px 8px" }}>
             {steps.map((s, i) => stepButton(s, i, true))}
           </nav></div>
         )}

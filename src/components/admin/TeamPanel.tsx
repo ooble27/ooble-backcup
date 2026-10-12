@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { TeamHero } from "./heroes";
+import { fetchCached, peek, put } from "@/lib/adminCache";
 import { BadgeCheck, ChevronRight, Headphones, Megaphone, ScanFace, ShieldCheck, UserPlus, UserRound, Users } from "lucide-react";
 import { TEAM_ROLES, type TeamRole } from "@/lib/adminOrders";
 import { fetchTeam, setMemberRole, removeMember, addRoleByEmail, type LiveTeamMember } from "@/lib/adminTeam";
@@ -50,8 +52,8 @@ function RolePicker({ value, onChange }: { value: TeamRole; onChange: (r: TeamRo
 type Filter = "all" | TeamRole;
 
 const TeamPanel = () => {
-  const [members, setMembers] = useState<LiveTeamMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<LiveTeamMember[]>(() => peek<LiveTeamMember[]>("team")?.value ?? []);
+  const [loading, setLoading] = useState(() => !peek("team"));
   const [filter, setFilter] = useState<Filter>("all");
 
   const [adding, setAdding] = useState(false);
@@ -65,8 +67,9 @@ const TeamPanel = () => {
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
-    fetchTeam().then((m) => { setMembers(m); setLoading(false); });
+    fetchCached("team", fetchTeam).then((m) => { setMembers(m); setLoading(false); });
   }, []);
+  useEffect(() => { if (!loading) put("team", members); }, [members, loading]);
 
   const openEdit = (m: LiveTeamMember) => { setEditing(m); setEditRole(m.role); setConfirmRemove(false); };
 
@@ -110,6 +113,7 @@ const TeamPanel = () => {
 
   return (
     <div>
+      <TeamHero loading={loading} members={members.map((m) => ({ name: m.name, role: m.role }))} />
       <Toolbar style={{ marginTop: 0 }} right={
         <Button variant="primary" size="sm" icon={<UserPlus style={{ width: 14, height: 14 }} />} onClick={() => { setAdding(true); setInviteMsg(null); }}>
           Ajouter un membre

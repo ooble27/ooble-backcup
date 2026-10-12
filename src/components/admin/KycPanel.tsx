@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { fetchCached, peek, put } from "@/lib/adminCache";
 import { Check, ChevronLeft, ChevronRight, ScanFace, X } from "lucide-react";
 import { timeAgo, type KycRequest, type KycStatus } from "@/lib/adminOrders";
 import { fetchKyc, setKycStatus, getDocumentUrl } from "@/lib/adminKyc";
 import { C, FONT } from "./adminTheme";
 import { Button, Field, Notice, TextArea, Workspace, WsPane } from "./ui";
-import { Avatar, DataTable, EmptyState, FilterChips, KeyValues, Pill, StatStrip, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import { Avatar, DataTable, EmptyState, FilterChips, KeyValues, Pill, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import { KycHero } from "./heroes";
 import DocFrame from "./DocFrame";
 import BusinessKycPanel from "./BusinessKycPanel";
 
@@ -66,7 +68,7 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
         </>
       )}
     >
-      <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:overflow-hidden" style={{ minHeight: 0 }}>
+      <div className="grid flex-1 grid-cols-1 gap-2 lg:gap-0 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:overflow-hidden" style={{ minHeight: 0 }}>
         <WsPane style={{ padding: "24px 24px 60px" }}>
           {keys.length === 0 ? (
             <EmptyState icon={ScanFace} title="Aucun document" text="Ce dossier vient de l'ancien parcours (Sumsub) : aucun fichier n'est stocké chez Ooble." />
@@ -77,7 +79,7 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
           )}
         </WsPane>
 
-        <WsPane style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
+        <WsPane flat style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
             <Avatar name={r.clientName} size={40} />
             <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={r.clientName} secondary={r.email} /></div>
@@ -135,12 +137,13 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
 
 /* ─── Particuliers ─── */
 const PersonKycPanel = () => {
-  const [rows, setRows] = useState<KycRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<KycRequest[]>(() => peek<KycRequest[]>("kyc")?.value ?? []);
+  const [loading, setLoading] = useState(() => !peek("kyc"));
   const [tab, setTab] = useState<Filter>("attente");
   const [open, setOpen] = useState<{ ids: string[]; index: number } | null>(null);
 
-  useEffect(() => { fetchKyc().then((r) => { setRows(r); setLoading(false); }); }, []);
+  useEffect(() => { fetchCached("kyc", fetchKyc).then((r) => { setRows(r); setLoading(false); }); }, []);
+  useEffect(() => { if (!loading) put("kyc", rows); }, [rows, loading]);
 
   const counts = useMemo(() => ({
     attente: rows.filter((r) => r.status === "attente").length,
@@ -179,12 +182,9 @@ const PersonKycPanel = () => {
 
   return (
     <div>
-      <StatStrip items={[
-        { label: "À vérifier", value: loading ? "…" : counts.attente, tone: counts.attente ? "warn" : undefined, hint: counts.attente ? "les clients attendent pour commander" : "rien en attente" },
-        { label: "Vérifiées", value: loading ? "…" : counts.verifie },
-        { label: "Refusées", value: loading ? "…" : counts.refuse },
-      ]} />
-      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+      <KycHero noun="identité" loading={loading} waiting={counts.attente} approved={counts.verifie} rejected={counts.refuse}
+        oldestMins={counts.attente ? Math.max(...rows.filter((r) => r.status === "attente").map((r) => r.submittedMinsAgo)) : null} />
+      <Tabs value={tab} onChange={setTab} items={[
         { id: "attente", label: "À vérifier", count: counts.attente, tone: "warn" },
         { id: "verifie", label: "Vérifiées", count: counts.verifie },
         { id: "refuse", label: "Refusées", count: counts.refuse },

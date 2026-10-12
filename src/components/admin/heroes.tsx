@@ -1,0 +1,412 @@
+/**
+ * En-têtes vivants des pages du back-office : une phrase en grande typographie (chiffres en
+ * corail / jaune Ooble) et, à côté, une petite visualisation propre à la page. Une forme par page :
+ * - Comptabilité : revenus des 12 derniers mois (colonnes) et part de chaque réseau ;
+ * - Vérifications : jauge du taux d'approbation ;
+ * - Conformité : le programme, un tiret par point ;
+ * - Règlement auto : un réservoir par réseau (USDT et frais) ;
+ * - Messagerie : le rythme des 14 derniers jours (une bulle par jour) ;
+ * - Bannière : aperçu du site tel que les clients le voient ;
+ * - Équipe : les visages de l'équipe ;
+ * - Plateforme : les dernières sauvegardes, une pastille par nuit.
+ * Couleurs de données : tokens vz* (validés daltonisme / contraste), toujours avec étiquettes.
+ */
+import { useMemo, useState } from "react";
+import { C, FONT } from "./adminTheme";
+
+const nf = new Intl.NumberFormat("fr-CA");
+const nf0 = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 0 });
+const plural = (n: number, one: string, many = `${one}s`) => (n > 1 ? many : one);
+const money = (n: number) => (n >= 10_000 ? `${nf0.format(n / 1000)} k $` : `${nf0.format(n)} $`);
+const ago = (iso: string) => {
+  const m = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return m < 60 ? `${m} min` : m < 1440 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} j`;
+};
+
+export const HERO_CSS = `
+.hz { display: grid; gap: 22px; margin-bottom: 30px; font-family: inherit; }
+@media (min-width: 1024px) { .hz { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); align-items: center; gap: 40px; } }
+.hz-title { margin: 0; font-size: clamp(28px, 3.4vw, 44px); line-height: 1.04; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+.hz-title .mute { color: var(--a-t3); }
+.hz-sub { margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--a-t2); max-width: 560px; }
+.hz-cap { margin-top: 8px; min-height: 18px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
+`;
+
+function Hero({ title, sub, children }: { title: React.ReactNode; sub?: React.ReactNode; children?: React.ReactNode }) {
+  return (
+    <section className="hz" style={{ fontFamily: FONT }}>
+      <div style={{ minWidth: 0 }}>
+        <h2 className="hz-title">{title}</h2>
+        {sub && <p className="hz-sub">{sub}</p>}
+      </div>
+      {children && <div style={{ minWidth: 0 }}>{children}</div>}
+    </section>
+  );
+}
+
+const Swatch = ({ color, round }: { color: string; round?: boolean }) => (
+  <span aria-hidden style={{ width: 10, height: 10, borderRadius: round ? 99 : 3, background: color, display: "inline-block", flexShrink: 0 }} />
+);
+
+/* ─── Comptabilité ─────────────────────────────────────────── */
+
+export interface DoneOrder { cad: number; minsAgo: number; net: string; netName: string; logo?: string }
+
+export function AccountingHero({ orders, margin, note }: { orders: DoneOrder[]; margin: number; note?: React.ReactNode }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const months = useMemo(() => {
+    const now = new Date();
+    const out = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+      return { key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString("fr-CA", { month: "short" }).replace(".", ""), long: d.toLocaleDateString("fr-CA", { month: "long", year: "numeric" }), vol: 0, n: 0 };
+    });
+    for (const o of orders) {
+      const d = new Date(Date.now() - o.minsAgo * 60000);
+      const row = out.find((m) => m.key === `${d.getFullYear()}-${d.getMonth()}`);
+      if (row) { row.vol += o.cad; row.n += 1; }
+    }
+    return out;
+  }, [orders]);
+  const nets = useMemo(() => {
+    const m = new Map<string, { name: string; vol: number; logo?: string }>();
+    for (const o of orders) {
+      const r = m.get(o.net) ?? { name: o.netName, vol: 0, logo: o.logo };
+      r.vol += o.cad; m.set(o.net, r);
+    }
+    return [...m.values()].sort((a, b) => b.vol - a.vol);
+  }, [orders]);
+  const volume = orders.reduce((s, o) => s + o.cad, 0);
+  const thisMonth = months[11].vol * margin;
+  const max = Math.max(1, ...months.map((m) => m.vol));
+  const NET_COLORS = [C.vzGreen, C.vzIndigo, C.vzCoral, C.vzGray];
+  const h = hover !== null ? months[hover] : null;
+
+  return (
+    <Hero
+      title={<>Environ <span style={{ color: C.sun }}>{money(volume * margin)}</span> de revenus <span className="mute">sur {money(volume)} échangés.</span></>}
+      sub={<>Ce mois-ci : <b style={{ color: C.coral, fontWeight: 600 }}>{money(thisMonth)}</b> estimés, sur {months[11].n} {plural(months[11].n, "commande terminée", "commandes terminées")}.{note && <span style={{ display: "block", marginTop: 6, fontSize: 13, color: C.t3 }}>{note}</span>}</>}
+    >
+      <div onMouseLeave={() => setHover(null)}>
+        <div role="img" aria-label={`Revenus estimés par mois sur 12 mois, total ${money(volume * margin)}`}
+          style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 4, alignItems: "end", height: 96 }}>
+          {months.map((m, i) => (
+            <span key={m.key} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)}
+              style={{ height: "100%", display: "flex", alignItems: "flex-end", cursor: "default" }}>
+              <span style={{
+                width: "100%", height: `${Math.max(m.vol ? 6 : 2, (m.vol / max) * 100)}%`, borderRadius: "5px 5px 2px 2px",
+                background: i === 11 ? C.vzCoral : m.vol ? C.vzGreen : C.hover3, opacity: hover !== null && hover !== i ? 0.4 : 1, transition: "opacity .15s",
+              }} />
+            </span>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 4, marginTop: 6, fontSize: 10.5, color: C.t3, textAlign: "center" }}>
+          {months.map((m, i) => <span key={m.key} style={{ overflow: "hidden" }}>{i % 2 === 1 || i === 11 ? m.label : ""}</span>)}
+        </div>
+        <div className="hz-cap">{h ? `${h.long} : ${money(h.vol * margin)} estimés · ${money(h.vol)} échangés` : "Revenus estimés par mois, 12 derniers mois"}</div>
+        {nets.length > 0 && (
+          <>
+            <div aria-hidden style={{ display: "flex", gap: 2, height: 10, marginTop: 14, borderRadius: 99, overflow: "hidden" }}>
+              {nets.map((n, i) => <span key={n.name} style={{ flex: `${n.vol} 0 0`, minWidth: 4, background: NET_COLORS[Math.min(i, 3)] }} />)}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 8, fontSize: 12.5, color: C.t2 }}>
+              {nets.map((n, i) => (
+                <span key={n.name} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Swatch color={NET_COLORS[Math.min(i, 3)]} />
+                  {n.logo && <img src={n.logo} alt="" width={14} height={14} style={{ borderRadius: 99 }} />}
+                  {n.name} <b style={{ color: C.t1, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{volume ? Math.round((n.vol / volume) * 100) : 0} %</b>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </Hero>
+  );
+}
+
+/* ─── Vérifications ────────────────────────────────────────── */
+
+export function KycHero({ waiting, approved, rejected, oldestMins, noun, loading }: {
+  waiting: number; approved: number; rejected: number; oldestMins: number | null; noun: "identité" | "entreprise"; loading?: boolean;
+}) {
+  const decided = approved + rejected;
+  const rate = decided ? approved / decided : 0;
+  // Demi-cercle : 180° = 100 % des décisions.
+  const R = 70, CX = 90, CY = 84, SW = 14;
+  const pt = (t: number) => [CX - R * Math.cos(Math.PI * t), CY - R * Math.sin(Math.PI * t)];
+  const arc = (t0: number, t1: number) => {
+    const [x0, y0] = pt(t0), [x1, y1] = pt(t1);
+    return `M${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}`;
+  };
+  const many = noun === "identité" ? "identités" : "entreprises";
+  const oldDays = oldestMins !== null ? Math.floor(oldestMins / 1440) : 0;
+  const oldText = oldestMins === null ? "" : oldestMins < 60 ? `${Math.max(1, Math.round(oldestMins))} min` : oldestMins < 1440 ? `${Math.round(oldestMins / 60)} h` : `${oldDays} j`;
+
+  return (
+    <Hero
+      title={loading ? <span className="mute">…</span> : waiting ? (
+        <><span style={{ color: C.coral }}>{waiting}</span> {plural(waiting, noun, many)} <span className="mute">{plural(waiting, "attend", "attendent")} votre regard.</span></>
+      ) : (
+        <>Toutes les {many} sont <span style={{ color: C.sage }}>traitées</span>.</>
+      )}
+      sub={waiting ? <>Le plus ancien dossier attend depuis <b style={{ color: C.sun, fontWeight: 600 }}>{oldText}</b>. Les clients ne peuvent pas commander tant qu'ils ne sont pas vérifiés.</> : "Rien en attente : les nouveaux dossiers apparaîtront ici."}
+    >
+      {decided > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <svg viewBox="0 0 180 96" width={180} height={96} role="img" aria-label={`${Math.round(rate * 100)} % des dossiers approuvés, ${approved} approuvés, ${rejected} refusés`} style={{ flexShrink: 0 }}>
+            <path d={arc(0, 1)} fill="none" stroke={C.hover3} strokeWidth={SW} strokeLinecap="round" />
+            {rejected > 0 && <path d={arc(Math.min(0.995, rate + (approved ? 0.02 : 0)), 1)} fill="none" stroke={C.vzCoral} strokeWidth={SW} strokeLinecap="round" />}
+            {approved > 0 && <path d={arc(0, Math.max(0.005, rate))} fill="none" stroke={C.vzGreen} strokeWidth={SW} strokeLinecap="round" />}
+            <text x={CX} y={CY - 8} textAnchor="middle" fontSize={28} fontWeight={600} fill={C.t1} letterSpacing="-0.04em">{Math.round(rate * 100)} %</text>
+          </svg>
+          <div style={{ display: "grid", gap: 6, fontSize: 13, color: C.t2 }}>
+            <span style={{ fontSize: 12.5, color: C.t3 }}>Dossiers approuvés</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><Swatch color={C.vzGreen} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(approved)}</b> {plural(approved, "approuvé")}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><Swatch color={C.vzCoral} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(rejected)}</b> {plural(rejected, "refusé")}</span>
+          </div>
+        </div>
+      )}
+    </Hero>
+  );
+}
+
+/* ─── Conformité ───────────────────────────────────────────── */
+
+export function ComplianceHero({ alerts, pendingDecl, nextDeadline, checklist, loaded }: {
+  alerts: number; pendingDecl: number; nextDeadline: string | null; checklist: { label: string; done: boolean; category: string }[]; loaded: boolean;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const done = checklist.filter((c) => c.done).length;
+  const pct = checklist.length ? Math.round((done / checklist.length) * 100) : 0;
+  const days = nextDeadline ? Math.ceil((new Date(`${nextDeadline}T23:59:59`).getTime() - Date.now()) / 86400000) : null;
+  const h = hover !== null ? checklist[hover] : null;
+
+  return (
+    <Hero
+      title={!loaded ? <span className="mute">…</span> : alerts ? (
+        <><span style={{ color: C.coral }}>{alerts}</span> {plural(alerts, "alerte ouverte", "alertes ouvertes")}<span className="mute">{days !== null ? <>, prochaine échéance dans <span style={{ color: C.sun }}>{Math.max(0, days)} j</span>.</> : " à examiner."}</span></>
+      ) : (
+        <>Aucune alerte. <span className="mute">Programme à</span> <span style={{ color: C.sun }}>{pct} %</span><span className="mute">.</span></>
+      )}
+      sub={<>{pendingDecl ? `${pendingDecl} ${plural(pendingDecl, "déclaration")} en cours. ` : ""}Seuil DOIMV : 10 000 $ reçus en monnaie virtuelle, à déclarer dans les 5 jours ouvrables.</>}
+    >
+      {checklist.length > 0 && (
+        <div onMouseLeave={() => setHover(null)}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.04em", color: C.t1, fontVariantNumeric: "tabular-nums" }}>{done}<span style={{ color: C.t3 }}>/{checklist.length}</span></span>
+            <span style={{ fontSize: 13, color: C.t3 }}>points du programme de conformité</span>
+          </div>
+          <div role="img" aria-label={`${done} points faits sur ${checklist.length}`} style={{ display: "flex", gap: 3 }}>
+            {checklist.map((c, i) => (
+              <span key={i} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)}
+                style={{ flex: 1, height: 22, borderRadius: 4, background: c.done ? C.vzGreen : C.hover3, boxShadow: c.done ? "none" : `inset 0 0 0 1px ${C.bds}`, opacity: hover !== null && hover !== i ? 0.45 : 1, transition: "opacity .15s" }} />
+            ))}
+          </div>
+          <div className="hz-cap">{h ? `${h.category} · ${h.label} · ${h.done ? "fait" : "à faire"}` : "Un tiret par point ; plein quand il est fait."}</div>
+        </div>
+      )}
+    </Hero>
+  );
+}
+
+/* ─── Règlement auto ───────────────────────────────────────── */
+
+const gasText = (g: number) => new Intl.NumberFormat("fr-CA", { maximumSignificantDigits: g < 1 ? 2 : 4 }).format(g);
+
+export interface Tank { network: string; label: string; usdt: number; gas: number; minGas: number; gasSymbol?: string; ok: boolean; logo: React.ReactNode }
+
+export function SettlementHero({ tanks, auto, maxCad, loading, toReview }: { tanks: Tank[]; auto: boolean; maxCad: number | null; loading: boolean; toReview: number }) {
+  const total = tanks.reduce((s, t) => s + (t.ok ? t.usdt : 0), 0);
+  const max = Math.max(1, ...tanks.map((t) => t.usdt));
+  return (
+    <Hero
+      title={loading ? <span className="mute">Lecture des portefeuilles…</span> : (
+        <><span style={{ color: C.sun }}>{nf0.format(total)} USDT</span> <span className="mute">prêts à partir, envoi</span> <span style={{ color: auto ? C.sage : C.coral }}>{auto ? "automatique" : "manuel"}</span><span className="mute">.</span></>
+      )}
+      sub={<>{auto && maxCad ? `Jusqu'à ${nf0.format(maxCad)} $ par commande sans intervention. ` : "Chaque envoi attend un clic de l'équipe. "}{toReview ? <b style={{ color: C.coral, fontWeight: 600 }}>{toReview} élément{toReview > 1 ? "s" : ""} à vérifier.</b> : "Rien en suspens."}</>}
+    >
+      {tanks.length > 0 && (
+        <div style={{ display: "grid", gap: 10 }}>
+          {tanks.map((t) => {
+            const low = t.ok && t.gas < t.minGas;
+            return (
+              <div key={t.network} style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr) auto", gap: 10, alignItems: "center" }}>
+                {t.logo}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, color: C.t2, marginBottom: 4 }}>
+                    <span>{t.label}</span>
+                    <span style={{ color: low ? C.coral : C.t3 }}>{t.ok ? `${gasText(t.gas)} ${t.gasSymbol ?? ""} de frais${low ? " · bas" : ""}` : "non prêt"}</span>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 99, background: C.hover3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${t.ok ? Math.max(2, (t.usdt / max) * 100) : 0}%`, borderRadius: 99, background: low ? C.vzCoral : C.vzGreen }} />
+                  </div>
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 600, color: t.ok ? C.t1 : C.t3, fontVariantNumeric: "tabular-nums", minWidth: 64, textAlign: "right" }}>{t.ok ? nf0.format(t.usdt) : "N/D"}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Hero>
+  );
+}
+
+/* ─── Messagerie ───────────────────────────────────────────── */
+
+export function MailboxHero({ threads, unread, loading }: { threads: { lastMessageAt: string; hasUnread: boolean; status: string }[]; unread: number; loading: boolean }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const days = 14;
+  const series = useMemo(() => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const t0 = start.getTime() - (days - 1) * 86400000;
+    const out = Array.from({ length: days }, () => 0);
+    for (const t of threads) {
+      const i = Math.floor((new Date(t.lastMessageAt).getTime() - t0) / 86400000);
+      if (i >= 0 && i < days) out[i] += 1;
+    }
+    return out;
+  }, [threads]);
+  const max = Math.max(1, ...series);
+  const open = threads.filter((t) => t.status === "open").length;
+  const label = (i: number) => new Date(Date.now() - (days - 1 - i) * 86400000).toLocaleDateString("fr-CA", { weekday: "short", day: "numeric" });
+  return (
+    <Hero
+      title={loading ? <span className="mute">…</span> : unread ? (
+        <><span style={{ color: C.coral }}>{unread}</span> {plural(unread, "conversation")} <span className="mute">{plural(unread, "attend", "attendent")} une réponse.</span></>
+      ) : (
+        <>Boîte de réception <span style={{ color: C.sage }}>à jour</span>.</>
+      )}
+      sub={`${open} ${plural(open, "conversation ouverte", "conversations ouvertes")}. Les réponses partent de bonjour@ooble.ca ; le desk gros volumes reçoit sur otc@ooble.ca.`}
+    >
+      <div onMouseLeave={() => setHover(null)}>
+        <div role="img" aria-label={`Conversations actives par jour sur ${days} jours`} style={{ display: "grid", gridTemplateColumns: `repeat(${days}, minmax(0, 1fr))`, alignItems: "center", height: 44 }}>
+          {series.map((n, i) => {
+            const size = n ? 8 + (n / max) * 26 : 5;
+            return (
+              <span key={i} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} style={{ display: "flex", justifyContent: "center" }}>
+                <span style={{ width: size, height: size, borderRadius: 99, background: n ? (i === days - 1 ? C.vzCoral : C.vzIndigo) : C.hover4, opacity: hover !== null && hover !== i ? 0.4 : 1, transition: "opacity .15s" }} />
+              </span>
+            );
+          })}
+        </div>
+        <div className="hz-cap">{hover !== null ? `${label(hover)} : ${series[hover]} ${plural(series[hover], "conversation active", "conversations actives")}` : "Une bulle par jour, plus grande quand il y a plus d'échanges (14 jours)."}</div>
+      </div>
+    </Hero>
+  );
+}
+
+/* ─── Bannière et maintenance ──────────────────────────────── */
+
+export function BannerHero({ banner, maintenance, loading }: {
+  banner: { title: string; body: string; kind: "info" | "warning" | "critical" } | null;
+  maintenance: { title: string; until: string | null } | null; loading: boolean;
+}) {
+  const tone = banner?.kind === "critical" ? C.vzCoral : banner?.kind === "warning" ? "#e0b13c" : C.vzIndigo;
+  return (
+    <Hero
+      title={loading ? <span className="mute">…</span> : maintenance ? (
+        <>Maintenance <span style={{ color: C.coral }}>en cours</span><span className="mute"> : les commandes sont suspendues.</span></>
+      ) : banner ? (
+        <>Une bannière est <span style={{ color: C.sun }}>en ligne</span> <span className="mute">pour tous les clients.</span></>
+      ) : (
+        <>Le site est <span style={{ color: C.sage }}>ouvert</span>, <span className="mute">sans message particulier.</span></>
+      )}
+      sub={maintenance ? `${maintenance.title}${maintenance.until ? ` · jusqu'au ${new Date(maintenance.until).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" })}` : ""}` : "Ce que voient les clients, en direct :"}
+    >
+      {/* Aperçu : le haut du site tel qu'il s'affiche chez les clients. */}
+      <div aria-label="Aperçu du site" style={{ borderRadius: 14, overflow: "hidden", background: "#f6f1e7", boxShadow: `0 0 0 1px ${C.bds}, 0 18px 40px -26px rgba(0,0,0,.5)` }}>
+        <div style={{ height: 22, background: "#e9e3d6", display: "flex", alignItems: "center", gap: 5, padding: "0 10px" }}>
+          {["#ff5f57", "#febc2e", "#28c840"].map((c) => <span key={c} style={{ width: 7, height: 7, borderRadius: 99, background: c }} />)}
+        </div>
+        {maintenance ? (
+          <div style={{ padding: "26px 16px", textAlign: "center", background: "#14110f", color: "#fff" }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{maintenance.title}</div>
+            <div style={{ fontSize: 11.5, opacity: 0.7, marginTop: 4 }}>Les commandes reprendront bientôt.</div>
+          </div>
+        ) : (
+          <>
+            {banner && (
+              <div style={{ padding: "8px 12px", background: tone, color: "#fff", fontSize: 12, lineHeight: 1.4 }}>
+                <b style={{ fontWeight: 600 }}>{banner.title}</b>{banner.body ? <span style={{ opacity: 0.9 }}> · {banner.body.slice(0, 90)}{banner.body.length > 90 ? "…" : ""}</span> : null}
+              </div>
+            )}
+            <div style={{ padding: "14px 14px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <img src="/icons/icon-192.png" alt="" width={20} height={20} style={{ borderRadius: 6 }} />
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: "#14110f" }}>Ooble</span>
+              <span style={{ flex: 1 }} />
+              <span style={{ height: 22, padding: "0 10px", borderRadius: 99, background: "#14110f", color: "#fff", fontSize: 11, display: "inline-flex", alignItems: "center" }}>Acheter des USDT</span>
+            </div>
+            <div style={{ padding: "0 14px 16px", display: "grid", gap: 6 }}>
+              <span style={{ width: "62%", height: 12, borderRadius: 4, background: "#14110f" }} />
+              <span style={{ width: "40%", height: 12, borderRadius: 4, background: "#ff7a59" }} />
+              <span style={{ width: "80%", height: 7, borderRadius: 4, background: "#d9d2c3", marginTop: 4 }} />
+            </div>
+          </>
+        )}
+      </div>
+    </Hero>
+  );
+}
+
+/* ─── Équipe ───────────────────────────────────────────────── */
+
+const FACE = ["#bfe8d6", "#ffd2c4", "#ffe7a8", "#d7dcf7", "#f6f1e7", "#c9e4f2"];
+
+export function TeamHero({ members, loading }: { members: { name: string; role: string }[]; loading: boolean }) {
+  const roles = members.reduce<Record<string, number>>((a, m) => { a[m.role] = (a[m.role] ?? 0) + 1; return a; }, {});
+  const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
+  return (
+    <Hero
+      title={loading ? <span className="mute">…</span> : <><span style={{ color: C.coral }}>{members.length}</span> {plural(members.length, "personne fait", "personnes font")} <span className="mute">tourner Ooble.</span></>}
+      sub={Object.entries(roles).map(([r, n]) => `${n} ${r}`).join(" · ") || "Ajoutez un premier membre."}
+    >
+      {members.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", paddingLeft: 10 }}>
+          {members.slice(0, 9).map((m, i) => (
+            <span key={`${m.name}${i}`} title={`${m.name} · ${m.role}`}
+              style={{ width: 54, height: 54, marginLeft: -10, borderRadius: 99, background: FACE[i % FACE.length], color: "#14110f", fontSize: 17, fontWeight: 600, letterSpacing: "-0.02em", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 0 3px ${C.bg}` }}>
+              {initials(m.name)}
+            </span>
+          ))}
+          {members.length > 9 && <span style={{ marginLeft: 10, fontSize: 14, color: C.t3 }}>+{members.length - 9}</span>}
+        </div>
+      )}
+    </Hero>
+  );
+}
+
+/* ─── Plateforme ───────────────────────────────────────────── */
+
+export function PlatformHero({ launchedAt, testOrders, runs, loading }: {
+  launchedAt: string | null; testOrders: number; runs: { started_at: string; finished_at: string | null; status: string }[] | null; loading: boolean;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const days = launchedAt ? Math.max(0, Math.floor((Date.now() - new Date(launchedAt).getTime()) / 86400000)) : 0;
+  const recent = (runs ?? []).slice(0, 14).reverse();
+  const lastOk = (runs ?? []).find((r) => r.status === "success");
+  const h = hover !== null ? recent[hover] : null;
+  return (
+    <Hero
+      title={loading ? <span className="mute">…</span> : launchedAt ? (
+        <>Ooble est <span style={{ color: C.sage }}>en activité</span> <span className="mute">depuis</span> <span style={{ color: C.sun }}>{days} {plural(days, "jour")}</span><span className="mute">.</span></>
+      ) : (
+        <>Ooble est <span style={{ color: C.coral }}>en test</span><span className="mute">, {testOrders} {plural(testOrders, "commande")} de test.</span></>
+      )}
+      sub={lastOk ? <>Dernière sauvegarde réussie il y a <b style={{ color: C.t1, fontWeight: 600 }}>{ago(lastOk.finished_at ?? lastOk.started_at)}</b>, chiffrée et testée chaque nuit.</> : "Les sauvegardes nocturnes apparaîtront ici."}
+    >
+      {recent.length > 0 && (
+        <div onMouseLeave={() => setHover(null)}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }} role="img" aria-label={`${recent.filter((r) => r.status === "success").length} sauvegardes réussies sur ${recent.length}`}>
+            {recent.map((r, i) => (
+              <span key={i} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)}
+                style={{ flex: 1, maxWidth: 26, aspectRatio: "1", borderRadius: 99, background: r.status === "success" ? C.vzGreen : r.status === "failed" ? C.vzCoral : C.vzIndigo, opacity: hover !== null && hover !== i ? 0.4 : 1, transition: "opacity .15s" }} />
+            ))}
+          </div>
+          <div className="hz-cap">
+            {h ? `${new Date(h.started_at).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" })} · ${h.status === "success" ? "réussie" : h.status === "failed" ? "échec" : "en cours"}` : "Une pastille par sauvegarde : vert réussie, corail échec."}
+          </div>
+        </div>
+      )}
+    </Hero>
+  );
+}

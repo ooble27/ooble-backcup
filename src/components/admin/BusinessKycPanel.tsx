@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { fetchCached, peek, put } from "@/lib/adminCache";
 import { Building2, Check, X } from "lucide-react";
 import { decideKyb, fetchKyb, getKybDocumentUrl, resetKyb, type KybRequest } from "@/lib/adminKyb";
 import type { KybDocKey, OwnerRole } from "@/lib/kyb";
@@ -6,7 +7,8 @@ import { useAuth } from "@/lib/auth";
 import BusinessMark from "@/components/app/BusinessMark";
 import { C, FONT } from "./adminTheme";
 import { Button, Field, Notice, TextArea, Workspace, WsPane } from "./ui";
-import { DataTable, EmptyState, KeyValues, Pill, StatStrip, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import { DataTable, EmptyState, KeyValues, Pill, Tabs, TwoLine, type Column, type Tone } from "./layout";
+import { KycHero } from "./heroes";
 import DocFrame from "./DocFrame";
 
 type Filter = "pending" | "approved" | "rejected";
@@ -32,8 +34,8 @@ const BusinessKycPanel = () => {
   const { roles } = useAuth();
   const canDecide = roles.includes("admin") || roles.includes("kyc_reviewer");
   const isAdmin = roles.includes("admin");
-  const [rows, setRows] = useState<KybRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<KybRequest[]>(() => peek<KybRequest[]>("kyb")?.value ?? []);
+  const [loading, setLoading] = useState(() => !peek("kyb"));
   const [tab, setTab] = useState<Filter>("pending");
   const [detail, setDetail] = useState<KybRequest | null>(null);
   const [doc, setDoc] = useState<KybDocKey>("incorporation");
@@ -43,7 +45,8 @@ const BusinessKycPanel = () => {
   const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
   const load = useCallback((p: string) => getKybDocumentUrl(p), []);
 
-  useEffect(() => { fetchKyb().then((r) => { setRows(r); setLoading(false); }); }, []);
+  useEffect(() => { fetchCached("kyb", fetchKyb).then((r) => { setRows(r); setLoading(false); }); }, []);
+  useEffect(() => { if (!loading) put("kyb", rows); }, [rows, loading]);
 
   const counts = {
     pending: rows.filter((r) => r.status === "pending").length,
@@ -92,12 +95,9 @@ const BusinessKycPanel = () => {
 
   return (
     <div>
-      <StatStrip items={[
-        { label: "À examiner", value: loading ? "…" : counts.pending, tone: counts.pending ? "warn" : undefined },
-        { label: "Vérifiées", value: loading ? "…" : counts.approved },
-        { label: "Refusées", value: loading ? "…" : counts.rejected },
-      ]} />
-      <Tabs style={{ marginTop: 28 }} value={tab} onChange={setTab} items={[
+      <KycHero noun="entreprise" loading={loading} waiting={counts.pending} approved={counts.approved} rejected={counts.rejected}
+        oldestMins={counts.pending ? Math.max(...rows.filter((r) => r.status === "pending").map((r) => (Date.now() - new Date(r.createdAt).getTime()) / 60000)) : null} />
+      <Tabs value={tab} onChange={setTab} items={[
         { id: "pending", label: "À examiner", count: counts.pending, tone: "warn" },
         { id: "approved", label: "Vérifiées", count: counts.approved },
         { id: "rejected", label: "Refusées", count: counts.rejected },
@@ -114,7 +114,7 @@ const BusinessKycPanel = () => {
 
       {d && (
         <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetail(null)} panes>
-          <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden" style={{ minHeight: 0 }}>
+          <div className="grid flex-1 grid-cols-1 gap-2 lg:gap-0 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden" style={{ minHeight: 0 }}>
             <WsPane style={{ padding: "20px 24px 60px", display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
                 {docKeys.map((k) => (
@@ -127,7 +127,7 @@ const BusinessKycPanel = () => {
               <DocFrame key={`${d.id}:${doc}`} label={DOC_LABELS[doc]} path={d.documents[doc]} load={load} height={620} />
             </WsPane>
 
-            <WsPane style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
+            <WsPane flat style={{ padding: "24px 24px 40px", fontFamily: FONT }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
                 <BusinessMark name={d.legalName} size="md" />
                 <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={d.legalName} secondary={`${d.contactName} · ${d.email}`} /></div>

@@ -5,6 +5,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCached, prefetch } from "./adminCache";
 import { fetchDeposits, fetchPayouts, fetchReceipts, fetchScanState, fetchWallets } from "./settlement";
+import { fetchKyc } from "./adminKyc";
+import { fetchKyb } from "./adminKyb";
+import { fetchTeam } from "./adminTeam";
+import { fetchThreads } from "./mailThreads";
+import { fetchAlerts, fetchChecklist, fetchDeclarations } from "./complianceLive";
 
 /** Appel de la fonction « reset-test-data » (aperçu, réinitialisation, lancement). */
 export async function resetTestData<T>(body: Record<string, unknown>): Promise<T> {
@@ -34,7 +39,20 @@ export const loadBackupRuns = <T,>() => fetchCached<T[]>("pf.backups", async () 
 }, { persist: true });
 
 /** Préchargement discret, selon les onglets auxquels la personne a accès. */
-export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean }) {
+export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; kyc?: boolean; clients?: boolean; compliance?: boolean; mailbox?: boolean; team?: boolean }) {
+  // Listes avec données clients : en mémoire pour la session seulement.
+  if (tabs.kyc) { prefetch("kyc", fetchKyc); prefetch("kyb", fetchKyb); }
+  if (tabs.clients) prefetch("clients.admin", async () => {
+    const { data, error } = await supabase.rpc("admin_clients" as never);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as unknown[];
+  });
+  if (tabs.compliance) prefetch("cmp", async () => {
+    const [a, d, c] = await Promise.all([fetchAlerts(), fetchDeclarations(), fetchChecklist()]);
+    return { a, d, c };
+  });
+  if (tabs.mailbox) prefetch("mail.threads", fetchThreads);
+  if (tabs.team) prefetch("team", fetchTeam);
   if (tabs.settlement) {
     prefetch("st.wallets", fetchWallets, { persist: true, keep: (w) => !!w.ok });
     prefetch("st.scan", fetchScanState, { persist: true });

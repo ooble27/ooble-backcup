@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { fetchCached, peek } from "@/lib/adminCache";
 import { fetchOrigins, regionName, countryName, type SignupOrigin } from "@/lib/origin";
 import { C, numeric } from "./adminTheme";
 import { FilterChips } from "./layout";
@@ -21,10 +22,11 @@ function top(rows: SignupOrigin[], key: (o: SignupOrigin) => string | null, n = 
 }
 
 const OriginsCard = () => {
-  const [rows, setRows] = useState<SignupOrigin[] | null>(null);
+  const [rows, setRows] = useState<SignupOrigin[] | null>(() => peek<SignupOrigin[]>("origins")?.value ?? null);
   const [tab, setTab] = useState<Tab>("regions");
 
-  useEffect(() => { fetchOrigins().then(setRows); }, []);
+  // Comptes par lieu et par source (aucune donnée nominative) : gardés pour la prochaine ouverture.
+  useEffect(() => { fetchCached("origins", fetchOrigins, { persist: true }).then(setRows); }, []);
 
   const list = useMemo(() => {
     if (!rows) return [];

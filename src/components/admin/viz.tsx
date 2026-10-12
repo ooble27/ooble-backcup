@@ -53,7 +53,14 @@ const nf = new Intl.NumberFormat("fr-CA");
 
 interface FlowNode { id: string; label: string; n: number; color: string; col: 0 | 1 | 2 }
 
-export function OrderFlow({ s }: { s: OrderStatusCounts }) {
+export function OrderFlow({ s: raw }: { s: OrderStatusCounts }) {
+  // Un statut absent du décompte (ex. « remboursée », récent) compte pour 0, jamais NaN.
+  const s = useMemo(() => {
+    const r = raw as Record<string, number | undefined>;
+    const g = (k: string) => Number(r[k] ?? 0) || 0;
+    return { created: g("created"), awaiting_payment: g("awaiting_payment"), payment_received: g("payment_received"), settling: g("settling"),
+      completed: g("completed"), cancelled: g("cancelled"), expired: g("expired"), refunded: g("refunded") };
+  }, [raw]);
   const [hover, setHover] = useState<string | null>(null);
   const [box, boxW] = useBoxWidth(560);
   const narrow = boxW < 520;
