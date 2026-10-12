@@ -96,15 +96,22 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
 
 const SHELL_CSS = `
 /* Survol : la page se soulève. Page ouverte : son icône se pose dans un rond plein (comme le cadran), sans bande. */
-.sh-nav { transition: transform .28s cubic-bezier(.22,1,.36,1), color .15s }
-.sh-nav:hover { color: var(--a-t1); transform: translateY(-2px) }
-.sh-nav:active { transform: translateY(0) scale(.98) }
-.sh-ic { transition: background .25s, color .2s, transform .28s cubic-bezier(.22,1,.36,1) }
-.sh-nav:hover .sh-ic { transform: scale(1.08); color: var(--a-t1) }
+.sh-nav { transition: color .2s }
+.sh-nav:hover { color: var(--a-t1) }
+.sh-nav:active .sh-tx { opacity: .7 }
+/* Survol : le nom se souligne d'un trait qui se trace de gauche à droite ; l'icône prend la couleur du texte. */
+.sh-tx { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px;
+  padding-bottom: 3px; transition: background-size .4s cubic-bezier(.22,1,.36,1) }
+.sh-nav:hover .sh-tx, .sh-nav:focus-visible .sh-tx { background-size: 100% 1.5px }
+.sh-nav[aria-current="page"] .sh-tx { background-size: 0 1.5px }
+.sh-ic { transition: background .25s, color .2s, transform .3s cubic-bezier(.22,1,.36,1) }
+.sh-nav:hover .sh-ic { transform: scale(1.1); color: var(--a-t1) }
+/* Noms de groupes : petites capitales espacées, discrètes. */
+.sh-grp { margin: 0 12px 6px; font-size: 10.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--a-t3) }
 .sh-nav:hover .sh-ic[data-on="true"] { color: var(--a-bg) }
 .sh-ic[data-on="true"] { animation: sh-pop .42s cubic-bezier(.34,1.56,.64,1) }
 @keyframes sh-pop { from { transform: scale(.55); opacity: .4 } to { transform: scale(1); opacity: 1 } }
-@media (prefers-reduced-motion: reduce) { .sh-nav, .sh-ic { transition: none; animation: none } .sh-nav:hover { transform: none } }
+@media (prefers-reduced-motion: reduce) { .sh-nav, .sh-ic, .sh-tx { transition: none; animation: none } }
 .admin-scope, .admin-scope * { -webkit-tap-highlight-color: transparent }
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 .sh-icon:hover { background: var(--a-hover2); color: var(--a-t1) }
@@ -350,7 +357,7 @@ const AdminPortal = () => {
                         ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
                         : { width: "100%", height: 38, padding: "0 12px 0 6px", borderRadius: 11, marginBottom: 1 }),
                       background: on && compact ? C.hover4 : "transparent",
-                      color: on ? C.t1 : C.t2, fontSize: 14, letterSpacing: "-0.01em", fontWeight: on ? 500 : 400,
+                      color: on ? C.t1 : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: on ? 500 : 400,
                       ...(compact ? {} : { gap: 10 }),
                     }}>
                     {compact
@@ -358,7 +365,7 @@ const AdminPortal = () => {
                       : <span className="sh-ic" data-on={on} style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: on ? C.t1 : "transparent", color: on ? C.bg : C.t3 }}>
                           <Icon style={{ width: 16, height: 16 }} strokeWidth={on ? 1.9 : 1.6} />
                         </span>}
-                    {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>}
+                    {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span className="sh-tx">{it.label}</span></span>}
                     {!!n && (compact
                       ? <span style={{ position: "absolute", top: 1, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums", boxShadow: `0 0 0 2px ${C.ground}` }}>{n}</span>
                       : <span style={{ fontSize: 11.5, fontWeight: 500, minWidth: 20, height: 20, padding: "0 7px", borderRadius: 99, background: "rgba(242,97,61,.12)", color: "var(--a-coral)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
@@ -366,8 +373,8 @@ const AdminPortal = () => {
                 );
               });
             return (
-              <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 14) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                {g.label && !compact && !isMenu && <p style={{ margin: "0 12px 5px", fontSize: 11.5, color: C.t3, letterSpacing: "0.02em" }}>{g.label}</p>}
+              <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 20) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                {g.label && !compact && !isMenu && <p className="sh-grp">{g.label}</p>}
                 {!isMenu ? itemButtons : (
                   <>
                     <button type="button" className="sh-nav" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}
@@ -378,7 +385,7 @@ const AdminPortal = () => {
                           ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
                           : { width: "100%", height: 38, padding: "0 12px 0 6px", borderRadius: 11, marginBottom: 1 }),
                         background: inMenu && !menuOpen && compact ? C.hover4 : "transparent",
-                        color: inMenu ? C.t1 : C.t2, fontSize: 14, letterSpacing: "-0.01em", fontWeight: inMenu ? 500 : 400,
+                        color: inMenu ? C.t1 : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: inMenu ? 500 : 400,
                         ...(compact ? {} : { gap: 10 }),
                       }}>
                       {compact
@@ -386,7 +393,7 @@ const AdminPortal = () => {
                         : <span className="sh-ic" data-on={inMenu && !menuOpen} style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: inMenu && !menuOpen ? C.t1 : "transparent", color: inMenu && !menuOpen ? C.bg : C.t3 }}>
                             <MenuIcon style={{ width: 16, height: 16 }} strokeWidth={inMenu ? 1.9 : 1.6} />
                           </span>}
-                      {!compact && <span style={{ flex: 1, minWidth: 0 }}>{g.menu!.label}</span>}
+                      {!compact && <span style={{ flex: 1, minWidth: 0 }}><span className="sh-tx">{g.menu!.label}</span></span>}
                       <ChevronDown className="sh-chev" style={{
                         width: compact ? 12 : 16, height: compact ? 12 : 16, color: C.t3, flexShrink: 0, transform: menuOpen ? "rotate(180deg)" : "none",
                         ...(compact ? { position: "absolute", bottom: 3, left: "50%", marginLeft: -6 } : {}),
