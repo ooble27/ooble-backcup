@@ -880,7 +880,7 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 24px calc(12px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${C.bds}`, background: C.bg, position: "sticky", bottom: 0, zIndex: 2 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 24px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.bg, position: "sticky", bottom: 0, zIndex: 2 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {feedback
               ? <span style={{ fontSize: 13, color: feedback.kind === "ok" ? C.successText : C.dangerText }}>{feedback.text}</span>
@@ -1253,7 +1253,7 @@ function SnippetsView({ onLoad }: { onLoad: (s: Snippet) => void }) {
   return (
     <>
       <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Des débuts de message à reprendre et adapter. Rien n'est envoyé sans votre relecture.</p>
-      <div style={{ borderTop: `1px solid ${C.bds}` }}>
+      <div>
         {SNIPPETS.map((s) => (
           <div key={s.id} role="button" tabIndex={0} className="ui-row" onClick={() => onLoad(s)}
             onKeyDown={(e) => { if (e.key === "Enter") onLoad(s); }}
@@ -1293,7 +1293,7 @@ function Conversation({ thread, messages, loading, onBack, onReply, onArchive }:
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", borderBottom: `1px solid ${C.bds}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px" }}>
         {onBack && <Button variant="ghost" size="sm" aria-label="Retour" onClick={onBack} icon={<ArrowLeft style={{ width: 16, height: 16 }} />} />}
         <div style={{ minWidth: 0, flex: 1 }}>
           <p style={{ margin: 0, fontSize: 15, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{thread.subject}</p>

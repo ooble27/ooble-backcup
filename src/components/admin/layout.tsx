@@ -267,7 +267,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
   const cols = columns.filter((c) => !c.hideBelow || width >= c.hideBelow);
   const visible = sorted.slice(0, shown);
 
-  if (rows.length === 0) return <div style={{ borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>{empty ?? <EmptyState title="Rien à afficher" />}</div>;
+  if (rows.length === 0) return <div>{empty ?? <EmptyState title="Rien à afficher" />}</div>;
 
   const more = sorted.length > shown && (
     <button type="button" className="ui-btn ui-btn-ghost" onClick={() => setShown((n) => n + pageSize)}
@@ -279,7 +279,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
   if (mobile && width < 640) {
     return (
       <div>
-        <div style={{ borderTop: `1px solid ${C.bds}` }}>
+        <div>
           {visible.map((r) => (
             <div key={rowKey(r)} role={onRowClick ? "button" : undefined} tabIndex={onRowClick ? 0 : undefined} className="ui-row"
               onClick={onRowClick ? () => onRowClick(r) : undefined}
@@ -296,7 +296,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
 
   return (
     <div>
-      <div style={{ overflowX: "auto", borderTop: `1px solid ${C.bds}` }}>
+      <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontFamily: FONT, fontSize: 13.5 }}>
           <thead>
             <tr>
@@ -369,7 +369,7 @@ export function Avatar({ name, size = 30 }: { name: string; size?: number }) {
 /** Liste « libellé : valeur » (fiches, panneaux latéraux). */
 export function KeyValues({ items }: { items: [React.ReactNode, React.ReactNode][] }) {
   return (
-    <dl style={{ margin: 0, borderTop: `1px solid ${C.bds}` }}>
+    <dl style={{ margin: 0 }}>
       {items.map(([k, v], i) => (
         <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(110px, 38%) minmax(0, 1fr)", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.bds}`, alignItems: "baseline" }}>
           <dt style={{ fontSize: 12.5, color: C.t3 }}>{k}</dt>

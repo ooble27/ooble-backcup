@@ -22,7 +22,9 @@ export const UI_CSS = `
    sans écrin arrondi, sans ombre ni fondu sur les bords : rien ne se superpose, rien ne coupe le texte. */
 @media (max-width: 767px) {
   .ws-root, .ws-head { background: var(--a-bg) !important; }
-  .ws-body { padding: 0 0 env(safe-area-inset-bottom, 0px) !important; }
+  .ws-body { padding: 0 !important; }
+  /* Le contenu défile jusqu'en bas de l'écran (sous la barre d'accueil) : aucune bande ne le cache en bas. */
+  .ws-card::after, .ws-flat::after, .ws-scroll::after { content: ""; display: block; flex-shrink: 0; height: env(safe-area-inset-bottom, 0px); }
   .ws-card { border-radius: 0 !important; box-shadow: none !important; }
   .ws-flat { -webkit-mask-image: none; mask-image: none; }
   .ui-side { background: var(--a-bg) !important; box-shadow: none !important; }
@@ -314,7 +316,7 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
         position: "absolute", top: 0, right: 0, bottom: 0, width: `min(${width}px, 100vw)`, background: C.l1, boxShadow: C.panelShadow,
         display: "flex", flexDirection: "column", animation: `ui-slide .28s ${UI_EASE}`, pointerEvents: "auto",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(14px + var(--a-top, env(safe-area-inset-top, 0px))) 16px 14px 20px", borderBottom: `1px solid ${C.bds}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(14px + var(--a-top, env(safe-area-inset-top, 0px))) 16px 14px 20px" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, color: C.t1 }}>{title}</div>
             {subtitle && <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{subtitle}</div>}
@@ -322,7 +324,7 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
           <Button variant="ghost" aria-label="Fermer" onClick={onClose} icon={<X style={{ width: 17, height: 17 }} />} />
         </div>
         <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "20px", minWidth: 0 }}>{children}</div>
-        {footer && <div style={{ padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${C.bds}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
+        {footer && <div style={{ padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
       </aside>
     </div>,
     document.body,

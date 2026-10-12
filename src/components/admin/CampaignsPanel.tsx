@@ -178,7 +178,7 @@ const PANEL_CSS = `
 .cmp-full { inset: 0; transform: translateY(28px) scale(0.985); }
 @media (min-width: 768px) { .cmp-full { inset: 16px; border-radius: 18px; } }
 /* Téléphone : plein écran de la couleur de la page (et de la barre d'état), sans ombre. */
-@media (max-width: 767px) { .cmp-full { background: var(--a-bg) !important; box-shadow: none !important; } }
+@media (max-width: 767px) { .cmp-full { background: var(--a-bg) !important; box-shadow: none !important; transform: none; } }
 .cmp-sheet { left: 0; right: 0; bottom: 0; max-height: 88vh; border-radius: 20px 20px 0 0; transform: translateY(100%); }
 @media (min-width: 768px) {
   .cmp-sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: min(720px, calc(100vw - 48px)); max-height: 82vh; border-radius: 18px; transform: translate(-50%, -46%) scale(0.97); }
@@ -1257,7 +1257,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
       <WsPane>{audienceList}</WsPane>
     </div>
   ) : (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+    <div className="ws-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
       <WsPane flat style={{ overflow: "visible" }}>{audienceSide}</WsPane>
       <WsPane style={{ overflow: "visible", minHeight: 260 }}>{audienceList}</WsPane>
     </div>

@@ -23,7 +23,7 @@ const ROLE_ICONS: Record<TeamRole, typeof UserRound> = {
 /** Choix du rôle : une liste à puces radio, chaque rôle avec ce qu'il permet. */
 function RolePicker({ value, onChange }: { value: TeamRole; onChange: (r: TeamRole) => void }) {
   return (
-    <div role="radiogroup" aria-label="Rôle" style={{ borderTop: `1px solid ${C.bds}` }}>
+    <div role="radiogroup" aria-label="Rôle">
       {TEAM_ROLES.map((r) => {
         const Icon = ROLE_ICONS[r.role];
         const on = value === r.role;
@@ -169,7 +169,7 @@ const TeamPanel = () => {
           <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t2 }}>Rôle</p>
           <RolePicker value={editRole} onChange={setEditRole} />
 
-          <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.bds}` }}>
+          <div style={{ marginTop: 32 }}>
             <p style={{ margin: 0, fontSize: 13.5, color: C.t1 }}>Retirer de l'équipe</p>
             <p style={{ margin: "4px 0 12px", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>
               La personne perd l'accès au back-office. Son compte client reste intact.

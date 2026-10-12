@@ -138,12 +138,29 @@ const AdminPortal = () => {
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
   const [drawer, setDrawer] = useState(false);
+  // Téléphone : l'en-tête (menu, titre, recherche) s'efface quand on descend et revient quand on remonte,
+  // pour que rien ne soit caché pendant la lecture.
+  const [headHidden, setHeadHidden] = useState(false);
   const [palette, setPalette] = useState(false);
   const vw = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
   // Ordinateur et tablette : menu toujours ouvert. Téléphone : menu d'icônes qu'on ouvre.
   const mode: "full" | "drawer" = vw < 768 ? "drawer" : "full";
+  const phone = vw < 768;
+  useEffect(() => {
+    if (!phone) { setHeadHidden(false); return; }
+    let last = window.scrollY;
+    const on = () => {
+      const y = window.scrollY;
+      if (y < 24) setHeadHidden(false);
+      else if (y > last + 6 && y > 90) setHeadHidden(true);
+      else if (y < last - 6) setHeadHidden(false);
+      last = y;
+    };
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, [phone]);
 
   const allowedTabs = useMemo(() => {
     const set = new Set<TabId>();
@@ -160,6 +177,7 @@ const AdminPortal = () => {
   // Menu « Ressources » : ouvert d'office quand on est sur une de ses pages.
   const [menuOpen, setMenuOpen] = useState(() => GROUP_OF.get(readTab() ?? "dashboard") === "Ressources");
   useEffect(() => { if (GROUP_OF.get(tab) === "Ressources") setMenuOpen(true); }, [tab]);
+  useEffect(() => { setHeadHidden(false); }, [tab]);
   useEffect(() => {
     if (visibleNav.length > 0 && !allowedTabs.has(tab)) setTabState(visibleNav[0].id);
   }, [visibleNav, allowedTabs, tab]);
@@ -521,7 +539,7 @@ const AdminPortal = () => {
         <div style={{ minWidth: 0 }}>
         <header style={panel
           ? { flexShrink: 0, background: C.bg }
-          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
+          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", transform: headHidden && !drawer ? "translateY(-100%)" : "none", transition: "transform .28s cubic-bezier(.22,1,.36,1)" }}>
           <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
             {mode === "drawer" && (
               <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
