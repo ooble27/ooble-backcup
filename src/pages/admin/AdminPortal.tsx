@@ -95,10 +95,10 @@ const SHELL_CSS = `
 .sh-page { animation: none }
 @media (prefers-reduced-motion: reduce) { .sh-page { animation: none } }
 /* Haut de l'écran. Dans l'app installée sur iPhone et iPad (iOS 26), le système floute la barre d'état et
-   environ 40 points en dessous ; aucun réglage ne l'enlève. On laisse donc cette bande au fond uni (le flou
+   un peu en dessous ; aucun réglage ne l'enlève. On laisse une petite bande au fond uni (le flou
    d'une couleur unie ne se voit pas) et tout le contenu commence en dessous. */
 :root { --a-top: env(safe-area-inset-top, 0px); }
-html.ooble-ios-pwa { --a-top: calc(env(safe-area-inset-top, 0px) + 40px); } /* classe posée au démarrage (main.tsx) */
+html.ooble-ios-pwa { --a-top: calc(env(safe-area-inset-top, 0px) + 20px); } /* classe posée au démarrage (main.tsx) */
 @media (orientation: landscape) and (max-height: 500px) { html.ooble-ios-pwa { --a-top: env(safe-area-inset-top, 0px); } }
 /* iPhone et iPad : Safari agrandit la page dès qu'on touche un champ dont le texte fait moins de 16 px. */
 @supports (-webkit-touch-callout: none) {
@@ -216,7 +216,7 @@ const AdminPortal = () => {
   useEffect(() => {
     if (!allowedTabs.size) return;
     // Illustrations des en-têtes : en mémoire du navigateur avant la première visite (aucune apparition tardive).
-    for (const src of ["/email-assets/ill-mail.png", "/email-assets/ill-shield.png", "/email-assets/ill-notify.png"]) { const im = new Image(); im.src = src; }
+    { const im = new Image(); im.src = "/illustrations/admin/campaigns.svg"; }
     const go = () => prefetchAdmin({
       settlement: allowedTabs.has("settlement"), platform: allowedTabs.has("platform"), kyc: allowedTabs.has("kyc"),
       clients: allowedTabs.has("clients"), compliance: allowedTabs.has("compliance"), mailbox: allowedTabs.has("mailbox"), team: allowedTabs.has("team"), campaigns: allowedTabs.has("campaigns"),

@@ -13,7 +13,6 @@
  */
 import { useMemo, useState } from "react";
 import { C, FONT } from "./adminTheme";
-import { MessagesIllustration, TeamIllustration } from "./illustrations";
 
 const nf = new Intl.NumberFormat("fr-CA");
 const nf0 = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 0 });
@@ -27,8 +26,6 @@ const ago = (iso: string) => {
 export const HERO_CSS = `
 .hz { display: grid; gap: 22px; margin-bottom: 30px; font-family: inherit; }
 @media (min-width: 1024px) { .hz { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); align-items: center; gap: 40px; } }
-/* Téléphone : l'illustration laisserait la liste sous la ligne de flottaison. */
-@media (max-width: 640px) { .hz-illu { display: none !important; } }
 .hz-title { margin: 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .hz-title .mute { color: var(--a-t3); }
 .hz-sub { margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--a-t2); max-width: 560px; }
@@ -127,11 +124,6 @@ export function AccountingHero({ orders, margin, note }: { orders: DoneOrder[]; 
   );
 }
 
-/** Illustration Ooble (mêmes images que les courriels), fond transparent. */
-export function Illu({ src, alt, max = 360 }: { src: string; alt: string; max?: number }) {
-  return <img className="hz-illu" src={src} alt={alt} decoding="async" style={{ aspectRatio: "640 / 488", display: "block", width: "100%", maxWidth: max, height: "auto", marginLeft: "auto", marginRight: "auto" }} />;
-}
-
 /* ─── Vérifications ────────────────────────────────────────── */
 
 export function KycHero({ waiting, approved, rejected, oldestMins, noun, loading }: {
@@ -151,33 +143,49 @@ export function KycHero({ waiting, approved, rejected, oldestMins, noun, loading
         {waiting ? <>Le plus ancien dossier attend depuis <b style={{ color: C.sun, fontWeight: 600 }}>{oldText}</b>. Les clients ne peuvent pas commander avant leur vérification. </> : "Rien en attente : les nouveaux dossiers apparaîtront ici. "}
       </>}
     >
-      {decided > 0 && <ApprovalArc approved={approved} rejected={rejected} />}
+      {decided > 0 && (
+        <ArcStat title="Dossiers approuvés" center={`${Math.round((approved / decided) * 100)} %`}
+          segments={[{ label: plural(approved, "approuvé"), value: approved, color: C.vzGreen }, { label: plural(rejected, "refusé"), value: rejected, color: C.vzCoral }]} />
+      )}
     </Hero>
   );
 }
 
-/** Taux d'approbation des dossiers : arc vert (approuvés) et corail (refusés), le pourcentage au centre. */
-function ApprovalArc({ approved, rejected }: { approved: number; rejected: number }) {
-  const decided = approved + rejected;
-  const rate = decided ? approved / decided : 0;
-  const R = 70, CX = 90, CY = 84, SW = 14;
+/**
+ * Arc de chiffres (même dessin que Vérifications) : un demi-cercle découpé par catégorie,
+ * le chiffre clé au centre et la légende à côté. Pas de personnages, pas de décor.
+ */
+export function ArcStat({ title, center, segments }: {
+  title: string; center: string; segments: { label: string; value: number; color: string }[];
+}) {
+  const total = segments.reduce((a, x) => a + x.value, 0);
+  const R = 70, CX = 90, CY = 84, SW = 14, GAP = segments.filter((x) => x.value > 0).length > 1 ? 0.025 : 0;
   const pt = (t: number) => [CX - R * Math.cos(Math.PI * t), CY - R * Math.sin(Math.PI * t)];
   const arc = (t0: number, t1: number) => {
     const [x0, y0] = pt(t0), [x1, y1] = pt(t1);
     return `M${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}`;
   };
+  let t = 0;
+  const parts = total ? segments.filter((x) => x.value > 0).map((x) => {
+    const span = x.value / total;
+    const d = arc(Math.min(0.999, t + (t > 0 ? GAP / 2 : 0)), Math.max(0.001, Math.min(1, t + span - (t + span < 1 ? GAP / 2 : 0))));
+    t += span;
+    return { d, color: x.color, key: x.label };
+  }) : [];
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 18, justifyContent: "center" }}>
-      <svg viewBox="0 0 180 96" width={180} height={96} role="img" aria-label={`${Math.round(rate * 100)} % des dossiers approuvés : ${approved} approuvés, ${rejected} refusés`} style={{ flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 18, justifyContent: "center", flexWrap: "wrap" }}>
+      <svg viewBox="0 0 180 96" width={180} height={96} role="img" aria-label={`${title} : ${segments.map((x) => `${x.value} ${x.label}`).join(", ")}`} style={{ flexShrink: 0 }}>
         <path d={arc(0, 1)} fill="none" stroke={C.hover3} strokeWidth={SW} strokeLinecap="round" />
-        {rejected > 0 && <path d={arc(Math.min(0.995, rate + (approved ? 0.02 : 0)), 1)} fill="none" stroke={C.vzCoral} strokeWidth={SW} strokeLinecap="round" />}
-        {approved > 0 && <path d={arc(0, Math.max(0.005, rate))} fill="none" stroke={C.vzGreen} strokeWidth={SW} strokeLinecap="round" />}
-        <text x={CX} y={CY - 8} textAnchor="middle" fontSize={28} fontWeight={600} fill={C.t1} letterSpacing="-0.04em">{Math.round(rate * 100)} %</text>
+        {parts.map((p) => <path key={p.key} d={p.d} fill="none" stroke={p.color} strokeWidth={SW} strokeLinecap="round" />)}
+        <text x={CX} y={CY - 8} textAnchor="middle" fontSize={28} fontWeight={600} fill={C.t1} letterSpacing="-0.04em">{center}</text>
       </svg>
       <div style={{ display: "grid", gap: 6, fontSize: 13, color: C.t2 }}>
-        <span style={{ fontSize: 12.5, color: C.t3 }}>Dossiers approuvés</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><Swatch color={C.vzGreen} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(approved)}</b> {plural(approved, "approuvé")}</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><Swatch color={C.vzCoral} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(rejected)}</b> {plural(rejected, "refusé")}</span>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>{title}</span>
+        {segments.map((x) => (
+          <span key={x.label} style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <Swatch color={x.color} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(x.value)}</b> {x.label}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -204,7 +212,10 @@ export function ComplianceHero({ alerts, pendingDecl, nextDeadline, checklist, l
         Seuil DOIMV : 10 000 $ reçus en monnaie virtuelle, à déclarer dans les 5 jours ouvrables.
       </>}
     >
-      <Illu src="/email-assets/ill-shield.png" alt="" max={340} />
+      {checklist.length > 0 && (
+        <ArcStat title="Programme de conformité" center={`${pct} %`}
+          segments={[{ label: plural(done, "point fait", "points faits"), value: done, color: C.vzGreen }, { label: "à faire", value: checklist.length - done, color: C.vzGray }]} />
+      )}
     </Hero>
   );
 }
@@ -264,7 +275,10 @@ export function MailboxHero({ threads, unread, loading }: { threads: { lastMessa
       )}
       sub={`${open} ${plural(open, "conversation ouverte", "conversations ouvertes")}. Les réponses partent de bonjour@ooble.ca ; le desk gros volumes reçoit sur otc@ooble.ca.`}
     >
-      <div className="hz-illu" style={{ maxWidth: 380, margin: "0 auto" }}><MessagesIllustration /></div>
+      {threads.length > 0 && (
+        <ArcStat title="Conversations" center={`${Math.round(((threads.length - unread) / threads.length) * 100)} %`}
+          segments={[{ label: "à jour", value: Math.max(0, threads.length - unread), color: C.vzGreen }, { label: plural(unread, "non lue", "non lues"), value: Math.min(unread, threads.length), color: C.vzCoral }]} />
+      )}
     </Hero>
   );
 }
@@ -293,9 +307,14 @@ export function BannerHero({ banner, maintenance, loading }: {
       sub={<>
         {maintenance
           ? `${maintenance.title}${maintenance.until ? ` · jusqu'au ${new Date(maintenance.until).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" })}` : ""}`
-          : banner ? "Ce que voient les clients en haut du site et de l'app :" : "Une bannière apparaît en haut du site et de l'app ; la maintenance suspend les commandes."}
+          : banner ? "Elle s'affiche en haut du site et de l'app tant qu'elle est en ligne." : "Une bannière apparaît en haut du site et de l'app ; la maintenance suspend les commandes."}
+      </>}
+    >
+      {/* À droite : la bannière telle qu'elle s'affiche chez les clients (ou l'état du site). */}
+      <div style={{ display: "grid", gap: 8 }}>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>{maintenance ? "Ce que voient les clients" : banner ? "En haut du site et de l'app" : "En haut du site et de l'app"}</span>
         {banner && !maintenance && (
-          <span style={{ display: "flex", alignItems: "flex-start", gap: 10, marginTop: 12, padding: "10px 12px", borderRadius: 12, background: look.wrap, boxShadow: `inset 0 0 0 1px ${look.bd}`, color: C.t1 }}>
+          <span style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 12, background: look.wrap, boxShadow: `inset 0 0 0 1px ${look.bd}`, color: C.t1 }}>
             <span aria-hidden style={{ width: 22, height: 22, borderRadius: 99, background: look.badge, color: look.ink, fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{look.mark}</span>
             <span style={{ minWidth: 0, flex: 1 }}>
               <span style={{ display: "block", fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{banner.title}</span>
@@ -304,9 +323,16 @@ export function BannerHero({ banner, maintenance, loading }: {
             <span aria-hidden style={{ color: C.t3, fontSize: 14, lineHeight: 1 }}>×</span>
           </span>
         )}
-      </>}
-    >
-      <Illu src="/email-assets/ill-notify.png" alt="" max={320} />
+        {!banner && !maintenance && (
+          <span style={{ display: "block", padding: "12px 14px", borderRadius: 12, background: C.hover2, fontSize: 13, color: C.t3 }}>Aucun message : le site s'affiche normalement.</span>
+        )}
+        {maintenance && (
+          <span style={{ display: "block", padding: "14px 16px", borderRadius: 12, background: C.hover2, color: C.t1 }}>
+            <span style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{maintenance.title}</span>
+            <span style={{ display: "block", fontSize: 12.5, color: C.t2, marginTop: 3 }}>Les commandes reprendront à la fin de la maintenance.</span>
+          </span>
+        )}
+      </div>
     </Hero>
   );
 }
@@ -320,7 +346,10 @@ export function TeamHero({ members, loading }: { members: { name: string; role: 
       title={loading ? <span className="mute">…</span> : <><span style={{ color: C.coral }}>{members.length}</span> {plural(members.length, "personne fait", "personnes font")} <span className="mute">tourner Ooble.</span></>}
       sub={Object.entries(roles).map(([r, n]) => `${n} ${r}`).join(" · ") || "Ajoutez un premier membre."}
     >
-      <div className="hz-illu" style={{ maxWidth: 380, margin: "0 auto" }}><TeamIllustration /></div>
+      {members.length > 0 && (
+        <ArcStat title="Rôles dans l'équipe" center={String(members.length)}
+          segments={Object.entries(roles).map(([r, n], i) => ({ label: r, value: n, color: [C.vzGreen, C.vzIndigo, C.vzCoral, C.vzGray, C.sage][i % 5] }))} />
+      )}
     </Hero>
   );
 }

@@ -529,7 +529,7 @@ const CampaignsPanel = () => {
           </div>
         </div>
         <div aria-hidden className="cmp-hero-art">
-          <img src="/email-assets/ill-mail.png" alt="" style={{ display: "block", width: "100%", height: "auto", aspectRatio: "640 / 488" }} />
+          <img src="/illustrations/admin/campaigns.svg" alt="" style={{ display: "block", width: "100%", height: "auto", aspectRatio: "760 / 580" }} />
         </div>
       </section>
 
