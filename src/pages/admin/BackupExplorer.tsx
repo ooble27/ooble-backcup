@@ -347,7 +347,8 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
 
   const intact = backup.mismatched.length === 0 && backup.missing.length === 0 && backup.checked > 0;
   const when = backupDate(backup.manifest?.created_utc);
-  const go = (v: View) => { setView(v); window.scrollTo({ top: 0 }); };
+  const mainRef = useRef<HTMLElement | null>(null);
+  const go = (v: View) => { setView(v); window.scrollTo({ top: 0 }); mainRef.current?.scrollTo({ top: 0 }); };
 
   const doExport = async () => {
     const tables = [...tableNames.main, ...tableNames.rest]
@@ -414,7 +415,9 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
 
   return (
     <>
-      <TopBar bg={narrow ? C.bg : C.ground} title={narrow && view ? title : when ? `Sauvegarde du ${when}` : "Sauvegarde"} onBack={narrow && view ? () => setView(null) : undefined}>
+      {narrow ? (
+        <>
+        <TopBar bg={narrow ? C.bg : C.ground} title={narrow && view ? title : when ? `Sauvegarde du ${when}` : "Sauvegarde"} onBack={narrow && view ? () => setView(null) : undefined}>
         <span title={intact ? "Empreintes vérifiées" : "Fichiers abîmés"} style={{
           display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: narrow ? "7px" : "5px 10px", borderRadius: 99,
           background: intact ? C.successBg : C.dangerBg, color: intact ? C.successText : C.dangerText, flexShrink: 0,
@@ -426,16 +429,30 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
           Fermer
         </button>
       </TopBar>
-
-      {narrow ? (
         <div>{view ? <div style={{ padding: "20px 16px 60px" }}>{content}</div> : sidebar}</div>
+        </>
       ) : (
-        // Comme le back-office : la colonne sur le fond, le contenu dans un écrin arrondi.
-        <div style={{ display: "grid", gridTemplateColumns: "264px minmax(0, 1fr)", minHeight: "calc(100vh - 57px)", background: C.ground, padding: "0 8px 8px 0" }}>
-          <aside style={{ position: "sticky", top: 57, alignSelf: "start", maxHeight: "calc(100vh - 57px)", overflowY: "auto", overflowX: "hidden", minWidth: 0 }}>
-            {sidebar}
-          </aside>
-          <main style={{ padding: "28px 32px 80px", minWidth: 0, borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }}>{content}</main>
+        // Comme le back-office : l'écran est fixe (il ne défile pas, ne rebondit pas) ; la colonne
+        // défile sur le fond, le contenu défile dans son écrin arrondi, bordé tout autour.
+        <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: C.ground, overflow: "hidden", overscrollBehavior: "none" }}>
+          <TopBar bg={narrow ? C.bg : C.ground} title={narrow && view ? title : when ? `Sauvegarde du ${when}` : "Sauvegarde"} onBack={narrow && view ? () => setView(null) : undefined}>
+        <span title={intact ? "Empreintes vérifiées" : "Fichiers abîmés"} style={{
+          display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: narrow ? "7px" : "5px 10px", borderRadius: 99,
+          background: intact ? C.successBg : C.dangerBg, color: intact ? C.successText : C.dangerText, flexShrink: 0,
+        }}>
+          <ShieldCheck style={{ width: 13, height: 13 }} /> {!narrow && (intact ? "Intacte" : "Fichiers abîmés")}
+        </span>
+        <button type="button" className="bx-btn" onClick={onClose}
+          style={{ height: 34, padding: "0 12px", borderRadius: 9, border: `1px solid ${C.bds}`, background: "none", color: C.t2, fontFamily: FONT, fontSize: 12.5, cursor: "pointer", flexShrink: 0 }}>
+          Fermer
+        </button>
+      </TopBar>
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "264px minmax(0, 1fr)", padding: "0 10px 10px 0" }}>
+            <aside style={{ overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", minWidth: 0, minHeight: 0 }}>
+              {sidebar}
+            </aside>
+            <main ref={mainRef} style={{ overflowY: "auto", overscrollBehavior: "contain", minWidth: 0, minHeight: 0, padding: "28px 32px 80px", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }}>{content}</main>
+          </div>
         </div>
       )}
 

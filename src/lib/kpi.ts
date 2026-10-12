@@ -10,6 +10,15 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetchAll";
+
+// Fonctions de calcul de la base (sommes et comptes) : le tableau de bord ne télécharge plus les commandes.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const rpc = (fn: string, args: Record<string, unknown>) => (supabase.rpc as any)(fn, args) as Promise<{ data: unknown; error: { message: string } | null }>;
+type Total = { current: boolean; side: "buy" | "sell"; n: number; cad: number; usdt: number };
+async function orderTotals(since: string, split: string, statuses: readonly string[]): Promise<Total[] | null> {
+  const { data, error } = await rpc("admin_order_totals", { _since: since, _split: split, _statuses: statuses });
+  return error ? null : ((data ?? []) as Total[]);
+}
 import type { Database } from "@/integrations/supabase/types";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
@@ -63,51 +72,32 @@ const emptySlice = (): VolumeSlice => ({
   buyCad: 0, buyUsdt: 0, sellCad: 0, sellUsdt: 0, buyCount: 0, sellCount: 0,
 });
 
-type VolRow = { side: DbSide; cad_amount: number; usdt_amount: number };
-
-function aggregate(rows: VolRow[]): VolumeSlice {
-  const s = emptySlice();
-  for (const r of rows) {
-    const cad = Number(r.cad_amount) || 0;
-    const usdt = Number(r.usdt_amount) || 0;
-    if (r.side === "buy") { s.buyCad += cad; s.buyUsdt += usdt; s.buyCount++; }
-    else { s.sellCad += cad; s.sellUsdt += usdt; s.sellCount++; }
-  }
-  return s;
-}
-
 /** Volume sur `periodDays` derniers jours + période précédente équivalente. */
 export async function getVolumeMetrics({ periodDays }: { periodDays: number }): Promise<VolumeMetrics> {
   const now = new Date();
   const startCurrent = new Date(now.getTime() - periodDays * DAY_MS).toISOString();
   const startPrev = new Date(now.getTime() - 2 * periodDays * DAY_MS).toISOString();
 
-  // Par tranches : une période chargée peut dépasser 1 000 commandes.
-  const { data, error } = await fetchAll((a, b) => supabase
-    .from("orders")
-    .select("side, cad_amount, usdt_amount, created_at, status")
-    .in("status", ACTIVE_STATUSES)
-    .gte("created_at", startPrev)
-    .order("id")
-    .range(a, b)).then((d) => ({ data: d, error: null }), () => ({ data: null, error: true }));
-
-  if (error || !data) {
+  const totals = await orderTotals(startPrev, startCurrent, ACTIVE_STATUSES);
+  if (!totals) {
     return {
       period: emptySlice(),
       previous: emptySlice(),
       totalCad: 0, totalUsdt: 0, count: 0, changePct: null,
     };
   }
+  const slice = (current: boolean) => {
+    const out = emptySlice();
+    for (const t of totals.filter((x) => x.current === current)) {
+      if (t.side === "buy") { out.buyCad += Number(t.cad); out.buyUsdt += Number(t.usdt); out.buyCount += Number(t.n); }
+      else { out.sellCad += Number(t.cad); out.sellUsdt += Number(t.usdt); out.sellCount += Number(t.n); }
+    }
+    return out;
+  };
+  const cur = { length: totals.filter((x) => x.current).reduce((n, x) => n + Number(x.n), 0) };
 
-  const cur: VolRow[] = [];
-  const prev: VolRow[] = [];
-  for (const r of data as (VolRow & { created_at: string })[]) {
-    if (r.created_at >= startCurrent) cur.push(r);
-    else prev.push(r);
-  }
-
-  const period = aggregate(cur);
-  const previous = aggregate(prev);
+  const period = slice(true);
+  const previous = slice(false);
   const totalCad = period.buyCad + period.sellCad;
   const totalUsdt = period.buyUsdt + period.sellUsdt;
   const totalPrevCad = previous.buyCad + previous.sellCad;
@@ -141,26 +131,13 @@ export async function getMarginMetrics({ periodDays }: { periodDays: number }): 
   const startCurrent = new Date(now.getTime() - periodDays * DAY_MS).toISOString();
   const startPrev = new Date(now.getTime() - 2 * periodDays * DAY_MS).toISOString();
 
-  const { data, error } = await fetchAll((a, b) => supabase
-    .from("orders")
-    .select("cad_amount, created_at")
-    .in("status", REVENUE_STATUSES)
-    .gte("created_at", startPrev)
-    .order("id")
-    .range(a, b)).then((d) => ({ data: d, error: null }), () => ({ data: null, error: true }));
-
-  if (error || !data) {
+  const totals = await orderTotals(startPrev, startCurrent, REVENUE_STATUSES);
+  if (!totals) {
     return { marginCad: 0, previousMarginCad: 0, changePct: null, completedCount: 0 };
   }
-
-  let curVolume = 0;
-  let prevVolume = 0;
-  let curCount = 0;
-  for (const r of data as { cad_amount: number; created_at: string }[]) {
-    const v = Number(r.cad_amount) || 0;
-    if (r.created_at >= startCurrent) { curVolume += v; curCount++; }
-    else { prevVolume += v; }
-  }
+  const curVolume = totals.filter((t) => t.current).reduce((n, t) => n + Number(t.cad), 0);
+  const prevVolume = totals.filter((t) => !t.current).reduce((n, t) => n + Number(t.cad), 0);
+  const curCount = totals.filter((t) => t.current).reduce((n, t) => n + Number(t.n), 0);
 
   const marginCad = curVolume * MARKUP;
   const previousMarginCad = prevVolume * MARKUP;
@@ -229,33 +206,22 @@ export interface CustomerFunnel {
 export async function getCustomerFunnel(): Promise<CustomerFunnel> {
   const start30 = daysAgoIso(30);
 
-  const [totalRes, verifiedRes, ordersRes, activeRes] = await Promise.all([
+  const [totalRes, verifiedRes, funnelRes] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .eq("kyc_status", "approved" as DbKycStatus),
-    fetchAll<{ user_id: string }>((a, b) => supabase.from("orders").select("user_id").order("id").range(a, b)).then((d) => ({ data: d }), () => ({ data: [] })),
-    fetchAll<{ user_id: string }>((a, b) => supabase.from("orders").select("user_id").gte("created_at", start30).order("id").range(a, b)).then((d) => ({ data: d }), () => ({ data: [] })),
+    rpc("admin_customer_funnel", { _active_since: start30 }),
   ]);
 
   const total = totalRes.count ?? 0;
   const verified = verifiedRes.count ?? 0;
 
-  const ordersByUser = new Map<string, number>();
-  for (const r of (ordersRes.data ?? []) as { user_id: string }[]) {
-    ordersByUser.set(r.user_id, (ordersByUser.get(r.user_id) ?? 0) + 1);
-  }
-  let firstOrder = 0;
-  let repeat = 0;
-  for (const n of ordersByUser.values()) {
-    if (n >= 1) firstOrder++;
-    if (n >= 2) repeat++;
-  }
-
-  const active30d = new Set(
-    ((activeRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id),
-  ).size;
+  const f = (funnelRes.data ?? {}) as { first_order?: number; repeat?: number; active?: number };
+  const firstOrder = Number(f.first_order ?? 0);
+  const repeat = Number(f.repeat ?? 0);
+  const active30d = Number(f.active ?? 0);
 
   return { total, verified, firstOrder, repeat, active30d };
 }
@@ -302,13 +268,7 @@ const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
 export async function getDailyVolume({ days }: { days: number }): Promise<DailyVolumePoint[]> {
   const start = daysAgoIso(days);
 
-  const { data, error } = await fetchAll((a, b) => supabase
-    .from("orders")
-    .select("side, cad_amount, created_at, status")
-    .in("status", ACTIVE_STATUSES)
-    .gte("created_at", start)
-    .order("id")
-    .range(a, b)).then((d) => ({ data: d, error: null }), () => ({ data: null, error: true }));
+  const { data, error } = await rpc("admin_order_daily", { _since: start, _statuses: ACTIVE_STATUSES });
 
   // Prépare les N buckets même si aucune donnée — évite les creux invisibles.
   const buckets: Map<string, DailyVolumePoint> = new Map();
@@ -319,11 +279,11 @@ export async function getDailyVolume({ days }: { days: number }): Promise<DailyV
   }
 
   if (!error && data) {
-    for (const r of data as { side: DbSide; cad_amount: number; created_at: string }[]) {
-      const key = r.created_at.slice(0, 10);
+    for (const r of data as { side: DbSide; cad: number; day: string }[]) {
+      const key = r.day;
       const b = buckets.get(key);
       if (!b) continue;
-      const v = Number(r.cad_amount) || 0;
+      const v = Number(r.cad) || 0;
       if (r.side === "buy") b.buyCad += v;
       else b.sellCad += v;
       b.totalCad += v;
