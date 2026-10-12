@@ -424,7 +424,8 @@ const AdminPortal = () => {
         <div style={{ position: "fixed", inset: 0, zIndex: 80 }}>
           {/* Sans voile sombre : iOS ne pourrait pas assombrir la barre d'état, une bande claire resterait en haut. */}
           <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: "transparent" }} />
-          <aside style={{ position: "absolute", top: "var(--a-top, env(safe-area-inset-top, 0px))", bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
+          {/* Toute la hauteur, de la couleur de la page : le haut se fond dans la barre d'état, aucune bande. */}
+          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.bg, borderRadius: "0 0 22px 0", boxShadow: "8px 0 32px -12px rgba(0,0,0,.28)", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
             {sidebar(true)}
           </aside>
         </div>

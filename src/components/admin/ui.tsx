@@ -18,6 +18,15 @@ export const UI_CSS = `
 .ws-flat { --ft: 0px; --fb: 0px; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); }
 .ws-flat[data-top="1"] { --ft: 36px; }
 .ws-flat[data-bottom="1"] { --fb: 36px; }
+/* Téléphone : l'espace de travail occupe tout l'écran, d'une seule couleur (celle de la barre d'état),
+   sans écrin arrondi, sans ombre ni fondu sur les bords : rien ne se superpose, rien ne coupe le texte. */
+@media (max-width: 767px) {
+  .ws-root, .ws-head { background: var(--a-bg) !important; }
+  .ws-body { padding: 0 0 env(safe-area-inset-bottom, 0px) !important; }
+  .ws-card { border-radius: 0 !important; box-shadow: none !important; }
+  .ws-flat { -webkit-mask-image: none; mask-image: none; }
+  .ui-side { background: var(--a-bg) !important; box-shadow: none !important; }
+}
 @keyframes ui-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 @keyframes ui-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes ui-slide { from { opacity: 0; transform: translateX(28px) } to { opacity: 1; transform: none } }
@@ -199,7 +208,7 @@ export function WsPane({ children, style, className, flat }: { children: React.R
     return () => { el.removeEventListener("scroll", sync); ro.disconnect(); };
   }, [flat]);
   return (
-    <div ref={ref} className={[className, flat ? "ws-flat" : ""].filter(Boolean).join(" ") || undefined} style={{
+    <div ref={ref} className={[className, flat ? "ws-flat" : "ws-card"].filter(Boolean).join(" ")} style={{
       minWidth: 0, minHeight: 0, overflowY: "auto",
       ...(flat ? { background: "transparent" } : { borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }),
       ...style,
@@ -255,10 +264,10 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
   };
 
   return createPortal(
-    <div className="admin-scope" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Espace de travail"}
+    <div className="admin-scope ws-root" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Espace de travail"}
       style={{ position: "fixed", inset: 0, zIndex: 2147482000, background: C.ground, color: C.t1, fontFamily: FONT, display: "flex", flexDirection: "column", animation: `ui-fade .2s ${UI_EASE}` }}>
       <UIStyles />
-      <header style={{ flexShrink: 0, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.ground }}>
+      <header className="ws-head" style={{ flexShrink: 0, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.ground }}>
         <div style={{ height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 12px 0 10px" }}>
           <Button variant="ghost" aria-label={closeLabel} title={closeLabel} onClick={onClose} icon={<X style={{ width: 18, height: 18 }} />} />
           <div style={{ minWidth: 0, flex: "1 1 auto" }}>
@@ -278,7 +287,7 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
           </nav></div>
         )}
       </header>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 8px calc(8px + env(safe-area-inset-bottom, 0px))" }}>
+      <div className="ws-body" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 8px calc(8px + env(safe-area-inset-bottom, 0px))" }}>
         {panes ? children : <WsPane style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>{children}</WsPane>}
       </div>
     </div>,
@@ -301,7 +310,7 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
       <UIStyles />
       {/* Le voile couvre tout l'écran, barre d'état comprise : pas de bande plus claire en haut. */}
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
-      <aside role="dialog" aria-modal="true" style={{
+      <aside role="dialog" aria-modal="true" className="ui-side" style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: `min(${width}px, 100vw)`, background: C.l1, boxShadow: C.panelShadow,
         display: "flex", flexDirection: "column", animation: `ui-slide .28s ${UI_EASE}`, pointerEvents: "auto",
       }}>

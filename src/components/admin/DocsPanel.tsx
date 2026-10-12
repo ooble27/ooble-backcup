@@ -36,7 +36,7 @@ const DOCS_CSS = `
 .dk-seg { all: unset; cursor: pointer; height: 100%; border-radius: 3px; transition: opacity .15s, transform .15s; }
 .dk-seg:hover, .dk-seg:focus-visible { transform: scaleY(1.18); }
 .dk-read { border-radius: 16px; background: var(--a-bg); box-shadow: 0 0 0 1px var(--a-bds), 0 1px 3px rgba(0,0,0,.05); padding: 28px 32px 32px; min-width: 0; }
-@media (max-width: 640px) { .dk-read { padding: 22px 18px 26px; } }
+@media (max-width: 640px) { .dk-read { padding: 6px 0 26px; border-radius: 0; box-shadow: none; background: transparent; } }
 .dk-spine { all: unset; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; border-radius: 6px 6px 3px 3px; transition: transform .18s, opacity .18s; }
 .dk-spine:hover { transform: translateY(-4px); }
 .dk-spine:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }

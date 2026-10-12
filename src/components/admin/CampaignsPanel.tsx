@@ -177,6 +177,8 @@ const PANEL_CSS = `
 .cmp-dialog[data-show="true"] { opacity: 1; transform: none !important; }
 .cmp-full { inset: 0; transform: translateY(28px) scale(0.985); }
 @media (min-width: 768px) { .cmp-full { inset: 16px; border-radius: 18px; } }
+/* Téléphone : plein écran de la couleur de la page (et de la barre d'état), sans ombre. */
+@media (max-width: 767px) { .cmp-full { background: var(--a-bg) !important; box-shadow: none !important; } }
 .cmp-sheet { left: 0; right: 0; bottom: 0; max-height: 88vh; border-radius: 20px 20px 0 0; transform: translateY(100%); }
 @media (min-width: 768px) {
   .cmp-sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: min(720px, calc(100vw - 48px)); max-height: 82vh; border-radius: 18px; transform: translate(-50%, -46%) scale(0.97); }
@@ -744,6 +746,18 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
     </>
   );
 
+  const actions = (desk: boolean) => (
+    <>
+      <CtaPill full autoFocus={desk} onClick={() => onUse(t.id, lang)}>Personnaliser ce modèle</CtaPill>
+      <button type="button" onClick={() => onTest(t, lang)} disabled={test?.kind === "busy"} className="ui-btn ui-btn-ghost"
+        style={{ height: 42, borderRadius: 10, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}>
+        {test?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : test?.kind === "ok" ? <Check style={{ width: 14, height: 14, color: C.successText }} strokeWidth={2.4} /> : <Send style={{ width: 14, height: 14 }} strokeWidth={1.8} />}
+        {test?.kind === "ok" ? "Test envoyé dans votre boîte" : `M'envoyer un test en ${lang === "fr" ? "français" : "anglais"}`}
+      </button>
+      {test?.kind === "err" && <p style={{ margin: 0, fontSize: 12, color: C.dangerText, textAlign: "center" }}>{test.text}</p>}
+    </>
+  );
+
   return (
     <Modal open={index !== null} onClose={onClose} variant="full" label={`Aperçu : ${t.name}`}>
       {/* En-tête posé sur le fond : aucun trait. */}
@@ -761,7 +775,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto px-2 pb-2 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:content-stretch lg:overflow-hidden">
         {/* Courriel, dans un volet arrondi ; flèches flottantes pour parcourir les modèles. */}
-        <div className="h-[74vh] lg:h-auto" style={{ position: "relative", minHeight: 0, borderRadius: 16, background: "var(--cmp-stage)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div className="h-[calc(100dvh-220px-var(--a-top,0px))] min-h-[360px] lg:h-auto lg:min-h-0" style={{ position: "relative", minHeight: 0, borderRadius: 16, background: "var(--cmp-stage)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div className="flex justify-center gap-2 pt-3 sm:hidden">{switches}</div>
           <div key={`${t.id}:${lang}:${device}`} className="cmp-rise" style={{ flex: 1, minHeight: 0, padding: "20px 62px 52px" }}>
             <DevicePreview html={html} device={device} title={`${t.name} (${lang})`} fit />
@@ -780,7 +794,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
         </div>
 
         {/* Infos et actions, dans un second volet. */}
-        <aside style={{ minHeight: 0, padding: "14px 14px 14px 22px", display: "flex", flexDirection: "column", gap: 22, overflowY: "auto" }}>
+        <aside className="lg:overflow-y-auto" style={{ minHeight: 0, padding: "14px 14px 14px 22px", display: "flex", flexDirection: "column", gap: 22 }}>
           <div>
             <p style={{ margin: "0 0 10px", fontSize: 12, color: C.t3 }}>Dans la boîte de réception</p>
             <InboxRow subject={inbox.subject} preheader={inbox.preheader} />
@@ -798,17 +812,15 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
             </div>
           </div>
 
-          <div style={{ marginTop: "auto", display: "grid", gap: 10 }}>
-            <CtaPill full autoFocus onClick={() => onUse(t.id, lang)}>Personnaliser ce modèle</CtaPill>
-            <button type="button" onClick={() => onTest(t, lang)} disabled={test?.kind === "busy"} className="ui-btn ui-btn-ghost"
-              style={{ height: 42, borderRadius: 10, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}>
-              {test?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : test?.kind === "ok" ? <Check style={{ width: 14, height: 14, color: C.successText }} strokeWidth={2.4} /> : <Send style={{ width: 14, height: 14 }} strokeWidth={1.8} />}
-              {test?.kind === "ok" ? "Test envoyé dans votre boîte" : `M'envoyer un test en ${lang === "fr" ? "français" : "anglais"}`}
-            </button>
-            {test?.kind === "err" && <p style={{ margin: 0, fontSize: 12, color: C.dangerText, textAlign: "center" }}>{test.text}</p>}
-            <p className="hidden lg:block" style={{ margin: 0, fontSize: 11.5, color: C.t3, textAlign: "center" }}>← → pour parcourir · Échap pour fermer</p>
+          <div className="hidden lg:grid" style={{ marginTop: "auto", gap: 10 }}>
+            {actions(true)}
+            <p style={{ margin: 0, fontSize: 11.5, color: C.t3, textAlign: "center" }}>← → pour parcourir · Échap pour fermer</p>
           </div>
         </aside>
+      </div>
+      {/* Téléphone et tablette : les actions restent en bas de l'écran, jamais cachées derrière l'aperçu. */}
+      <div className="grid lg:hidden" style={{ flexShrink: 0, gap: 4, padding: "10px 14px calc(6px + env(safe-area-inset-bottom, 0px))" }}>
+        {actions(false)}
       </div>
     </Modal>
   );
@@ -1212,7 +1224,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
       {recipients.length === 0 ? (
         <p style={{ margin: "14px 0 0", fontSize: 14, color: C.t3, lineHeight: 1.6, maxWidth: 360 }}>Personne pour l'instant. Ajoutez des clients un par un, ou tout un groupe d'un seul geste.</p>
       ) : (
-        <div style={{ marginTop: 20, display: "grid", gap: 2 }}>
+        <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 2 }}>
           {recipients.slice(0, 300).map((r) => {
             const l = langFor(r, sendLang, unknownLang);
             return (
