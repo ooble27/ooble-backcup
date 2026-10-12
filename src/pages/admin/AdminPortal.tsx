@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight, BookOpen, BookMarked, FileCode2,
+  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight, BookOpen, BookMarked, FileCode2, Library, ChevronDown,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { type AdminOrder } from "@/lib/adminOrders";
@@ -39,7 +39,7 @@ import { fetchCached, peek, put } from "@/lib/adminCache";
 export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
 
 interface NavItem { id: TabId; label: string; desc: string; icon: typeof Inbox }
-interface NavGroup { label: string | null; items: NavItem[] }
+interface NavGroup { label: string | null; items: NavItem[]; menu?: { label: string; icon: typeof Inbox } }
 
 const GROUPS: NavGroup[] = [
   { label: null, items: [
@@ -67,7 +67,8 @@ const GROUPS: NavGroup[] = [
     { id: "team", label: "Équipe", desc: "Membres, rôles et permissions, et le journal de toutes les actions de l'équipe.", icon: Users },
     { id: "platform", label: "Plateforme", desc: "Lancement, données de test et sauvegardes.", icon: Power },
   ] },
-  { label: "Ressources", items: [
+  // Ressources : un seul bouton qui se déplie, au lieu de trois entrées de plus dans le menu.
+  { label: "Ressources", menu: { label: "Ressources", icon: Library }, items: [
     { id: "kb", label: "Base de connaissances", desc: "Une fiche par geste du quotidien, pour toute l'équipe.", icon: BookOpen },
     { id: "manual", label: "Manuel", desc: "La référence de fonctionnement d'Ooble, chapitre par chapitre.", icon: BookMarked },
     { id: "techdocs", label: "Documentation technique", desc: "Architecture, base de données, fonctions, secrets et reprise. Administrateurs.", icon: FileCode2 },
@@ -95,6 +96,11 @@ const SHELL_CSS = `
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 .sh-icon:hover { background: var(--a-hover2); color: var(--a-t1) }
 .sh-search:hover { border-color: var(--a-bd); color: var(--a-t2) }
+.sh-sub { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s cubic-bezier(.22,1,.36,1) }
+.sh-sub[data-open="true"] { grid-template-rows: 1fr }
+.sh-sub > div { overflow: hidden; min-height: 0 }
+.sh-chev { transition: transform .22s cubic-bezier(.22,1,.36,1) }
+@media (prefers-reduced-motion: reduce) { .sh-sub, .sh-chev { transition: none } }
 @keyframes sh-drawer { from { transform: translateX(-24px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes sh-page { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 /* Pas d'animation d'entrée : changer de page ne doit jamais clignoter. */
@@ -151,6 +157,9 @@ const AdminPortal = () => {
   const visibleNav = useMemo(() => NAV.filter((n) => allowedTabs.has(n.id)), [allowedTabs]);
 
   const [tab, setTabState] = useState<TabId>(() => readTab() ?? "dashboard");
+  // Menu « Ressources » : ouvert d'office quand on est sur une de ses pages.
+  const [menuOpen, setMenuOpen] = useState(() => GROUP_OF.get(readTab() ?? "dashboard") === "Ressources");
+  useEffect(() => { if (GROUP_OF.get(tab) === "Ressources") setMenuOpen(true); }, [tab]);
   useEffect(() => {
     if (visibleNav.length > 0 && !allowedTabs.has(tab)) setTabState(visibleNav[0].id);
   }, [visibleNav, allowedTabs, tab]);
@@ -306,10 +315,11 @@ const AdminPortal = () => {
           )}
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: compact ? "4px 0 10px" : "4px 12px 14px", display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center" }}>
-          {visibleGroups.map((g, gi) => (
-            <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 14) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
-              {g.label && !compact && <p style={{ margin: "0 12px 6px", fontSize: 12, color: C.t3, letterSpacing: "0.01em" }}>{g.label}</p>}
-              {g.items.map((it) => {
+          {visibleGroups.map((g, gi) => {
+            const isMenu = !!g.menu;
+            const inMenu = isMenu && g.items.some((i) => i.id === tab);
+            const MenuIcon = g.menu?.icon ?? Library;
+            const itemButtons = g.items.map((it) => {
                 const on = it.id === tab;
                 const Icon = it.icon;
                 const n = badges[it.id];
@@ -331,9 +341,44 @@ const AdminPortal = () => {
                       : <span style={{ fontSize: 12, minWidth: 22, height: 22, padding: "0 7px", borderRadius: 99, background: C.warnBg, color: C.warnText, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
                   </button>
                 );
-              })}
-            </div>
-          ))}
+              });
+            return (
+              <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 14) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                {g.label && !compact && !isMenu && <p style={{ margin: "0 12px 6px", fontSize: 12, color: C.t3, letterSpacing: "0.01em" }}>{g.label}</p>}
+                {!isMenu ? itemButtons : (
+                  <>
+                    <button type="button" className="sh-nav" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}
+                      aria-label={compact ? g.menu!.label : undefined}
+                      style={{
+                        position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+                        ...(compact
+                          ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
+                          : { width: "100%", height: 38, padding: "0 12px", borderRadius: 10, marginBottom: 1 }),
+                        background: inMenu && !menuOpen ? C.hover4 : "transparent",
+                        color: inMenu ? C.t1 : C.t2, fontSize: 14.5, fontWeight: inMenu ? 500 : 400,
+                      }}>
+                      <MenuIcon style={{ width: compact ? 23 : 18, height: compact ? 23 : 18, flexShrink: 0 }} strokeWidth={inMenu ? 2 : 1.75} />
+                      {!compact && <span style={{ flex: 1, minWidth: 0 }}>{g.menu!.label}</span>}
+                      <ChevronDown className="sh-chev" style={{
+                        width: compact ? 12 : 16, height: compact ? 12 : 16, color: C.t3, flexShrink: 0, transform: menuOpen ? "rotate(180deg)" : "none",
+                        ...(compact ? { position: "absolute", bottom: 3, left: "50%", marginLeft: -6 } : {}),
+                      }} />
+                    </button>
+                    <div className="sh-sub" data-open={menuOpen} style={{ width: compact ? 52 : "100%" }}>
+                      <div>
+                        <div style={{
+                          display: "flex", flexDirection: "column", alignItems: compact ? "center" : "stretch", gap: 2,
+                          ...(compact ? { padding: "4px 0", marginTop: 2, borderRadius: 14, background: C.hover2 } : { padding: "2px 0 2px 18px" }),
+                        }}>
+                          {itemButtons}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div style={{ padding: compact ? "8px 0 calc(14px + env(safe-area-inset-bottom, 0px))" : "10px 12px 14px", display: "flex", alignItems: "center", justifyContent: compact ? "center" : "flex-start", gap: 10, flexShrink: 0 }}>
           {compact ? (
@@ -370,8 +415,9 @@ const AdminPortal = () => {
       ? { position: "fixed", inset: 0, overflow: "hidden", background: C.ground, color: C.t1, fontFamily: FONT }
       : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {/* Bande pleine derrière la barre d'état (iPhone, iPad) : iOS reprend sa couleur au lieu de flouter
-          le haut de la page, et le voile du menu ouvert la couvre comme le reste. */}
-      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: panel ? "calc(var(--a-top, env(safe-area-inset-top, 0px)) + 8px)" : "var(--a-top, env(safe-area-inset-top, 0px))", background: panel ? C.ground : C.bg, zIndex: 70 }} />
+          le haut de la page, et le voile du menu ouvert la couvre comme le reste.
+          Elle s'arrête 4 px au-dessus de l'écrin : le trait du haut de l'écrin reste visible, fermé comme celui du bas. */}
+      <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: panel ? "calc(var(--a-top, env(safe-area-inset-top, 0px)) + 4px)" : "var(--a-top, env(safe-area-inset-top, 0px))", background: panel ? C.ground : C.bg, zIndex: 70 }} />
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
           {sidebar(false)}
