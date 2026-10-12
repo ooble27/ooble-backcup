@@ -19,6 +19,7 @@ import ClientProfile from "@/components/admin/ClientProfile";
 import CompliancePanel from "@/components/admin/CompliancePanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
 import KpiDashboard from "@/components/admin/KpiDashboard";
+import { DialNav } from "@/components/admin/DialNav";
 import AnnouncementsPanel from "@/components/admin/AnnouncementsPanel";
 import SettlementPanel from "@/components/admin/SettlementPanel";
 import MailboxPanel from "@/components/admin/MailboxPanel";
@@ -36,6 +37,9 @@ import ThemeToggle from "@/components/app/ThemeToggle";
 import { AutoSettle } from "@/components/admin/icons";
 import { prefetchAdmin } from "@/lib/adminData";
 import { fetchCached, peek, put } from "@/lib/adminCache";
+
+/** Téléphone : navigation en cadran (false = ancien menu latéral). */
+const DIAL_NAV = true;
 
 export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
 
@@ -426,7 +430,11 @@ const AdminPortal = () => {
         </aside>
       )}
 
-      {drawer && mode === "drawer" && (
+      {DIAL_NAV && mode === "drawer" && (
+        <DialNav current={tab} onSelect={(id) => setTab(id as TabId)}
+          items={visibleGroups.flatMap((g) => g.items).map((it) => ({ id: it.id, label: it.label, desc: it.desc, icon: it.icon, badge: badges[it.id] }))} />
+      )}
+      {!DIAL_NAV && drawer && mode === "drawer" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 80 }}>
           {/* Sans voile sombre : iOS ne pourrait pas assombrir la barre d'état, une bande claire resterait en haut. */}
           <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: "transparent" }} />
@@ -528,9 +536,11 @@ const AdminPortal = () => {
         {/* Téléphone : pas de barre ni de bande ; deux boutons ronds et le nom de la page, qui défilent avec elle. */}
         <header style={{ paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
           <div style={{ height: 64, display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
-            <button type="button" className="sh-round" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}>
-              <Menu style={{ width: 18, height: 18 }} strokeWidth={1.9} />
-            </button>
+            {DIAL_NAV ? <span aria-hidden style={{ width: 40, flexShrink: 0 }} /> : (
+              <button type="button" className="sh-round" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}>
+                <Menu style={{ width: 18, height: 18 }} strokeWidth={1.9} />
+              </button>
+            )}
             <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
               {(() => {
                 const last = crumbs[crumbs.length - 1];
