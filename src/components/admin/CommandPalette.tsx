@@ -83,19 +83,20 @@ export default function CommandPalette({ nav, orders, onClose, onTab, onOrder, o
     <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147482800, fontFamily: FONT, color: C.t1 }} onKeyDown={onKey}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "ui-fade .15s ease" }} />
       <div role="dialog" aria-modal="true" aria-label="Recherche" style={{
-        position: "absolute", left: "50%", top: "min(14vh, 120px)", transform: "translateX(-50%)", width: "min(620px, calc(100vw - 24px))",
+        position: "absolute", left: "50%", top: "calc(env(safe-area-inset-top, 0px) + min(10vh, 96px))", transform: "translateX(-50%)", width: "min(620px, calc(100vw - 24px))",
         background: C.l1, border: `1px solid ${C.bd}`, borderRadius: 14, boxShadow: C.shadowHeavy, overflow: "hidden", animation: "ui-in .2s cubic-bezier(.22,1,.36,1)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 16px", borderBottom: `1px solid ${C.bds}` }}>
           <Search style={{ width: 17, height: 17, color: C.t3, flexShrink: 0 }} />
           {/* Champ de recherche, pas un formulaire : Safari ne propose ni contact ni adresse à préremplir. */}
-          <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Page, commande, client, courriel…" aria-label="Rechercher"
+          <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Une page, une commande, un client…" aria-label="Recherche dans le back-office"
             type="search" name="ooble-admin-search" autoFocus autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} enterKeyHint="go"
             data-1p-ignore data-lpignore="true" data-form-type="other"
             style={{ WebkitAppearance: "none", appearance: "none", minWidth: 0, flex: 1, height: 54, border: "none", outline: "none", background: "transparent", color: C.t1, fontFamily: FONT, fontSize: 16 }} />
           <kbd style={{ fontFamily: FONT, fontSize: 11, padding: "2px 6px", borderRadius: 5, border: `1px solid ${C.bds}`, color: C.t3 }}>Échap</kbd>
         </div>
-        <div ref={list} style={{ maxHeight: "min(60vh, 460px)", overflowY: "auto", padding: 6 }}>
+        {/* Hauteur fixe : la fenêtre ne change pas de taille à chaque lettre tapée. */}
+        <div ref={list} style={{ height: "min(56vh, 440px)", overflowY: "auto", overscrollBehavior: "contain", padding: 6 }}>
           {flat.length === 0 && (
             <p style={{ margin: 0, padding: "28px 12px", textAlign: "center", fontSize: 13.5, color: C.t3 }}>
               {clients === null && canSeeClients ? "Recherche…" : `Aucun résultat pour « ${q} ».`}

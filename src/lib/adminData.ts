@@ -9,6 +9,7 @@ import { fetchKyc } from "./adminKyc";
 import { fetchKyb } from "./adminKyb";
 import { fetchTeam } from "./adminTeam";
 import { fetchThreads } from "./mailThreads";
+import { fetchClientDirectory } from "./adminClient";
 import { fetchAlerts, fetchChecklist, fetchDeclarations } from "./complianceLive";
 
 /** Appel de la fonction « reset-test-data » (aperçu, réinitialisation, lancement). */
@@ -39,7 +40,7 @@ export const loadBackupRuns = <T,>() => fetchCached<T[]>("pf.backups", async () 
 }, { persist: true });
 
 /** Préchargement discret, selon les onglets auxquels la personne a accès. */
-export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; kyc?: boolean; clients?: boolean; compliance?: boolean; mailbox?: boolean; team?: boolean }) {
+export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; kyc?: boolean; clients?: boolean; compliance?: boolean; mailbox?: boolean; team?: boolean; campaigns?: boolean }) {
   // Listes avec données clients : en mémoire pour la session seulement.
   if (tabs.kyc) { prefetch("kyc", fetchKyc); prefetch("kyb", fetchKyb); }
   if (tabs.clients) prefetch("clients.admin", async () => {
@@ -53,6 +54,7 @@ export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; ky
   });
   if (tabs.mailbox) prefetch("mail.threads", fetchThreads);
   if (tabs.team) prefetch("team", fetchTeam);
+  if (tabs.campaigns) prefetch("clients.directory2000", () => fetchClientDirectory(2000));
   if (tabs.settlement) {
     prefetch("st.wallets", fetchWallets, { persist: true, keep: (w) => !!w.ok });
     prefetch("st.scan", fetchScanState, { persist: true });

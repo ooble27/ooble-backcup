@@ -117,8 +117,8 @@ function AmountPicker({ label, unit, value, choices, onChange, disabled }: {
   const list = [...new Set([...choices, Number(value) || 0])].filter((n) => n > 0).sort((a, b) => a - b);
   return (
     <label className="st-pick" style={{
-      position: "relative", display: "block", minWidth: 0, padding: "12px 40px 12px 14px", borderRadius: 14,
-      background: C.l1, boxShadow: `inset 0 0 0 1px ${C.bds}`, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1,
+      position: "relative", display: "block", minWidth: 0, padding: "10px 36px 10px 12px", borderRadius: 10,
+      background: C.hover3, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1,
     }}>
       <span style={{ display: "block", fontSize: 12.5, color: C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
       <span style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
@@ -303,7 +303,7 @@ const SettlementPanel = () => {
             <aside className="st-aside">
               <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 500 }}>Envoi automatique</h2>
               <p style={{ margin: "0 0 20px", fontSize: 12.5, color: C.t3, lineHeight: 1.55 }}>Pour les achats payés par Interac.</p>
-              <div style={{ display: "grid", gap: 20 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1 }}>
                 <Switch
                   checked={draft.auto_payout}
                   disabled={!isAdmin}
@@ -317,29 +317,18 @@ const SettlementPanel = () => {
                   <AmountPicker label="Sur 24 heures" unit="USDT" choices={DAILY_CHOICES}
                     value={draft.daily_payout_max_usdt} disabled={!isAdmin} onChange={(v) => setDraft({ ...draft, daily_payout_max_usdt: v })} />
                 </div>
-                <p style={{ margin: "-8px 0 0", fontSize: 12, color: C.t3 }}>Au-delà du maximum par commande, l'équipe valide l'envoi. Le plafond sur 24 heures compte tous les envois.</p>
-                <div>
-                  <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t2 }}>L'envoi part seul seulement si</p>
-                  <div style={{ display: "grid", gap: 5 }}>
-                    {["L'avis Interac est authentique (signature d'Interac)", "Référence, montant exact et nom du client concordent", "Le client est vérifié", "Le montant est sous le maximum par commande"].map((t) => (
-                      <div key={t} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: C.t3 }}>
-                        <Check style={{ width: 13, height: 13, marginTop: 3, flexShrink: 0, color: C.t2 }} />{t}
-                      </div>
-                    ))}
-                  </div>
-                  <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>
-                    Sinon, l'achat reste « paiement reçu » et l'équipe clique « Envoyer les USDT » dans sa fiche ; la raison est notée dans l'historique.
-                    Le plafond sur 24 h s'applique à tous les envois.
-                  </p>
-                </div>
+                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: C.t3 }}>
+                  L'envoi part seul si l'avis Interac est authentique, si la référence, le montant et le nom concordent, si le client est vérifié
+                  et si le montant reste sous le maximum. Sinon, l'équipe envoie depuis la fiche de la commande. Le plafond sur 24 h compte tous les envois.
+                </p>
                 {isAdmin ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: "auto" }}>
                     <Button variant="primary" disabled={!dirty || saving} onClick={save}>{saving ? "Enregistrement…" : "Enregistrer"}</Button>
                     {dirty && !saving && <Button variant="ghost" onClick={() => setDraft(settings)}>Annuler</Button>}
                     {saved && <span style={{ fontSize: 12.5, color: C.successText }}>Enregistré</span>}
                   </div>
                 ) : (
-                  <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Seul un administrateur peut modifier ces réglages.</p>
+                  <p style={{ margin: "auto 0 0", fontSize: 12.5, color: C.t3 }}>Seul un administrateur peut modifier ces réglages.</p>
                 )}
               </div>
             </aside>
@@ -442,13 +431,14 @@ const SettlementPanel = () => {
 
       <style>{`
         .st-grid { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); }
-        /* Réglages dans un volet arrondi à côté de la liste : pas de trait vertical. */
-        .st-aside { padding: 20px; border-radius: 16px; background: var(--a-hover2); align-self: start; }
+        /* Réglages posés sur la page, sans cadre ; sur grand écran, même hauteur que la liste :
+           « Enregistrer » tombe au niveau de la dernière ligne de texte à gauche. */
+        .st-aside { display: flex; flex-direction: column; min-width: 0; }
         .st-pick { transition: box-shadow .15s }
-        .st-pick:hover, .st-pick:focus-within { box-shadow: inset 0 0 0 1px ${C.bd} !important }
+        .st-pick:hover, .st-pick:focus-within { background: var(--a-hover4) !important }
         @media (min-width: 1180px) {
           .st-grid { grid-template-columns: minmax(0, 1fr) 360px; }
-          .st-aside { padding: 22px 22px 24px; margin-top: 16px; }
+          .st-aside { margin-top: 16px; }
         }
       `}</style>
     </div>

@@ -110,7 +110,7 @@ function Review({ list, index, onIndex, onClose, onDecide }: {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                 {REASONS.map((t) => (
                   <button key={t} type="button" className="ui-btn ui-btn-ghost" onClick={() => setNote(t)}
-                    style={{ height: 28, padding: "0 10px", borderRadius: 99, border: `1px solid ${C.bds}`, background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 12, cursor: "pointer" }}>
+                    style={{ height: 28, padding: "0 10px", borderRadius: 8, border: `1px solid ${C.bds}`, background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 12, cursor: "pointer" }}>
                     {t.split(" : ")[0].replace(/\.$/, "")}
                   </button>
                 ))}

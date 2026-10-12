@@ -13,6 +13,7 @@
  */
 import { useMemo, useState } from "react";
 import { C, FONT } from "./adminTheme";
+import { MessagesIllustration, TeamIllustration } from "./illustrations";
 
 const nf = new Intl.NumberFormat("fr-CA");
 const nf0 = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 0 });
@@ -28,7 +29,7 @@ export const HERO_CSS = `
 @media (min-width: 1024px) { .hz { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); align-items: center; gap: 40px; } }
 /* Téléphone : l'illustration laisserait la liste sous la ligne de flottaison. */
 @media (max-width: 640px) { .hz-illu { display: none !important; } }
-.hz-title { margin: 0; font-size: clamp(28px, 3.4vw, 44px); line-height: 1.04; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+.hz-title { margin: 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .hz-title .mute { color: var(--a-t3); }
 .hz-sub { margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--a-t2); max-width: 560px; }
 .hz-cap { margin-top: 8px; min-height: 36px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
@@ -128,7 +129,7 @@ export function AccountingHero({ orders, margin, note }: { orders: DoneOrder[]; 
 
 /** Illustration Ooble (mêmes images que les courriels), fond transparent. */
 export function Illu({ src, alt, max = 360 }: { src: string; alt: string; max?: number }) {
-  return <img className="hz-illu" src={src} alt={alt} loading="lazy" style={{ display: "block", width: "100%", maxWidth: max, height: "auto", marginLeft: "auto", marginRight: "auto" }} />;
+  return <img className="hz-illu" src={src} alt={alt} decoding="async" style={{ aspectRatio: "640 / 488", display: "block", width: "100%", maxWidth: max, height: "auto", marginLeft: "auto", marginRight: "auto" }} />;
 }
 
 /* ─── Vérifications ────────────────────────────────────────── */
@@ -148,11 +149,37 @@ export function KycHero({ waiting, approved, rejected, oldestMins, noun, loading
       )}
       sub={<>
         {waiting ? <>Le plus ancien dossier attend depuis <b style={{ color: C.sun, fontWeight: 600 }}>{oldText}</b>. Les clients ne peuvent pas commander avant leur vérification. </> : "Rien en attente : les nouveaux dossiers apparaîtront ici. "}
-        {decided > 0 && <>Jusqu'ici : <b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(approved)}</b> {plural(approved, "approuvé")}, <b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(rejected)}</b> {plural(rejected, "refusé")}.</>}
       </>}
     >
-      <Illu src="/email-assets/ill-idcard.png" alt="" max={340} />
+      {decided > 0 && <ApprovalArc approved={approved} rejected={rejected} />}
     </Hero>
+  );
+}
+
+/** Taux d'approbation des dossiers : arc vert (approuvés) et corail (refusés), le pourcentage au centre. */
+function ApprovalArc({ approved, rejected }: { approved: number; rejected: number }) {
+  const decided = approved + rejected;
+  const rate = decided ? approved / decided : 0;
+  const R = 70, CX = 90, CY = 84, SW = 14;
+  const pt = (t: number) => [CX - R * Math.cos(Math.PI * t), CY - R * Math.sin(Math.PI * t)];
+  const arc = (t0: number, t1: number) => {
+    const [x0, y0] = pt(t0), [x1, y1] = pt(t1);
+    return `M${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}`;
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 18, justifyContent: "center" }}>
+      <svg viewBox="0 0 180 96" width={180} height={96} role="img" aria-label={`${Math.round(rate * 100)} % des dossiers approuvés : ${approved} approuvés, ${rejected} refusés`} style={{ flexShrink: 0 }}>
+        <path d={arc(0, 1)} fill="none" stroke={C.hover3} strokeWidth={SW} strokeLinecap="round" />
+        {rejected > 0 && <path d={arc(Math.min(0.995, rate + (approved ? 0.02 : 0)), 1)} fill="none" stroke={C.vzCoral} strokeWidth={SW} strokeLinecap="round" />}
+        {approved > 0 && <path d={arc(0, Math.max(0.005, rate))} fill="none" stroke={C.vzGreen} strokeWidth={SW} strokeLinecap="round" />}
+        <text x={CX} y={CY - 8} textAnchor="middle" fontSize={28} fontWeight={600} fill={C.t1} letterSpacing="-0.04em">{Math.round(rate * 100)} %</text>
+      </svg>
+      <div style={{ display: "grid", gap: 6, fontSize: 13, color: C.t2 }}>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>Dossiers approuvés</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><Swatch color={C.vzGreen} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(approved)}</b> {plural(approved, "approuvé")}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><Swatch color={C.vzCoral} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(rejected)}</b> {plural(rejected, "refusé")}</span>
+      </div>
+    </div>
   );
 }
 
@@ -227,21 +254,7 @@ export function SettlementHero({ tanks, auto, maxCad, loading, toReview }: { tan
 /* ─── Messagerie ───────────────────────────────────────────── */
 
 export function MailboxHero({ threads, unread, loading }: { threads: { lastMessageAt: string; hasUnread: boolean; status: string }[]; unread: number; loading: boolean }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const days = 14;
-  const series = useMemo(() => {
-    const start = new Date(); start.setHours(0, 0, 0, 0);
-    const t0 = start.getTime() - (days - 1) * 86400000;
-    const out = Array.from({ length: days }, () => 0);
-    for (const t of threads) {
-      const i = Math.floor((new Date(t.lastMessageAt).getTime() - t0) / 86400000);
-      if (i >= 0 && i < days) out[i] += 1;
-    }
-    return out;
-  }, [threads]);
-  const max = Math.max(1, ...series);
   const open = threads.filter((t) => t.status === "open").length;
-  const label = (i: number) => new Date(Date.now() - (days - 1 - i) * 86400000).toLocaleDateString("fr-CA", { weekday: "short", day: "numeric" });
   return (
     <Hero
       title={loading ? <span className="mute">…</span> : unread ? (
@@ -251,19 +264,7 @@ export function MailboxHero({ threads, unread, loading }: { threads: { lastMessa
       )}
       sub={`${open} ${plural(open, "conversation ouverte", "conversations ouvertes")}. Les réponses partent de bonjour@ooble.ca ; le desk gros volumes reçoit sur otc@ooble.ca.`}
     >
-      <div onMouseLeave={() => setHover(null)}>
-        <div role="img" aria-label={`Conversations actives par jour sur ${days} jours`} style={{ display: "grid", gridTemplateColumns: `repeat(${days}, minmax(0, 1fr))`, alignItems: "center", height: 44 }}>
-          {series.map((n, i) => {
-            const size = n ? 8 + (n / max) * 26 : 5;
-            return (
-              <span key={i} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} style={{ display: "flex", justifyContent: "center" }}>
-                <span style={{ width: size, height: size, borderRadius: 99, background: n ? (i === days - 1 ? C.vzCoral : C.vzIndigo) : C.hover4, opacity: hover !== null && hover !== i ? 0.4 : 1, transition: "opacity .15s" }} />
-              </span>
-            );
-          })}
-        </div>
-        <div className="hz-cap">{hover !== null ? `${label(hover)} : ${series[hover]} ${plural(series[hover], "conversation active", "conversations actives")}` : "Une bulle par jour, plus grande quand il y a plus d'échanges (14 jours)."}</div>
-      </div>
+      <div className="hz-illu" style={{ maxWidth: 380, margin: "0 auto" }}><MessagesIllustration /></div>
     </Hero>
   );
 }
@@ -319,7 +320,7 @@ export function TeamHero({ members, loading }: { members: { name: string; role: 
       title={loading ? <span className="mute">…</span> : <><span style={{ color: C.coral }}>{members.length}</span> {plural(members.length, "personne fait", "personnes font")} <span className="mute">tourner Ooble.</span></>}
       sub={Object.entries(roles).map(([r, n]) => `${n} ${r}`).join(" · ") || "Ajoutez un premier membre."}
     >
-      <Illu src="/email-assets/ill-team.png" alt="" max={360} />
+      <div className="hz-illu" style={{ maxWidth: 380, margin: "0 auto" }}><TeamIllustration /></div>
     </Hero>
   );
 }

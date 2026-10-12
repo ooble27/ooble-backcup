@@ -217,7 +217,7 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
     return (
       <button key={s.id} type="button" className="ui-step" onClick={() => onStep?.(s.id)} aria-current={on ? "step" : undefined}
         style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: phone ? 6 : 8, height: 36, padding: phone ? "0 8px 0 6px" : "0 14px 0 8px", borderRadius: 99, border: "none",
+          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: phone ? 6 : 8, height: 36, padding: phone ? "0 8px 0 6px" : "0 14px 0 8px", borderRadius: 10, border: "none",
           flex: phone ? "1 1 0" : undefined, minWidth: 0, whiteSpace: "nowrap",
           background: on ? C.bg : "transparent", boxShadow: on ? `0 0 0 1px ${C.bds}, 0 1px 2px rgba(0,0,0,.06)` : "none",
           color: on ? C.t1 : C.t3, fontFamily: FONT, fontSize: phone ? 13 : 13.5, cursor: "pointer", transition: `background .2s ${UI_EASE}, color .2s`,

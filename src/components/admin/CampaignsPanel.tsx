@@ -187,7 +187,7 @@ const PANEL_CSS = `
 @keyframes cmp-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)) } 50% { transform: translateY(-8px) rotate(var(--r, 0deg)) } }
 .cmp-float { animation: cmp-float 7s ease-in-out infinite; }
 .cmp-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; padding: 8px 0 4px; }
-.cmp-hero-title { margin: 14px 0 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 0.98; font-weight: 600; letter-spacing: -0.05em; color: var(--a-t1); text-wrap: balance; }
+.cmp-hero-title { margin: 14px 0 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .cmp-hero-art { display: none; }
 @media (min-width: 900px) { .cmp-hero { grid-template-columns: minmax(0, 1fr) minmax(260px, 400px); } .cmp-hero-art { display: block; } }
 /* Champs « à même la page » : pas de cadre, juste une teinte au survol et pendant la saisie. */
@@ -197,9 +197,9 @@ const PANEL_CSS = `
 .cmp-ghost:focus { background: var(--a-hover2); }
 .cmp-tile { transition: background .15s; }
 .cmp-tile:hover:not(:disabled) { background: var(--a-hover4); }
-.cmp-fab { width: 44px; height: 44px; border-radius: 99px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds), 0 8px 24px -10px rgba(0,0,0,.45); }
+.cmp-fab { width: 44px; height: 44px; border-radius: 12px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds), 0 8px 24px -10px rgba(0,0,0,.45); }
 .cmp-fab:focus-visible, .cmp-cta:focus-visible, .cmp-ico:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
-.cmp-ico { width: 34px; height: 34px; border-radius: 99px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
+.cmp-ico { width: 34px; height: 34px; border-radius: 10px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
 @media (hover: none) { .cmp-ico { width: 30px; height: 30px; } }
 @media (prefers-reduced-motion: reduce) {
   .cmp-rise, .cmp-skeleton, .cmp-float { animation: none; }
@@ -469,12 +469,12 @@ function CtaPill({ children, onClick, autoFocus, full }: { children: React.React
   return (
     <button type="button" className="cmp-cta" data-autofocus={autoFocus || undefined} onClick={onClick}
       style={{
-        height: 50, width: full ? "100%" : undefined, padding: "0 6px 0 22px", borderRadius: 99, border: "none", cursor: "pointer",
+        height: 48, width: full ? "100%" : undefined, padding: "0 6px 0 20px", borderRadius: 10, border: "none", cursor: "pointer",
         background: C.t1, color: C.bg, fontFamily: FONT, fontSize: 14.5, fontWeight: 500, letterSpacing: "-0.01em",
         display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 14, whiteSpace: "nowrap",
       }}>
       {children}
-      <span aria-hidden style={{ width: 38, height: 38, borderRadius: 99, background: "#ff7a59", color: "#14110f", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span aria-hidden style={{ width: 36, height: 36, borderRadius: 7, background: "#ff7a59", color: "#14110f", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <ArrowRight style={{ width: 17, height: 17 }} strokeWidth={2} />
       </span>
     </button>
@@ -529,7 +529,7 @@ const CampaignsPanel = () => {
           </div>
         </div>
         <div aria-hidden className="cmp-hero-art">
-          <img src="/email-assets/ill-mail.png" alt="" style={{ display: "block", width: "100%", height: "auto" }} />
+          <img src="/email-assets/ill-mail.png" alt="" style={{ display: "block", width: "100%", height: "auto", aspectRatio: "640 / 488" }} />
         </div>
       </section>
 
@@ -783,7 +783,7 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
           <div style={{ marginTop: "auto", display: "grid", gap: 10 }}>
             <CtaPill full autoFocus onClick={() => onUse(t.id, lang)}>Personnaliser ce modèle</CtaPill>
             <button type="button" onClick={() => onTest(t, lang)} disabled={test?.kind === "busy"} className="ui-btn ui-btn-ghost"
-              style={{ height: 42, borderRadius: 99, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}>
+              style={{ height: 42, borderRadius: 10, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}>
               {test?.kind === "busy" ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : test?.kind === "ok" ? <Check style={{ width: 14, height: 14, color: C.successText }} strokeWidth={2.4} /> : <Send style={{ width: 14, height: 14 }} strokeWidth={1.8} />}
               {test?.kind === "ok" ? "Test envoyé dans votre boîte" : `M'envoyer un test en ${lang === "fr" ? "français" : "anglais"}`}
             </button>
@@ -1076,14 +1076,14 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
 
       <StudioSection title="Rédaction assistée">
         {/* Barre de demande, comme une conversation : on écrit, on envoie. */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 8px 8px 16px", borderRadius: 22, background: C.hover3 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 8px 8px 16px", borderRadius: 12, background: C.hover3 }}>
           <Sparkles style={{ width: 16, height: 16, color: "var(--a-sun)", flexShrink: 0, marginBottom: 10 }} />
           <textarea className="cmp-ghost" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} rows={2}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generateWithAI(); }}
             placeholder={`Décrivez le message, l'IA écrit en ${editLang === "fr" ? "français" : "anglais"}…`}
             style={{ fontSize: 14, lineHeight: 1.5, margin: 0, width: "100%", background: "transparent" }} />
           <button type="button" onClick={generateWithAI} disabled={!aiPrompt.trim() || aiLoading} aria-label="Proposer les textes" title="Proposer les textes"
-            style={{ width: 38, height: 38, borderRadius: 99, border: "none", flexShrink: 0, cursor: aiPrompt.trim() && !aiLoading ? "pointer" : "default", background: aiPrompt.trim() ? C.t1 : C.hover3, color: aiPrompt.trim() ? C.bg : C.t3, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            style={{ width: 38, height: 38, borderRadius: 9, border: "none", flexShrink: 0, cursor: aiPrompt.trim() && !aiLoading ? "pointer" : "default", background: aiPrompt.trim() ? C.t1 : C.hover3, color: aiPrompt.trim() ? C.bg : C.t3, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {aiLoading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : <ArrowUp style={{ width: 17, height: 17 }} strokeWidth={2} />}
           </button>
         </div>
@@ -1172,7 +1172,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const audienceList = (
     <div style={{ padding: wide ? "26px 30px 60px" : "20px 18px 40px" }}>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, flex: 1, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1 }}>
+        <h2 style={{ margin: 0, flex: 1, fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1 }}>
           <span style={{ color: recipients.length ? "var(--a-coral)" : C.t3, fontVariantNumeric: "tabular-nums" }}>{recipients.length}</span> destinataire{recipients.length > 1 ? "s" : ""}
         </h2>
         {recipients.length > 0 && <Button variant="ghost" size="sm" onClick={() => setRecipients([])}>Tout retirer</Button>}
@@ -1236,7 +1236,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const sendStep = (
     <WsPane style={{ flex: 1 }}>
       <div className="ui-in" style={{ maxWidth: 720, margin: "0 auto", padding: wide ? "40px 28px 80px" : "24px 18px 80px" }}>
-        <h2 style={{ margin: 0, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1.02 }}>
+        <h2 style={{ margin: 0, fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1.02 }}>
           Tout est <span style={{ color: "var(--a-coral)" }}>prêt</span> ?<br /><span style={{ color: C.t3 }}>Relisez, testez, envoyez.</span>
         </h2>
 
@@ -1271,19 +1271,19 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
         <div style={{ marginTop: 30 }}>
           <StudioSection title="Un test d'abord" hint="Un seul courriel par clic : vérifiez le rendu dans votre boîte." flush>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <label style={{ flex: "1 1 260px", minWidth: 0, display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 16px", borderRadius: 99, background: C.hover3 }}>
+              <label style={{ flex: "1 1 260px", minWidth: 0, display: "flex", alignItems: "center", gap: 8, height: 44, padding: "0 14px", borderRadius: 10, background: C.hover3 }}>
                 <AtSign style={{ width: 15, height: 15, color: C.t3, flexShrink: 0 }} />
                 <input className="cmp-ghost" type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="votre@adresse.ca" aria-label="Adresse du test"
                   style={{ flex: 1, width: "auto", minWidth: 0, margin: 0, padding: "4px 0", fontSize: 14, background: "transparent" }} />
               </label>
               <div style={{ display: "flex", gap: 8 }}>
                 <button type="button" onClick={() => sendTest([editLang])} disabled={testState?.kind === "busy"}
-                  style={{ height: 46, padding: "0 18px", borderRadius: 99, border: "none", background: C.t1, color: C.bg, fontFamily: FONT, fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  style={{ height: 44, padding: "0 16px", borderRadius: 10, border: "none", background: C.t1, color: C.bg, fontFamily: FONT, fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", whiteSpace: "nowrap" }}>
                   {testState?.kind === "busy" ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 15, height: 15 }} />}
                   Tester en {editLang.toUpperCase()}
                 </button>
                 <button type="button" onClick={() => sendTest(["fr", "en"])} disabled={testState?.kind === "busy"}
-                  style={{ height: 46, padding: "0 16px", borderRadius: 99, border: "none", background: C.hover4, color: C.t1, fontFamily: FONT, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  style={{ height: 44, padding: "0 14px", borderRadius: 10, border: "none", background: C.hover4, color: C.t1, fontFamily: FONT, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" }}>
                   FR + EN
                 </button>
               </div>
@@ -1405,7 +1405,7 @@ function TemplateFieldInput({ field, value, onChange }: { field: TemplateField; 
       <FieldLabel>{field.label}</FieldLabel>
       {look === "button" ? (
         <input className="cmp-ghost" aria-label={field.label} value={value} onChange={(e) => onChange(e.target.value)}
-          style={{ width: "auto", minWidth: 160, maxWidth: "100%", margin: 0, padding: "10px 20px", borderRadius: 99, background: C.t1, color: C.bg, fontSize: 14, fontWeight: 500, fieldSizing: "content" } as React.CSSProperties} />
+          style={{ width: "auto", minWidth: 160, maxWidth: "100%", margin: 0, padding: "10px 18px", borderRadius: 10, background: C.t1, color: C.bg, fontSize: 14, fontWeight: 500, fieldSizing: "content" } as React.CSSProperties} />
       ) : look === "link" ? (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Link2 style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />
@@ -1569,7 +1569,7 @@ function LinesEditor({ field, value, onChange }: { field: TemplateField; value: 
           type="button"
           onClick={() => commit([...rows, cols.map((c, i) => (i === 0 ? (cols.length > 1 ? c : "Nouveau point") : ""))])}
           className="cmp-tile"
-          style={{ marginTop: 2, height: 36, justifySelf: "start", padding: "0 14px 0 10px", borderRadius: 99, border: "none", background: "transparent", color: C.t2, fontSize: 13, fontFamily: FONT, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+          style={{ marginTop: 2, height: 36, justifySelf: "start", padding: "0 14px 0 10px", borderRadius: 9, border: "none", background: "transparent", color: C.t2, fontSize: 13, fontFamily: FONT, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           <Plus style={{ width: 13, height: 13 }} strokeWidth={1.8} />
           Ajouter une ligne
@@ -1732,7 +1732,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove, 
         )}
       </div>}
 
-      <div style={bare ? { display: "flex", alignItems: "center", gap: 8, height: 46, padding: "0 16px", borderRadius: 99, background: C.hover3 } : {
+      <div style={bare ? { display: "flex", alignItems: "center", gap: 8, height: 44, padding: "0 14px", borderRadius: 10, background: C.hover3 } : {
         display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center",
         minHeight: 32,
       }}>

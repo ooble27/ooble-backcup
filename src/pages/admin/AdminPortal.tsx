@@ -91,7 +91,8 @@ const SHELL_CSS = `
 .sh-search:hover { border-color: var(--a-bd); color: var(--a-t2) }
 @keyframes sh-drawer { from { transform: translateX(-24px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes sh-page { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
-.sh-page { animation: sh-page .28s cubic-bezier(.22,1,.36,1) }
+/* Pas d'animation d'entrée : changer de page ne doit jamais clignoter. */
+.sh-page { animation: none }
 @media (prefers-reduced-motion: reduce) { .sh-page { animation: none } }
 /* iPhone et iPad : Safari agrandit la page dès qu'on touche un champ dont le texte fait moins de 16 px. */
 @supports (-webkit-touch-callout: none) {
@@ -208,9 +209,11 @@ const AdminPortal = () => {
   // Préchargement discret des pages lentes (soldes des portefeuilles, plateforme) : elles s'ouvrent remplies.
   useEffect(() => {
     if (!allowedTabs.size) return;
+    // Illustrations des en-têtes : en mémoire du navigateur avant la première visite (aucune apparition tardive).
+    for (const src of ["/email-assets/ill-mail.png", "/email-assets/ill-shield.png", "/email-assets/ill-notify.png"]) { const im = new Image(); im.src = src; }
     const go = () => prefetchAdmin({
       settlement: allowedTabs.has("settlement"), platform: allowedTabs.has("platform"), kyc: allowedTabs.has("kyc"),
-      clients: allowedTabs.has("clients"), compliance: allowedTabs.has("compliance"), mailbox: allowedTabs.has("mailbox"), team: allowedTabs.has("team"),
+      clients: allowedTabs.has("clients"), compliance: allowedTabs.has("compliance"), mailbox: allowedTabs.has("mailbox"), team: allowedTabs.has("team"), campaigns: allowedTabs.has("campaigns"),
     });
     const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
     const t = w.requestIdleCallback ? w.requestIdleCallback(go) : window.setTimeout(go, 1200);

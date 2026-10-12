@@ -1,6 +1,5 @@
 /**
  * Visualisations du back-office, une forme différente par page :
- * - OrderFlow : flux des commandes (diagramme de Sankey), tableau de bord ;
  * - HundredSignups : « sur 100 inscrits » (graphique en gaufre), tableau de bord ;
  * - ClientsPopulation : la population des inscrits (barre de proportions + courbe des inscriptions), Clients ;
  * - OrdersCalendar : l'activité jour par jour (calendrier en chaleur), Commandes ;
@@ -11,11 +10,11 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { nfCad, type AdminOrder } from "@/lib/adminOrders";
-import type { CustomerFunnel, OrderStatusCounts } from "@/lib/kpi";
+import type { CustomerFunnel } from "@/lib/kpi";
 import { C, FONT } from "./adminTheme";
 
 export const VIZ_CSS = `
-.vz-head { margin: 0; font-size: clamp(24px, 2.6vw, 34px); line-height: 1.08; font-weight: 600; letter-spacing: -0.04em; color: var(--a-t1); text-wrap: balance; }
+.vz-head { margin: 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .vz-head .mute { color: var(--a-t3); }
 .vz-sub { margin: 8px 0 0; font-size: 14px; color: var(--a-t2); line-height: 1.5; }
 .vz-cap { min-height: 36px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
@@ -48,141 +47,6 @@ function useBoxWidth(fallback: number): [React.RefObject<HTMLDivElement>, number
 
 const plural = (n: number, one: string, many = `${one}s`) => (n > 1 ? many : one);
 const nf = new Intl.NumberFormat("fr-CA");
-
-/* ─── Flux des commandes (Sankey) ─────────────────────────── */
-
-interface FlowNode { id: string; label: string; n: number; color: string; col: 0 | 1 | 2 }
-
-export function OrderFlow({ s: raw }: { s: OrderStatusCounts }) {
-  // Un statut absent du décompte (ex. « remboursée », récent) compte pour 0, jamais NaN.
-  const s = useMemo(() => {
-    const r = raw as Record<string, number | undefined>;
-    const g = (k: string) => Number(r[k] ?? 0) || 0;
-    return { created: g("created"), awaiting_payment: g("awaiting_payment"), payment_received: g("payment_received"), settling: g("settling"),
-      completed: g("completed"), cancelled: g("cancelled"), expired: g("expired"), refunded: g("refunded") };
-  }, [raw]);
-  const [hover, setHover] = useState<string | null>(null);
-  const [box, boxW] = useBoxWidth(560);
-  const narrow = boxW < 520;
-  const waiting = s.awaiting_payment + s.created;
-  const dropped = s.cancelled + s.expired;
-  const paid = s.payment_received + s.settling + s.completed + s.refunded;
-  const total = waiting + dropped + paid;
-
-  if (total === 0) return <div ref={box}><p className="vz-sub" style={{ marginTop: 0 }}>Aucune commande pour l'instant : le flux apparaîtra ici.</p></div>;
-
-  const nodes: FlowNode[] = [
-    { id: "all", label: "Commandes", n: total, color: C.vzGray, col: 0 },
-    { id: "paid", label: "Payées", n: paid, color: C.vzGreen, col: 1 },
-    { id: "wait", label: narrow ? "En attente" : "En attente de paiement", n: waiting, color: C.vzGray, col: 1 },
-    { id: "drop", label: narrow ? "Annulées" : "Annulées ou expirées", n: dropped, color: C.vzGray, col: 1 },
-    { id: "todo", label: "À traiter", n: s.payment_received, color: C.vzCoral, col: 2 },
-    { id: "send", label: narrow ? "En envoi" : "En cours d'envoi", n: s.settling, color: C.vzIndigo, col: 2 },
-    { id: "done", label: "Terminées", n: s.completed, color: C.vzGreen, col: 2 },
-    { id: "refd", label: "Remboursées", n: s.refunded, color: C.vzGray, col: 2 },
-  ];
-  const W = Math.max(300, boxW), HMAX = narrow ? 230 : 250, NW = 10, GAP1 = 30, GAP2 = 12;
-  const X = [0, Math.round(W * (narrow ? 0.42 : 0.38)), W - (narrow ? 96 : 150)];
-  const col1 = nodes.filter((n) => n.col === 1 && n.n > 0);
-  const col2 = nodes.filter((n) => n.col === 2 && n.n > 0);
-  const top = 28;
-  // Épaisseur plafonnée : avec peu de commandes, les flux restent des rubans, pas des blocs.
-  const k = Math.min(12, (HMAX - 20 - GAP1 * Math.max(0, col1.length - 1)) / total);
-  const k2 = Math.min(k, paid ? (HMAX - 20 - GAP2 * Math.max(0, col2.length - 1)) / paid : k);
-  const stack1 = total * k + GAP1 * Math.max(0, col1.length - 1);
-  const stack2 = paid * k2 + GAP2 * Math.max(0, col2.length - 1);
-  const H = Math.max(150, top + Math.max(stack1, stack2) + 16);
-  const pos = new Map<string, { y: number; h: number }>();
-  pos.set("all", { y: top + (stack1 - total * k) / 2, h: total * k });
-  let y = top;
-  for (const n of col1) { pos.set(n.id, { y, h: n.n * k }); y += n.n * k + GAP1; }
-  y = pos.get("paid")?.y ?? 0;
-  for (const n of col2) { const h = n.n * k2; pos.set(n.id, { y, h }); y += h + GAP2; }
-
-  const band = (x1: number, a: number, b: number, x2: number, c: number, d: number) => {
-    const xm = (x1 + x2) / 2;
-    return `M${x1},${a} C${xm},${a} ${xm},${c} ${x2},${c} L${x2},${d} C${xm},${d} ${xm},${b} ${x1},${b} Z`;
-  };
-  const flows: { id: string; from: string; to: string; d: string; color: string; n: number }[] = [];
-  const src = pos.get("all")!;
-  let off = src.y;
-  for (const n of col1) {
-    const t = pos.get(n.id)!;
-    const h = n.n * k;
-    flows.push({ id: `all-${n.id}`, from: "Commandes", to: n.label, d: band(X[0] + NW, off, off + h, X[1], t.y, t.y + t.h), color: n.color, n: n.n });
-    off += h;
-  }
-  const p = pos.get("paid");
-  if (p) {
-    let o = p.y;
-    for (const n of col2) {
-      const t = pos.get(n.id)!;
-      const h = n.n * k;
-      flows.push({ id: `paid-${n.id}`, from: "Payées", to: n.label, d: band(X[1] + NW, o, o + h, X[2], t.y, t.y + t.h), color: n.color, n: n.n });
-      o += h;
-    }
-  }
-
-  // Étiquettes de la colonne de droite : jamais l'une sur l'autre.
-  const right = col2.map((n) => ({ id: n.id, y: pos.get(n.id)!.y + pos.get(n.id)!.h / 2 }));
-  if (right.length) right[0].y = Math.max(right[0].y, 14);
-  for (let i = 1; i < right.length; i++) right[i].y = Math.max(right[i].y, right[i - 1].y + 40);
-  const overflow = right.length ? right[right.length - 1].y - (H - 26) : 0;
-  if (overflow > 0) for (const r of right) r.y -= overflow;
-  const ry = new Map(right.map((r) => [r.id, r.y]));
-
-  const done = s.completed;
-  const rate = paid ? Math.round((done / paid) * 100) : 0;
-  const hv = hover ? flows.find((f) => f.id === hover) ?? null : null;
-  const hn = hover ? nodes.find((n) => n.id === hover) ?? null : null;
-
-  return (
-    <div ref={box} style={{ fontFamily: FONT }}>
-      <p className="vz-head">
-        {paid ? <><span style={{ color: C.coral }}>{rate} %</span> des commandes payées <span className="mute">sont terminées.</span></>
-          : <>Aucune commande <span className="mute">payée pour l'instant.</span></>}
-      </p>
-      <p className="vz-sub">
-        Sur {nf.format(total)} {plural(total, "commande")}, {nf.format(paid)} {plural(paid, "a été payée", "ont été payées")}
-        {s.payment_received ? <>, dont <b style={{ color: C.t1, fontWeight: 500 }}>{s.payment_received} à traiter maintenant</b></> : null}.
-      </p>
-      <div className="vz-cap" style={{ marginTop: 14 }} aria-live="polite">
-        {hv ? `${hv.from} → ${hv.to} : ${nf.format(hv.n)} ${plural(hv.n, "commande")} (${Math.round((hv.n / total) * 100)} % du total)`
-          : hn ? `${hn.label} : ${nf.format(hn.n)} ${plural(hn.n, "commande")}` : "Survolez un flux pour le détail."}
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ maxWidth: "100%", height: "auto", display: "block", marginTop: 6, overflow: "visible" }} role="img"
-        aria-label={`Flux des commandes : ${total} au total, ${paid} payées, ${done} terminées, ${s.payment_received} à traiter, ${waiting} en attente de paiement, ${dropped} annulées ou expirées.`}
-        onMouseLeave={() => setHover(null)}>
-        {flows.map((f) => (
-          <path key={f.id} d={f.d} fill={f.color} className="vz-hit"
-            opacity={hover ? (hover === f.id ? 0.55 : 0.12) : 0.26} style={{ transition: "opacity .15s" }}
-            onMouseEnter={() => setHover(f.id)} onClick={() => setHover(f.id)} />
-        ))}
-        {nodes.filter((n) => n.n > 0).map((n) => {
-          const q = pos.get(n.id)!;
-          return <rect key={n.id} x={X[n.col]} y={q.y} width={NW} height={Math.max(3, q.h)} rx={4} fill={n.color}
-            className="vz-hit" onMouseEnter={() => setHover(n.id)} />;
-        })}
-        {/* Étiquettes : colonne du milieu avant ses nœuds, colonne de droite après. */}
-        {/* Étiquettes des deux premières colonnes : juste au-dessus de leur nœud, jamais sur un flux. */}
-        <text className="vz-lbl" x={X[0]} y={src.y - 9} fontSize={13.5} fill={C.t2}>Toutes · <tspan fill={C.t1} fontWeight={600}>{nf.format(total)}</tspan></text>
-        {col1.map((n) => {
-          const q = pos.get(n.id)!;
-          return (
-            <text key={n.id} className="vz-lbl" x={X[1] + NW} y={q.y - 9} textAnchor="end" fontSize={13.5} fill={C.t2}>
-              {n.label} · <tspan fill={C.t1} fontWeight={600}>{nf.format(n.n)}</tspan>
-            </text>
-          );
-        })}
-        {col2.map((n) => (
-          <text key={n.id} className="vz-lbl" x={X[2] + NW + 8} y={ry.get(n.id)} dy="0.35em" fontSize={13.5} fill={C.t2}>
-            {n.label} <tspan x={X[2] + NW + 8} dy="1.25em" fill={n.id === "todo" ? C.coral : C.t1} fontWeight={600} fontSize={17}>{nf.format(n.n)}</tspan>
-          </text>
-        ))}
-      </svg>
-    </div>
-  );
-}
 
 /* ─── Sur 100 inscrits (gaufre) ───────────────────────────── */
 
@@ -290,7 +154,7 @@ export function ClientsPopulation({ clients }: { clients: PopClient[] | null }) 
   return (
     <div style={{ fontFamily: FONT, display: "grid", gap: 22 }} className="lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
       <div style={{ minWidth: 0 }}>
-        <p className="vz-head" style={{ fontSize: "clamp(30px, 3.6vw, 46px)" }}>
+        <p className="vz-head" style={{ fontSize: "clamp(28px, 3vw, 40px)" }}>
           <span style={{ color: C.coral }}>{nf.format(n)}</span> {plural(n, "personne")} <span className="mute">{plural(n, "a", "ont")} rejoint Ooble.</span>
         </p>
         <p className="vz-sub">
@@ -452,7 +316,7 @@ export function QueueWait({ orders, onOpen, mine, unassigned }: { orders: AdminO
 
   return (
     <div ref={box} style={{ fontFamily: FONT }}>
-      <p className="vz-head" style={{ fontSize: "clamp(28px, 3.4vw, 44px)" }}>
+      <p className="vz-head" style={{ fontSize: "clamp(28px, 3vw, 40px)" }}>
         {paid.length ? (
           <><span style={{ color: C.coral }}>{paid.length}</span> {plural(paid.length, "commande payée vous attend", "commandes payées vous attendent")}.</>
         ) : (

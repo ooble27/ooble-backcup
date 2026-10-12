@@ -17,7 +17,7 @@ import {
 import { C, FONT } from "./adminTheme";
 import { FilterChips, Section, StatStrip } from "./layout";
 import OriginsCard from "./OriginsCard";
-import { HundredSignups, OrderFlow } from "./viz";
+import { HundredSignups } from "./viz";
 
 interface KpiDashboardProps {
   orders: AdminOrder[];
@@ -125,7 +125,7 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
       ]} />
 
       <style>{`
-        .kd-title { margin: 12px 0 0; font-size: clamp(34px, 4.4vw, 58px); line-height: 1.02; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
+        .kd-title { margin: 12px 0 0; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
         .kd-todo { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 22px; letter-spacing: -0.02em; color: var(--a-t1); padding: 4px 0; }
         .kd-todo .kd-go { align-self: center; color: var(--a-t3); transition: transform .25s cubic-bezier(.22,1,.36,1), color .2s; }
         .kd-todo:hover .kd-go { transform: translateX(4px); color: var(--a-t1); }
@@ -137,8 +137,8 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
       </Section>
 
       <div className="grid grid-cols-1 gap-x-16 xl:grid-cols-2">
-        <Section title="Flux des commandes" actions={<LinkButton onClick={() => onNavigate?.("orders")}>Toutes les commandes</LinkButton>}>
-          {statuses && <OrderFlow s={statuses} />}
+        <Section title="Où en sont les commandes" actions={<LinkButton onClick={() => onNavigate?.("orders")}>Toutes les commandes</LinkButton>}>
+          {statuses && <StatusNumbers s={statuses} />}
         </Section>
         <Section title="Parcours des inscrits">
           {funnel && <HundredSignups f={funnel} />}
@@ -224,6 +224,30 @@ function VolumeChart({ data }: { data: DailyVolumePoint[] }) {
         </div>
         <span style={{ position: "absolute", top: 4, left: 0, fontSize: 11.5, color: C.t3, fontVariantNumeric: "tabular-nums", background: C.bg, paddingRight: 6 }}>{money(nice.top)}</span>
       </div>
+    </div>
+  );
+}
+
+/* ─── Où en sont les commandes : un chiffre par état, simple à lire ─── */
+
+function StatusNumbers({ s }: { s: OrderStatusCounts }) {
+  const g = (k: string) => Number((s as Record<string, number | undefined>)[k] ?? 0) || 0;
+  const items = [
+    { label: "Payées, à traiter", n: g("payment_received"), color: C.coral },
+    { label: "En cours d'envoi", n: g("settling"), color: C.t1 },
+    { label: "En attente de paiement", n: g("awaiting_payment") + g("created"), color: C.t1 },
+    { label: "Terminées", n: g("completed"), color: C.sage },
+    { label: "Annulées ou expirées", n: g("cancelled") + g("expired"), color: C.t3 },
+    { label: "Remboursées", n: g("refunded"), color: C.t3 },
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "22px 24px", paddingTop: 6 }}>
+      {items.map((it) => (
+        <div key={it.label} style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1, color: it.n ? it.color : C.t3, fontVariantNumeric: "tabular-nums" }}>{it.n}</div>
+          <div style={{ marginTop: 6, fontSize: 13, color: C.t2 }}>{it.label}</div>
+        </div>
+      ))}
     </div>
   );
 }
