@@ -2,9 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight, BookOpen, BookMarked, FileCode2, Library, ChevronDown,
+  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/lib/auth";
+import { useNoZoom } from "@/lib/noZoom";
 import { type AdminOrder } from "@/lib/adminOrders";
 import { fetchAdminOrders, persistOrderPatch, deleteOrder } from "@/lib/adminOrdersLive";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,6 +96,9 @@ const SHELL_CSS = `
 .admin-scope, .admin-scope * { -webkit-tap-highlight-color: transparent }
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 .sh-icon:hover { background: var(--a-hover2); color: var(--a-t1) }
+.sh-round { width: 40px; height: 40px; flex-shrink: 0; border-radius: 99px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; background: var(--a-l1); color: var(--a-t1); box-shadow: 0 0 0 1px var(--a-bds); transition: transform .15s, background .15s }
+.sh-round:active { transform: scale(.94) }
+.sh-round:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px }
 .sh-search:hover { border-color: var(--a-bd); color: var(--a-t2) }
 .sh-sub { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s cubic-bezier(.22,1,.36,1) }
 .sh-sub[data-open="true"] { grid-template-rows: 1fr }
@@ -138,29 +142,12 @@ const AdminPortal = () => {
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
   const [drawer, setDrawer] = useState(false);
-  // Téléphone : l'en-tête (menu, titre, recherche) s'efface quand on descend et revient quand on remonte,
-  // pour que rien ne soit caché pendant la lecture.
-  const [headHidden, setHeadHidden] = useState(false);
   const [palette, setPalette] = useState(false);
   const vw = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
   // Ordinateur et tablette : menu toujours ouvert. Téléphone : menu d'icônes qu'on ouvre.
   const mode: "full" | "drawer" = vw < 768 ? "drawer" : "full";
-  const phone = vw < 768;
-  useEffect(() => {
-    if (!phone) { setHeadHidden(false); return; }
-    let last = window.scrollY;
-    const on = () => {
-      const y = window.scrollY;
-      if (y < 24) setHeadHidden(false);
-      else if (y > last + 6 && y > 90) setHeadHidden(true);
-      else if (y < last - 6) setHeadHidden(false);
-      last = y;
-    };
-    window.addEventListener("scroll", on, { passive: true });
-    return () => window.removeEventListener("scroll", on);
-  }, [phone]);
 
   const allowedTabs = useMemo(() => {
     const set = new Set<TabId>();
@@ -177,7 +164,6 @@ const AdminPortal = () => {
   // Menu « Ressources » : ouvert d'office quand on est sur une de ses pages.
   const [menuOpen, setMenuOpen] = useState(() => GROUP_OF.get(readTab() ?? "dashboard") === "Ressources");
   useEffect(() => { if (GROUP_OF.get(tab) === "Ressources") setMenuOpen(true); }, [tab]);
-  useEffect(() => { setHeadHidden(false); }, [tab]);
   useEffect(() => {
     if (visibleNav.length > 0 && !allowedTabs.has(tab)) setTabState(visibleNav[0].id);
   }, [visibleNav, allowedTabs, tab]);
@@ -208,6 +194,8 @@ const AdminPortal = () => {
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
   }, []);
+
+  useNoZoom();
 
   useLayoutEffect(() => {
     const html = document.documentElement;
@@ -537,39 +525,29 @@ const AdminPortal = () => {
         </div>
       ) : (
         <div style={{ minWidth: 0 }}>
-        <header style={panel
-          ? { flexShrink: 0, background: C.bg }
-          : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", transform: headHidden && !drawer ? "translateY(-100%)" : "none", transition: "transform .28s cubic-bezier(.22,1,.36,1)" }}>
-          <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
-            {mode === "drawer" && (
-              <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
-                style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "transparent", color: C.t1, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-                <Menu style={{ width: 19, height: 19 }} />
-              </button>
-            )}
-            <ol aria-label="Fil d'Ariane" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1, fontSize: 13.5 }}>
-              {crumbs.map((c, i) => {
-                const last = i === crumbs.length - 1;
-                const hideOnPhone = mode === "drawer" && i < crumbs.length - 1;
-                return (
-                  <li key={i} style={{ display: hideOnPhone ? "none" : "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                    {i > 0 && mode !== "drawer" && <ChevronRight style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />}
-                    {c.onClick
-                      ? <button type="button" onClick={c.onClick} style={{ all: "unset", cursor: "pointer", color: C.t3, whiteSpace: "nowrap" }}>{c.label}</button>
-                      : <span style={{ color: last ? C.t1 : C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>}
-                  </li>
+        {/* Téléphone : pas de barre ni de bande ; deux boutons ronds et le nom de la page, qui défilent avec elle. */}
+        <header style={{ paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
+          <div style={{ height: 64, display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
+            <button type="button" className="sh-round" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}>
+              <Menu style={{ width: 18, height: 18 }} strokeWidth={1.9} />
+            </button>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
+              {(() => {
+                const last = crumbs[crumbs.length - 1];
+                const back = crumbs.length > 1 ? crumbs[crumbs.length - 2] : undefined;
+                return back?.onClick ? (
+                  <button type="button" onClick={back.onClick} aria-label={`Retour : ${back.label}`}
+                    style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%", fontSize: 14.5, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em" }}>
+                    <ChevronLeft style={{ width: 16, height: 16, color: C.t3, flexShrink: 0 }} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
+                  </button>
+                ) : (
+                  <span style={{ minWidth: 0, fontSize: 14.5, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
                 );
-              })}
-            </ol>
-            <button type="button" className="sh-search" onClick={() => setPalette(true)} aria-label="Rechercher (⌘K)"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: mode === "drawer" ? 0 : "0 10px 0 12px",
-                width: mode === "drawer" ? 36 : 260, justifyContent: mode === "drawer" ? "center" : "flex-start",
-                borderRadius: 9, border: `1px solid ${mode === "drawer" ? "transparent" : C.bds}`, background: mode === "drawer" ? "transparent" : "var(--a-inputBg)",
-                color: C.t3, fontFamily: FONT, fontSize: 13, cursor: "pointer", flexShrink: 0,
-              }}>
-              <Search style={{ width: 15, height: 15 }} />
-              {mode !== "drawer" && <><span style={{ flex: 1, textAlign: "left" }}>Rechercher</span><kbd style={{ fontFamily: FONT, fontSize: 11, padding: "2px 6px", borderRadius: 5, border: `1px solid ${C.bds}`, color: C.t3 }}>⌘K</kbd></>}
+              })()}
+            </div>
+            <button type="button" className="sh-round" onClick={() => setPalette(true)} aria-label="Rechercher">
+              <Search style={{ width: 17, height: 17 }} strokeWidth={1.9} />
             </button>
           </div>
         </header>

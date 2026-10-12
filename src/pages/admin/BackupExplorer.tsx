@@ -10,6 +10,7 @@ import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG, numeric } from "@/components/admin/
 import ThemeToggle from "@/components/app/ThemeToggle";
 import { BackupOpenError, openBackup, type BackupEntry, type OpenStep, type OpenedBackup } from "@/lib/backupOpen";
 import { MAIN_TABLES, columnLabel, docInfo, formatValue, parseCsv, tableLabel } from "@/lib/backupLabels";
+import { useNoZoom } from "@/lib/noZoom";
 
 /*
  * Explorateur de sauvegarde (/admin/sauvegarde) : on choisit le fichier .gpg
@@ -86,6 +87,7 @@ const EXPLORER_CSS = `
 
 export default function BackupExplorer() {
   useAdminTheme();
+  useNoZoom();
   const [opened, setOpened] = useState<OpenedBackup | null>(null);
 
   return (

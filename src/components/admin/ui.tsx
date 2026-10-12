@@ -28,6 +28,10 @@ export const UI_CSS = `
   .ws-card { border-radius: 0 !important; box-shadow: none !important; }
   .ws-flat { -webkit-mask-image: none; mask-image: none; }
   .ui-side { background: var(--a-bg) !important; box-shadow: none !important; }
+  /* Rien ne doit pousser la page sur le côté : chaque bloc peut rétrécir, les textes longs vont à la ligne. */
+  .ws-root :is(div, section, label, form, article, aside, nav, ul, ol, li, p) { min-width: 0; }
+  .ws-root .cmp-ghost { min-width: 0; max-width: calc(100% + 20px); }
+  .ws-card, .ws-flat, .ws-scroll { overflow-x: hidden; }
   /* Aucun voile sombre : iOS n'assombrit pas la zone de l'heure, le haut paraîtrait coupé en deux. */
   .a-veil { background: transparent !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }
