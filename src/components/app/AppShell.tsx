@@ -29,7 +29,7 @@ function useAppScope() {
         return m;
       })();
     const previous = meta.getAttribute("content");
-    const sync = () => meta.setAttribute("content", html.classList.contains("dark") ? "#171717" : "#ffffff");
+    const sync = () => meta.setAttribute("content", html.classList.contains("dark") ? "#171717" : "#f5f5f3");
     sync();
 
     // La bascule clair/sombre change la classe de <html> : on resynchronise.

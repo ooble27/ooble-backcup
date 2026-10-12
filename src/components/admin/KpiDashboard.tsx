@@ -54,7 +54,7 @@ const fetchSnapshot = async (days: number): Promise<Snapshot> => {
 };
 
 const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
-  const [period, setPeriod] = useState<Period>("7");
+  const [period, setPeriod] = useState<Period>("1");
   const days = Number(period);
   // Le dernier état connu s'affiche tout de suite ; la mise à jour arrive en arrière-plan.
   const [snap, setSnap] = useState<Snapshot | undefined>(() => peek<Snapshot>(`kpi.${days}`)?.value);

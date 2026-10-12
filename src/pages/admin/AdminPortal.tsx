@@ -194,7 +194,6 @@ const AdminPortal = () => {
   useLayoutEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    const prevHtmlBg = html.style.backgroundColor;
     const prevBodyBg = body.style.backgroundColor;
     const style = document.createElement("style");
     style.textContent = ADMIN_THEME_CSS + UI_CSS + LAYOUT_CSS + VIZ_CSS + HERO_CSS + SHELL_CSS;
@@ -222,7 +221,8 @@ const AdminPortal = () => {
       window.removeEventListener("resize", sync);
       document.head.removeChild(style);
       [html.style.overflow, body.style.overflow] = prevOverflow;
-      html.style.backgroundColor = prevHtmlBg;
+      // La couleur de démarrage (index.html) ne doit pas survivre au back-office.
+      html.style.backgroundColor = "";
       body.style.backgroundColor = prevBodyBg;
       if (meta) meta.setAttribute("content", prevTheme);
     };
@@ -426,8 +426,9 @@ const AdminPortal = () => {
 
       {drawer && mode === "drawer" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 80 }}>
-          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: C.overlay }} />
-          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
+          {/* Sans voile sombre : iOS ne pourrait pas assombrir la barre d'état, une bande claire resterait en haut. */}
+          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: "transparent" }} />
+          <aside style={{ position: "absolute", top: "var(--a-top, env(safe-area-inset-top, 0px))", bottom: 0, left: 0, width: 84, background: C.ground, borderRadius: "0 22px 22px 0", boxShadow: "0 10px 40px rgba(0,0,0,.25)", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
             {sidebar(true)}
           </aside>
         </div>
