@@ -28,6 +28,8 @@ export const UI_CSS = `
   .ws-card { border-radius: 0 !important; box-shadow: none !important; }
   .ws-flat { -webkit-mask-image: none; mask-image: none; }
   .ui-side { background: var(--a-bg) !important; box-shadow: none !important; }
+  /* Aucun voile sombre : iOS n'assombrit pas la zone de l'heure, le haut paraîtrait coupé en deux. */
+  .a-veil { background: transparent !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }
 @keyframes ui-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 @keyframes ui-fade { from { opacity: 0 } to { opacity: 1 } }
@@ -311,7 +313,7 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
     <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147482500, fontFamily: FONT, color: C.t1, pointerEvents: "none" }}>
       <UIStyles />
       {/* Le voile couvre tout l'écran, barre d'état comprise : pas de bande plus claire en haut. */}
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
+      <div onClick={onClose} className="a-veil" style={{ position: "absolute", inset: 0, background: C.overlay, animation: "ui-fade .18s ease", pointerEvents: "auto" }} />
       <aside role="dialog" aria-modal="true" className="ui-side" style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: `min(${width}px, 100vw)`, background: C.l1, boxShadow: C.panelShadow,
         display: "flex", flexDirection: "column", animation: `ui-slide .28s ${UI_EASE}`, pointerEvents: "auto",

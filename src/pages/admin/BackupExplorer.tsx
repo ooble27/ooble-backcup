@@ -75,6 +75,7 @@ const EXPLORER_CSS = `
 @keyframes bx-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 @keyframes bx-sheet { from { transform: translateX(24px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes bx-fade { from { opacity: 0 } to { opacity: 1 } }
+@media (max-width: 767px) { .a-veil { background: transparent !important; } }
 @keyframes spin { to { transform: rotate(360deg) } }
 .bx-row:hover { background: var(--a-hover1) }
 .bx-nav:hover { background: var(--a-hover1); color: var(--a-t1) }
@@ -567,7 +568,7 @@ function RowSheet({ cols, row, title, people, onClose }: {
   }, [onClose]);
   return createPortal(
     <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 60, fontFamily: FONT, color: C.t1 }}>
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "bx-fade .18s ease both" }} className="bx-anim" />
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: C.overlay, animation: "bx-fade .18s ease both" }} className="bx-anim a-veil" />
       <aside role="dialog" aria-label={title} className="bx-anim" style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: "min(460px, 100vw)", background: C.l1, boxShadow: C.panelShadow,
         display: "flex", flexDirection: "column", animation: "bx-sheet .22s cubic-bezier(.2,.8,.2,1) both",

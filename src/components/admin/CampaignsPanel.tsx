@@ -287,7 +287,7 @@ function Modal({ open, onClose, variant, label, children }: {
   if (!mounted || typeof document === "undefined") return null;
   return createPortal(
     <div className="admin-scope" style={{ position: "fixed", inset: 0, zIndex: 2147483000, fontFamily: FONT }}>
-      <div className="cmp-backdrop" data-show={show} onClick={onClose} />
+      <div className="cmp-backdrop a-veil" data-show={show} onClick={onClose} />
       <div
         ref={dialog}
         role="dialog"
