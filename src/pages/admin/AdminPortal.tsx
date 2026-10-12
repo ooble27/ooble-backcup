@@ -95,8 +95,11 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
 };
 
 const SHELL_CSS = `
-.sh-nav { transition: background .12s, color .12s }
-.sh-nav:hover { background: var(--a-hover2); color: var(--a-t1) }
+.sh-nav { transition: background .2s, color .15s, box-shadow .2s }
+.sh-nav:hover { color: var(--a-t1) }
+.sh-nav .sh-lb, .sh-nav .sh-ic { transition: transform .3s cubic-bezier(.22,1,.36,1), color .15s }
+.sh-nav:hover .sh-lb { transform: translateX(2px) }
+.sh-nav:hover .sh-ic { color: var(--a-t1) }
 .admin-scope, .admin-scope * { -webkit-tap-highlight-color: transparent }
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 .sh-icon:hover { background: var(--a-hover2); color: var(--a-t1) }
@@ -340,21 +343,23 @@ const AdminPortal = () => {
                       position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
                       ...(compact
                         ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
-                        : { width: "100%", height: 38, padding: "0 12px", borderRadius: 10, marginBottom: 1 }),
-                      background: on ? C.hover4 : "transparent",
-                      color: on ? C.t1 : C.t2, fontSize: 14.5, fontWeight: on ? 500 : 400,
+                        : { width: "100%", height: 36, padding: "0 12px", borderRadius: 11, marginBottom: 2 }),
+                      // Page ouverte : une pastille posée (comme l'étape active des espaces de travail), pas un aplat gris.
+                      background: on ? (compact ? C.hover4 : C.l1) : "transparent",
+                      boxShadow: on && !compact ? `0 0 0 1px ${C.bds}, 0 1px 2px rgba(0,0,0,.04)` : "none",
+                      color: on ? C.t1 : C.t2, fontSize: 14, letterSpacing: "-0.01em", fontWeight: on ? 500 : 400,
                     }}>
-                    <Icon style={{ width: compact ? 23 : 18, height: compact ? 23 : 18, flexShrink: 0 }} strokeWidth={on ? 2 : 1.75} />
-                    {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>}
+                    <Icon className="sh-ic" style={{ width: compact ? 23 : 17, height: compact ? 23 : 17, flexShrink: 0, color: on ? C.t1 : C.t3 }} strokeWidth={on ? 1.9 : 1.6} />
+                    {!compact && <span className="sh-lb" style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>}
                     {!!n && (compact
                       ? <span style={{ position: "absolute", top: 1, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums", boxShadow: `0 0 0 2px ${C.ground}` }}>{n}</span>
-                      : <span style={{ fontSize: 12, minWidth: 22, height: 22, padding: "0 7px", borderRadius: 99, background: C.warnBg, color: C.warnText, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
+                      : <span style={{ fontSize: 11.5, fontWeight: 500, minWidth: 20, height: 20, padding: "0 7px", borderRadius: 99, background: "rgba(242,97,61,.12)", color: "var(--a-coral)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
                   </button>
                 );
               });
             return (
               <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 14) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                {g.label && !compact && !isMenu && <p style={{ margin: "0 12px 6px", fontSize: 12, color: C.t3, letterSpacing: "0.01em" }}>{g.label}</p>}
+                {g.label && !compact && !isMenu && <p style={{ margin: "0 12px 5px", fontSize: 11.5, color: C.t3, letterSpacing: "0.02em" }}>{g.label}</p>}
                 {!isMenu ? itemButtons : (
                   <>
                     <button type="button" className="sh-nav" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}
@@ -363,12 +368,13 @@ const AdminPortal = () => {
                         position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
                         ...(compact
                           ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
-                          : { width: "100%", height: 38, padding: "0 12px", borderRadius: 10, marginBottom: 1 }),
-                        background: inMenu && !menuOpen ? C.hover4 : "transparent",
-                        color: inMenu ? C.t1 : C.t2, fontSize: 14.5, fontWeight: inMenu ? 500 : 400,
+                          : { width: "100%", height: 36, padding: "0 12px", borderRadius: 11, marginBottom: 2 }),
+                        background: inMenu && !menuOpen ? (compact ? C.hover4 : C.l1) : "transparent",
+                        boxShadow: inMenu && !menuOpen && !compact ? `0 0 0 1px ${C.bds}, 0 1px 2px rgba(0,0,0,.04)` : "none",
+                        color: inMenu ? C.t1 : C.t2, fontSize: 14, letterSpacing: "-0.01em", fontWeight: inMenu ? 500 : 400,
                       }}>
-                      <MenuIcon style={{ width: compact ? 23 : 18, height: compact ? 23 : 18, flexShrink: 0 }} strokeWidth={inMenu ? 2 : 1.75} />
-                      {!compact && <span style={{ flex: 1, minWidth: 0 }}>{g.menu!.label}</span>}
+                      <MenuIcon className="sh-ic" style={{ width: compact ? 23 : 17, height: compact ? 23 : 17, flexShrink: 0, color: inMenu ? C.t1 : C.t3 }} strokeWidth={inMenu ? 1.9 : 1.6} />
+                      {!compact && <span className="sh-lb" style={{ flex: 1, minWidth: 0 }}>{g.menu!.label}</span>}
                       <ChevronDown className="sh-chev" style={{
                         width: compact ? 12 : 16, height: compact ? 12 : 16, color: C.t3, flexShrink: 0, transform: menuOpen ? "rotate(180deg)" : "none",
                         ...(compact ? { position: "absolute", bottom: 3, left: "50%", marginLeft: -6 } : {}),
