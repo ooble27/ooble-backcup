@@ -535,7 +535,7 @@ export type Database = {
     }
     Enums: {
       account_type: "individual" | "business"
-      app_role: "admin" | "operator" | "kyc_reviewer" | "support" | "marketing"
+      app_role: "admin" | "operator" | "kyc_reviewer" | "support" | "marketing" | "compliance" | "accounting"
       kyc_status: "not_started" | "pending" | "approved" | "rejected"
       order_side: "buy" | "sell"
       order_status:
@@ -666,7 +666,7 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["individual", "business"],
-      app_role: ["admin", "operator", "kyc_reviewer", "support", "marketing"],
+      app_role: ["admin", "operator", "kyc_reviewer", "support", "marketing", "compliance", "accounting"],
       kyc_status: ["not_started", "pending", "approved", "rejected"],
       order_side: ["buy", "sell"],
       order_status: [

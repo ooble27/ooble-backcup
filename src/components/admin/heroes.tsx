@@ -411,15 +411,17 @@ export function BannerHero({ banner, maintenance, loading }: {
 
 /* ─── Équipe ───────────────────────────────────────────────── */
 
-export function TeamHero({ members, loading }: { members: { name: string; role: string }[]; loading: boolean }) {
+/** `members` : une entrée par rôle tenu (un membre peut en cumuler plusieurs) ; `people` : nombre de personnes. */
+export function TeamHero({ members, loading, people }: { members: { name: string; role: string }[]; loading: boolean; people?: number }) {
   const roles = members.reduce<Record<string, number>>((a, m) => { a[m.role] = (a[m.role] ?? 0) + 1; return a; }, {});
+  const n = people ?? members.length;
   return (
     <Hero
-      title={loading ? <span className="mute">…</span> : <><span style={{ color: C.coral }}>{members.length}</span> {plural(members.length, "personne fait", "personnes font")} <span className="mute">tourner Ooble.</span></>}
+      title={loading ? <span className="mute">…</span> : <><span style={{ color: C.coral }}>{n}</span> {plural(n, "personne fait", "personnes font")} <span className="mute">tourner Ooble.</span></>}
       sub={Object.entries(roles).map(([r, n]) => `${n} ${r}`).join(" · ") || "Ajoutez un premier membre."}
     >
       {members.length > 0 && (
-        <ArcStat title="Rôles dans l'équipe" center={String(members.length)}
+        <ArcStat title="Rôles dans l'équipe" center={String(n)}
           segments={Object.entries(roles).map(([r, n], i) => ({ label: r, value: n, color: [C.vzGreen, C.vzIndigo, C.vzCoral, C.vzGray, C.sage][i % 5] }))} />
       )}
     </Hero>

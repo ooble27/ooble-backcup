@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useCan } from "@/lib/roles";
 import { prefetchOrder } from "@/lib/orderDetailCache";
 import { Check, Copy, FileText, History, Loader2, ShoppingCart, Wand2 } from "lucide-react";
 import ClientOrdersHistory from "./ClientOrdersHistory";
@@ -7,7 +8,6 @@ import { orderRef } from "@/lib/orders";
 import { KYC_LABEL, type ClientProfile as ClientProfileData, type ClientOrder } from "@/lib/adminClient";
 import { loadClient, peekClient } from "@/lib/clientProfileCache";
 import { summarizeClient, isAIError, toAIClientContext, toAIOrderSummaries } from "@/lib/ai";
-import { useAuth } from "@/lib/auth";
 import { resetKyb } from "@/lib/adminKyb";
 import { logAdminAction } from "@/lib/audit";
 import { placeLabel, type SignupOrigin } from "@/lib/origin";
@@ -48,7 +48,10 @@ function Block({ title, right, children }: { title: string; right?: React.ReactN
 }
 
 const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
-  const { isAdmin } = useAuth();
+  // Registre du client : Administrateur et Conformité. Gestion du compte : Administrateur.
+  const can = useCan();
+  const canRegister = can("register.export");
+  const isAdmin = can("clients.manage");
   const [regBusy, setRegBusy] = useState(false);
   const downloadRegister = async () => {
     setRegBusy(true);
@@ -141,7 +144,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
           {profile && <Pill tone={KYC_TONE[profile.kycStatus] ?? "neutral"} dot>{KYC_LABEL[profile.kycStatus]}</Pill>}
           {profile?.accountType === "business" && <Pill>Entreprise</Pill>}
           <span style={{ flex: 1 }} />
-          {isAdmin && (
+          {canRegister && (
             // Registre de ce client seul (opérations, identité, alertes), prêt à remettre au CANAFE.
             <Button variant="ghost" disabled={regBusy} onClick={downloadRegister}
               icon={regBusy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <FileText style={{ width: 15, height: 15 }} />}>

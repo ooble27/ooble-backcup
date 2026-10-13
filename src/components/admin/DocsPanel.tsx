@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCan } from "@/lib/roles";
 import { ArrowLeft, ArrowRight, BookOpen, Download, Pencil, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchCached, peek, put } from "@/lib/adminCache";
@@ -219,7 +220,7 @@ function Editor({ section, doc, position, onClose, onSaved, onArchived }: {
 /* ─── Page ─── */
 
 export default function DocsPanel({ section }: { section: DocSection }) {
-  const { isAdmin } = useAuth();
+  const isAdmin = useCan()("docs.edit");
   const meta = META[section];
   const key = `docs.${section}`;
   const [docs, setDocs] = useState<DocArticle[] | null>(() => peek<DocArticle[]>(key)?.value ?? null);

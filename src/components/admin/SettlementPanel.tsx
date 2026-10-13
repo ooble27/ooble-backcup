@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCan } from "@/lib/roles";
 import { peek } from "@/lib/adminCache";
 import { loadDeposits, loadPayouts, loadReceipts, loadScanState, loadWallets } from "@/lib/adminData";
 import { ArrowUpRight, Check, ChevronDown, Copy, Inbox, RefreshCw } from "lucide-react";
-import { useAuth } from "@/lib/auth";
 import {
   attachDeposit, fetchPendingSells,
   ignoreDeposit, reconcilePayouts, scanDeposits, txUrl, updateSettings,
@@ -137,7 +137,10 @@ function AmountPicker({ label, unit, value, choices, onChange, disabled }: {
 type Tab = "wallet" | "receipts" | "payouts" | "deposits";
 
 const SettlementPanel = () => {
-  const { isAdmin } = useAuth();
+  // Réglages : Administrateur. Actions sur les dépôts et lecture des blockchains : Administrateur et Opérateur.
+  const can = useCan();
+  const isAdmin = can("settlement.configure");
+  const canAct = can("settlement.act");
   const [tab, setTab] = useState<Tab>("wallet");
   // Les dernières données connues s'affichent tout de suite ; la mise à jour arrive ensuite.
   const cachedW = peek<Awaited<ReturnType<typeof loadWallets>>>("st.wallets")?.value;
@@ -378,7 +381,7 @@ const SettlementPanel = () => {
 
       {tab === "deposits" && (
         <>
-          <Toolbar right={<Button size="sm" variant="ghost" onClick={scanNow} icon={<RefreshCw style={{ width: 14, height: 14 }} />}>Lire maintenant</Button>}>
+          <Toolbar right={canAct && <Button size="sm" variant="ghost" onClick={scanNow} icon={<RefreshCw style={{ width: 14, height: 14 }} />}>Lire maintenant</Button>}>
             <span style={{ fontSize: 12.5, color: C.t3 }}>
               {scanMsg ?? <>Lu toutes les 2 minutes sur Tron, BNB Chain et Polygon (Solana : à la main).{lastScan && <> Dernière lecture : {dateFmt.format(new Date(lastScan))}.</>}</>}
             </span>
@@ -427,7 +430,7 @@ const SettlementPanel = () => {
           ]} />
           {deposit.status !== "matched" && deposit.status !== "ignored" && (
             <div style={{ marginTop: 28 }}>
-              <DepositActions d={deposit} onDone={() => { setDeposit(null); void load(); }} />
+              {canAct && <DepositActions d={deposit} onDone={() => { setDeposit(null); void load(); }} />}
             </div>
           )}
         </SidePanel>

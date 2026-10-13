@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { useCan } from "@/lib/roles";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { Building2, Check, X } from "lucide-react";
 import { decideKyb, fetchKyb, getKybDocumentUrl, resetKyb, type KybRequest } from "@/lib/adminKyb";
 import type { KybDocKey, OwnerRole } from "@/lib/kyb";
-import { useAuth } from "@/lib/auth";
 import BusinessMark from "@/components/app/BusinessMark";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice, TextArea, Workspace, WsPane } from "./ui";
@@ -31,9 +31,10 @@ const fmtDate = (iso: string) => {
 };
 
 const BusinessKycPanel = () => {
-  const { roles } = useAuth();
-  const canDecide = roles.includes("admin") || roles.includes("kyc_reviewer");
-  const isAdmin = roles.includes("admin");
+  // Décider : Administrateur, Vérification, Conformité. Réinitialiser un dossier : Administrateur.
+  const can = useCan();
+  const canDecide = can("kyc.decide");
+  const isAdmin = can("clients.manage");
   const [rows, setRows] = useState<KybRequest[]>(() => peek<KybRequest[]>("kyb")?.value ?? []);
   const [loading, setLoading] = useState(() => !peek("kyb"));
   const [tab, setTab] = useState<Filter>("pending");

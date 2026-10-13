@@ -4,7 +4,8 @@ import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
   LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown,
 } from "lucide-react";
-import { useAuth, type AppRole } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
 import { useNoZoom } from "@/lib/noZoom";
 import { type AdminOrder } from "@/lib/adminOrders";
 import { fetchAdminOrders, persistOrderPatch, deleteOrder } from "@/lib/adminOrdersLive";
@@ -43,7 +44,7 @@ import { prefetchOrder } from "@/lib/orderDetailCache";
 /** Téléphone : navigation en cadran (false = ancien menu latéral). */
 const DIAL_NAV = true;
 
-export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
+export type { TabId };
 
 interface NavItem { id: TabId; label: string; desc: string; icon: typeof Inbox }
 interface NavGroup { label: string | null; items: NavItem[]; menu?: { label: string; icon: typeof Inbox } }
@@ -83,18 +84,6 @@ const GROUPS: NavGroup[] = [
 ];
 const NAV = GROUPS.flatMap((g) => g.items);
 const GROUP_OF = new Map(GROUPS.flatMap((g) => g.items.map((i) => [i.id, g.label] as const)));
-
-const ROLE_TABS: Record<AppRole, TabId[]> = {
-  admin:        ["dashboard", "queue", "orders", "clients", "kyc", "accounting", "compliance", "settlement", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"],
-  operator:     ["queue", "orders", "clients", "settlement", "mailbox", "kb", "manual"],
-  kyc_reviewer: ["kyc", "mailbox", "kb", "manual"],
-  support:      ["queue", "orders", "clients", "mailbox", "kb", "manual"],
-  marketing:    ["mailbox", "campaigns", "announcements", "accounting", "kb", "manual"],
-};
-
-const ROLE_LABEL: Partial<Record<AppRole, string>> = {
-  admin: "Administrateur", operator: "Opérateur", kyc_reviewer: "Vérification", support: "Support", marketing: "Marketing",
-};
 
 const SHELL_CSS = `
 /* Survol : la page se soulève. Page ouverte : son icône se pose dans un rond plein (comme le cadran), sans bande. */
@@ -191,11 +180,8 @@ const AdminPortal = () => {
   // En paysage et sur ordinateur, rien ne change.
   const rail = mode === "full" && vw < 1100 && vh > vw;
 
-  const allowedTabs = useMemo(() => {
-    const set = new Set<TabId>();
-    for (const r of roles) for (const t of ROLE_TABS[r] ?? []) set.add(t);
-    return set;
-  }, [roles]);
+  // Pages de ce membre : l'union de ses rôles (lib/roles.ts).
+  const allowedTabs = useMemo(() => tabsFor(roles), [roles]);
   const visibleGroups = useMemo(
     () => GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => allowedTabs.has(i.id)) })).filter((g) => g.items.length),
     [allowedTabs],
@@ -207,8 +193,9 @@ const AdminPortal = () => {
   const [menuOpen, setMenuOpen] = useState(() => GROUP_OF.get(readTab() ?? "dashboard") === "Ressources");
   useEffect(() => { if (GROUP_OF.get(tab) === "Ressources") setMenuOpen(true); }, [tab]);
   useEffect(() => {
-    if (visibleNav.length > 0 && !allowedTabs.has(tab)) setTabState(visibleNav[0].id);
-  }, [visibleNav, allowedTabs, tab]);
+    // Page interdite ou absente : on arrive sur la page d'accueil du rôle principal.
+    if (roles.length > 0 && !allowedTabs.has(tab)) setTabState(homeFor(roles));
+  }, [roles, allowedTabs, tab]);
 
   // L'onglet suit l'adresse (?tab=) : le bouton « retour » du navigateur fonctionne.
   const setTab = useCallback((id: TabId) => {
@@ -352,7 +339,7 @@ const AdminPortal = () => {
 
   if (!active) return null;
 
-  const topRole = roles.includes("admin") ? "admin" : roles[0];
+  const roleText = sortRoles(roles).map(roleLabel).join(" · ") || "Équipe";
   const crumbs: { label: string; onClick?: () => void }[] = [];
   const group = GROUP_OF.get(active.id);
   if (group && group !== active.label) crumbs.push({ label: group });
@@ -474,7 +461,7 @@ const AdminPortal = () => {
               </span>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <p style={{ margin: 0, fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
-                <p style={{ margin: "1px 0 0", fontSize: 12, color: C.t3 }}>{ROLE_LABEL[topRole] ?? "Équipe"}</p>
+                <p title={roleText} style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{roleText}</p>
               </div>
               <ThemeToggle />
             </>

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { useCan } from "@/lib/roles";
 import { ArrowRight, Ban, Banknote, Check, ChevronRight, Copy, ExternalLink, Hand, RotateCcw, Send, Trash2 } from "lucide-react";
 import { CURRENT_OPERATOR, TYPE_META, nfCad, nfUsdt, timeAgo, type AdminOrder } from "@/lib/adminOrders";
 import { type OrderEvent } from "@/lib/adminOrderEvents";
 import { loadOrderPart, peekOrderPart } from "@/lib/orderDetailCache";
 import { sendRefundEmail } from "@/lib/email";
-import { useAuth } from "@/lib/auth";
 import { NETWORKS } from "@/components/app/networks";
 import { sendPayout, txUrl, type ChainDeposit, type UsdtPayout } from "@/lib/settlement";
 import { C, FONT } from "./adminTheme";
@@ -67,12 +67,12 @@ function Block({ title, children, right }: { title: string; children: React.Reac
 }
 
 /* ─── Envoi des USDT (achat) ─── */
-function PayoutStep({ order, list, onChanged }: { order: AdminOrder; list: UsdtPayout[] | null; onChanged: () => void }) {
+function PayoutStep({ order, list, onChanged, readOnly }: { order: AdminOrder; list: UsdtPayout[] | null; onChanged: () => void; readOnly?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; url?: string } | null>(null);
   const active = (list ?? []).find((p) => p.status !== "failed");
   const last = list?.[0];
-  const canSend = order.status === "recu" && !active && list !== null && AUTO_NETWORKS.has(order.network ?? "");
+  const canSend = !readOnly && order.status === "recu" && !active && list !== null && AUTO_NETWORKS.has(order.network ?? "");
   if (!last && !canSend) return null;
 
   const go = async () => {
@@ -175,7 +175,9 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
 }
 
 const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Props) => {
-  const { isAdmin } = useAuth();
+  // Agir sur une commande : Administrateur et Opérateur (la base applique la même règle). Les autres rôles la consultent.
+  const can = useCan();
+  const canAct = can("orders.act");
   const { copied, copy } = useCopy();
   const [payouts, setPayouts] = useState<UsdtPayout[] | null>(() => (order.type === "buy" ? peekOrderPart("payouts", order.id) : []));
   const loadPayouts = useCallback(() => {
@@ -230,7 +232,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
       envoi automatique), ou rembourser ; plus d'annulation : l'argent est là, on rembourse ;
     • annulée → rouvrir.
   */
-  const actions = lockedByOther ? null : (
+  const actions = lockedByOther || !canAct ? null : (
     <>
       {!finished && !order.assignedTo && order.status === "recu" && !order.autoSending && !activePayout && (
         <Button icon={<Hand style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { assignedTo: CURRENT_OPERATOR })}>Prendre en charge</Button>
@@ -282,6 +284,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{actions}</div>
       </header>
 
+      {!canAct && <div style={{ marginBottom: 20 }}><Notice tone="info">Consultation seule : ce sont l'opérateur et l'administrateur qui agissent sur une commande.</Notice></div>}
       {lockedByOther && <div style={{ marginBottom: 20 }}><Notice tone="info">Cette commande est traitée par <b>{order.assignedTo}</b>. Elle doit être libérée avant que vous puissiez agir.</Notice></div>}
 
       {confirmRefund && (
@@ -313,7 +316,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
             </div>
           </div>
 
-          {order.type === "buy" && <PayoutStep order={order} list={payouts} onChanged={() => { loadPayouts(); onRefresh?.(); }} />}
+          {order.type === "buy" && <PayoutStep order={order} list={payouts} readOnly={!canAct} onChanged={() => { loadPayouts(); onRefresh?.(); }} />}
           {order.type === "sell" && <SellStep order={order} copy={copy} copied={copied} />}
 
           <Block title="Détails">
@@ -367,7 +370,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
             )}
           </Block>
 
-          {isAdmin && canDelete && (
+          {can("orders.delete") && canDelete && (
             <Block title="Zone sensible">
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: C.t3, lineHeight: 1.5 }}>Possible seulement sans aucun mouvement d'argent : les commandes payées restent dans les registres.</p>
               {confirmDel ? (
