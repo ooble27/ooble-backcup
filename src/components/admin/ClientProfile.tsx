@@ -163,7 +163,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-x-12 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div style={{ minWidth: 0 }}>
           <Block title={`Commandes (${orders.length})`}>
             <DataTable rows={orders} columns={columns} rowKey={(o) => o.id} onRowClick={(o) => onOpenOrder?.(o.id)} initialSort={{ key: "date", dir: "desc" }}

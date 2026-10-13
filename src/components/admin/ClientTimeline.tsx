@@ -303,7 +303,7 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
                           const Icon = e.icon;
                           const t = toneOf(e);
                           return (
-                            <div key={e.id} className="tl-item" style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 14, background: C.hover2, minWidth: 0 }}>
+                            <div key={e.id} className="tl-item ui-lift-y" style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 14, background: C.hover2, minWidth: 0 }}>
                               <span style={{ width: 34, height: 34, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: t.bg, color: t.fg }}>
                                 <Icon style={{ width: 15, height: 15 }} strokeWidth={1.9} />
                               </span>

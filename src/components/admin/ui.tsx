@@ -52,7 +52,24 @@ export const UI_CSS = `
 .ui-btn-ghost:hover:not(:disabled) { color: var(--a-t1) }
 .ui-btn-primary:hover:not(:disabled) { background: var(--a-accentHover) }
 .ui-row { transition: background .12s }
-/* Aucun fond gris au survol : la ligne reste telle quelle (souhait de l'utilisateur). */
+/* Survol, sans fond gris : la ligne glisse un peu vers la droite et une pastille apparaît devant.
+   Uniquement avec une souris (pas de survol qui reste collé après un toucher sur iPhone ou iPad). */
+.ui-row > td:first-child { position: relative; }
+.ui-row > td:first-child::before, :is(div, button).ui-row::before, .ui-lift::before { content: ""; position: absolute; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 99px;
+  background: var(--a-t1); opacity: 0; transform: scale(.3); transition: opacity .2s, transform .3s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
+.ui-row > td:first-child::before { left: 0; }
+:is(div, button).ui-row, .ui-lift { position: relative; }
+:is(div, button).ui-row::before { left: 0; }
+.ui-lift::before { left: 0; }
+.ui-row > td > *, :is(div, button).ui-row > *, .ui-lift > *, .ui-lift-y { transition: transform .3s cubic-bezier(.22,1,.36,1); }
+@media (hover: hover) {
+  .ui-row[tabindex="0"]:hover > td > *, .ui-lift:hover > * { transform: translateX(6px); }
+  div.ui-row[tabindex="0"]:hover > *, button.ui-row:not(:disabled):hover > * { transform: translateX(12px); }
+  .ui-row[tabindex="0"]:hover > td:first-child::before, div.ui-row[tabindex="0"]:hover::before, button.ui-row:not(:disabled):hover::before, .ui-lift:hover::before { opacity: 1; transform: scale(1); }
+  .ui-lift-y:hover { transform: translateY(-3px); }
+}
+.ui-row[tabindex="0"]:active > td > *, div.ui-row[tabindex="0"]:active > * { transform: translateX(2px) scale(.995); }
+@media (prefers-reduced-motion: reduce) { .ui-row > td > *, :is(div, button).ui-row > *, .ui-lift > *, .ui-lift-y { transition: none; } }
 .ui-step:hover { color: var(--a-t1) }
 .ui-sum { display: grid; grid-template-columns: minmax(110px, 180px) minmax(0, 1fr) auto; grid-template-areas: "l v a"; gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--a-bds); }
 .ui-sum-l { grid-area: l } .ui-sum-v { grid-area: v } .ui-sum-a { grid-area: a; justify-self: end }

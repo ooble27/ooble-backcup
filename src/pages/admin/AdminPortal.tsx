@@ -115,6 +115,8 @@ const SHELL_CSS = `
 .admin-scope, .admin-scope * { -webkit-tap-highlight-color: transparent }
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 .sh-icon:hover { color: var(--a-t1) }
+.sh-nav:hover .sh-rail-ic { transform: scale(1.12) }
+.sh-rail-ic { transition: transform .3s cubic-bezier(.22,1,.36,1) }
 .sh-round { width: 40px; height: 40px; flex-shrink: 0; border-radius: 99px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; background: var(--a-l1); color: var(--a-t1); box-shadow: 0 0 0 1px var(--a-bds); transition: transform .15s, background .15s }
 .sh-round:active { transform: scale(.94) }
 .sh-round:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px }
@@ -143,12 +145,13 @@ const SHELL_CSS = `
 
 function useViewport() {
   const [w, setW] = useState(() => (typeof window === "undefined" ? 1280 : window.innerWidth));
+  const [h, setH] = useState(() => (typeof window === "undefined" ? 800 : window.innerHeight));
   useEffect(() => {
-    const on = () => setW(window.innerWidth);
+    const on = () => { setW(window.innerWidth); setH(window.innerHeight); };
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
-  return w;
+  return [w, h] as const;
 }
 
 const readTab = () => new URLSearchParams(window.location.search).get("tab") as TabId | null;
@@ -162,11 +165,14 @@ const AdminPortal = () => {
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
-  const vw = useViewport();
+  const [vw, vh] = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
   // Ordinateur et tablette : menu toujours ouvert. Téléphone : menu d'icônes qu'on ouvre.
   const mode: "full" | "drawer" = vw < 768 ? "drawer" : "full";
+  // Tablette debout (portrait) : la colonne se réduit à ses icônes pour laisser la place à l'écrin.
+  // En paysage et sur ordinateur, rien ne change.
+  const rail = mode === "full" && vw < 1100 && vh > vw;
 
   const allowedTabs = useMemo(() => {
     const set = new Set<TabId>();
@@ -320,7 +326,7 @@ const AdminPortal = () => {
   if (clientView) crumbs.push({ label: clientView.name });
 
   const sidebar = (inDrawer: boolean) => {
-    // Sur téléphone : uniquement les icônes, plus grandes ; le nom de la page est dans la barre du haut.
+    // Rail d'icônes (tablette debout) : la page ouverte a son icône dans un rond plein, comme la colonne complète.
     const compact = inDrawer;
     return (
       <nav aria-label="Navigation du back-office" style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: FONT }}>
@@ -350,18 +356,18 @@ const AdminPortal = () => {
                 const n = badges[it.id];
                 return (
                   <button key={it.id} type="button" className="sh-nav" onClick={() => setTab(it.id)} aria-current={on ? "page" : undefined}
-                    aria-label={compact ? it.label : undefined}
+                    aria-label={compact ? it.label : undefined} title={compact ? it.label : undefined}
                     style={{
                       position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
                       ...(compact
-                        ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
+                        ? { width: 46, height: 46, justifyContent: "center", borderRadius: 99, padding: 0 }
                         : { width: "100%", height: 38, padding: "0 12px 0 6px", borderRadius: 11, marginBottom: 1 }),
-                      background: on && compact ? C.hover4 : "transparent",
-                      color: on ? C.t1 : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: on ? 500 : 400,
+                      background: on && compact ? C.t1 : "transparent",
+                      color: on ? (compact ? C.bg : C.t1) : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: on ? 500 : 400,
                       ...(compact ? {} : { gap: 10 }),
                     }}>
                     {compact
-                      ? <Icon style={{ width: 23, height: 23, flexShrink: 0 }} strokeWidth={on ? 2 : 1.75} />
+                      ? <Icon className="sh-rail-ic" style={{ width: 20, height: 20, flexShrink: 0 }} strokeWidth={on ? 1.9 : 1.7} />
                       : <span className="sh-ic" data-on={on} style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: on ? C.t1 : "transparent", color: on ? C.bg : C.t3 }}>
                           <Icon style={{ width: 16, height: 16 }} strokeWidth={on ? 1.9 : 1.6} />
                         </span>}
@@ -378,14 +384,14 @@ const AdminPortal = () => {
                 {!isMenu ? itemButtons : (
                   <>
                     <button type="button" className="sh-nav" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}
-                      aria-label={compact ? g.menu!.label : undefined}
+                      aria-label={compact ? g.menu!.label : undefined} title={compact ? g.menu!.label : undefined}
                       style={{
                         position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
                         ...(compact
-                          ? { width: 52, height: 48, justifyContent: "center", borderRadius: 14, padding: 0 }
+                          ? { width: 46, height: 46, justifyContent: "center", borderRadius: 99, padding: 0 }
                           : { width: "100%", height: 38, padding: "0 12px 0 6px", borderRadius: 11, marginBottom: 1 }),
-                        background: inMenu && !menuOpen && compact ? C.hover4 : "transparent",
-                        color: inMenu ? C.t1 : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: inMenu ? 500 : 400,
+                        background: inMenu && !menuOpen && compact ? C.t1 : "transparent",
+                        color: inMenu ? (compact && !menuOpen ? C.bg : C.t1) : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: inMenu ? 500 : 400,
                         ...(compact ? {} : { gap: 10 }),
                       }}>
                       {compact
@@ -403,7 +409,7 @@ const AdminPortal = () => {
                       <div>
                         <div style={{
                           display: "flex", flexDirection: "column", alignItems: compact ? "center" : "stretch", gap: 2,
-                          ...(compact ? { padding: "4px 0", marginTop: 2, borderRadius: 14, background: C.hover2 } : { padding: "2px 0 2px 18px" }),
+                          ...(compact ? { padding: "4px 0", marginTop: 2 } : { padding: "2px 0 2px 18px" }),
                         }}>
                           {itemButtons}
                         </div>
@@ -417,10 +423,15 @@ const AdminPortal = () => {
         </div>
         <div style={{ padding: compact ? "8px 0 calc(14px + env(safe-area-inset-bottom, 0px))" : "10px 12px 14px", display: "flex", alignItems: "center", justifyContent: compact ? "center" : "flex-start", gap: 10, flexShrink: 0 }}>
           {compact ? (
-            <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
-              style={{ width: 52, height: 48, borderRadius: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t2 }}>
-              <ArrowLeft style={{ width: 21, height: 21 }} />
-            </Link>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+              <span title={user?.email ?? ""} style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {(user?.email ?? "?")[0].toUpperCase()}
+              </span>
+              <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
+                style={{ width: 40, height: 40, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t2 }}>
+                <ArrowLeft style={{ width: 18, height: 18 }} />
+              </Link>
+            </div>
           ) : (
             <>
               <span title={user?.email ?? ""} style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -438,7 +449,7 @@ const AdminPortal = () => {
     );
   };
 
-  const sideWidth = mode === "full" ? 264 : 0;
+  const sideWidth = mode === "full" ? (rail ? 76 : 264) : 0;
 
   const panel = vw >= 768; // même seuil que le mode « drawer »
 
@@ -451,7 +462,7 @@ const AdminPortal = () => {
       : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
-          {sidebar(false)}
+          {sidebar(rail)}
         </aside>
       )}
 

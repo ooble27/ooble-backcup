@@ -601,7 +601,7 @@ function List({ children }: { children: React.ReactNode }) {
 }
 function ListRow({ title, sub, right, onClick }: { title: string; sub?: string; right?: string; onClick: () => void }) {
   return (
-    <button type="button" className="bx-row" onClick={onClick}
+    <button type="button" className="bx-row ui-lift" onClick={onClick}
       style={{
         width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 6px", border: "none",
         borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, fontFamily: FONT, textAlign: "left", cursor: "pointer",
@@ -678,7 +678,7 @@ function TableView({ table, label, people }: { table: Table | null; label: strin
           </thead>
           <tbody>
             {rows.slice(0, shown).map((r, i) => (
-              <tr key={i} className="bx-row" onClick={() => setRow(r)} style={{ cursor: "pointer" }}>
+              <tr key={i} className="bx-row ui-row" tabIndex={0} onClick={() => setRow(r)} style={{ cursor: "pointer" }}>
                 {cols.map((c, j) => (
                   <td key={c} style={{
                     ...numeric, padding: "9px 14px", borderBottom: `1px solid ${C.bds}`, whiteSpace: "nowrap",

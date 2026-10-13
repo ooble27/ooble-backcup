@@ -1063,6 +1063,7 @@ function RecipientPicker({ selected, clients, loading, onAdd, onRemove, onSelect
             <button
               key={c.id}
               type="button"
+              className="ui-lift"
               onMouseDown={() => { onAdd(recipientFromClient(c)); setQuery(""); }}
               style={{
                 display: "flex", width: "100%", alignItems: "center", gap: 10,
