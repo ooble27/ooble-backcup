@@ -27,7 +27,7 @@ const CSS = `
 `;
 
 const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }) => {
-  const [period, setPeriod] = useState<Period>("year");
+  const [period, setPeriod] = useState<Period>("month");
   const { from, to } = periodRange(period);
   const [data, setData] = useState<AcctSummary | null>(() => peekSummary(from, to));
   const [err, setErr] = useState<string | null>(null);
@@ -117,20 +117,20 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       {/* Volume par mois : une barre par mois ; un clic ouvre le mois. */}
       {(data?.months.length ?? 0) > 1 && (
         <div style={{ marginTop: 34 }}>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 64, maxWidth: 12 * 46 }}>
             {[...(data?.months ?? [])].reverse().slice(-12).map((m) => {
               const v = m.vol_buy + m.vol_sell;
               return (
                 <button key={m.month} type="button" onClick={() => setMonth(m.month)} title={`${monthLabel(m.month)} : ${money(v)}, marge ${money(m.margin)}`}
-                  style={{ all: "unset", cursor: "pointer", flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "stretch" }}>
-                  <span className="ac-bar" style={{ height: `${Math.max(4, (v / maxVol) * 100)}%`, borderRadius: 8, background: C.sage, opacity: 0.88 }} />
+                  style={{ all: "unset", cursor: "pointer", width: 36, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "stretch" }}>
+                  <span className="ac-bar" style={{ height: `${Math.max(4, (v / maxVol) * 100)}%`, borderRadius: 6, background: C.sage, opacity: 0.88 }} />
                 </button>
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
             {[...(data?.months ?? [])].reverse().slice(-12).map((m) => (
-              <span key={m.month} style={{ flex: 1, textAlign: "center", fontSize: 11, color: C.t3, overflow: "hidden", whiteSpace: "nowrap" }}>{monthLabel(m.month).slice(0, 4)}</span>
+              <span key={m.month} style={{ width: 36, textAlign: "center", fontSize: 11, color: C.t3, overflow: "hidden", whiteSpace: "nowrap" }}>{monthLabel(m.month).slice(0, 4)}</span>
             ))}
           </div>
         </div>

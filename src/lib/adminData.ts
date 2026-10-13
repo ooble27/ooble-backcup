@@ -51,8 +51,8 @@ export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; ky
     return { a, d, c };
   });
   if (tabs.mailbox) prefetch("mail.threads", fetchThreads);
-  // Comptabilité : le résumé de l'année (sans données personnelles) est prêt avant l'ouverture.
-  if (tabs.accounting) { const { from, to } = periodRange("year"); void loadSummary(from, to).catch(() => undefined); }
+  // Comptabilité : le résumé du mois (sans données personnelles) est prêt avant l'ouverture.
+  if (tabs.accounting) { const { from, to } = periodRange("month"); void loadSummary(from, to).catch(() => undefined); }
   if (tabs.team) prefetch("team", fetchTeam);
   if (tabs.campaigns) prefetch("clients.directory", () => fetchClientDirectory());
   if (tabs.settlement) {
