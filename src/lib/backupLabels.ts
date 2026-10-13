@@ -31,6 +31,7 @@ export const TABLE_LABELS: Record<string, string> = {
   compliance_checklist: "Programme de conformité",
   account_closures: "Comptes fermés",
   client_notes: "Notes de l'équipe sur les clients",
+  accounting_closures: "Clôtures comptables des mois",
   admin_audit_log: "Journal de l'équipe",
   user_roles: "Rôles de l'équipe",
   signup_origins: "Origine des inscriptions",

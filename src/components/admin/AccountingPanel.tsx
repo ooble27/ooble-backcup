@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, Download, Loader2 } from "lucide-react";
+import { ChevronRight, Download, Loader2, Lock } from "lucide-react";
 import { nfCad, nfUsdt } from "@/lib/adminOrders";
-import { NET_LOGO, NET_NAME, PERIODS, exportAccountingCsv, loadSummary, monthLabel, peekSummary, periodRange, type AcctMonth, type AcctNetwork, type AcctSummary, type Period } from "@/lib/accounting";
+import { NET_LOGO, NET_NAME, PERIODS, exportAccountingCsv, loadClosures, loadSummary, monthLabel, peekClosures, peekSummary, periodRange, type AcctMonth, type AcctNetwork, type AcctSummary, type Closure, type Period } from "@/lib/accounting";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
@@ -31,7 +31,9 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
   const { from, to } = periodRange(period);
   const [data, setData] = useState<AcctSummary | null>(() => peekSummary(from, to));
   const [err, setErr] = useState<string | null>(null);
-  const [month, setMonth] = useState<string | null>(null);
+  const [month, setMonth] = useState<{ key: string; check: boolean } | null>(null);
+  const [closures, setClosures] = useState<Map<string, Closure> | null>(() => peekClosures());
+  const [tick, setTick] = useState(0);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -39,7 +41,9 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
     setData(peekSummary(from, to));
     loadSummary(from, to).then((d) => { if (on) { setData(d); setErr(null); } }).catch((e: Error) => { if (on) setErr(e.message); });
     return () => { on = false; };
-  }, [from, to]);
+  }, [from, to, tick]);
+  useEffect(() => { loadClosures().then(setClosures).catch(() => undefined); }, [tick]);
+  const openMonth = (key: string, check = false) => setMonth({ key, check });
 
   const t = data?.totals;
   const exportAll = async () => {
@@ -56,6 +60,13 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
     { key: "v", header: "Volume", align: "right", render: (r) => money(r.vol_buy + r.vol_sell) },
     { key: "mg", header: "Marge réelle", align: "right", render: (r) => <span style={{ color: C.successText }}>{money(r.margin)}</span> },
     { key: "p", header: "Marge", align: "right", hideBelow: 560, render: (r) => <span style={{ color: C.t2 }}>{pct(r.margin, r.vol_buy + r.vol_sell)}</span> },
+    // Rapprochement et clôture : ce que le comptable regarde en premier.
+    { key: "k", header: "État", align: "right", hideBelow: 760, render: (r) => (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 10, justifyContent: "flex-end" }}>
+        {r.to_check ? <span style={{ color: C.warnText }}>{r.to_check} à vérifier</span> : <span style={{ color: C.t3 }}>Rapproché</span>}
+        {closures?.get(r.month)?.action === "close" && <span title="Mois clôturé" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.sage }}><Lock style={{ width: 13, height: 13 }} strokeWidth={2} />Clôturé</span>}
+      </span>
+    ) },
     { key: "go", header: "", align: "right", render: () => <ChevronRight style={{ width: 16, height: 16, color: C.t3, verticalAlign: "middle" }} /> },
   ];
   const netCols: Column<AcctNetwork>[] = [
@@ -104,7 +115,6 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
           ["Achats", money(t?.vol_buy ?? 0), `${t?.n_buy ?? 0} commande${(t?.n_buy ?? 0) > 1 ? "s" : ""}`, C.sage],
           ["Ventes", money(t?.vol_sell ?? 0), `${t?.n_sell ?? 0} commande${(t?.n_sell ?? 0) > 1 ? "s" : ""}`, C.coral],
           ["USDT échangés", nfUsdt.format(t?.usdt ?? 0), "achats et ventes", C.t1],
-          ["Frais facturés", money(t?.fees ?? 0), "en plus de la marge", C.t1],
         ].map(([label, value, note, color]) => (
           <div key={label}>
             <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>{label}</p>
@@ -112,6 +122,23 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
             <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3 }}>{note}</p>
           </div>
         ))}
+        {/* À vérifier : commandes dont l'argent reçu ou envoyé ne correspond pas, ou terminées sans preuve. */}
+        {(() => {
+          const n = t?.to_check ?? 0;
+          const first = data?.months.find((m) => m.to_check > 0);
+          return (
+            <div>
+              <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>À vérifier</p>
+              <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color: n ? C.coral : C.t1, fontVariantNumeric: "tabular-nums" }}>{n}</p>
+              {first ? (
+                <button type="button" onClick={() => openMonth(first.month, true)}
+                  style={{ all: "unset", cursor: "pointer", marginTop: 2, fontSize: 12.5, color: C.t2, textDecoration: "underline", textUnderlineOffset: 3 }}>
+                  Voir {n > 1 ? "les commandes" : "la commande"}
+                </button>
+              ) : <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3 }}>tout est rapproché</p>}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Volume par mois : une barre par mois ; un clic ouvre le mois. */}
@@ -121,7 +148,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
             {[...(data?.months ?? [])].reverse().slice(-12).map((m) => {
               const v = m.vol_buy + m.vol_sell;
               return (
-                <button key={m.month} type="button" onClick={() => setMonth(m.month)} title={`${monthLabel(m.month)} : ${money(v)}, marge ${money(m.margin)}`}
+                <button key={m.month} type="button" onClick={() => openMonth(m.month)} title={`${monthLabel(m.month)} : ${money(v)}, marge ${money(m.margin)}`}
                   style={{ all: "unset", cursor: "pointer", width: 36, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "stretch" }}>
                   <span className="ac-bar" style={{ height: `${Math.max(4, (v / maxVol) * 100)}%`, borderRadius: 6, background: C.sage, opacity: 0.88 }} />
                 </button>
@@ -137,7 +164,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       )}
 
       <Section title="Par mois" description="Commandes terminées. Ouvrez un mois pour voir chaque commande, son taux et sa marge.">
-        <DataTable rows={data?.months ?? []} columns={monthCols} rowKey={(r) => r.month} onRowClick={(r) => setMonth(r.month)}
+        <DataTable rows={data?.months ?? []} columns={monthCols} rowKey={(r) => r.month} onRowClick={(r) => openMonth(r.month)}
           empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>Aucune commande terminée sur cette période.</p>}
           mobile={(r) => (
             <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
@@ -161,7 +188,8 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
         {t?.unpriced ? ` ${t.unpriced} commande${t.unpriced > 1 ? "s" : ""} sans taux du marché connu ne compte${t.unpriced > 1 ? "nt" : ""} pas dans la marge.` : ""}
       </p>
 
-      {month && <AccountingMonth month={month} summary={data?.months.find((m) => m.month === month) ?? null} onClose={() => setMonth(null)} onOpenOrder={onOpenOrder} />}
+      {month && <AccountingMonth key={`${month.key}:${month.check}`} month={month.key} initialCheck={month.check} summary={data?.months.find((m) => m.month === month.key) ?? null}
+        onClose={() => setMonth(null)} onOpenOrder={onOpenOrder} onChanged={() => setTick((n) => n + 1)} />}
     </div>
   );
 };
