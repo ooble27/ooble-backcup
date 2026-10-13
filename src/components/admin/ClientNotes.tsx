@@ -1,178 +1,67 @@
 /**
- * Notes internes staff sur une fiche client.
- *
- * Version 1 : stockage local (localStorage) — pas de synchronisation multi-
- * poste. Suffisant pour dépanner tout de suite. Une migration Supabase
- * (`client_notes` table avec author + timestamp + client_id) est prévue pour
- * la V2 ; le composant a déjà la forme prête à l'accueillir sans changer son
- * API — seul le helper `loadNotes`/`saveNotes` bascule sur `supabase.from()`.
+ * Notes internes sur un client, partagées par toute l'équipe (lib/clientNotes.ts).
+ * Comme un registre : on ajoute, on ne modifie ni n'efface ; chaque note garde son auteur et sa date.
  */
 import { useEffect, useState } from "react";
-import { Plus, Trash2, StickyNote } from "lucide-react";
+import { StickyNote } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { C, FONT, inputStyle, chipAction, iconButton, iconButtonHoverIn, iconButtonHoverOut } from "./adminTheme";
+import { addNote, loadNotes, peekNotes, type ClientNote } from "@/lib/clientNotes";
+import { C, FONT } from "./adminTheme";
+import { Button, Notice, TextArea } from "./ui";
 
-interface Note {
-  id: string;
-  body: string;
-  author: string;
-  createdAt: string;
-}
+const dateFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-const KEY = (userId: string) => `ooble.admin.notes.${userId}`;
-
-function loadNotes(userId: string): Note[] {
-  try {
-    const raw = localStorage.getItem(KEY(userId));
-    if (!raw) return [];
-    const arr = JSON.parse(raw) as Note[];
-    return Array.isArray(arr) ? arr : [];
-  } catch { return []; }
-}
-
-function saveNotes(userId: string, notes: Note[]) {
-  try { localStorage.setItem(KEY(userId), JSON.stringify(notes)); }
-  catch { /* incognito / quota */ }
-}
-
-const dateFmt = new Intl.DateTimeFormat("fr-CA", {
-  day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-});
-
-const ClientNotes = ({ userId }: { userId: string }) => {
+const ClientNotes = ({ userId, onAdded }: { userId: string; onAdded?: (n: ClientNote) => void }) => {
   const { user } = useAuth();
-  const authorEmail = user?.email ?? "staff";
-
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<ClientNote[] | null>(() => peekNotes(userId));
   const [draft, setDraft] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => { setNotes(loadNotes(userId)); }, [userId]);
+  useEffect(() => {
+    let on = true;
+    setNotes(peekNotes(userId));
+    loadNotes(userId).then((n) => { if (on) setNotes(n); }).catch((e: Error) => { if (on) setErr(e.message); });
+    return () => { on = false; };
+  }, [userId]);
 
-  const addNote = () => {
-    const body = draft.trim();
-    if (!body) return;
-    const next: Note[] = [
-      { id: crypto.randomUUID(), body, author: authorEmail, createdAt: new Date().toISOString() },
-      ...notes,
-    ];
-    setNotes(next);
-    saveNotes(userId, next);
+  const save = async () => {
+    if (!draft.trim() || busy) return;
+    setBusy(true); setErr(null);
+    const res = await addNote(userId, draft, user?.name || user?.email || "Équipe");
+    setBusy(false);
+    if (res.error || !res.note) { setErr(res.error ?? "La note n'a pas été enregistrée."); return; }
+    setNotes((prev) => [res.note!, ...(prev ?? [])]);
     setDraft("");
-    setAdding(false);
-  };
-
-  const deleteNote = (id: string) => {
-    const next = notes.filter((n) => n.id !== id);
-    setNotes(next);
-    saveNotes(userId, next);
+    onAdded?.(res.note);
   };
 
   return (
-    <div style={{ fontFamily: FONT, borderTop: `1px solid ${C.bds}` }}>
-      <div style={{
-        padding: "10px 0", borderBottom: `1px solid ${C.bds}`,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <span style={{ fontSize: 12.5, color: C.t3 }}>Visibles uniquement par l'équipe, sur cet appareil.</span>
-        {!adding && (
-          <button
-            style={chipAction}
-            onClick={() => setAdding(true)}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-          >
-            <Plus style={{ width: 11, height: 11 }} /> Nouvelle
-          </button>
-        )}
+    <div style={{ fontFamily: FONT }}>
+      <p style={{ margin: "0 0 10px", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>Visibles par toute l'équipe. Une note ne se modifie pas et ne s'efface pas.</p>
+      <TextArea rows={draft ? 3 : 2} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ajouter une note pour l'équipe…"
+        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void save(); } }} style={{ resize: "none" }} />
+      {draft.trim() && (
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
+          <Button size="sm" variant="ghost" onClick={() => setDraft("")} disabled={busy}>Annuler</Button>
+          <Button size="sm" variant="primary" onClick={save} disabled={busy}>{busy ? "Enregistrement…" : "Ajouter la note"}</Button>
+        </div>
+      )}
+      {err && <div style={{ marginTop: 12 }}><Notice tone="err">{err}</Notice></div>}
+
+      {notes && notes.length === 0 && !draft && (
+        <p style={{ margin: "18px 0 0", fontSize: 12.5, color: C.t3, display: "flex", alignItems: "center", gap: 8 }}>
+          <StickyNote style={{ width: 15, height: 15, opacity: 0.6 }} strokeWidth={1.7} /> Aucune note pour ce client.
+        </p>
+      )}
+      <div style={{ display: "grid", gap: 8, marginTop: notes?.length ? 16 : 0 }}>
+        {(notes ?? []).map((n) => (
+          <div key={n.id} style={{ padding: "12px 14px", borderRadius: 12, background: C.hover2 }}>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: C.t1, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{n.body}</p>
+            <p style={{ margin: "6px 0 0", fontSize: 11.5, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{n.author} · {dateFmt.format(new Date(n.createdAt))}</p>
+          </div>
+        ))}
       </div>
-
-      {adding && (
-        <div style={{ padding: "14px 0", borderBottom: `1px solid ${C.bds}` }}>
-          <textarea
-            autoFocus
-            rows={3}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Détail interne, visible uniquement par l'équipe."
-            style={{ ...inputStyle, resize: "vertical", minHeight: 72 }}
-          />
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
-            <button
-              onClick={() => { setAdding(false); setDraft(""); }}
-              style={{
-                height: 30, padding: "0 12px", borderRadius: 8,
-                background: "transparent", border: `1px solid ${C.bds}`,
-                color: C.t3, fontSize: 12, fontFamily: FONT, cursor: "pointer",
-                transition: "all 0.12s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.t2; e.currentTarget.style.borderColor = C.bd; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.t3; e.currentTarget.style.borderColor = C.bds; }}
-            >
-              Annuler
-            </button>
-            <button
-              onClick={addNote}
-              disabled={!draft.trim()}
-              style={{
-                height: 30, padding: "0 14px", borderRadius: 8,
-                background: draft.trim() ? C.accent : C.l3,
-                border: "none",
-                color: draft.trim() ? C.btnText : C.t3,
-                fontSize: 12, fontFamily: FONT,
-                cursor: draft.trim() ? "pointer" : "default",
-                transition: "background 0.12s",
-              }}
-            >
-              Enregistrer
-            </button>
-          </div>
-        </div>
-      )}
-
-      {notes.length === 0 && !adding && (
-        <div style={{
-          padding: "34px 20px", display: "flex", flexDirection: "column",
-          alignItems: "center", gap: 8, textAlign: "center",
-        }}>
-          <StickyNote style={{ width: 22, height: 22, color: C.t3, opacity: 0.5 }} strokeWidth={1.6} />
-          <p style={{ fontSize: 12, color: C.t3, margin: 0 }}>Aucune note pour ce client.</p>
-        </div>
-      )}
-
-      {notes.map((n) => (
-        <div
-          key={n.id}
-          style={{
-            padding: "14px 0",
-            borderBottom: `1px solid ${C.bds}`,
-            display: "flex", gap: 12,
-          }}
-        >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{
-              fontSize: 13, color: C.t1, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.5,
-            }}>
-              {n.body}
-            </p>
-            <p style={{
-              marginTop: 6, marginBottom: 0, fontSize: 11, color: C.t3,
-              fontVariantNumeric: "tabular-nums",
-            }}>
-              {n.author} · {dateFmt.format(new Date(n.createdAt))}
-            </p>
-          </div>
-          <button
-            style={iconButton}
-            onClick={() => deleteNote(n.id)}
-            onMouseEnter={(e) => iconButtonHoverIn(e.currentTarget)}
-            onMouseLeave={(e) => iconButtonHoverOut(e.currentTarget)}
-            title="Supprimer la note"
-          >
-            <Trash2 style={{ width: 12, height: 12 }} />
-          </button>
-        </div>
-      ))}
     </div>
   );
 };

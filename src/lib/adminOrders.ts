@@ -36,6 +36,8 @@ export interface AdminOrder {
   /** Minutes écoulées depuis la création (pour l'affichage relatif). */
   createdMinsAgo: number;
   assignedTo?: string | null;
+  /** Dernière modification (passage à « terminée », prise en charge…), ISO. */
+  updatedAt?: string;
   /** Le système envoie les USDT tout seul : personne ne peut la prendre. */
   autoSending?: boolean;
 }

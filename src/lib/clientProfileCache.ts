@@ -1,6 +1,7 @@
 import { fetchCached, peek, prefetch } from "@/lib/adminCache";
 import { fetchClientOrders, fetchClientProfile, type ClientOrder, type ClientProfile } from "@/lib/adminClient";
 import { fetchOrigin, type SignupOrigin } from "@/lib/origin";
+import { prefetchNotes } from "@/lib/clientNotes";
 
 /**
  * Fiche client instantanée : la fiche est chargée dès qu'on vise un client (survol, toucher, ouverture
@@ -16,5 +17,7 @@ const load = (userId: string) => Promise.all([fetchClientProfile(userId), fetchC
 export const peekClient = (userId: string) => peek<ClientBundle>(key(userId))?.value;
 export const loadClient = (userId: string) => fetchCached(key(userId), () => load(userId), { keep: (v) => !!v.profile });
 export const prefetchClient = (userId: string | null | undefined) => {
-  if (userId) prefetch(key(userId), () => load(userId), { keep: (v) => !!v.profile, maxAgeMs: 30_000 });
+  if (!userId) return;
+  prefetch(key(userId), () => load(userId), { keep: (v) => !!v.profile, maxAgeMs: 30_000 });
+  prefetchNotes(userId);
 };

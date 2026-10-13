@@ -64,6 +64,7 @@ function toAdminOrder(row: RowWithProfile, currentUid: string | null): AdminOrde
     address: row.wallet_address,
     interacEmail: row.interac_email ?? undefined,
     createdMinsAgo: minsAgo(row.created_at),
+    updatedAt: row.updated_at,
     assignedTo: assigned,
   };
 }

@@ -9,7 +9,7 @@ export const MAIN_TABLES = [
   "auth_users", "profiles", "orders", "order_events", "kyc_verifications", "business_verifications",
   "saved_recipients", "payment_confirmations", "interac_receipts", "usdt_payouts", "chain_deposits",
   "blockchain_transactions", "compliance_alerts", "compliance_flags", "compliance_declarations",
-  "account_closures", "admin_audit_log", "user_roles", "signup_origins",
+  "account_closures", "admin_audit_log", "user_roles", "signup_origins", "client_notes",
 ] as const;
 
 export const TABLE_LABELS: Record<string, string> = {
@@ -30,6 +30,7 @@ export const TABLE_LABELS: Record<string, string> = {
   compliance_declarations: "Déclarations CANAFE",
   compliance_checklist: "Programme de conformité",
   account_closures: "Comptes fermés",
+  client_notes: "Notes de l'équipe sur les clients",
   admin_audit_log: "Journal de l'équipe",
   user_roles: "Rôles de l'équipe",
   signup_origins: "Origine des inscriptions",

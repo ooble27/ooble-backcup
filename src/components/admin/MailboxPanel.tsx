@@ -27,6 +27,7 @@
  *                  la réception (Resend Inbound + webhook).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { takePendingDraft } from "@/lib/mailDraft";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import {
   Send, Mail, Inbox, Eye, Bold, Italic,
@@ -1514,6 +1515,14 @@ const MailboxPanel = () => {
     if (dirty.current && !confirm("Fermer sans envoyer ? Le brouillon sera perdu.")) return;
     setComposer(null);
   };
+
+  // « Écrire au client » depuis une commande : le compositeur s'ouvre déjà rempli.
+  useEffect(() => {
+    const d = takePendingDraft();
+    if (!d) return;
+    const first = d.fullName.split(/\s+/)[0] || d.email.split("@")[0];
+    openComposer({ recipients: [{ id: d.clientId, email: d.email, firstName: first, fullName: d.fullName }], cc: "", subject: d.subject, body: d.body }, `Message à ${d.fullName || d.email}`);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSnippet = (s: Snippet) => openComposer({ recipients: [], cc: "", subject: s.subject, body: s.body }, s.name);
 

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useCan } from "@/lib/roles";
-import { ArrowRight, Ban, Banknote, Check, ChevronRight, Copy, ExternalLink, Hand, RotateCcw, Send, Trash2 } from "lucide-react";
+import { ArrowRight, Ban, Banknote, Check, ChevronRight, Copy, ExternalLink, Hand, Mail, RotateCcw, Send, StickyNote, Trash2 } from "lucide-react";
+import { KYC_LABEL } from "@/lib/adminClient";
+import { loadClient, peekClient, type ClientBundle } from "@/lib/clientProfileCache";
+import { loadNotes, peekNotes, type ClientNote } from "@/lib/clientNotes";
 import { CURRENT_OPERATOR, TYPE_META, nfCad, nfUsdt, timeAgo, type AdminOrder } from "@/lib/adminOrders";
 import { type OrderEvent } from "@/lib/adminOrderEvents";
 import { loadOrderPart, peekOrderPart } from "@/lib/orderDetailCache";
@@ -20,6 +23,8 @@ interface Props {
   onShowClient?: (userId: string) => void;
   /** Relit les commandes (après un envoi d'USDT, le statut change côté serveur). */
   onRefresh?: () => void;
+  /** Ouvre la Messagerie avec ce client et la référence de la commande (si le membre y a accès). */
+  onWriteClient?: (order: AdminOrder) => void;
 }
 
 const dateFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -174,7 +179,74 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
   );
 }
 
-const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Props) => {
+/* ─── Le client, en contexte : identité, historique, dernière note de l'équipe ─── */
+const KYC_TONE: Record<string, "ok" | "warn" | "danger" | "neutral"> = { approved: "ok", pending: "warn", rejected: "danger", not_started: "neutral" };
+const noteDate = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short" });
+
+function ClientContext({ order, onShowClient, onWrite }: { order: AdminOrder; onShowClient?: (id: string) => void; onWrite?: () => void }) {
+  const id = order.userId ?? null;
+  // Préchargé au survol de la ligne : affiché tout de suite, puis mis à jour.
+  const [bundle, setBundle] = useState<ClientBundle | null>(() => (id ? peekClient(id) ?? null : null));
+  const [notes, setNotes] = useState<ClientNote[] | null>(() => (id ? peekNotes(id) : null));
+  useEffect(() => {
+    if (!id) return;
+    let on = true;
+    setBundle(peekClient(id) ?? null); setNotes(peekNotes(id));
+    loadClient(id).then((b) => { if (on) setBundle(b); }).catch(() => undefined);
+    loadNotes(id).then((n) => { if (on) setNotes(n); }).catch(() => undefined);
+    return () => { on = false; };
+  }, [id]);
+
+  const p = bundle?.profile;
+  const done = (bundle?.orders ?? []).filter((o) => o.status === "completed");
+  const rank = (bundle?.orders ?? []).length;
+  const last = notes?.[0];
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <button type="button" className="ui-lift" onClick={() => id && onShowClient?.(id)} disabled={!id}
+        style={{ all: "unset", boxSizing: "border-box", width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, background: C.hover2, cursor: id ? "pointer" : "default", fontFamily: FONT }}>
+        <Avatar name={order.clientName} size={38} />
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 14, color: C.t1 }}>{p?.accountType === "business" && p.businessName ? p.businessName : order.clientName}</span>
+          <span style={{ display: "block", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{order.clientEmail}</span>
+        </span>
+        {id && <ChevronRight style={{ width: 16, height: 16, color: C.t3 }} />}
+      </button>
+
+      {p && (
+        <div style={{ display: "grid", gap: 8, fontSize: 13, color: C.t2, lineHeight: 1.5 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            Identité <Pill tone={KYC_TONE[p.kycStatus] ?? "neutral"}>{KYC_LABEL[p.kycStatus]}</Pill>
+            {p.accountType === "business" && <Pill>Entreprise</Pill>}
+          </span>
+          <span>
+            {rank <= 1 ? <b style={{ color: C.coral, fontWeight: 600 }}>Première commande</b> : <>{rank} commandes</>}
+            {done.length > 0 && <> · {nfCad.format(done.reduce((n, o) => n + o.cadAmount, 0))} $ échangés</>}
+          </span>
+        </div>
+      )}
+
+      {last ? (
+        <div style={{ padding: "10px 12px", borderRadius: 12, background: C.hover2 }}>
+          <p style={{ margin: 0, fontSize: 12, color: C.t3, display: "flex", alignItems: "center", gap: 6 }}>
+            <StickyNote style={{ width: 13, height: 13 }} strokeWidth={1.8} /> Dernière note · {last.author} · {noteDate.format(new Date(last.createdAt))}
+            {(notes?.length ?? 0) > 1 && <> · {notes!.length} notes</>}
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, lineHeight: 1.5, color: C.t1, whiteSpace: "pre-wrap", overflowWrap: "anywhere", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{last.body}</p>
+        </div>
+      ) : notes && id ? (
+        <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Aucune note de l'équipe sur ce client.</p>
+      ) : null}
+
+      {onWrite && order.clientEmail && (
+        <div><Button size="sm" onClick={onWrite} icon={<Mail style={{ width: 14, height: 14 }} />}>Écrire au client</Button></div>
+      )}
+    </div>
+  );
+}
+
+const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWriteClient }: Props) => {
   // Agir sur une commande : Administrateur et Opérateur (la base applique la même règle). Les autres rôles la consultent.
   const can = useCan();
   const canAct = can("orders.act");
@@ -344,15 +416,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
         {/* Colonne de droite */}
         <aside style={{ minWidth: 0 }}>
           <Block title="Client">
-            <button type="button" className="ui-row" onClick={() => order.userId && onShowClient?.(order.userId)} disabled={!order.userId}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 4px", border: "none", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, fontFamily: FONT, textAlign: "left", cursor: order.userId ? "pointer" : "default" }}>
-              <Avatar name={order.clientName} size={38} />
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 14 }}>{order.clientName}</span>
-                <span style={{ display: "block", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{order.clientEmail}</span>
-              </span>
-              {order.userId && <ChevronRight style={{ width: 16, height: 16, color: C.t3 }} />}
-            </button>
+            <ClientContext order={order} onShowClient={onShowClient} onWrite={onWriteClient ? () => onWriteClient(order) : undefined} />
           </Block>
 
           <Block title="Historique">

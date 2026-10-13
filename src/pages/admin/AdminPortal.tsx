@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
@@ -7,7 +8,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
 import { useNoZoom } from "@/lib/noZoom";
-import { type AdminOrder } from "@/lib/adminOrders";
+import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import { fetchAdminOrders, persistOrderPatch, deleteOrder } from "@/lib/adminOrdersLive";
 import { supabase } from "@/integrations/supabase/client";
 import OrdersQueue from "@/components/admin/OrdersQueue";
@@ -335,6 +336,16 @@ const AdminPortal = () => {
     const o = orders.find((x) => x.id === orderId);
     if (o) openOrder(o);
   };
+  // « Écrire au client » depuis une commande : brouillon prêt, puis la Messagerie.
+  const writeClient = (o: AdminOrder) => {
+    const what = `${o.type === "buy" ? "achat" : "vente"} de ${nfUsdt.format(o.usdt)} USDT`;
+    setPendingDraft({
+      clientId: o.userId, email: o.clientEmail, fullName: o.clientName === "Client" ? "" : o.clientName,
+      subject: `Votre commande ${o.ref}`,
+      body: `Bonjour {{prenom}},\n\nAu sujet de votre commande ${o.ref} (${what}, ${nfCad.format(o.cad)} $) :\n\n\n\nL'équipe Ooble`,
+    });
+    setTab("mailbox");
+  };
   const navigateTab = (target: "queue" | "orders" | "compliance") => { if (allowedTabs.has(target)) setTab(target); };
 
   if (!active) return null;
@@ -544,7 +555,7 @@ const AdminPortal = () => {
                 {clientView ? (
                   <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
                 ) : selected ? (
-                  <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} />
+                  <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
                 ) : (
                   <>
                     {tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}
@@ -620,7 +631,7 @@ const AdminPortal = () => {
           {clientView ? (
             <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
           ) : selected ? (
-            <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} />
+            <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
           ) : (
             <>
               {tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}

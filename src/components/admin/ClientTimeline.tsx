@@ -16,7 +16,7 @@
  */
 import { useMemo } from "react";
 import {
-  Coins, HandCoins, UserPlus, ShieldCheck, ShieldAlert, StickyNote,
+  Coins, HandCoins, UserPlus, ShieldCheck, ShieldAlert,
   Clock, CheckCircle2, XCircle,
 } from "lucide-react";
 import { orderRef } from "@/lib/orders";
@@ -131,25 +131,6 @@ function buildEvents(profile: ClientProfile, orders: ClientOrder[], userId: stri
     });
   }
 
-  // Notes internes (localStorage — même clé que ClientNotes)
-  try {
-    const raw = localStorage.getItem(`ooble.admin.notes.${userId}`);
-    if (raw) {
-      const arr = JSON.parse(raw) as Array<{ id: string; body: string; author: string; createdAt: string }>;
-      for (const n of arr) {
-        events.push({
-          id: `note-${n.id}`,
-          kind: "note",
-          at: n.createdAt,
-          icon: StickyNote,
-          title: <>Note interne</>,
-          meta: <>{n.author}</>,
-          detail: n.body,
-        });
-      }
-    }
-  } catch { /* incognito / JSON invalide : on ignore silencieusement */ }
-
   // Tri décroissant (plus récent en haut).
   events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
   return events;
@@ -184,7 +165,8 @@ function toneOf(e: TimelineEvent): { bg: string; fg: string } {
 const ClientTimeline = ({ profile, orders, userId }: Props) => {
 
   const events = useMemo(() => buildEvents(profile, orders, userId), [profile, orders, userId]);
-  // Les grandes étapes seulement : la dernière commande, l'inscription, l'identité et les notes.
+  // Les grandes étapes seulement : la dernière commande, l'inscription et l'identité
+  // (les notes ont leur propre bloc, partagé par l'équipe).
   // Toutes les commandes sont dans « Historique complet », au-dessus.
   const lastOrder = events.find((e) => e.kind === "order");
   const filtered = events.filter((e) => e.kind !== "order" || e === lastOrder);
