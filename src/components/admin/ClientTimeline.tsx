@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { orderRef } from "@/lib/orders";
 import { KYC_LABEL, type ClientOrder, type ClientProfile } from "@/lib/adminClient";
-import { C, FONT, pillSmall } from "./adminTheme";
+import { C, FONT } from "./adminTheme";
 
 // ────────────────────────────────────────────────────────────
 // Modèle interne d'un événement de timeline
@@ -36,6 +36,11 @@ interface TimelineEvent {
   title: React.ReactNode;
   meta?: React.ReactNode;
   detail?: React.ReactNode;
+  /** Montant affiché à droite (commandes). */
+  amount?: React.ReactNode;
+  /** État, en pastille de la couleur de l'événement. */
+  status?: string;
+  tone?: "ok" | "warn" | "err" | "off";
   icon: typeof UserPlus;
 }
 
@@ -43,12 +48,6 @@ interface TimelineEvent {
 // Helpers
 // ────────────────────────────────────────────────────────────
 
-const dateTimeFmt = new Intl.DateTimeFormat("fr-CA", {
-  day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-});
-const dateFmt = new Intl.DateTimeFormat("fr-CA", {
-  day: "numeric", month: "long", year: "numeric",
-});
 const nfCad  = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
 
@@ -102,8 +101,9 @@ function buildEvents(profile: ClientProfile, orders: ClientOrder[], userId: stri
     kind: "kyc",
     at: profile.createdAt,
     icon: kycVerified ? ShieldCheck : (kycRefused ? ShieldAlert : Clock),
-    title: <>KYC : {KYC_LABEL[profile.kycStatus]}</>,
-    meta: kycAttente ? "En attente de vérification" : undefined,
+    title: <>Vérification d'identité</>,
+    status: KYC_LABEL[profile.kycStatus],
+    tone: kycVerified ? "ok" : kycRefused ? "err" : kycAttente ? "warn" : "off",
   });
 
   // Commandes — un événement par commande, ancré à sa création. Statuts
@@ -129,11 +129,12 @@ function buildEvents(profile: ClientProfile, orders: ClientOrder[], userId: stri
       at: o.createdAt,
       icon: Icon,
       title: (
-        <>{buy ? "Achat" : "Vente"} · {nfUsdt.format(o.usdtAmount)} USDT</>
+        <>{buy ? "Achat" : "Vente"} de {nfUsdt.format(o.usdtAmount)} USDT</>
       ),
-      meta: (
-        <>{orderRef(o.id)} · {nfCad.format(o.cadAmount)} CAD · {statusLabel}</>
-      ),
+      amount: <>{nfCad.format(o.cadAmount)} $</>,
+      meta: <>{orderRef(o.id)}</>,
+      status: statusLabel,
+      tone: o.status === "completed" ? "ok" : (o.status === "cancelled" || o.status === "expired") ? "off" : o.status === "refunded" ? "err" : undefined,
     });
   }
 
@@ -171,102 +172,179 @@ interface Props {
   userId: string;
 }
 
+const monthFmt = new Intl.DateTimeFormat("fr-CA", { month: "long", year: "numeric" });
+const monShort = new Intl.DateTimeFormat("fr-CA", { month: "short" });
+const timeFmt = new Intl.DateTimeFormat("fr-CA", { hour: "2-digit", minute: "2-digit" });
+
+/** Couleur de la pastille d'un événement : on lit le type d'un coup d'œil, sans trait ni légende. */
+function toneOf(e: TimelineEvent): { bg: string; fg: string } {
+  if (e.kind === "signup") return { bg: "color-mix(in srgb, var(--a-sun) 22%, transparent)", fg: C.t1 };
+  if (e.kind === "note") return { bg: C.hover3, fg: C.t2 };
+  if (e.tone === "ok") return { bg: C.successBg, fg: C.successText };
+  if (e.tone === "warn") return { bg: C.warnBg, fg: C.warnText };
+  if (e.tone === "err") return { bg: C.dangerBg, fg: C.dangerText };
+  if (e.tone === "off") return { bg: C.hover3, fg: C.t3 };
+  return { bg: "color-mix(in srgb, var(--a-coral) 14%, transparent)", fg: C.coral };
+}
+
+const PAGE = 15;
+
 const ClientTimeline = ({ profile, orders, userId }: Props) => {
   const [filter, setFilter] = useState<"all" | EventKind>("all");
+  const [shown, setShown] = useState(PAGE);
 
   const events = useMemo(() => buildEvents(profile, orders, userId), [profile, orders, userId]);
   const filtered = filter === "all" ? events : events.filter((e) => e.kind === filter);
-  const groups = groupByDay(filtered);
+  const visible = filtered.slice(0, shown);
 
-  const availableFilters: Array<"all" | EventKind> = ["all", "order", "kyc", "note", "signup"];
+  const count = (k: "all" | EventKind) => (k === "all" ? events.length : events.filter((e) => e.kind === k).length);
+  const availableFilters = (["all", "order", "kyc", "note", "signup"] as const).filter((k) => k === "all" || count(k) > 0);
+
+  // Rythme des 12 derniers mois : une barre par mois, hauteur = nombre de commandes.
+  const rhythm = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+      return { key: `${d.getFullYear()}-${d.getMonth()}`, d, n: 0, cad: 0 };
+    });
+    const idx = new Map(months.map((m, i) => [m.key, i]));
+    for (const o of orders) {
+      const d = new Date(o.createdAt);
+      const i = idx.get(`${d.getFullYear()}-${d.getMonth()}`);
+      if (i !== undefined) { months[i].n++; months[i].cad += o.cadAmount; }
+    }
+    return months;
+  }, [orders]);
+  const maxN = Math.max(1, ...rhythm.map((m) => m.n));
+
+  // Regroupement par mois, puis par jour dans le mois.
+  const byMonth: { key: string; label: string; days: { day: string; items: TimelineEvent[] }[] }[] = [];
+  for (const g of groupByDay(visible)) {
+    const d = new Date(g.items[0].at);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const last = byMonth[byMonth.length - 1];
+    if (last && last.key === key) last.days.push(g);
+    else byMonth.push({ key, label: monthFmt.format(d), days: [g] });
+  }
 
   return (
     <div style={{ fontFamily: FONT }}>
-      <div style={{
-        padding: "0 0 10px", borderBottom: `1px solid ${C.bds}`,
-        display: "flex", alignItems: "center", justifyContent: "flex-end",
-        flexWrap: "wrap", gap: 10,
-      }}>
-        <div style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-          {availableFilters.map((k) => (
-            <button
-              key={k}
-              onClick={() => setFilter(k)}
-              style={pillSmall(filter === k)}
-            >
-              {KIND_LABEL[k]}
-            </button>
+      <style>{`
+        .tl-chip { transition: background .15s, color .15s; }
+        .tl-chip:hover { color: var(--a-t1); }
+        .tl-item { transition: background .15s; }
+        .tl-item:hover { background: var(--a-hover3) !important; }
+        .tl-bar { transition: height .5s cubic-bezier(.22,1,.36,1); }
+        @media (max-width: 560px) { .tl-amount { display: none } }
+      `}</style>
+
+      {/* Rythme de l'année : remplit l'espace avec une information utile. */}
+      <div style={{ padding: "16px 18px 12px", borderRadius: 16, background: C.hover2, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+          <span style={{ flex: 1, fontSize: 12.5, color: C.t2 }}>Activité des 12 derniers mois</span>
+          <span style={{ fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>
+            {rhythm.reduce((a, m) => a + m.n, 0)} commande{rhythm.reduce((a, m) => a + m.n, 0) > 1 ? "s" : ""}
+          </span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 6, alignItems: "end", height: 64 }}>
+          {rhythm.map((m, i) => (
+            <div key={m.key} title={`${monthFmt.format(m.d)} : ${m.n} commande${m.n > 1 ? "s" : ""}${m.n ? ` · ${nfCad.format(m.cad)} $` : ""}`}
+              style={{ height: "100%", display: "flex", alignItems: "flex-end" }}>
+              <div className="tl-bar" style={{
+                width: "100%", height: m.n ? `${Math.max(14, (m.n / maxN) * 100)}%` : 4, borderRadius: 6,
+                background: m.n ? (i === 11 ? C.coral : C.t1) : C.hover4, opacity: m.n ? (i === 11 ? 1 : 0.82) : 1,
+              }} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 6, marginTop: 6 }}>
+          {rhythm.map((m) => (
+            <span key={m.key} style={{ fontSize: 10.5, color: C.t3, textAlign: "center", overflow: "hidden", whiteSpace: "nowrap" }}>
+              {monShort.format(m.d).replace(".", "").slice(0, 3)}
+            </span>
           ))}
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div style={{ padding: "40px 20px", textAlign: "center" }}>
-          <p style={{ fontSize: 12.5, color: C.t3, margin: 0 }}>
-            Aucun événement pour ce filtre.
-          </p>
-        </div>
-      ) : (
-        <div style={{ padding: "14px 0 0" }}>
-          {groups.map((g) => (
-            <div key={g.day} style={{ marginBottom: 12 }}>
-              <p style={{
-                margin: "6px 0 10px", fontSize: 10.5, color: C.t3,
-                textTransform: "uppercase", letterSpacing: "0.14em",
+      {/* Filtres, avec le nombre d'événements de chaque type. */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+        {availableFilters.map((k) => {
+          const on = filter === k;
+          return (
+            <button key={k} type="button" className="tl-chip" onClick={() => { setFilter(k); setShown(PAGE); }} aria-pressed={on}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 7, height: 32, padding: "0 12px", borderRadius: 99, border: "none",
+                background: on ? C.t1 : C.hover2, color: on ? C.bg : C.t2, fontFamily: FONT, fontSize: 12.5, cursor: "pointer",
               }}>
-                {dateFmt.format(new Date(g.day))}
-              </p>
-              <div style={{ position: "relative", paddingLeft: 22 }}>
-                {/* Ligne verticale de la timeline. */}
-                <div style={{
-                  position: "absolute", left: 10, top: 4, bottom: 4,
-                  width: 1, background: C.bds,
-                }} />
-                {g.items.map((e) => {
-                  const Icon = e.icon;
+              {KIND_LABEL[k]}
+              <span style={{ fontSize: 11.5, opacity: 0.6, fontVariantNumeric: "tabular-nums" }}>{count(k)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {filtered.length === 0 ? (
+        <p style={{ fontSize: 13, color: C.t3, margin: 0, padding: "32px 0", textAlign: "center" }}>Aucun événement pour ce filtre.</p>
+      ) : (
+        <div>
+          {byMonth.map((m) => (
+            <section key={m.key}>
+              <p style={{ margin: "22px 0 10px", fontSize: 11, color: C.t3, textTransform: "uppercase", letterSpacing: "0.12em" }}>{m.label}</p>
+              <div style={{ display: "grid", gap: 14 }}>
+                {m.days.map((g) => {
+                  const d = new Date(g.items[0].at);
                   return (
-                    <div key={e.id} style={{
-                      position: "relative", padding: "8px 0 8px 16px",
-                    }}>
-                      {/* Point + icône. */}
-                      <div style={{
-                        position: "absolute", left: -12, top: 8,
-                        width: 22, height: 22, borderRadius: "50%",
-                        background: C.l1, border: `1px solid ${C.bds}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: C.t2,
-                      }}>
-                        <Icon style={{ width: 11, height: 11 }} strokeWidth={1.8} />
+                    <div key={g.day} style={{ display: "grid", gridTemplateColumns: "48px minmax(0, 1fr)", gap: 12, alignItems: "start" }}>
+                      {/* La date, grande et lisible, à gauche du jour. */}
+                      <div style={{ textAlign: "center", paddingTop: 6 }}>
+                        <div style={{ fontSize: 22, lineHeight: 1, fontWeight: 500, letterSpacing: "-0.02em", color: C.t1, fontVariantNumeric: "tabular-nums" }}>{d.getDate()}</div>
+                        <div style={{ marginTop: 3, fontSize: 11, color: C.t3 }}>{monShort.format(d).replace(".", "")}</div>
                       </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 13, color: C.t1, lineHeight: 1.4 }}>
-                          {e.title}
-                        </p>
-                        <p style={{
-                          margin: "2px 0 0", fontSize: 11.5, color: C.t3,
-                          fontVariantNumeric: "tabular-nums",
-                        }}>
-                          {dateTimeFmt.format(new Date(e.at))}
-                          {e.meta && <> · {e.meta}</>}
-                        </p>
-                        {e.detail && (
-                          <p style={{
-                            margin: "6px 0 0", fontSize: 12.5, color: C.t2,
-                            lineHeight: 1.5, whiteSpace: "pre-wrap",
-                            padding: "8px 10px", borderRadius: 8,
-                            background: "var(--a-hover2)",
-                            border: `1px solid ${C.bds}`,
-                          }}>
-                            {e.detail}
-                          </p>
-                        )}
+                      <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                        {g.items.map((e) => {
+                          const Icon = e.icon;
+                          const t = toneOf(e);
+                          return (
+                            <div key={e.id} className="tl-item" style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 14, background: C.hover2, minWidth: 0 }}>
+                              <span style={{ width: 34, height: 34, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: t.bg, color: t.fg }}>
+                                <Icon style={{ width: 15, height: 15 }} strokeWidth={1.9} />
+                              </span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                                  <p style={{ margin: 0, flex: 1, minWidth: 0, fontSize: 14, color: C.t1, lineHeight: 1.4 }}>{e.title}</p>
+                                  {e.amount && <span className="tl-amount" style={{ fontSize: 14, color: C.t1, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{e.amount}</span>}
+                                </div>
+                                <p style={{ margin: "3px 0 0", fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums", lineHeight: 1.5 }}>
+                                  {timeFmt.format(new Date(e.at))}
+                                  {e.meta && <> · {e.meta}</>}
+                                </p>
+                                {e.status && (
+                                  <span style={{ display: "inline-block", marginTop: 8, padding: "3px 9px", borderRadius: 99, fontSize: 11.5, background: t.bg, color: t.fg }}>{e.status}</span>
+                                )}
+                                {e.detail && (
+                                  <p style={{ margin: "8px 0 0", fontSize: 13, color: C.t2, lineHeight: 1.55, whiteSpace: "pre-wrap", padding: "10px 12px", borderRadius: 10, background: C.bg }}>
+                                    {e.detail}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </section>
           ))}
+          {filtered.length > shown && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}>
+              <button type="button" className="tl-chip" onClick={() => setShown((n) => n + 30)}
+                style={{ height: 36, padding: "0 16px", borderRadius: 99, border: "none", background: C.hover2, color: C.t1, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
+                Voir les événements plus anciens ({filtered.length - shown})
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

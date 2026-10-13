@@ -434,24 +434,40 @@ function Explorer({ backup, onClose }: { backup: OpenedBackup; onClose: () => vo
       ) : (
         // Comme le back-office : l'écran est fixe (il ne défile pas, ne rebondit pas) ; la colonne
         // défile sur le fond, le contenu défile dans son écrin arrondi, bordé tout autour.
-        <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: C.ground, overflow: "hidden", overscrollBehavior: "none" }}>
-          <TopBar bg={narrow ? C.bg : C.ground} title={narrow && view ? title : when ? `Sauvegarde du ${when}` : "Sauvegarde"} onBack={narrow && view ? () => setView(null) : undefined}>
-        <span title={intact ? "Empreintes vérifiées" : "Fichiers abîmés"} style={{
-          display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: narrow ? "7px" : "5px 10px", borderRadius: 99,
-          background: intact ? C.successBg : C.dangerBg, color: intact ? C.successText : C.dangerText, flexShrink: 0,
-        }}>
-          <ShieldCheck style={{ width: 13, height: 13 }} /> {!narrow && (intact ? "Intacte" : "Fichiers abîmés")}
-        </span>
-        <button type="button" className="bx-btn" onClick={onClose}
-          style={{ height: 34, padding: "0 12px", borderRadius: 9, border: `1px solid ${C.bds}`, background: "none", color: C.t2, fontFamily: FONT, fontSize: 12.5, cursor: "pointer", flexShrink: 0 }}>
-          Fermer
-        </button>
-      </TopBar>
-          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "264px minmax(0, 1fr)", padding: "0 10px 10px 0" }}>
-            <aside style={{ overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", minWidth: 0, minHeight: 0 }}>
-              {sidebar}
-            </aside>
-            <main ref={mainRef} style={{ overflowY: "auto", overscrollBehavior: "contain", minWidth: 0, minHeight: 0, padding: "28px 32px 80px", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }}>{content}</main>
+        // Aucune bande en travers : le nom de la sauvegarde est en tête de la colonne, et l'écrin
+        // commence en haut de l'écran avec la même marge et la même bordure que celui du back-office.
+        <div style={{ position: "fixed", inset: 0, display: "grid", gridTemplateColumns: "264px minmax(0, 1fr)", background: C.ground, overflow: "hidden", overscrollBehavior: "none" }}>
+          <aside style={{ overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", minWidth: 0, minHeight: 0, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 12px 4px" }}>
+              <Link to="/admin?tab=platform" className="bx-nav" aria-label="Retour au back-office" title="Retour au back-office"
+                style={{ width: 34, height: 34, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, flexShrink: 0 }}>
+                <ArrowLeft style={{ width: 17, height: 17 }} />
+              </Link>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 14, color: C.t1 }}>Sauvegarde</p>
+                {when && <p style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{when}</p>}
+              </div>
+            </div>
+            <span title={intact ? "Empreintes vérifiées" : "Fichiers abîmés"} style={{
+              display: "inline-flex", alignItems: "center", gap: 6, margin: "8px 0 0 20px", fontSize: 12, padding: "4px 10px", borderRadius: 99,
+              background: intact ? C.successBg : C.dangerBg, color: intact ? C.successText : C.dangerText,
+            }}>
+              <ShieldCheck style={{ width: 13, height: 13 }} /> {intact ? "Intacte" : "Fichiers abîmés"}
+            </span>
+            {sidebar}
+          </aside>
+          <div style={{ minWidth: 0, minHeight: 0, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 1px" }}>
+            <main ref={mainRef} style={{ height: "100%", boxSizing: "border-box", overflowY: "auto", overscrollBehavior: "contain", minWidth: 0, borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }}>
+              {/* L'en-tête défile avec le contenu : rien ne passe au-dessus de l'écrin. */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px 0 32px" }}>
+                <p style={{ margin: 0, flex: 1, minWidth: 0, fontSize: 13, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</p>
+                <button type="button" className="bx-btn" onClick={onClose}
+                  style={{ height: 34, padding: "0 14px", borderRadius: 99, border: "none", background: C.hover2, color: C.t1, fontFamily: FONT, fontSize: 12.5, cursor: "pointer", flexShrink: 0 }}>
+                  Fermer
+                </button>
+              </div>
+              <div style={{ padding: "12px 32px 80px" }}>{content}</div>
+            </main>
           </div>
         </div>
       )}

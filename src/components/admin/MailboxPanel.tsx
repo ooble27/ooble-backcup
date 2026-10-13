@@ -742,7 +742,7 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
     <div className="mb-compose" data-preview={showPreview ? "1" : "0"}>
       {/* Colonne gauche : en-têtes, barre d'outils, corps, envoi */}
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0, fontFamily: FONT }}>
-        <div style={{ display: "grid", rowGap: 10, padding: "16px 24px", borderBottom: `1px solid ${C.bds}` }}>
+        <div className="mb-head" style={{ display: "grid", rowGap: 10, padding: "16px 24px", borderBottom: `1px solid ${C.bds}` }}>
           <RecipientPicker
             selected={recipients}
             clients={clients}
@@ -880,7 +880,7 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 24px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.bg, position: "sticky", bottom: 0, zIndex: 2 }}>
+        <div className="mb-foot" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 24px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.bg, position: "sticky", bottom: 0, zIndex: 2 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {feedback
               ? <span style={{ fontSize: 13, color: feedback.kind === "ok" ? C.successText : C.dangerText }}>{feedback.text}</span>
@@ -1458,9 +1458,12 @@ const MAIL_CSS = `
 .mb-compose > div { border-radius: 16px; background: ${C.bg}; box-shadow: 0 0 0 1px ${C.bds}; overflow: hidden; }
 .mb-compose > div:first-child { min-height: 100%; }
 @media (min-width: 1100px) {
-  /* Deux écrins séparés par un espace : la rédaction et l'aperçu, sans bande qui les coupe en bas. */
-  .mb-compose[data-preview="1"] { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); overflow: hidden; gap: 10px; }
+  /* Comme Campagnes › Contenu : la rédaction est posée sur le fond, l'aperçu est dans l'écrin à droite. */
+  .mb-compose[data-preview="1"] { grid-template-columns: minmax(440px, 1fr) minmax(0, 1fr); overflow: hidden; border-radius: 0; }
   .mb-compose[data-preview="1"] > div { overflow-y: auto; min-height: 0; }
+  .mb-compose[data-preview="1"] > div:first-child { background: transparent; box-shadow: none; border-radius: 0; }
+  .mb-compose[data-preview="1"] .mb-foot { background: var(--a-ground) !important; }
+  .mb-compose[data-preview="1"] .mb-head { border-bottom: none !important; }
 }
 .mb-pane { margin-top: 16px; }
 /* Liste posée sur la page, conversation dans un volet arrondi : aucun trait qui se croise. */
