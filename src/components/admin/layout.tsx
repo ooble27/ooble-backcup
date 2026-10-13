@@ -131,7 +131,8 @@ export function Section({ title, description, actions, children, style }: {
 
 export type Tone = "neutral" | "ok" | "warn" | "danger" | "info" | "strong";
 
-export function Pill({ tone = "neutral", children, dot }: { tone?: Tone; children: React.ReactNode; dot?: boolean }) {
+// `dot` est accepté mais ignoré : aucune pastille devant les états (choix de design).
+export function Pill({ tone = "neutral", children }: { tone?: Tone; children: React.ReactNode; dot?: boolean }) {
   const t = {
     neutral: { bg: C.hover3, fg: C.t2 },
     strong: { bg: C.t1, fg: C.bg },
@@ -145,7 +146,6 @@ export function Pill({ tone = "neutral", children, dot }: { tone?: Tone; childre
       display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 8px", borderRadius: 6, whiteSpace: "nowrap",
       background: t.bg, color: t.fg, fontSize: 12, fontFamily: FONT, lineHeight: 1,
     }}>
-      {dot && <span style={{ width: 6, height: 6, borderRadius: 99, background: "currentColor" }} />}
       {children}
     </span>
   );

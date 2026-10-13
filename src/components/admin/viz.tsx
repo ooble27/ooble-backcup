@@ -28,9 +28,9 @@ export const VIZ_CSS = `
 @media (prefers-reduced-motion: reduce) { .vz-cell { transition: none; } }
 `;
 
-const Dot = ({ color, square }: { color: string; square?: boolean }) => (
-  <span aria-hidden style={{ width: 10, height: 10, borderRadius: square ? 3 : 99, background: color, flexShrink: 0, display: "inline-block", transform: "translateY(1px)" }} />
-);
+// Aucune pastille devant les légendes (choix de design) : la couleur passe dans le texte.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const Dot = (_: { color: string; square?: boolean }) => null;
 /** Largeur réelle du conteneur : les graphiques se dessinent à l'échelle 1, le texte reste lisible. */
 function useBoxWidth(fallback: number): [React.RefObject<HTMLDivElement>, number] {
   const ref = useRef<HTMLDivElement>(null);
@@ -353,9 +353,9 @@ export function QueueWait({ orders, onOpen, mine, unassigned }: { orders: AdminO
             <span style={{ flex: "1 1 100%", minWidth: 0, color: hover ? C.t1 : undefined }}>
               {hover ? `${hover.clientName} · ${nfCad.format(hover.cad)} $ · attend depuis ${ageText(hover.createdMinsAgo)} · touchez pour ouvrir` : "Chaque point est une commande active, placée selon son temps d'attente."}
             </span>
-            <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><Dot color={C.vzCoral} /> Payée, à traiter</span>
-            <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><Dot color={C.vzIndigo} /> Envoi en cours</span>
-            <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><Dot color={C.vzGray} /> Attend le paiement</span>
+            <span style={{ color: C.vzCoral }}>Payée, à traiter</span>
+            <span style={{ color: C.vzIndigo }}>Envoi en cours</span>
+            <span>Attend le paiement</span>
           </div>
         </div>
       )}

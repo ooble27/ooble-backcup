@@ -206,7 +206,7 @@ function Unlock({ onOpened }: { onOpened: (b: OpenedBackup) => void }) {
                   <span style={{ width: 18, display: "flex", justifyContent: "center" }}>
                     {done ? <Check style={{ width: 15, height: 15, color: C.successText }} strokeWidth={2.4} />
                       : now ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} />
-                        : <span style={{ width: 6, height: 6, borderRadius: 9, background: C.bd }} />}
+                        : null}
                   </span>
                   {s.label}
                 </li>
@@ -493,7 +493,7 @@ function NavItem({ icon: Icon, label, count, on, disabled, onClick }: {
         background: "transparent", color: disabled ? C.t3 : on ? C.t1 : C.t2, fontWeight: on ? 500 : 400, opacity: disabled ? 0.55 : 1,
       }}>
       <span className="bx-ic" style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: on ? C.t1 : "transparent", color: on ? C.bg : C.t3 }}>
-        {Icon ? <Icon style={{ width: 15, height: 15 }} strokeWidth={on ? 1.9 : 1.6} /> : <span style={{ width: 5, height: 5, borderRadius: 99, background: "currentColor", opacity: 0.6 }} />}
+        {Icon ? <Icon style={{ width: 15, height: 15 }} strokeWidth={on ? 1.9 : 1.6} /> : null}
       </span>
       <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "4px 0" }}><span className="bx-tx">{label}</span></span>
       {count !== undefined && <span style={{ ...numeric, fontSize: 12, color: C.t3, flexShrink: 0 }}>{fmtNum(count)}</span>}

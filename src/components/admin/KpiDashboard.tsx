@@ -189,8 +189,8 @@ function VolumeChart({ data }: { data: DailyVolumePoint[] }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 18, flexWrap: "wrap", marginBottom: 14, fontSize: 12.5, color: C.t2 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.sage }} />Achats</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.coral }} />Ventes</span>
+        <span style={{ color: C.sage, fontWeight: 500 }}>Achats</span>
+        <span style={{ color: C.coral, fontWeight: 500 }}>Ventes</span>
         <span style={{ flex: 1 }} />
         <span style={{ fontVariantNumeric: "tabular-nums", color: h ? C.t1 : C.t3 }}>
           {h ? <>{dayLabel(h.date)} · {money(h.totalCad)} <span style={{ color: C.t3 }}>({money(h.buyCad)} achats, {money(h.sellCad)} ventes)</span></> : <>Total {money(total)} · survolez une barre</>}

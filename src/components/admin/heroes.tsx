@@ -46,9 +46,9 @@ function Hero({ title, sub, action, children }: { title: React.ReactNode; sub?: 
   );
 }
 
-const Swatch = ({ color, round }: { color: string; round?: boolean }) => (
-  <span aria-hidden style={{ width: 10, height: 10, borderRadius: round ? 99 : 3, background: color, display: "inline-block", flexShrink: 0 }} />
-);
+// Aucune pastille devant les légendes (choix de design) : la couleur passe dans le texte.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const Swatch = (_: { color: string; round?: boolean }) => null;
 
 /* ─── Comptabilité ─────────────────────────────────────────── */
 
@@ -185,7 +185,7 @@ export function ArcStat({ title, center, segments }: {
         <span style={{ fontSize: 12.5, color: C.t3 }}>{title}</span>
         {segments.map((x) => (
           <span key={x.label} style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-            <Swatch color={x.color} round /><b style={{ color: C.t1, fontWeight: 600 }}>{nf.format(x.value)}</b> {x.label}
+            <b style={{ color: x.color, fontWeight: 600 }}>{nf.format(x.value)}</b> {x.label}
           </span>
         ))}
       </div>
@@ -317,7 +317,6 @@ function MessageDays({ threads }: { threads: HeroThread[] }) {
         {days.map((d) => (
           <div key={d.t} title={`${d.long} : ${d.items.length} ${plural(d.items.length, "message")}`}
             style={{ display: "flex", flexDirection: "column-reverse", alignItems: "center", gap: 4, height: "100%" }}>
-            {d.items.length === 0 && <span style={{ width: 4, height: 4, borderRadius: 99, background: C.bd }} />}
             {d.items.slice(0, MAX).map((t, i) => (
               <span key={i} style={{ width: "min(12px, 80%)", aspectRatio: "1", borderRadius: 99, background: tone(t) }} />
             ))}
@@ -331,9 +330,9 @@ function MessageDays({ threads }: { threads: HeroThread[] }) {
         ))}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: 12, color: C.t2 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Swatch color={C.vzCoral} round />Non lu</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Swatch color={C.vzGreen} round />Répondu</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Swatch color={C.vzGray} round />Lu</span>
+        <span style={{ color: C.vzCoral }}>Non lu</span>
+        <span style={{ color: C.vzGreen }}>Répondu</span>
+        <span>Lu</span>
       </div>
     </div>
   );

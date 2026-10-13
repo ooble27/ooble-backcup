@@ -701,7 +701,6 @@ function TemplateCard({ delay, template: t, lang, onPreview, onUse }: {
       </div>
       <button type="button" onClick={onPreview} style={{ padding: "10px 2px 0", display: "flex", flexDirection: "column", gap: 3, border: "none", background: "transparent", textAlign: "left", cursor: "pointer", fontFamily: FONT }}>
         <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <span aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: t.swatch[0], boxShadow: `inset 0 0 0 2.5px ${t.swatch[1]}`, flexShrink: 0 }} />
           <span style={{ color: C.t1, fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
         </span>
         <span style={{ fontSize: 11, color: C.t3 }}>{t.category}</span>
@@ -767,7 +766,6 @@ function PreviewModal({ index, lang, onLang, onIndex, onClose, onUse, onTest, te
         <div style={{ minWidth: 0, flex: 1 }}>
           <p style={{ margin: 0, fontSize: 15, color: C.t1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</p>
           <p style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, display: "flex", alignItems: "center", gap: 6 }}>
-            <span aria-hidden style={{ width: 8, height: 8, borderRadius: 3, background: CATEGORY_BG[t.category] ?? C.t3 }} />
             {t.category}
           </p>
         </div>
@@ -1217,8 +1215,8 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
             <span style={{ width: `${(split.en / recipients.length) * 100}%`, background: "var(--a-sun)" }} />
           </div>
           <p style={{ margin: "8px 0 0", fontSize: 13, color: C.t3, fontVariantNumeric: "tabular-nums", display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <span><i style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: "var(--a-sage)", marginRight: 6 }} />{split.fr} en français</span>
-            <span><i style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: "var(--a-sun)", marginRight: 6 }} />{split.en} en anglais</span>
+            <span><b style={{ color: "var(--a-sage)", fontWeight: 600 }}>{split.fr}</b> en français</span>
+            <span><b style={{ color: "var(--a-sun)", fontWeight: 600 }}>{split.en}</b> en anglais</span>
             {sendLang === "client" && split.unknown > 0 && <span>{split.unknown} sans langue connue</span>}
           </p>
         </div>
@@ -1409,7 +1407,7 @@ function StudioSection({ title, hint, right, children, flush }: { title: string;
 }
 
 function Dot() {
-  return <span aria-label="modifié" style={{ width: 6, height: 6, borderRadius: 99, background: "currentColor", display: "inline-block", marginLeft: 2 }} />;
+  return <span aria-label="modifié" style={{ marginLeft: 4, fontSize: 11, opacity: 0.7 }}>modifié</span>;
 }
 
 // ─── Champs ─────────────────────────────────────────────────

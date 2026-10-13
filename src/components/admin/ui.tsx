@@ -52,20 +52,11 @@ export const UI_CSS = `
 .ui-btn-ghost:hover:not(:disabled) { color: var(--a-t1) }
 .ui-btn-primary:hover:not(:disabled) { background: var(--a-accentHover) }
 .ui-row { transition: background .12s }
-/* Survol, sans fond gris : la ligne glisse un peu vers la droite et une pastille apparaît devant.
-   Uniquement avec une souris (pas de survol qui reste collé après un toucher sur iPhone ou iPad). */
-.ui-row > td:first-child { position: relative; }
-.ui-row > td:first-child::before, :is(div, button).ui-row::before, .ui-lift::before { content: ""; position: absolute; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 99px;
-  background: var(--a-t1); opacity: 0; transform: scale(.3); transition: opacity .2s, transform .3s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
-.ui-row > td:first-child::before { left: 0; }
-:is(div, button).ui-row, .ui-lift { position: relative; }
-:is(div, button).ui-row::before { left: 0; }
-.ui-lift::before { left: 0; }
+/* Survol, sans fond gris ni pastille : la ligne glisse un peu vers la droite.
+   Actif dès qu'une souris ou un trackpad est présent (même sur iPad). */
 .ui-row > td > *, :is(div, button).ui-row > *, .ui-lift > *, .ui-lift-y { transition: transform .3s cubic-bezier(.22,1,.36,1); }
 @media (any-hover: hover) {
-  .ui-row[tabindex="0"]:hover > td > *, .ui-lift:hover > * { transform: translateX(6px); }
-  div.ui-row[tabindex="0"]:hover > *, button.ui-row:not(:disabled):hover > * { transform: translateX(12px); }
-  .ui-row[tabindex="0"]:hover > td:first-child::before, div.ui-row[tabindex="0"]:hover::before, button.ui-row:not(:disabled):hover::before, .ui-lift:hover::before { opacity: 1; transform: scale(1); }
+  .ui-row[tabindex="0"]:hover > td > *, .ui-lift:hover > *, div.ui-row[tabindex="0"]:hover > *, button.ui-row:not(:disabled):hover > * { transform: translateX(6px); }
   .ui-lift-y:hover { transform: translateY(-3px); }
 }
 .ui-row[tabindex="0"]:active > td > *, div.ui-row[tabindex="0"]:active > * { transform: translateX(2px) scale(.995); }

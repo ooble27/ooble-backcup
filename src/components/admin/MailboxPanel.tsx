@@ -1407,9 +1407,8 @@ function InboxView({ onReply, onCount }: { onReply: (thread: MailThread) => void
               style={{
                 all: "unset", boxSizing: "border-box", width: "100%", display: "flex", gap: 10, padding: "12px 14px",
                 borderBottom: `1px solid ${C.bds}`, cursor: "pointer", fontFamily: FONT,
-                background: on ? C.hover3 : undefined, boxShadow: on ? `inset 2px 0 0 ${C.t1}` : undefined,
+                opacity: on ? 1 : undefined,
               }}>
-              <span style={{ width: 6, height: 6, borderRadius: 99, marginTop: 7, flexShrink: 0, background: t.hasUnread ? C.t1 : "transparent" }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.t1, fontWeight: t.hasUnread ? 500 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

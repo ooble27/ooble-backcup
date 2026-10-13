@@ -351,10 +351,6 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
               <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {steps.map((st, i) => (
                   <li key={i} style={{ display: "flex", gap: 12 }}>
-                    <span style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                      <span style={{ width: 9, height: 9, borderRadius: 99, marginTop: 5, background: i === steps.length - 1 ? C.t1 : C.t3, flexShrink: 0 }} />
-                      {i < steps.length - 1 && <span style={{ width: 1, flex: 1, background: C.bd }} />}
-                    </span>
                     <span style={{ paddingBottom: i < steps.length - 1 ? 18 : 0 }}>
                       <span style={{ display: "block", fontSize: 13.5 }}>{st.label}{st.actor && <span style={{ color: C.t3 }}> · {st.actor}</span>}</span>
                       <span style={{ display: "block", fontSize: 12, color: C.t3, marginTop: 1 }}>{st.hint}</span>

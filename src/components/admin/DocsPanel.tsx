@@ -336,7 +336,7 @@ export default function DocsPanel({ section }: { section: DocSection }) {
               <button key={d.id} type="button" className="dk-item" aria-current={current?.id === d.id} onClick={() => open(d)}>
                 {meta.numbered
                   ? <span className="dk-n" style={{ width: 20, fontSize: 12.5, color: C.t3, fontVariantNumeric: "tabular-nums", paddingTop: 1 }}>{String(n).padStart(2, "0")}</span>
-                  : <span className="dk-n" aria-hidden style={{ width: 6, height: 6, marginTop: 8, borderRadius: 99, flexShrink: 0, background: "currentColor", color: "transparent" }} />}
+                  : null}
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span className="dk-t" style={{ display: "block", fontSize: 13.5, lineHeight: 1.4 }}>{d.title}</span>
                   {d.summary && <span style={{ marginTop: 2, fontSize: 12.5, color: C.t3, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{d.summary}</span>}
