@@ -130,9 +130,23 @@ const SHELL_CSS = `
 @media (prefers-reduced-motion: reduce) { .sh-sub, .sh-chev { transition: none } }
 @keyframes sh-drawer { from { transform: translateX(-24px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes sh-page { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
-/* Pas d'animation d'entrée : changer de page ne doit jamais clignoter. */
-.sh-page { animation: none }
-@media (prefers-reduced-motion: reduce) { .sh-page { animation: none } }
+/* Entrée de page, comme Campagnes : le contenu est déjà là (cache), il monte en douceur bloc par bloc,
+   les grands titres arrivent un peu après, les graphiques se dessinent de gauche à droite.
+   Rien n'attend le réseau ; une mise à jour en direct ne rejoue pas l'animation (la page n'est pas recréée). */
+@keyframes sh-rise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+@keyframes sh-draw { from { clip-path: inset(-40px 100% -40px -40px) } to { clip-path: inset(-40px -40px -40px -40px) } }
+.sh-page > * > * { animation: sh-rise .55s cubic-bezier(.22,1,.36,1) both }
+.sh-page > * > *:nth-child(2) { animation-delay: 60ms }
+.sh-page > * > *:nth-child(3) { animation-delay: 120ms }
+.sh-page > * > *:nth-child(4) { animation-delay: 170ms }
+.sh-page > * > *:nth-child(5) { animation-delay: 210ms }
+.sh-page > * > *:nth-child(n+6) { animation-delay: 240ms }
+.sh-page :is(.vz-head, .hz-title) { animation: sh-rise .6s cubic-bezier(.22,1,.36,1) 80ms both }
+.sh-page svg:not(.lucide) { animation: sh-draw 1s cubic-bezier(.65,0,.35,1) 200ms both }
+/* Espaces de travail plein écran : les volets arrivent l'un après l'autre. */
+.ws-root :is(.ws-card, .ws-flat) { animation: sh-rise .5s cubic-bezier(.22,1,.36,1) both }
+.ws-root :is(.ws-card, .ws-flat) + :is(.ws-card, .ws-flat) { animation-delay: 90ms }
+@media (prefers-reduced-motion: reduce) { .sh-page > * > *, .sh-page :is(.vz-head, .hz-title), .sh-page svg:not(.lucide), .ws-root :is(.ws-card, .ws-flat) { animation: none } }
 /* Haut de l'écran. Dans l'app installée sur iPhone et iPad (iOS 26), le système floute la barre d'état et
    un peu en dessous ; aucun réglage ne l'enlève. On laisse une petite bande au fond uni (le flou
    d'une couleur unie ne se voit pas) et tout le contenu commence en dessous. */
