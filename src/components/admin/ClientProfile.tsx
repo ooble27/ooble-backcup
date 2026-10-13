@@ -63,6 +63,8 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   const [orders, setOrders] = useState<ClientOrder[]>(cached?.orders ?? []);
   const [loading, setLoading] = useState(!cached);
   const [copied, setCopied] = useState<string | null>(null);
+  // Les 6 dernières commandes ; le reste sur demande (la fiche reste courte).
+  const [allOrders, setAllOrders] = useState(false);
   const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
   const [resetMsg, setResetMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
@@ -174,8 +176,13 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
 
       <div className="grid grid-cols-1 gap-x-12 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div style={{ minWidth: 0 }}>
-          <Block title={`Commandes (${orders.length})`}>
-            <DataTable rows={orders} columns={columns} rowKey={(o) => o.id} onRowClick={(o) => onOpenOrder?.(o.id)} initialSort={{ key: "date", dir: "desc" }}
+          <Block title={`Commandes (${orders.length})`} right={orders.length > 6 ? (
+            <button type="button" className="ui-btn" onClick={() => setAllOrders((v) => !v)}
+              style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer", fontFamily: FONT, fontSize: 13, color: C.t2 }}>
+              {allOrders ? "Voir les 6 dernières" : `Voir les ${orders.length} commandes`}
+            </button>
+          ) : undefined}>
+            <DataTable rows={allOrders ? orders : [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6)} columns={columns} rowKey={(o) => o.id} onRowClick={(o) => onOpenOrder?.(o.id)} initialSort={{ key: "date", dir: "desc" }}
               empty={<EmptyState icon={ShoppingCart} title="Aucune commande" text="Ce client n'a encore rien acheté ni vendu." />}
               mobile={(o) => { const s = ORDER_STATUS[o.status] ?? [o.status, "neutral" as Tone]; return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

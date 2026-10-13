@@ -194,7 +194,13 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
   const [shown, setShown] = useState(PAGE);
 
   const events = useMemo(() => buildEvents(profile, orders, userId), [profile, orders, userId]);
-  const filtered = filter === "all" ? events : events.filter((e) => e.kind === filter);
+  // « Tout » : les 3 dernières commandes seulement, avec l'inscription, l'identité et les notes ;
+  // l'historique complet reste sous le filtre « Commandes ».
+  const RECENT = 3;
+  const orderEvents = events.filter((e) => e.kind === "order");
+  const hiddenOrders = Math.max(0, orderEvents.length - RECENT);
+  const recentIds = new Set(orderEvents.slice(0, RECENT).map((e) => e.id));
+  const filtered = filter === "all" ? events.filter((e) => e.kind !== "order" || recentIds.has(e.id)) : events.filter((e) => e.kind === filter);
   const visible = filtered.slice(0, shown);
 
   const count = (k: "all" | EventKind) => (k === "all" ? events.length : events.filter((e) => e.kind === k).length);
@@ -335,6 +341,14 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
               </div>
             </section>
           ))}
+          {filter === "all" && hiddenOrders > 0 && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}>
+              <button type="button" className="tl-chip" onClick={() => { setFilter("order"); setShown(PAGE); }}
+                style={{ height: 36, padding: "0 16px", borderRadius: 99, border: "none", background: C.hover2, color: C.t1, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
+                {hiddenOrders} {hiddenOrders > 1 ? "commandes plus anciennes" : "commande plus ancienne"} · tout voir
+              </button>
+            </div>
+          )}
           {filtered.length > shown && (
             <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}>
               <button type="button" className="tl-chip" onClick={() => setShown((n) => n + 30)}
