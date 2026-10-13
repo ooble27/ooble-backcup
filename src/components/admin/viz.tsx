@@ -293,7 +293,9 @@ const ageText = (m: number) => (m < 60 ? `${Math.max(1, Math.round(m))} min` : m
 export function QueueWait({ orders, onOpen, mine, unassigned }: { orders: AdminOrder[]; onOpen: (o: AdminOrder) => void; mine: number; unassigned: number }) {
   const [hover, setHover] = useState<AdminOrder | null>(null);
   const [box, boxW] = useBoxWidth(640);
-  const paid = orders.filter((o) => o.status === "recu");
+  const paid = orders.filter((o) => o.status === "recu" && !o.autoSending);
+  const sending = orders.filter((o) => o.status === "cours" || o.autoSending).length;
+  const waiting = orders.filter((o) => o.status === "attente").length;
   const oldest = paid.reduce((m, o) => Math.max(m, o.createdMinsAgo), 0);
   const maxMin = Math.max(240, ...orders.map((o) => o.createdMinsAgo));
   const W = Math.max(300, boxW), H = 96, PAD = 24, AX = H - 22;
@@ -319,6 +321,10 @@ export function QueueWait({ orders, onOpen, mine, unassigned }: { orders: AdminO
       <p className="vz-head" style={{ fontSize: "clamp(34px, 4.4vw, 56px)" }}>
         {paid.length ? (
           <><span style={{ color: C.coral }}>{paid.length}</span> {plural(paid.length, "commande payée vous attend", "commandes payées vous attendent")}.</>
+        ) : sending ? (
+          <><span style={{ color: C.vzIndigo }}>{sending}</span> {plural(sending, "envoi automatique en cours", "envois automatiques en cours")}. <span className="mute">Rien à faire.</span></>
+        ) : waiting ? (
+          <><span style={{ color: C.sun }}>{waiting}</span> {plural(waiting, "commande attend", "commandes attendent")} <span className="mute">le paiement du client.</span></>
         ) : (
           <>File à jour. <span style={{ color: C.sage }}>Rien</span> <span className="mute">à traiter.</span></>
         )}

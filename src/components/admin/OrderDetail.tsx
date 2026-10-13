@@ -226,7 +226,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
   */
   const actions = lockedByOther ? null : (
     <>
-      {!finished && !order.assignedTo && (order.status === "recu" || order.status === "attente") && (
+      {!finished && !order.assignedTo && order.status === "recu" && !order.autoSending && !activePayout && (
         <Button icon={<Hand style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { assignedTo: CURRENT_OPERATOR })}>Prendre en charge</Button>
       )}
       {!finished && order.assignedTo === CURRENT_OPERATOR && <Button variant="ghost" onClick={() => onPatch(order.id, { assignedTo: null })}>Libérer</Button>}

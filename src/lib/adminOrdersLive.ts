@@ -102,7 +102,16 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
     .range(a, b)).catch(() => null);
 
   if (!data) return [];
-  return (data as RowWithProfile[]).map((r) => toAdminOrder(r, uid));
+  const rows = (data as RowWithProfile[]).map((r) => toAdminOrder(r, uid));
+  // Commandes que le système est en train d'envoyer tout seul (envoi USDT non échoué).
+  const live = rows.filter((o) => o.status === "recu" || o.status === "cours").map((o) => o.id);
+  if (live.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: pays } = await (supabase as any).from("usdt_payouts").select("order_id").in("order_id", live).neq("status", "failed");
+    const auto = new Set(((pays ?? []) as { order_id: string }[]).map((p) => p.order_id));
+    rows.forEach((o) => { if (auto.has(o.id)) o.autoSending = true; });
+  }
+  return rows;
 }
 
 /**

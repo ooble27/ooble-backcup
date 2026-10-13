@@ -166,6 +166,7 @@ const AdminPortal = () => {
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
   const [vw, vh] = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
@@ -282,11 +283,24 @@ const AdminPortal = () => {
 
   useEffect(() => {
     refresh();
+    // En direct : nouvelle commande, paiement reçu, envoi automatique. Rafales regroupées.
+    let timer: number | undefined;
+    const soon = () => { window.clearTimeout(timer); timer = window.setTimeout(refresh, 400); };
     const channel = supabase
       .channel("admin-orders")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, soon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "usdt_payouts" }, soon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "interac_receipts" }, soon)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    // Filet de sécurité : toutes les 20 s quand l'écran est visible, et au retour sur l'app.
+    const poll = window.setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 20_000);
+    const back = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", back);
+    window.addEventListener("focus", back);
+    return () => {
+      supabase.removeChannel(channel); window.clearInterval(poll); window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", back); window.removeEventListener("focus", back);
+    };
   }, []);
 
   useEffect(() => { if (!loading) put("orders", orders); }, [orders, loading]);
@@ -294,7 +308,12 @@ const AdminPortal = () => {
   const patch = (id: string, changes: Partial<AdminOrder>) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...changes } : o)));
     setSelected((s) => (s && s.id === id ? { ...s, ...changes } : s));
-    persistOrderPatch(id, changes).then((res) => { if (res.error) refresh(); });
+    persistOrderPatch(id, changes).then((res) => {
+      if (!res.error) return;
+      refresh();
+      // Refus de la base (déjà prise, envoi automatique en cours…) : on l'explique au lieu de se taire.
+      setFlash(res.error.replace(/^.*?:\s*(?=[A-ZÀ-Ý])/, "")); window.setTimeout(() => setFlash(null), 5000);
+    });
   };
 
   const remove = (id: string) => {
@@ -648,6 +667,11 @@ const AdminPortal = () => {
           onClient={(id, name) => { setPalette(false); openClient(id, name); }}
           canSeeClients={allowedTabs.has("clients")}
         />
+      )}
+      {flash && (
+        <div role="status" style={{ position: "fixed", left: "50%", bottom: "calc(24px + env(safe-area-inset-bottom, 0px))", transform: "translateX(-50%)", zIndex: 2147483000, maxWidth: "min(560px, calc(100vw - 32px))", padding: "12px 18px", borderRadius: 14, background: C.t1, color: C.bg, fontFamily: FONT, fontSize: 13.5, lineHeight: 1.5, animation: "sh-page .25s ease both" }}>
+          {flash}
+        </div>
       )}
     </div>
   );

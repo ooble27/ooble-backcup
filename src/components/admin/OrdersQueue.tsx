@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Hand, Inbox } from "lucide-react";
+import { Hand, Inbox, Loader2 } from "lucide-react";
 import { CURRENT_OPERATOR, nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
@@ -29,6 +29,8 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
   const others = active.filter((o) => o.assignedTo && o.assignedTo !== CURRENT_OPERATOR);
 
   const list = tab === "queue" ? unassigned : tab === "mine" ? mine : others;
+  // On ne prend qu'une commande payée que le système n'est pas déjà en train d'envoyer.
+  const claimable = (o: AdminOrder) => o.status === "recu" && !o.autoSending;
   const empty = {
     queue: "Aucune commande à prendre pour le moment.",
     mine: "Vous n'avez aucune commande en charge. Prenez-en une dans la file.",
@@ -37,7 +39,11 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
 
   const action = (o: AdminOrder) => (
     <span style={{ display: "inline-flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
-      {tab === "queue" && <Button size="sm" variant="primary" icon={<Hand style={{ width: 14, height: 14 }} />} onClick={() => onPatch(o.id, { assignedTo: CURRENT_OPERATOR })}>Prendre</Button>}
+      {tab === "queue" && (claimable(o)
+        ? <Button size="sm" variant="primary" icon={<Hand style={{ width: 14, height: 14 }} />} onClick={() => onPatch(o.id, { assignedTo: CURRENT_OPERATOR })}>Prendre</Button>
+        : <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: C.t3, whiteSpace: "nowrap" }}>
+            {o.autoSending || o.status === "cours" ? <><Loader2 style={{ width: 13, height: 13, animation: "spin 1.2s linear infinite" }} />Envoi automatique</> : "Attend le paiement"}
+          </span>)}
       {tab === "mine" && <>
         <Button size="sm" variant="ghost" onClick={() => onPatch(o.id, { assignedTo: null })}>Libérer</Button>
         <Button size="sm" variant="primary" onClick={() => onOpen(o)}>Traiter</Button>
