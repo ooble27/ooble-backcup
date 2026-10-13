@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { prefetchOrder } from "@/lib/orderDetailCache";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { nfCad } from "@/lib/adminOrders";
 import { orderRef } from "@/lib/orders";
@@ -116,6 +117,7 @@ export default function ClientOrdersHistory({ clientName, orders, onClose, onOpe
       <div style={{ flex: 1 }}>
         <DataTable rows={rows} columns={columns} rowKey={(o) => o.id} pageSize={PER_PAGE}
           onRowClick={onOpenOrder ? (o) => { onClose(); onOpenOrder(o.id); } : undefined}
+          onRowIntent={(o) => prefetchOrder(o.id)}
           empty={<EmptyState icon={ShoppingCart} title="Aucune commande" text={orders.length ? "Aucune commande ne correspond à ces filtres." : "Ce client n'a encore rien acheté ni vendu."} />}
           mobile={(o) => { const s = STATUS[o.status] ?? [o.status, "neutral" as Tone]; return (
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { prefetchOrder } from "@/lib/orderDetailCache";
 import { Download, Inbox } from "lucide-react";
 import { STATUS_META, TYPE_META, nfCad, nfUsdt, type AdminOrder, type OrderStatus } from "@/lib/adminOrders";
 import { C } from "./adminTheme";
@@ -82,6 +83,7 @@ const OrdersList = ({ orders, onOpen }: Props) => {
         columns={columns}
         rowKey={(o) => o.id}
         onRowClick={onOpen}
+        onRowIntent={(o) => prefetchOrder(o.id, o.userId)}
         initialSort={{ key: "date", dir: "desc" }}
         empty={<EmptyState icon={Inbox} title="Aucune commande" text="Aucune commande ne correspond à ces filtres." />}
         mobile={(o) => (

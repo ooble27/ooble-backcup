@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Ban, Banknote, Check, ChevronRight, Copy, ExternalLink, Hand, RotateCcw, Send, Trash2 } from "lucide-react";
 import { CURRENT_OPERATOR, TYPE_META, nfCad, nfUsdt, timeAgo, type AdminOrder } from "@/lib/adminOrders";
-import { fetchOrderEvents, type OrderEvent } from "@/lib/adminOrderEvents";
+import { type OrderEvent } from "@/lib/adminOrderEvents";
+import { loadOrderPart, peekOrderPart } from "@/lib/orderDetailCache";
 import { sendRefundEmail } from "@/lib/email";
 import { useAuth } from "@/lib/auth";
 import { NETWORKS } from "@/components/app/networks";
-import { fetchDeposits, fetchPayouts, sendPayout, txUrl, type ChainDeposit, type UsdtPayout } from "@/lib/settlement";
-import { supabase } from "@/integrations/supabase/client";
+import { sendPayout, txUrl, type ChainDeposit, type UsdtPayout } from "@/lib/settlement";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { Avatar, KeyValues, Pill } from "./layout";
@@ -118,14 +118,18 @@ function PayoutStep({ order, list, onChanged }: { order: AdminOrder; list: UsdtP
 
 /* ─── Vente : USDT reçus et virement Interac à envoyer ─── */
 function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string, k: string) => void; copied: string | null }) {
-  const [deps, setDeps] = useState<ChainDeposit[] | null>(null);
-  const [qa, setQa] = useState<{ q: string | null; a: string | null } | null>(null);
+  // Déjà en mémoire (préchargé au survol) : affiché tout de suite, puis mis à jour en arrière-plan.
+  const [deps, setDeps] = useState<ChainDeposit[] | null>(() => peekOrderPart("deposits", order.id));
+  const [qa, setQa] = useState<{ q: string | null; a: string | null } | null>(() => (order.userId ? peekOrderPart("qa", order.userId) : null));
   useEffect(() => {
-    fetchDeposits({ orderId: order.id, limit: 5 }).then(setDeps);
+    let on = true;
+    setDeps(peekOrderPart("deposits", order.id));
+    loadOrderPart("deposits", order.id).then((v) => { if (on) setDeps(v); });
     if (order.userId) {
-      supabase.from("profiles").select("interac_question, interac_answer").eq("id", order.userId).maybeSingle()
-        .then(({ data }) => setQa({ q: data?.interac_question ?? null, a: data?.interac_answer ?? null }));
+      setQa(peekOrderPart("qa", order.userId));
+      loadOrderPart("qa", order.userId).then((v) => { if (on) setQa(v); });
     }
+    return () => { on = false; };
   }, [order.id, order.userId, order.status]);
   const dep = (deps ?? []).find((d) => d.status === "matched") ?? deps?.[0];
   const solana = order.network === "sol";
@@ -173,13 +177,15 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
 const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Props) => {
   const { isAdmin } = useAuth();
   const { copied, copy } = useCopy();
-  const [payouts, setPayouts] = useState<UsdtPayout[] | null>(null);
+  const [payouts, setPayouts] = useState<UsdtPayout[] | null>(() => (order.type === "buy" ? peekOrderPart("payouts", order.id) : []));
   const loadPayouts = useCallback(() => {
     if (order.type !== "buy") { setPayouts([]); return; }
-    fetchPayouts(order.id, 5).then(setPayouts);
+    const hit = peekOrderPart("payouts", order.id);
+    if (hit) setPayouts(hit);
+    loadOrderPart("payouts", order.id).then(setPayouts);
   }, [order.id, order.type]);
   useEffect(() => { loadPayouts(); }, [loadPayouts, order.status]);
-  const [events, setEvents] = useState<OrderEvent[] | null>(null);
+  const [events, setEvents] = useState<OrderEvent[] | null>(() => peekOrderPart("events", order.id));
   const [confirmDel, setConfirmDel] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
   const [refunding, setRefunding] = useState(false);
@@ -188,8 +194,8 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh }: Prop
 
   useEffect(() => {
     let active = true;
-    setEvents(null);
-    fetchOrderEvents(order.id).then((e) => { if (active) setEvents(e); });
+    setEvents(peekOrderPart("events", order.id));
+    loadOrderPart("events", order.id).then((e) => { if (active) setEvents(e); });
     return () => { active = false; };
   }, [order.id, order.status, order.assignedTo]);
 

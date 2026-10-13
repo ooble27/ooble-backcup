@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { prefetchOrder } from "@/lib/orderDetailCache";
 import { Hand, Inbox, Loader2 } from "lucide-react";
 import { CURRENT_OPERATOR, nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import { C } from "./adminTheme";
@@ -29,6 +30,8 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
   const others = active.filter((o) => o.assignedTo && o.assignedTo !== CURRENT_OPERATOR);
 
   const list = tab === "queue" ? unassigned : tab === "mine" ? mine : others;
+  // Les commandes actives sont peu nombreuses : leurs fiches sont préparées d'avance.
+  useEffect(() => { active.slice(0, 15).forEach((o) => prefetchOrder(o.id, o.userId)); }, [active.map((o) => o.id).join()]); // eslint-disable-line react-hooks/exhaustive-deps
   // On ne prend qu'une commande payée que le système n'est pas déjà en train d'envoyer.
   const claimable = (o: AdminOrder) => o.status === "recu" && !o.autoSending;
   const empty = {
@@ -78,6 +81,7 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
         columns={columns}
         rowKey={(o) => o.id}
         onRowClick={onOpen}
+        onRowIntent={(o) => prefetchOrder(o.id, o.userId)}
         initialSort={{ key: "age", dir: "desc" }}
         empty={<EmptyState icon={Inbox} title="Rien ici" text={empty} />}
         mobile={(o) => (

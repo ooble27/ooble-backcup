@@ -185,8 +185,12 @@ const SettlementPanel = () => {
       daily_payout_max_usdt: Number(draft.daily_payout_max_usdt),
     });
     setSaving(false);
-    if (res.error) setErr(res.error);
-    else { setSaved(true); setTimeout(() => setSaved(false), 2000); void load(); }
+    if (res.error) { setErr(res.error); return; }
+    // Enregistré : le bouton redevient sobre tout de suite, sans attendre la relecture des soldes (lente).
+    const next = { ...draft };
+    setSettings(next); setDraft(next); settingsRef.current = next;
+    setSaved(true); setTimeout(() => setSaved(false), 2000);
+    void load();
   };
 
   const all = wallets ?? [];

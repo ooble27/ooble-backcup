@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { prefetchOrder } from "@/lib/orderDetailCache";
 import { Check, Copy, FileText, History, Loader2, ShoppingCart, Wand2 } from "lucide-react";
 import ClientOrdersHistory from "./ClientOrdersHistory";
 import { nfCad } from "@/lib/adminOrders";
@@ -180,7 +181,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
           <Block title={orders.length > 6 ? `6 dernières commandes sur ${orders.length}` : `Commandes (${orders.length})`} right={orders.length > 0 ? (
             <Button size="sm" onClick={() => setHistory(true)} icon={<History style={{ width: 14, height: 14 }} />}>Historique complet</Button>
           ) : undefined}>
-            <DataTable rows={[...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6)} columns={columns} rowKey={(o) => o.id} onRowClick={(o) => onOpenOrder?.(o.id)} initialSort={{ key: "date", dir: "desc" }}
+            <DataTable rows={[...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6)} columns={columns} rowKey={(o) => o.id} onRowClick={(o) => onOpenOrder?.(o.id)} onRowIntent={(o) => prefetchOrder(o.id, userId)} initialSort={{ key: "date", dir: "desc" }}
               empty={<EmptyState icon={ShoppingCart} title="Aucune commande" text="Ce client n'a encore rien acheté ni vendu." />}
               mobile={(o) => { const s = ORDER_STATUS[o.status] ?? [o.status, "neutral" as Tone]; return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
