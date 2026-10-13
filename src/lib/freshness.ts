@@ -52,6 +52,8 @@ export function startFreshnessCheck() {
   // Retour sur l'app : on vérifie, et on recharge tout de suite si une version attend (rien n'est en cours de saisie).
   const onVisible = async () => {
     if (document.visibilityState !== "visible") return;
+    // Le navigateur revérifie aussi le service worker : s'il a changé, il recharge les vieilles fenêtres du back-office.
+    void navigator.serviceWorker?.getRegistration().then((r) => r?.update()).catch(() => undefined);
     await check();
     if (pending) reload();
   };
@@ -80,3 +82,10 @@ export function startFreshnessCheck() {
 
   void check();
 }
+
+/** Date de la version en cours, lisible : « 13 oct. à 19 h 42 ». */
+export const versionLabel = () => {
+  const d = new Date(__BUILD_TIME__);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.toLocaleDateString("fr-CA", { day: "numeric", month: "short" })} à ${d.toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}`;
+};

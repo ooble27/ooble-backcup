@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { versionLabel } from "@/lib/freshness";
 import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
@@ -473,6 +474,8 @@ const AdminPortal = () => {
               <div style={{ minWidth: 0, flex: 1 }}>
                 <p style={{ margin: 0, fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
                 <p title={roleText} style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{roleText}</p>
+                {/* Version en cours : en cas de doute, un coup d'œil suffit (voir lib/freshness.ts). */}
+                <p style={{ margin: "1px 0 0", fontSize: 11, color: C.t3, opacity: 0.75, whiteSpace: "nowrap" }}>Version du {versionLabel()}</p>
               </div>
               <ThemeToggle />
             </>
