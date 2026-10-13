@@ -2,15 +2,13 @@ import { useEffect, useState } from "react";
 import { Check, Copy, FileText, Loader2, ShoppingCart, Wand2 } from "lucide-react";
 import { nfCad } from "@/lib/adminOrders";
 import { orderRef } from "@/lib/orders";
-import {
-  fetchClientProfile, fetchClientOrders, KYC_LABEL,
-  type ClientProfile as ClientProfileData, type ClientOrder,
-} from "@/lib/adminClient";
+import { KYC_LABEL, type ClientProfile as ClientProfileData, type ClientOrder } from "@/lib/adminClient";
+import { loadClient, peekClient } from "@/lib/clientProfileCache";
 import { summarizeClient, isAIError, toAIClientContext, toAIOrderSummaries } from "@/lib/ai";
 import { useAuth } from "@/lib/auth";
 import { resetKyb } from "@/lib/adminKyb";
 import { logAdminAction } from "@/lib/audit";
-import { fetchOrigin, placeLabel, type SignupOrigin } from "@/lib/origin";
+import { placeLabel, type SignupOrigin } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { Avatar, DataTable, EmptyState, KeyValues, Pill, TwoLine, type Column, type Tone } from "./layout";
@@ -58,10 +56,12 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
       void logAdminAction({ action: "compliance.client_register_export", entityKind: "profile", entityId: userId, metadata: { rows: n } });
     } finally { setRegBusy(false); }
   };
-  const [profile, setProfile] = useState<ClientProfileData | null>(null);
-  const [origin, setOrigin] = useState<SignupOrigin | null>(null);
-  const [orders, setOrders] = useState<ClientOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Déjà en mémoire (préchargée au survol de la ligne) : la fiche s'affiche sans attente.
+  const cached = peekClient(userId);
+  const [profile, setProfile] = useState<ClientProfileData | null>(cached?.profile ?? null);
+  const [origin, setOrigin] = useState<SignupOrigin | null>(cached?.origin ?? null);
+  const [orders, setOrders] = useState<ClientOrder[]>(cached?.orders ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [copied, setCopied] = useState<string | null>(null);
   const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
   const [resetMsg, setResetMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -71,11 +71,14 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    Promise.all([fetchClientProfile(userId), fetchClientOrders(userId), fetchOrigin(userId)]).then(([p, o, g]) => {
+    const hit = peekClient(userId);
+    if (hit) { setProfile(hit.profile); setOrders(hit.orders); setOrigin(hit.origin); setLoading(false); }
+    else setLoading(true);
+    // Mise à jour discrète en arrière-plan (ou premier chargement).
+    loadClient(userId).then(({ profile: p, orders: o, origin: g }) => {
       if (!active) return;
       setProfile(p); setOrders(o); setOrigin(g); setLoading(false);
-    });
+    }).catch(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [userId]);
 
@@ -110,7 +113,13 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   };
 
   const name = profile?.fullName ?? clientName;
-  if (loading) return <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement de la fiche…</p>;
+  // Rare (fiche jamais visée avant) : le nom s'affiche déjà, le reste arrive en fondu, sans message de chargement.
+  if (loading) return (
+    <header style={{ marginBottom: 26 }}>
+      <Avatar name={name} size={44} />
+      <h1 className="hz-title" style={{ marginTop: 16 }}>{name}</h1>
+    </header>
+  );
 
   const completed = orders.filter((o) => o.status === "completed");
   const columns: Column<ClientOrder>[] = [

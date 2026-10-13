@@ -6,6 +6,7 @@ import { nfCad } from "@/lib/adminOrders";
 import { regionName, countryName } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
 import { Button } from "./ui";
+import { prefetchClient } from "@/lib/clientProfileCache";
 import { Avatar, DataTable, EmptyState, Pill, SearchField, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
 import { ClientsPopulation } from "./viz";
 
@@ -198,6 +199,7 @@ export default function ClientsPanel({ onOpen }: { onOpen: (userId: string, name
           rows={list}
           columns={columns}
           rowKey={(c) => c.id}
+          onRowIntent={(c) => prefetchClient(c.id)}
           onRowClick={(c) => onOpen(c.id, nameOf(c))}
           pageSize={60}
           empty={<EmptyState icon={Users} title="Aucun client" text="Aucun client ne correspond à cette recherche." />}

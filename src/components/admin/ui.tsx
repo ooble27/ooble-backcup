@@ -62,7 +62,7 @@ export const UI_CSS = `
 :is(div, button).ui-row::before { left: 0; }
 .ui-lift::before { left: 0; }
 .ui-row > td > *, :is(div, button).ui-row > *, .ui-lift > *, .ui-lift-y { transition: transform .3s cubic-bezier(.22,1,.36,1); }
-@media (hover: hover) {
+@media (any-hover: hover) {
   .ui-row[tabindex="0"]:hover > td > *, .ui-lift:hover > * { transform: translateX(6px); }
   div.ui-row[tabindex="0"]:hover > *, button.ui-row:not(:disabled):hover > * { transform: translateX(12px); }
   .ui-row[tabindex="0"]:hover > td:first-child::before, div.ui-row[tabindex="0"]:hover::before, button.ui-row:not(:disabled):hover::before, .ui-lift:hover::before { opacity: 1; transform: scale(1); }

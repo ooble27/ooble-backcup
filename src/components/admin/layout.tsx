@@ -256,8 +256,10 @@ function AutoMore({ onReach }: { onReach: () => void }) {
   return <div ref={ref} aria-hidden style={{ height: 1 }} />;
 }
 
-export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty, pageSize = 50, initialSort, selectedKey }: {
+export function DataTable<T>({ rows, columns, rowKey, onRowClick, onRowIntent, mobile, empty, pageSize = 50, initialSort, selectedKey }: {
   rows: T[]; columns: Column<T>[]; rowKey: (row: T) => string; onRowClick?: (row: T) => void;
+  /** Le pointeur vise une ligne (survol, toucher, focus) : de quoi précharger ce qu'elle ouvre. */
+  onRowIntent?: (row: T) => void;
   mobile?: (row: T) => React.ReactNode; empty?: React.ReactNode; pageSize?: number;
   initialSort?: { key: string; dir: "asc" | "desc" }; selectedKey?: string | null;
 }) {
@@ -301,6 +303,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
           {visible.map((r) => (
             <div key={rowKey(r)} role={onRowClick ? "button" : undefined} tabIndex={onRowClick ? 0 : undefined} className="ui-row"
               onClick={onRowClick ? () => onRowClick(r) : undefined}
+              onPointerDown={onRowIntent ? () => onRowIntent(r) : undefined}
               onKeyDown={onRowClick ? (e) => { if (e.key === "Enter") onRowClick(r); } : undefined}
               style={{ padding: "12px 2px", borderBottom: `1px solid ${C.bds}`, cursor: onRowClick ? "pointer" : "default", background: selectedKey != null && selectedKey === rowKey(r) ? C.hover3 : undefined }}>
               {mobile(r)}
@@ -343,6 +346,9 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, mobile, empty,
               return (
                 <tr key={k} className="ui-row" tabIndex={onRowClick ? 0 : undefined}
                   onClick={onRowClick ? () => onRowClick(r) : undefined}
+                  onMouseEnter={onRowIntent ? () => onRowIntent(r) : undefined}
+                  onPointerDown={onRowIntent ? () => onRowIntent(r) : undefined}
+                  onFocus={onRowIntent ? () => onRowIntent(r) : undefined}
                   onKeyDown={onRowClick ? (e) => { if (e.key === "Enter") onRowClick(r); } : undefined}
                   style={{ cursor: onRowClick ? "pointer" : "default", background: selectedKey != null && selectedKey === k ? C.hover3 : undefined }}>
                   {cols.map((c) => (

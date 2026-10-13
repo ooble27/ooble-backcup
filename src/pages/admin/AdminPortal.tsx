@@ -37,6 +37,7 @@ import ThemeToggle from "@/components/app/ThemeToggle";
 import { AutoSettle } from "@/components/admin/icons";
 import { prefetchAdmin } from "@/lib/adminData";
 import { fetchCached, peek, put } from "@/lib/adminCache";
+import { prefetchClient } from "@/lib/clientProfileCache";
 
 /** Téléphone : navigation en cadran (false = ancien menu latéral). */
 const DIAL_NAV = true;
@@ -306,7 +307,7 @@ const AdminPortal = () => {
   const toProcess = orders.filter((o) => o.status === "recu").length;
   const badges: Partial<Record<TabId, number>> = { queue: toProcess };
 
-  const openOrder = (o: AdminOrder) => { setClientView(null); setSelected(o); toTop(); };
+  const openOrder = (o: AdminOrder) => { setClientView(null); setSelected(o); toTop(); prefetchClient(o.userId); };
   const openClient = (userId: string, name: string) => { setSelected(null); setClientView({ userId, name }); toTop(); };
   const showClient = (userId: string) => openClient(userId, selected?.clientName ?? "Client");
   const openOrderById = (orderId: string) => {

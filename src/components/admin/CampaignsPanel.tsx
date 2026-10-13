@@ -200,7 +200,7 @@ const PANEL_CSS = `
 .cmp-ghost:hover { color: var(--a-t1); }
 .cmp-ghost:focus { background: var(--a-hover2); }
 .cmp-tile { transition: transform .3s cubic-bezier(.22,1,.36,1), color .15s; }
-@media (hover: hover) { .cmp-tile:hover:not(:disabled) { color: var(--a-t1); transform: translateY(-3px); } }
+@media (any-hover: hover) { .cmp-tile:hover:not(:disabled) { color: var(--a-t1); transform: translateY(-3px); } }
 .cmp-fab { width: 44px; height: 44px; border-radius: 12px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds); }
 .cmp-fab:focus-visible, .cmp-cta:focus-visible, .cmp-ico:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 .cmp-ico { width: 34px; height: 34px; border-radius: 10px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
