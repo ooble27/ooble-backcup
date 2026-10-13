@@ -14,7 +14,7 @@
  * viennent d'endroits déjà branchés. La version V2 ajoutera les événements
  * de conformité (déclarations, alertes) et les communications envoyées.
  */
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Coins, HandCoins, UserPlus, ShieldCheck, ShieldAlert, StickyNote,
   Clock, CheckCircle2, XCircle,
@@ -51,13 +51,6 @@ interface TimelineEvent {
 const nfCad  = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
 
-const KIND_LABEL: Record<"all" | EventKind, string> = {
-  all:    "Tout",
-  order:  "Commandes",
-  kyc:    "KYC",
-  note:   "Notes",
-  signup: "Inscription",
-};
 
 /** Groupe les événements par jour (clé = ISO date). Préserve l'ordre reçu. */
 function groupByDay(events: TimelineEvent[]): { day: string; items: TimelineEvent[] }[] {
@@ -187,24 +180,16 @@ function toneOf(e: TimelineEvent): { bg: string; fg: string } {
   return { bg: "color-mix(in srgb, var(--a-coral) 14%, transparent)", fg: C.coral };
 }
 
-const PAGE = 15;
 
 const ClientTimeline = ({ profile, orders, userId }: Props) => {
-  const [filter, setFilter] = useState<"all" | EventKind>("all");
-  const [shown, setShown] = useState(PAGE);
 
   const events = useMemo(() => buildEvents(profile, orders, userId), [profile, orders, userId]);
-  // « Tout » : les 3 dernières commandes seulement, avec l'inscription, l'identité et les notes ;
-  // l'historique complet reste sous le filtre « Commandes ».
-  const RECENT = 3;
-  const orderEvents = events.filter((e) => e.kind === "order");
-  const hiddenOrders = Math.max(0, orderEvents.length - RECENT);
-  const recentIds = new Set(orderEvents.slice(0, RECENT).map((e) => e.id));
-  const filtered = filter === "all" ? events.filter((e) => e.kind !== "order" || recentIds.has(e.id)) : events.filter((e) => e.kind === filter);
-  const visible = filtered.slice(0, shown);
+  // Les grandes étapes seulement : la dernière commande, l'inscription, l'identité et les notes.
+  // Toutes les commandes sont dans « Historique complet », au-dessus.
+  const lastOrder = events.find((e) => e.kind === "order");
+  const filtered = events.filter((e) => e.kind !== "order" || e === lastOrder);
+  const visible = filtered;
 
-  const count = (k: "all" | EventKind) => (k === "all" ? events.length : events.filter((e) => e.kind === k).length);
-  const availableFilters = (["all", "order", "kyc", "note", "signup"] as const).filter((k) => k === "all" || count(k) > 0);
 
   // Rythme des 12 derniers mois : une barre par mois, hauteur = nombre de commandes.
   const rhythm = useMemo(() => {
@@ -236,8 +221,6 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
   return (
     <div style={{ fontFamily: FONT }}>
       <style>{`
-        .tl-chip { transition: background .15s, color .15s; }
-        .tl-chip:hover { color: var(--a-t1); }
         .tl-bar { transition: height .5s cubic-bezier(.22,1,.36,1); }
         @media (max-width: 560px) { .tl-amount { display: none } }
       `}</style>
@@ -270,25 +253,8 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
         </div>
       </div>
 
-      {/* Filtres, avec le nombre d'événements de chaque type. */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-        {availableFilters.map((k) => {
-          const on = filter === k;
-          return (
-            <button key={k} type="button" className="tl-chip" onClick={() => { setFilter(k); setShown(PAGE); }} aria-pressed={on}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 7, height: 32, padding: "0 12px", borderRadius: 99, border: "none",
-                background: on ? C.t1 : C.hover2, color: on ? C.bg : C.t2, fontFamily: FONT, fontSize: 12.5, cursor: "pointer",
-              }}>
-              {KIND_LABEL[k]}
-              <span style={{ fontSize: 11.5, opacity: 0.6, fontVariantNumeric: "tabular-nums" }}>{count(k)}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {filtered.length === 0 ? (
-        <p style={{ fontSize: 13, color: C.t3, margin: 0, padding: "32px 0", textAlign: "center" }}>Aucun événement pour ce filtre.</p>
+        <p style={{ fontSize: 13, color: C.t3, margin: 0, padding: "32px 0", textAlign: "center" }}>Aucun événement pour ce client.</p>
       ) : (
         <div>
           {byMonth.map((m) => (
@@ -341,22 +307,6 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
               </div>
             </section>
           ))}
-          {filter === "all" && hiddenOrders > 0 && (
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}>
-              <button type="button" className="tl-chip" onClick={() => { setFilter("order"); setShown(PAGE); }}
-                style={{ height: 36, padding: "0 16px", borderRadius: 99, border: "none", background: C.hover2, color: C.t1, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
-                {hiddenOrders} {hiddenOrders > 1 ? "commandes plus anciennes" : "commande plus ancienne"} · tout voir
-              </button>
-            </div>
-          )}
-          {filtered.length > shown && (
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}>
-              <button type="button" className="tl-chip" onClick={() => setShown((n) => n + 30)}
-                style={{ height: 36, padding: "0 16px", borderRadius: 99, border: "none", background: C.hover2, color: C.t1, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
-                Voir les événements plus anciens ({filtered.length - shown})
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>
