@@ -269,7 +269,7 @@ const AdminPortal = () => {
     { const im = new Image(); im.src = "/illustrations/admin/campaigns.svg"; }
     const go = () => prefetchAdmin({
       settlement: allowedTabs.has("settlement"), platform: allowedTabs.has("platform"), kyc: allowedTabs.has("kyc"),
-      clients: allowedTabs.has("clients"), compliance: allowedTabs.has("compliance"), mailbox: allowedTabs.has("mailbox"), team: allowedTabs.has("team"), campaigns: allowedTabs.has("campaigns"),
+      clients: allowedTabs.has("clients"), compliance: allowedTabs.has("compliance"), mailbox: allowedTabs.has("mailbox"), team: allowedTabs.has("team"), campaigns: allowedTabs.has("campaigns"), accounting: allowedTabs.has("accounting"),
     });
     const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
     const t = w.requestIdleCallback ? w.requestIdleCallback(go) : window.setTimeout(go, 1200);
@@ -556,7 +556,7 @@ const AdminPortal = () => {
                         {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}
                         {tab === "clients" && <ClientsPanel onOpen={openClient} />}
                         {tab === "kyc" && <KycPanel />}
-                        {tab === "accounting" && <AccountingPanel orders={orders} />}
+                        {tab === "accounting" && <AccountingPanel onOpenOrder={openOrderById} />}
                         {tab === "compliance" && <CompliancePanel orders={orders} />}
                         {tab === "settlement" && <SettlementPanel />}
                         {tab === "mailbox" && <MailboxPanel />}
@@ -632,7 +632,7 @@ const AdminPortal = () => {
                   {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}
                   {tab === "clients" && <ClientsPanel onOpen={openClient} />}
                   {tab === "kyc" && <KycPanel />}
-                  {tab === "accounting" && <AccountingPanel orders={orders} />}
+                  {tab === "accounting" && <AccountingPanel onOpenOrder={openOrderById} />}
                   {tab === "compliance" && <CompliancePanel orders={orders} />}
                   {tab === "settlement" && <SettlementPanel />}
                   {tab === "mailbox" && <MailboxPanel />}

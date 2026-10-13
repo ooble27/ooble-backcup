@@ -3,6 +3,7 @@
  * Le portail les précharge en arrière-plan ; les pages s'ouvrent alors avec les données déjà là.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { loadSummary, periodRange } from "@/lib/accounting";
 import { fetchAll } from "@/lib/fetchAll";
 import { fetchCached, prefetch } from "./adminCache";
 import { fetchDeposits, fetchPayouts, fetchReceipts, fetchScanState, fetchWallets } from "./settlement";
@@ -41,7 +42,7 @@ export const loadBackupRuns = <T,>() => fetchCached<T[]>("pf.backups", async () 
 }, { persist: true });
 
 /** Préchargement discret, selon les onglets auxquels la personne a accès. */
-export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; kyc?: boolean; clients?: boolean; compliance?: boolean; mailbox?: boolean; team?: boolean; campaigns?: boolean }) {
+export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; kyc?: boolean; clients?: boolean; compliance?: boolean; mailbox?: boolean; team?: boolean; campaigns?: boolean; accounting?: boolean }) {
   // Listes avec données clients : en mémoire pour la session seulement.
   if (tabs.kyc) { prefetch("kyc", fetchKyc); prefetch("kyb", fetchKyb); }
   if (tabs.clients) prefetch("clients.admin", fetchAdminClients);
@@ -50,6 +51,8 @@ export function prefetchAdmin(tabs: { settlement: boolean; platform: boolean; ky
     return { a, d, c };
   });
   if (tabs.mailbox) prefetch("mail.threads", fetchThreads);
+  // Comptabilité : le résumé de l'année (sans données personnelles) est prêt avant l'ouverture.
+  if (tabs.accounting) { const { from, to } = periodRange("year"); void loadSummary(from, to).catch(() => undefined); }
   if (tabs.team) prefetch("team", fetchTeam);
   if (tabs.campaigns) prefetch("clients.directory", () => fetchClientDirectory());
   if (tabs.settlement) {

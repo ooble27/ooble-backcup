@@ -1,124 +1,167 @@
-import { useMemo } from "react";
-import { Download } from "lucide-react";
-import { NETWORKS } from "@/components/app/networks";
-import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
-import { C } from "./adminTheme";
-import { Button } from "./ui";
+import { useEffect, useState } from "react";
+import { ChevronRight, Download, Loader2 } from "lucide-react";
+import { nfCad, nfUsdt } from "@/lib/adminOrders";
+import { NET_LOGO, NET_NAME, PERIODS, exportAccountingCsv, loadSummary, monthLabel, peekSummary, periodRange, type AcctMonth, type AcctNetwork, type AcctSummary, type Period } from "@/lib/accounting";
+import { C, FONT } from "./adminTheme";
+import { Button, Notice } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
-import { AccountingHero } from "./heroes";
+import AccountingMonth from "./AccountingMonth";
 
-const MARGIN = 0.02; // marché + 2 %
-
-interface Month { key: string; label: string; buy: number; sell: number; buyN: number; sellN: number }
-interface Net { id: string; name: string; volume: number; usdt: number; n: number }
+/**
+ * Comptabilité réelle : marge calculée commande par commande à partir du taux du marché au moment
+ * de la commande (et non plus 2 % estimés). Une période au choix, le détail mois par mois sur sa
+ * propre page, un export pour le comptable.
+ */
 
 const money = (n: number) => `${nfCad.format(n)} $`;
+const pct = (m: number, v: number) => (v > 0 ? `${((m / v) * 100).toLocaleString("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 })} %` : "–");
 
-const AccountingPanel = ({ orders }: { orders: AdminOrder[] }) => {
-  const done = useMemo(() => orders.filter((o) => o.status === "termine"), [orders]);
-  const stats = useMemo(() => {
-    const volume = done.reduce((s, o) => s + o.cad, 0);
-    const buys = done.filter((o) => o.type === "buy");
-    const sells = done.filter((o) => o.type === "sell");
-    return {
-      count: done.length, volume, margin: volume * MARGIN, avg: done.length ? volume / done.length : 0,
-      buyVol: buys.reduce((s, o) => s + o.cad, 0), sellVol: sells.reduce((s, o) => s + o.cad, 0), buyN: buys.length, sellN: sells.length,
-    };
-  }, [done]);
+const CSS = `
+.ac-per { all: unset; cursor: pointer; font-family: ${FONT}; font-size: 14px; color: var(--a-t3); padding: 4px 0; transition: color .15s; }
+.ac-per:hover { color: var(--a-t1); }
+.ac-per:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; border-radius: 4px; }
+.ac-per span { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px; padding-bottom: 3px; transition: background-size .35s cubic-bezier(.22,1,.36,1); }
+.ac-per[aria-pressed="true"] { color: var(--a-t1); font-weight: 500; }
+.ac-per[aria-pressed="true"] span, .ac-per:hover span { background-size: 100% 1.5px; }
+.ac-bar { transition: height .5s cubic-bezier(.22,1,.36,1); }
+`;
 
-  const months = useMemo<Month[]>(() => {
-    const m = new Map<string, Month>();
-    for (const o of done) {
-      const d = new Date(Date.now() - o.createdMinsAgo * 60000);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const row = m.get(key) ?? { key, label: d.toLocaleDateString("fr-CA", { month: "long", year: "numeric" }), buy: 0, sell: 0, buyN: 0, sellN: 0 };
-      if (o.type === "buy") { row.buy += o.cad; row.buyN += 1; } else { row.sell += o.cad; row.sellN += 1; }
-      m.set(key, row);
-    }
-    return [...m.values()].sort((a, b) => b.key.localeCompare(a.key));
-  }, [done]);
+const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }) => {
+  const [period, setPeriod] = useState<Period>("year");
+  const { from, to } = periodRange(period);
+  const [data, setData] = useState<AcctSummary | null>(() => peekSummary(from, to));
+  const [err, setErr] = useState<string | null>(null);
+  const [month, setMonth] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
-  const nets = useMemo<Net[]>(() => {
-    const m = new Map<string, Net>();
-    for (const o of done) {
-      const id = o.type === "sell" && !o.network ? "interac" : o.network ?? "autre";
-      const name = NETWORKS.find((n) => n.id === id)?.name ?? (id === "interac" ? "Interac" : "Autre");
-      const row = m.get(id) ?? { id, name, volume: 0, usdt: 0, n: 0 };
-      row.volume += o.cad; row.usdt += o.usdt; row.n += 1;
-      m.set(id, row);
-    }
-    return [...m.values()].sort((a, b) => b.volume - a.volume);
-  }, [done]);
+  useEffect(() => {
+    let on = true;
+    setData(peekSummary(from, to));
+    loadSummary(from, to).then((d) => { if (on) { setData(d); setErr(null); } }).catch((e: Error) => { if (on) setErr(e.message); });
+    return () => { on = false; };
+  }, [from, to]);
 
-  const exportCsv = () => {
-    const head = ["Mois", "Achats CAD", "Achats (nb)", "Ventes CAD", "Ventes (nb)", "Volume CAD", "Revenus estimés CAD"];
-    const lines = months.map((r) => [r.key, r.buy.toFixed(2), r.buyN, r.sell.toFixed(2), r.sellN, (r.buy + r.sell).toFixed(2), ((r.buy + r.sell) * MARGIN).toFixed(2)].join(";"));
-    const url = URL.createObjectURL(new Blob(["﻿" + [head.join(";"), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: `ooble-comptabilite-${new Date().toISOString().slice(0, 10)}.csv` });
-    a.click();
-    URL.revokeObjectURL(url);
+  const t = data?.totals;
+  const exportAll = async () => {
+    setExporting(true);
+    try { await exportAccountingCsv(from, to, PERIODS.find((p) => p.id === period)!.label.toLowerCase().replace(/\s+/g, "-")); }
+    catch (e) { setErr((e as Error).message); }
+    finally { setExporting(false); }
   };
 
-  const monthCols: Column<Month>[] = [
-    { key: "m", header: "Mois", render: (r) => <span style={{ textTransform: "capitalize" }}>{r.label}</span> },
-    { key: "buy", header: "Achats", align: "right", render: (r) => <span>{money(r.buy)} <span style={{ color: C.t3 }}>· {r.buyN}</span></span> },
-    { key: "sell", header: "Ventes", align: "right", render: (r) => <span>{money(r.sell)} <span style={{ color: C.t3 }}>· {r.sellN}</span></span> },
-    { key: "vol", header: "Volume", align: "right", sort: (r) => r.buy + r.sell, render: (r) => money(r.buy + r.sell) },
-    { key: "rev", header: "Revenus estimés", align: "right", render: (r) => <span style={{ color: C.successText }}>{money((r.buy + r.sell) * MARGIN)}</span> },
+  const maxVol = Math.max(1, ...(data?.months ?? []).map((m) => m.vol_buy + m.vol_sell));
+  const monthCols: Column<AcctMonth>[] = [
+    { key: "m", header: "Mois", render: (r) => <span style={{ color: C.t1 }}>{monthLabel(r.month)}</span> },
+    { key: "n", header: "Commandes", align: "right", hideBelow: 700, render: (r) => <span>{r.n} <span style={{ color: C.t3 }}>({r.n_buy} achats, {r.n_sell} ventes)</span></span> },
+    { key: "v", header: "Volume", align: "right", render: (r) => money(r.vol_buy + r.vol_sell) },
+    { key: "mg", header: "Marge réelle", align: "right", render: (r) => <span style={{ color: C.successText }}>{money(r.margin)}</span> },
+    { key: "p", header: "Marge", align: "right", hideBelow: 560, render: (r) => <span style={{ color: C.t2 }}>{pct(r.margin, r.vol_buy + r.vol_sell)}</span> },
+    { key: "go", header: "", align: "right", render: () => <ChevronRight style={{ width: 16, height: 16, color: C.t3, verticalAlign: "middle" }} /> },
   ];
-  const netCols: Column<Net>[] = [
+  const netCols: Column<AcctNetwork>[] = [
     { key: "n", header: "Réseau", render: (r) => (
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-        {NETWORKS.some((n) => n.id === r.id) && <img src={`/coins/${r.id}.svg`} alt="" width={18} height={18} style={{ borderRadius: 99 }} />}
-        {r.name}
+        {NET_LOGO[r.network] && <img src={`/coins/${NET_LOGO[r.network]}.svg`} alt="" width={18} height={18} style={{ borderRadius: 99 }} />}
+        {NET_NAME[r.network] ?? r.network}
       </span>
     ) },
     { key: "c", header: "Commandes", align: "right", render: (r) => r.n },
-    { key: "u", header: "USDT", align: "right", render: (r) => nfUsdt.format(r.usdt) },
+    { key: "u", header: "USDT", align: "right", hideBelow: 560, render: (r) => nfUsdt.format(r.usdt) },
     { key: "v", header: "Volume", align: "right", render: (r) => money(r.volume) },
-    { key: "p", header: "Part", align: "right", hideBelow: 700, render: (r) => <span style={{ color: C.t2 }}>{stats.volume ? Math.round((r.volume / stats.volume) * 100) : 0} %</span> },
+    { key: "mg", header: "Marge réelle", align: "right", render: (r) => <span style={{ color: C.successText }}>{money(r.margin)}</span> },
   ];
 
   return (
-    <div>
-      <AccountingHero margin={MARGIN} orders={done.map((o) => {
-        const id = o.type === "sell" && !o.network ? "interac" : o.network ?? "autre";
-        const known = NETWORKS.some((n) => n.id === id);
-        return { cad: o.cad, minsAgo: o.createdMinsAgo, net: id, netName: NETWORKS.find((n) => n.id === id)?.name ?? (id === "interac" ? "Interac" : "Autre"), logo: known ? `/coins/${id}.svg` : undefined };
-      })} note={`Achats ${money(stats.buyVol)} (${stats.buyN}) · Ventes ${money(stats.sellVol)} (${stats.sellN}) · Panier moyen ${money(stats.avg)}`} />
+    <div style={{ fontFamily: FONT }}>
+      <style>{CSS}</style>
 
-      <Section title="Par mois" description="Commandes terminées, regroupées par mois de création." actions={<Button size="sm" variant="ghost" onClick={exportCsv} disabled={!months.length} icon={<Download style={{ width: 14, height: 14 }} />}>Exporter pour la comptabilité</Button>}>
-        <DataTable rows={months} columns={monthCols} rowKey={(r) => r.key}
+      {/* Période : du texte, souligné quand il est choisi (pas de pilules). */}
+      <nav aria-label="Période" style={{ display: "flex", gap: 22, flexWrap: "wrap", alignItems: "center" }}>
+        {PERIODS.map((p) => (
+          <button key={p.id} type="button" className="ac-per" aria-pressed={period === p.id} onClick={() => setPeriod(p.id)}><span>{p.label}</span></button>
+        ))}
+        <span style={{ flex: 1 }} />
+        <Button size="sm" onClick={exportAll} disabled={exporting || !t?.n}
+          icon={exporting ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Download style={{ width: 14, height: 14 }} />}>
+          {exporting ? "Préparation…" : "Exporter pour le comptable"}
+        </Button>
+      </nav>
+
+      <div style={{ marginTop: 26 }}>
+        <p className="vz-head" style={{ fontSize: "clamp(34px, 4.4vw, 58px)" }}>
+          <span style={{ color: C.sage }}>{money(t?.margin ?? 0)}</span> de marge réelle <span className="mute">sur {money(t?.volume ?? 0)} échangés.</span>
+        </p>
+        <p className="vz-sub">
+          {t ? <>Soit <b style={{ color: C.t1, fontWeight: 600 }}>{pct(t.margin, t.volume)}</b> du volume, sur {t.n} commande{t.n > 1 ? "s" : ""} terminée{t.n > 1 ? "s" : ""}{t.n ? `, panier moyen ${money(t.volume / t.n)}` : ""}.</> : "Calcul en cours."}
+        </p>
+      </div>
+
+      {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
+
+      {/* Les chiffres de la période, côte à côte, sans cartes. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 24, marginTop: 28 }}>
+        {[
+          ["Achats", money(t?.vol_buy ?? 0), `${t?.n_buy ?? 0} commande${(t?.n_buy ?? 0) > 1 ? "s" : ""}`, C.sage],
+          ["Ventes", money(t?.vol_sell ?? 0), `${t?.n_sell ?? 0} commande${(t?.n_sell ?? 0) > 1 ? "s" : ""}`, C.coral],
+          ["USDT échangés", nfUsdt.format(t?.usdt ?? 0), "achats et ventes", C.t1],
+          ["Frais facturés", money(t?.fees ?? 0), "en plus de la marge", C.t1],
+        ].map(([label, value, note, color]) => (
+          <div key={label}>
+            <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>{label}</p>
+            <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color, fontVariantNumeric: "tabular-nums" }}>{value}</p>
+            <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3 }}>{note}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Volume par mois : une barre par mois ; un clic ouvre le mois. */}
+      {(data?.months.length ?? 0) > 1 && (
+        <div style={{ marginTop: 34 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
+            {[...(data?.months ?? [])].reverse().slice(-12).map((m) => {
+              const v = m.vol_buy + m.vol_sell;
+              return (
+                <button key={m.month} type="button" onClick={() => setMonth(m.month)} title={`${monthLabel(m.month)} : ${money(v)}, marge ${money(m.margin)}`}
+                  style={{ all: "unset", cursor: "pointer", flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "stretch" }}>
+                  <span className="ac-bar" style={{ height: `${Math.max(4, (v / maxVol) * 100)}%`, borderRadius: 8, background: C.sage, opacity: 0.88 }} />
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            {[...(data?.months ?? [])].reverse().slice(-12).map((m) => (
+              <span key={m.month} style={{ flex: 1, textAlign: "center", fontSize: 11, color: C.t3, overflow: "hidden", whiteSpace: "nowrap" }}>{monthLabel(m.month).slice(0, 4)}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Section title="Par mois" description="Commandes terminées. Ouvrez un mois pour voir chaque commande, son taux et sa marge.">
+        <DataTable rows={data?.months ?? []} columns={monthCols} rowKey={(r) => r.month} onRowClick={(r) => setMonth(r.month)}
+          empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>Aucune commande terminée sur cette période.</p>}
           mobile={(r) => (
             <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, color: C.t1, textTransform: "capitalize" }}>{r.label}</div>
-                <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{r.buyN + r.sellN} commandes · {money(r.buy + r.sell)}</div>
+                <div style={{ fontSize: 14, color: C.t1 }}>{monthLabel(r.month)}</div>
+                <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{r.n} commandes · {money(r.vol_buy + r.vol_sell)}</div>
               </div>
-              <span style={{ fontSize: 14, color: C.successText, fontVariantNumeric: "tabular-nums" }}>{money((r.buy + r.sell) * MARGIN)}</span>
+              <span style={{ fontSize: 14, color: C.successText, fontVariantNumeric: "tabular-nums" }}>{money(r.margin)}</span>
             </div>
-          )}
-          empty={<p style={{ padding: "28px 0", margin: 0, fontSize: 13.5, color: C.t3 }}>Aucune commande terminée pour l'instant.</p>} />
+          )} />
       </Section>
 
       <Section title="Par réseau">
-        <DataTable rows={nets} columns={netCols} rowKey={(r) => r.id}
-          mobile={(r) => (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {NETWORKS.some((n) => n.id === r.id) && <img src={`/coins/${r.id}.svg`} alt="" width={20} height={20} style={{ borderRadius: 99 }} />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, color: C.t1 }}>{r.name}</div>
-                <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{r.n} commandes · {nfUsdt.format(r.usdt)} USDT</div>
-              </div>
-              <span style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{money(r.volume)}</span>
-            </div>
-          )}
-          empty={<p style={{ padding: "28px 0", margin: 0, fontSize: 13.5, color: C.t3 }}>Aucune donnée.</p>} />
+        <DataTable rows={data?.networks ?? []} columns={netCols} rowKey={(r) => r.network}
+          empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>Rien sur cette période.</p>} />
       </Section>
 
-      <p style={{ margin: "20px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.6, maxWidth: 720 }}>
-        Les revenus sont une estimation (marge de {nfUsdt.format(MARGIN * 100)} %) ; les montants définitifs viennent du rapprochement des virements Interac et des envois d'USDT.
+      <p style={{ margin: "26px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 760 }}>
+        Marge réelle : pour un achat, le montant payé par le client moins la valeur des USDT au taux du marché du moment ; pour une vente, l'inverse.
+        Les frais de réseau payés pour envoyer les USDT ne sont pas encore enregistrés et ne sont donc pas déduits.
+        {t?.unpriced ? ` ${t.unpriced} commande${t.unpriced > 1 ? "s" : ""} sans taux du marché connu ne compte${t.unpriced > 1 ? "nt" : ""} pas dans la marge.` : ""}
       </p>
+
+      {month && <AccountingMonth month={month} summary={data?.months.find((m) => m.month === month) ?? null} onClose={() => setMonth(null)} onOpenOrder={onOpenOrder} />}
     </div>
   );
 };
