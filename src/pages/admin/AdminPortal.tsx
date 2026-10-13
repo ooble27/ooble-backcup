@@ -114,7 +114,7 @@ const SHELL_CSS = `
 @media (prefers-reduced-motion: reduce) { .sh-nav, .sh-ic, .sh-tx { transition: none; animation: none } }
 .admin-scope, .admin-scope * { -webkit-tap-highlight-color: transparent }
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
-.sh-icon:hover { background: var(--a-hover2); color: var(--a-t1) }
+.sh-icon:hover { color: var(--a-t1) }
 .sh-round { width: 40px; height: 40px; flex-shrink: 0; border-radius: 99px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; background: var(--a-l1); color: var(--a-t1); box-shadow: 0 0 0 1px var(--a-bds); transition: transform .15s, background .15s }
 .sh-round:active { transform: scale(.94) }
 .sh-round:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px }

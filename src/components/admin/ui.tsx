@@ -48,11 +48,11 @@ export const UI_CSS = `
 .ui-input:focus { border-color: var(--a-t3); box-shadow: 0 0 0 3px var(--a-hover3); outline: none }
 .ui-btn { transition: background .15s, border-color .15s, color .15s, opacity .15s }
 .ui-btn:focus-visible, .ui-step:focus-visible, .ui-row:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px }
-.ui-btn-secondary:hover:not(:disabled) { background: var(--a-hover2); border-color: var(--a-bd) }
-.ui-btn-ghost:hover:not(:disabled) { background: var(--a-hover2); color: var(--a-t1) }
+.ui-btn-secondary:hover:not(:disabled) { border-color: var(--a-bdh) }
+.ui-btn-ghost:hover:not(:disabled) { color: var(--a-t1) }
 .ui-btn-primary:hover:not(:disabled) { background: var(--a-accentHover) }
 .ui-row { transition: background .12s }
-.ui-row:hover { background: var(--a-hover1) }
+/* Aucun fond gris au survol : la ligne reste telle quelle (souhait de l'utilisateur). */
 .ui-step:hover { color: var(--a-t1) }
 .ui-sum { display: grid; grid-template-columns: minmax(110px, 180px) minmax(0, 1fr) auto; grid-template-areas: "l v a"; gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--a-bds); }
 .ui-sum-l { grid-area: l } .ui-sum-v { grid-area: v } .ui-sum-a { grid-area: a; justify-self: end }

@@ -232,8 +232,6 @@ const ClientTimeline = ({ profile, orders, userId }: Props) => {
       <style>{`
         .tl-chip { transition: background .15s, color .15s; }
         .tl-chip:hover { color: var(--a-t1); }
-        .tl-item { transition: background .15s; }
-        .tl-item:hover { background: var(--a-hover3) !important; }
         .tl-bar { transition: height .5s cubic-bezier(.22,1,.36,1); }
         @media (max-width: 560px) { .tl-amount { display: none } }
       `}</style>

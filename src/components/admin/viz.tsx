@@ -24,7 +24,7 @@ export const VIZ_CSS = `
 @media (min-width: 640px) { .vz-waffle { grid-template-columns: repeat(20, minmax(0, 1fr)); max-width: 600px; } }
 .vz-cell { transition: opacity .15s, transform .15s; }
 .vz-key { all: unset; cursor: default; display: flex; align-items: baseline; gap: 8px; padding: 6px 8px; margin: 0 -8px; border-radius: 10px; }
-.vz-key:hover { background: var(--a-hover2); }
+.vz-key:hover { color: var(--a-t1); }
 @media (prefers-reduced-motion: reduce) { .vz-cell { transition: none; } }
 `;
 

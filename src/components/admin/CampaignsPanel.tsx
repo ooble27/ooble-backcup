@@ -197,10 +197,10 @@ const PANEL_CSS = `
 /* Champs « à même la page » : pas de cadre, juste une teinte au survol et pendant la saisie. */
 .cmp-ghost { display: block; box-sizing: border-box; width: calc(100% + 20px); margin: 0 -10px; padding: 7px 10px; border: none; outline: none; border-radius: 10px; background: transparent; color: var(--a-t1); font-family: inherit; resize: none; transition: background .15s; field-sizing: content; }
 .cmp-ghost::placeholder { color: var(--a-t3); }
-.cmp-ghost:hover { background: var(--a-hover1); }
+.cmp-ghost:hover { color: var(--a-t1); }
 .cmp-ghost:focus { background: var(--a-hover2); }
 .cmp-tile { transition: background .15s; }
-.cmp-tile:hover:not(:disabled) { background: var(--a-hover4); }
+.cmp-tile:hover:not(:disabled) { color: var(--a-t1); }
 .cmp-fab { width: 44px; height: 44px; border-radius: 12px; border: none; background: var(--a-bg); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--a-bds); }
 .cmp-fab:focus-visible, .cmp-cta:focus-visible, .cmp-ico:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 .cmp-ico { width: 34px; height: 34px; border-radius: 10px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
@@ -1884,9 +1884,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove, 
                 color: C.t1, textAlign: "left", fontFamily: FONT,
                 transition: "background 0.1s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.hover4; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = C.successBg; }}
-            >
+                          >
               <span style={{
                 width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -1913,9 +1911,7 @@ function CampaignRecipientPicker({ selected, clients, loading, onAdd, onRemove, 
                 color: C.t1, textAlign: "left", fontFamily: FONT,
                 transition: "background 0.1s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.hover3; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >
+                          >
               <span style={{
                 width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",

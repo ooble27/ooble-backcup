@@ -86,8 +86,8 @@ const EXPLORER_CSS = `
 .bx-side:hover:not(:disabled) .bx-ic { transform: scale(1.1) }
 @media (max-width: 767px) { .a-veil { background: transparent !important; } }
 @keyframes spin { to { transform: rotate(360deg) } }
-.bx-row:hover { background: var(--a-hover1) }
-.bx-nav:hover { background: var(--a-hover1); color: var(--a-t1) }
+
+.bx-nav:hover { color: var(--a-t1) }
 .bx-tile:hover .bx-thumb { transform: scale(1.03) }
 .bx-tile:focus-visible, .bx-nav:focus-visible, .bx-row:focus-visible, .bx-btn:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px }
 @media (prefers-reduced-motion: reduce) { .bx-anim { animation: none !important } .bx-thumb { transition: none !important } }

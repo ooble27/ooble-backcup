@@ -992,7 +992,7 @@ function RecipientPicker({ selected, clients, loading, onAdd, onRemove, onSelect
                 background: "transparent", border: "none", cursor: "pointer",
                 color: C.t3, transition: "background 0.12s, color 0.12s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.hover4; e.currentTarget.style.color = C.t1; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = C.t1; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.t3; }}
             >
               <X style={{ width: 10, height: 10 }} strokeWidth={2} />
@@ -1071,9 +1071,7 @@ function RecipientPicker({ selected, clients, loading, onAdd, onRemove, onSelect
                 color: C.t1, textAlign: "left", fontFamily: FONT,
                 transition: "background 0.1s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.hover3; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >
+                          >
               <span style={{
                 width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -1161,7 +1159,7 @@ function ToolbarButton({ title, onClick, children }: { title: string; onClick: (
         background: "transparent", border: "none", cursor: "pointer",
         color: C.t2, transition: "background 0.12s, color 0.12s",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = C.hover3; e.currentTarget.style.color = C.t1; }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = C.t1; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.t2; }}
     >
       {children}

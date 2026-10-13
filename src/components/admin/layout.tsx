@@ -56,13 +56,13 @@ export function Tabs<T extends string>({ items, value, onChange, style }: {
     }
   }, [value]);
   return (
-    <div ref={ref} role="tablist" className="ly-tabs" style={{ display: "flex", gap: 2, borderBottom: `1px solid ${C.bds}`, overflowX: "auto", scrollbarWidth: "none", ...style }}>
+    <div ref={ref} role="tablist" className="ly-tabs" style={{ display: "flex", gap: 2, borderBottom: `1px solid ${C.bds}`, overflowX: "auto", overflowY: "hidden", overscrollBehaviorX: "contain", touchAction: "pan-x", scrollbarWidth: "none", ...style }}>
       {items.map((t) => {
         const on = t.id === value;
         return (
           <button key={t.id} role="tab" aria-selected={on} type="button" className="ly-tab" onClick={() => onChange(t.id)}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 7, height: 40, padding: "0 12px", marginBottom: -1, flexShrink: 0,
+              display: "inline-flex", alignItems: "center", gap: 7, height: 40, padding: "0 12px", flexShrink: 0, boxSizing: "border-box",
               border: "none", borderBottom: `2px solid ${on ? C.t1 : "transparent"}`, background: "transparent",
               color: on ? C.t1 : C.t3, fontFamily: FONT, fontSize: 13.5, cursor: "pointer", whiteSpace: "nowrap",
             }}>

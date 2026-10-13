@@ -20,10 +20,12 @@ const STEP = 30; // écart entre deux pages sur l'arc, en degrés
 const EASE = "cubic-bezier(.22,1,.36,1)";
 
 const CSS = `
-.dn-tab { position: fixed; left: 0; top: 50%; z-index: 90; width: 22px; height: 60px; margin-top: -30px; padding: 0 2px 0 0; border: none; cursor: pointer;
-  border-radius: 0 14px 14px 0; display: flex; align-items: center; justify-content: center;
+/* Languette fine, logée dans la marge de gauche : elle ne cache jamais le texte de la page. */
+.dn-tab { position: fixed; left: 0; top: 50%; z-index: 90; width: 14px; height: 56px; margin-top: -28px; padding: 0; border: none; cursor: pointer;
+  border-radius: 0 10px 10px 0; display: flex; align-items: center; justify-content: center;
   background: var(--a-l1); color: var(--a-t2); box-shadow: 0 0 0 1px var(--a-bds);
   transition: transform .3s ${EASE}, opacity .2s; -webkit-tap-highlight-color: transparent; }
+.dn-tab::before { content: ""; position: absolute; top: -10px; bottom: -10px; left: 0; right: 0; }
 .dn-tab[data-hidden="true"] { transform: translateX(-100%); opacity: 0; pointer-events: none; }
 .dn-tab:active { transform: scale(.94); transform-origin: 0 50%; }
 .dn-tab:focus-visible, .dn-item:focus-visible, .dn-mini:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
@@ -59,7 +61,7 @@ export function DialNav({ items, current, onSelect }: { items: DialItem[]; curre
     <>
       <style>{CSS}</style>
       <button ref={tab} type="button" className="dn-tab" data-hidden={open} aria-label="Ouvrir le menu" aria-expanded={open} onClick={() => setOpen(true)}>
-        <ChevronRight style={{ width: 16, height: 16 }} strokeWidth={2.2} />
+        <ChevronRight style={{ width: 12, height: 12, flexShrink: 0 }} strokeWidth={2.4} />
       </button>
       {open && createPortal(
         <Dial items={items} current={current} closing={closing} onClose={() => close()} onPick={(id) => close(() => onSelect(id))} />,

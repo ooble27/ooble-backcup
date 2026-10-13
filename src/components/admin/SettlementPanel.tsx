@@ -435,7 +435,7 @@ const SettlementPanel = () => {
            « Enregistrer » tombe au niveau de la dernière ligne de texte à gauche. */
         .st-aside { display: flex; flex-direction: column; min-width: 0; }
         .st-pick { transition: box-shadow .15s }
-        .st-pick:hover, .st-pick:focus-within { background: var(--a-hover4) !important }
+        .st-pick:focus-within { box-shadow: 0 0 0 2px var(--a-bd) }
         @media (min-width: 1180px) {
           .st-grid { grid-template-columns: minmax(0, 1fr) 360px; }
           .st-aside { margin-top: 16px; }
