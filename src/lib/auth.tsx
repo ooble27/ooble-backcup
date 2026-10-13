@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { clearAdminCache } from "@/lib/adminCache";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -69,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // courant, les rôles sont « en chargement » (évite de renvoyer le staff
   // vers /app quand il ouvre directement /admin).
   const [rolesFor, setRolesFor] = useState<string | null>(null);
+  const lastUid = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     // Session initiale + abonnement aux changements (connexion, déconnexion,
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const safety = setTimeout(() => setLoading(false), 4000);
     supabase.auth.getSession().then(({ data }) => {
       clearTimeout(safety);
+      if (lastUid.current === undefined) lastUid.current = data.session?.user?.id ?? null;
       setUser(toUser(data.session));
       setLoading(false);
     }).catch(() => {
@@ -88,6 +91,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       clearTimeout(safety);
+      // Autre compte (ou déconnexion) sur cet appareil : rien de l'ancien compte ne reste en mémoire.
+      const next = session?.user?.id ?? null;
+      if (lastUid.current !== undefined && lastUid.current !== next) clearAdminCache();
+      lastUid.current = next;
       setUser(toUser(session));
       setLoading(false);
     });
@@ -200,6 +207,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await forgetPushDevice();
         await supabase.auth.signOut({ scope: "local" });
         clearCache();
+        clearAdminCache();
       },
     }),
     [user, loading, roles, rolesLoading],

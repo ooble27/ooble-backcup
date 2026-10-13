@@ -57,3 +57,15 @@ export function put<T>(key: string, value: T, persist = false) {
     try { localStorage.setItem(PREFIX + key, JSON.stringify(entry)); } catch { /* stockage plein ou bloqué */ }
   }
 }
+
+/** Vide tout (mémoire et stockage) : appelé quand le compte connecté change ou se déconnecte. */
+export function clearAdminCache() {
+  mem.clear();
+  inflight.clear();
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(PREFIX)) localStorage.removeItem(k);
+    }
+  } catch { /* stockage indisponible */ }
+}

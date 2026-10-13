@@ -6,6 +6,7 @@ import { initLang } from "./lib/i18n";
 import { captureSource } from "./lib/origin";
 import { registerServiceWorker, dropOrphanPush } from "./lib/pushNotifications";
 import { supabase } from "./integrations/supabase/client";
+import { startFreshnessCheck } from "./lib/freshness";
 
 initTheme();
 captureSource();
@@ -27,6 +28,9 @@ if (redirect) {
   // remplace par l'app, à l'identique.
   createRoot(document.getElementById("root")!).render(<App basename={basename} />);
 }
+
+// Toujours la dernière version publiée (voir lib/freshness.ts).
+startFreshnessCheck();
 
 // Service worker : notifications push (abonnement automatique une fois connecté).
 registerServiceWorker();

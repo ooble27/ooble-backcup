@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { LogOut, ShieldCheck, LayoutGrid, ChevronRight, Gauge, Building2, Globe, Mail, User, Lock, SunMoon, Handshake, Trash2 } from "lucide-react";
 import { useOtcVisible } from "@/lib/otc";
 import { Link } from "react-router-dom";
@@ -31,7 +30,6 @@ const KYC_TONE: Record<KycDbStatus, string> = {
 };
 
 const Compte = () => {
-  const navigate = useNavigate();
   const { user, signOut, isStaff } = useAuth();
   const t = useT();
   const otc = useOtcVisible();
@@ -49,7 +47,8 @@ const Compte = () => {
 
   const logout = async () => {
     await signOut();
-    navigate("/connexion", { replace: true });
+    // Vraie navigation : l'appareil repart de zéro (dernière version du site, aucune donnée du compte précédent).
+    window.location.replace("/connexion");
   };
 
   return (
