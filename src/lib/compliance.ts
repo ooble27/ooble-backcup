@@ -70,6 +70,7 @@ export interface ComplianceAlert {
   orderId?: string;
   orderRef?: string;
   /** Toutes les commandes en cause (règle des 24 h, fractionnement). */
+  orderIds: string[];
   orderRefs: string[];
   userId?: string;
   clientName: string;
@@ -82,10 +83,14 @@ export interface ComplianceAlert {
   /** Échéance légale (DOIMV : 5 jours ouvrables après la réception). */
   dueDate?: string;
   status: AlertStatus;
+  /** Nom de la personne qui suit l'alerte. */
   assignedTo?: string;
+  /** L'alerte est suivie par la personne connectée. */
+  mine?: boolean;
   notes?: string;
   classification?: string;
   closedAt?: string;
+  closedBy?: string;
 }
 
 // ────────────────────────────────────────────────────────────

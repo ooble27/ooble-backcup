@@ -572,7 +572,7 @@ const AdminPortal = () => {
                         {tab === "clients" && <ClientsPanel onOpen={openClient} />}
                         {tab === "kyc" && <KycPanel />}
                         {tab === "accounting" && <AccountingPanel onOpenOrder={openOrderById} />}
-                        {tab === "compliance" && <CompliancePanel orders={orders} />}
+                        {tab === "compliance" && <CompliancePanel orders={orders} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClient : undefined} />}
                         {tab === "settlement" && <SettlementPanel />}
                         {tab === "mailbox" && <MailboxPanel onShowClient={allowedTabs.has("clients") ? showClient : undefined} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} />}
                         {tab === "campaigns" && <CampaignsPanel />}
@@ -648,7 +648,7 @@ const AdminPortal = () => {
                   {tab === "clients" && <ClientsPanel onOpen={openClient} />}
                   {tab === "kyc" && <KycPanel />}
                   {tab === "accounting" && <AccountingPanel onOpenOrder={openOrderById} />}
-                  {tab === "compliance" && <CompliancePanel orders={orders} />}
+                  {tab === "compliance" && <CompliancePanel orders={orders} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClient : undefined} />}
                   {tab === "settlement" && <SettlementPanel />}
                   {tab === "mailbox" && <MailboxPanel onShowClient={allowedTabs.has("clients") ? showClient : undefined} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} />}
                   {tab === "campaigns" && <CampaignsPanel />}

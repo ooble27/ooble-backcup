@@ -34,8 +34,8 @@ interface AlertRow {
   id: string; ref: string; type: AlertType; source: "auto" | "manuel";
   order_id: string | null; order_ids: string[] | null; user_id: string | null;
   amount_cad: number | string; reason: string; occurred_at: string; due_date: string | null;
-  status: AlertStatus; assigned_to: string | null; notes: string | null; classification: string | null;
-  closed_at: string | null; created_at: string;
+  status: AlertStatus; assigned_to: string | null; assigned_name: string | null; notes: string | null; classification: string | null;
+  closed_at: string | null; closed_by_name: string | null; created_at: string;
   profiles: Profile;
 }
 
@@ -47,6 +47,7 @@ function toAlert(r: AlertRow, me: string | null): ComplianceAlert {
     source: r.source,
     orderId: r.order_id ?? undefined,
     orderRef: r.order_id ? orderRef(r.order_id) : undefined,
+    orderIds: r.order_ids ?? (r.order_id ? [r.order_id] : []),
     orderRefs: (r.order_ids ?? []).map(orderRef),
     userId: r.user_id ?? undefined,
     clientName: nameOf(r.profiles),
@@ -57,10 +58,12 @@ function toAlert(r: AlertRow, me: string | null): ComplianceAlert {
     createdAt: day(r.created_at)!,
     dueDate: r.due_date ?? undefined,
     status: r.status,
-    assignedTo: r.assigned_to ? (r.assigned_to === me ? "Vous" : "Équipe") : undefined,
+    assignedTo: r.assigned_to ? (r.assigned_name ?? "Un membre de l'équipe") : undefined,
+    mine: !!r.assigned_to && r.assigned_to === me,
     notes: r.notes ?? undefined,
     classification: r.classification ?? undefined,
     closedAt: day(r.closed_at),
+    closedBy: r.closed_by_name ?? undefined,
   };
 }
 

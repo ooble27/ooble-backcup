@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchCached, peek, put } from "@/lib/adminCache";
-import { Check, Clock, Download, FileText, Flag, RefreshCw, Shield, UserCheck } from "lucide-react";
+import { Check, Clock, Download, FileText, Flag, RefreshCw, Shield } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { nfCad, type AdminOrder } from "@/lib/adminOrders";
 import {
   ALERT_TYPE_META, ALERT_STATUS_META,
@@ -8,7 +10,7 @@ import {
   RECORD_CATEGORIES, CHECKLIST_CATEGORIES,
   DOIMV_THRESHOLD, DOIMV_DEADLINE_BUSINESS_DAYS, RECORD_RETENTION_YEARS,
   addBusinessDays, daysUntil, declarationDeadlineText,
-  CLASSIFICATION_REASONS, DOT_INDICATORS, ID_TYPES, PROVINCES,
+  DOT_INDICATORS, ID_TYPES, PROVINCES,
   initialDeclarationForm,
   type ComplianceAlert, type AlertType, type AlertStatus,
   type ComplianceDeclaration, type DeclarationType, type DeclarationStatus,
@@ -24,6 +26,7 @@ import { logAdminAction } from "@/lib/audit";
 import { C, FONT } from "./adminTheme";
 import { Button, Field, Group, Notice, SidePanel, TextArea, TextInput, Workspace, fieldInput } from "./ui";
 import { ComplianceHero } from "./heroes";
+import ComplianceAlertView from "./ComplianceAlertView";
 import {
   DataTable, EmptyState, FilterChips, KeyValues, Pill, Section, Tabs, Toolbar, TwoLine,
   type Column, type Tone,
@@ -41,10 +44,11 @@ import {
 const ALERT_TONE: Record<AlertStatus, Tone> = { nouveau: "warn", en_cours: "info", declare: "neutral", classe: "neutral" };
 const DECL_TONE: Record<DeclarationStatus, Tone> = { brouillon: "warn", soumise: "info", acceptee: "ok", rejetee: "danger" };
 
+/** Type d'alerte ou de déclaration, en texte : corail quand il signale un soupçon. */
 const TypePill = ({ type }: { type: AlertType | DeclarationType }) => {
   const meta = (ALERT_TYPE_META as Record<string, { label: string; critical: boolean }>)[type]
     ?? { label: (DECL_TYPE_META as Record<string, { label: string }>)[type]?.label ?? type, critical: type === "dot" || type === "dbt" };
-  return <Pill tone={meta.critical ? "danger" : "neutral"}>{meta.label}</Pill>;
+  return <span style={{ fontSize: 13, color: meta.critical ? C.coral : C.t2, whiteSpace: "nowrap" }}>{meta.label}</span>;
 };
 
 /** Échéance d'une déclaration, en clair. */
@@ -115,32 +119,6 @@ const three: React.CSSProperties = { display: "grid", gridTemplateColumns: "repe
 const req = (label: string) => `${label} *`;
 
 // ──────────────── Classer sans suite ────────────────
-
-function ClasserPanel({ alert, onSubmit, onClose, busy }: {
-  alert: ComplianceAlert; onSubmit: (reason: string, notes: string) => void; onClose: () => void; busy?: boolean;
-}) {
-  const [reason, setReason] = useState("");
-  const [notes, setNotes] = useState("");
-  const valid = reason.length > 0 && notes.trim().length > 0;
-  return (
-    <SidePanel title="Classer sans suite" subtitle={`${alert.ref} · ${alert.clientName}`} onClose={onClose} width={560}
-      footer={<>
-        <Button variant="ghost" onClick={onClose}>Annuler</Button>
-        <Button variant="primary" disabled={!valid || busy} onClick={() => onSubmit(reason, notes)}>Confirmer le classement</Button>
-      </>}>
-      <p style={{ margin: "0 0 18px", fontSize: 13, lineHeight: 1.6, color: C.t2 }}>
-        L'alerte est close sans déclaration au CANAFE. Le motif et vos notes restent au dossier {RECORD_RETENTION_YEARS} ans.
-      </p>
-      <p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Motif</p>
-      <RadioList options={CLASSIFICATION_REASONS.map((r) => ({ id: r, label: r }))} value={reason} onChange={setReason} />
-      <div style={{ marginTop: 20 }}>
-        <Field label={req("Notes justificatives")}>
-          <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Pourquoi cette alerte ne demande pas de déclaration…" />
-        </Field>
-      </div>
-    </SidePanel>
-  );
-}
 
 // ──────────────── Déclaration (plein écran, 4 étapes) ────────────────
 
@@ -380,7 +358,7 @@ function DeclarationPanel({ decl, onClose, onResume, onStatus, busy }: {
     <SidePanel title={`Déclaration ${decl.ref}`} subtitle={DECL_TYPE_META[decl.type].full} onClose={onClose} width={580}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <TypePill type={decl.type} />
-        <Pill tone={DECL_TONE[decl.status]} dot>{DECL_STATUS_META[decl.status].label}</Pill>
+        <Pill tone={DECL_TONE[decl.status]}>{DECL_STATUS_META[decl.status].label}</Pill>
       </div>
       <KeyValues items={[
         ["Client", decl.clientName],
@@ -513,55 +491,16 @@ function SignalerPanel({ orders, onSubmit, onClose, busy }: {
 
 // ──────────────── Détail d'une alerte ────────────────
 
-function AlertPanel({ alert, onClose, onTake, onClasser, onDeclarer, busy }: {
-  alert: ComplianceAlert; onClose: () => void; onTake: () => void; onClasser: () => void; onDeclarer: () => void; busy?: boolean;
-}) {
-  const due = alertDue(alert);
-  const open = isOpen(alert);
-  return (
-    <SidePanel title={`Alerte ${alert.ref}`} subtitle={ALERT_TYPE_META[alert.type].full} onClose={onClose} width={560}
-      footer={open ? <>
-        {alert.status === "nouveau" && <Button variant="ghost" disabled={busy} onClick={onTake} icon={<UserCheck style={{ width: 14, height: 14 }} />}>Prendre en charge</Button>}
-        <span style={{ flex: 1 }} />
-        <Button disabled={busy} onClick={onClasser}>Classer sans suite</Button>
-        <Button variant="primary" disabled={busy} onClick={onDeclarer} icon={<FileText style={{ width: 14, height: 14 }} />}>Déclarer</Button>
-      </> : undefined}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <TypePill type={alert.type} />
-        <Pill tone={ALERT_TONE[alert.status]} dot>{ALERT_STATUS_META[alert.status].label}</Pill>
-        {alert.source === "manuel" && <Pill>Signalée par l'équipe</Pill>}
-      </div>
-      {open && due && <div style={{ marginBottom: 16 }}><Notice tone={due.urgent ? "err" : "warn"}>DOIMV à soumettre au plus tard le {due.text}.</Notice></div>}
-      <KeyValues items={[
-        ["Client", <TwoLine key="c" primary={alert.clientName} secondary={alert.clientEmail} />],
-        ["Montant", `${nfCad.format(alert.amount)} $`],
-        ["Opération du", alert.occurredAt.slice(0, 10)],
-        ...(alert.orderRefs.length ? [["Commandes", alert.orderRefs.join(", ")] as [string, string]] : []),
-        ...(alert.assignedTo ? [["Responsable", alert.assignedTo] as [string, string]] : []),
-        ...(alert.closedAt ? [["Close le", alert.closedAt] as [string, string]] : []),
-      ]} />
-      <Section title="Motif de l'alerte" style={{ marginTop: 24 }}>
-        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: C.t1 }}>{alert.reason}</p>
-      </Section>
-      {(alert.classification || alert.notes) && (
-        <Section title="Décision" style={{ marginTop: 24 }}>
-          {alert.classification && <p style={{ margin: "0 0 6px", fontSize: 13.5, color: C.t1 }}>Classée : {alert.classification}</p>}
-          {alert.notes && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: C.t2, whiteSpace: "pre-wrap" }}>{alert.notes}</p>}
-        </Section>
-      )}
-    </SidePanel>
-  );
-}
-
 // ──────────────── Onglet Alertes ────────────────
 
 function AlertesView({ alerts, onOpen, onScan, onSignaler, busy, selectedId }: {
   alerts: ComplianceAlert[]; onOpen: (a: ComplianceAlert) => void; onScan: () => void; onSignaler: () => void; busy?: boolean; selectedId?: string | null;
 }) {
-  const [filter, setFilter] = useState<"actives" | "traitees">("actives");
+  const [filter, setFilter] = useState<"actives" | "miennes" | "traitees">("actives");
   const actives = alerts.filter(isOpen);
+  const miennes = actives.filter((a) => a.mine);
   const traitees = alerts.filter((a) => !isOpen(a));
-  const list = filter === "actives" ? actives : traitees;
+  const list = filter === "actives" ? actives : filter === "miennes" ? miennes : traitees;
 
   const columns: Column<ComplianceAlert>[] = [
     { key: "client", header: "Client", sort: (a) => a.clientName, render: (a) => <TwoLine primary={a.clientName} secondary={`${a.ref}${a.source === "manuel" ? " · signalée par l'équipe" : ""}`} /> },
@@ -572,7 +511,9 @@ function AlertesView({ alerts, onOpen, onScan, onSignaler, busy, selectedId }: {
       const d = isOpen(a) ? alertDue(a) : null;
       return d ? <span style={{ color: d.urgent ? C.dangerText : C.t2, whiteSpace: "nowrap" }}>{d.text}</span> : <span style={{ color: C.t3 }}>{a.closedAt ? `close le ${a.closedAt}` : ""}</span>;
     } },
-    { key: "status", header: "Statut", render: (a) => <Pill tone={ALERT_TONE[a.status]} dot>{ALERT_STATUS_META[a.status].label}</Pill> },
+    { key: "status", header: "Suivi", render: (a) => (isOpen(a) && a.assignedTo
+      ? <span style={{ fontSize: 13, color: C.t2, whiteSpace: "nowrap" }}>{a.mine ? "Vous" : a.assignedTo.split(/[\s@]/)[0]}</span>
+      : <Pill tone={ALERT_TONE[a.status]}>{ALERT_STATUS_META[a.status].label}</Pill>) },
   ];
 
   return (
@@ -582,7 +523,8 @@ function AlertesView({ alerts, onOpen, onScan, onSignaler, busy, selectedId }: {
         <Button size="sm" onClick={onSignaler} icon={<Flag style={{ width: 14, height: 14 }} />}>Signaler un client</Button>
       </>}>
         <FilterChips value={filter} onChange={setFilter} options={[
-          { id: "actives", label: "Actives", count: actives.length },
+          { id: "actives", label: "Actives", count: actives.length, alert: true },
+          { id: "miennes", label: "Les miennes", count: miennes.length },
           { id: "traitees", label: "Traitées", count: traitees.length },
         ]} />
       </Toolbar>
@@ -624,7 +566,7 @@ function DeclarationsView({ declarations, onOpen, selectedId }: { declarations: 
       return <span style={{ color: urgent ? C.dangerText : C.t2 }}>{d.status === "brouillon" ? dueText(d.type, d.dueDate) : d.submittedAt ? `Soumise le ${d.submittedAt}` : "N/D"}</span>;
     } },
     { key: "canafe", header: "Réf. CANAFE", hideBelow: 1100, render: (d) => <span style={{ color: C.t3, fontFamily: "ui-monospace, Menlo, monospace", fontSize: 12.5 }}>{d.canafRef ?? ""}</span> },
-    { key: "status", header: "Statut", render: (d) => <Pill tone={DECL_TONE[d.status]} dot>{DECL_STATUS_META[d.status].label}</Pill> },
+    { key: "status", header: "Statut", render: (d) => <Pill tone={DECL_TONE[d.status]}>{DECL_STATUS_META[d.status].label}</Pill> },
   ];
 
   return (
@@ -823,14 +765,92 @@ function ProgrammeView({ checklist, onToggle, onEvidence, busy }: {
   );
 }
 
+// ──────────────── Onglet À faire ────────────────
+
+interface Todo { key: string; date?: string; title: string; sub: string; who?: string; onClick: () => void }
+const monthShort = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("fr-CA", { month: "short" }).replace(".", "");
+
+/** Tout ce qui attend le responsable conformité, de l'échéance la plus proche à la plus lointaine. */
+function buildTodos(alerts: ComplianceAlert[], declarations: ComplianceDeclaration[], checklist: ChecklistItem[],
+  open: { alert: (a: ComplianceAlert) => void; decl: (id: string) => void; programme: () => void }): Todo[] {
+  const todos: Todo[] = [
+    ...alerts.filter(isOpen).map((a) => ({
+      key: a.id, date: a.dueDate,
+      title: `${ALERT_TYPE_META[a.type].label} · ${a.clientName}`,
+      sub: `${nfCad.format(a.amount)} $ · ${a.dueDate ? "déclaration à soumettre" : "alerte à examiner"} · ${a.ref}`,
+      who: a.assignedTo ? (a.mine ? "Vous" : a.assignedTo.split(/[\s@]/)[0]) : undefined,
+      onClick: () => open.alert(a),
+    })),
+    ...declarations.filter((d) => d.status === "brouillon").map((d) => ({
+      key: d.id, date: d.dueDate,
+      title: `Brouillon ${DECL_TYPE_META[d.type].label} · ${d.clientName}`,
+      sub: `${nfCad.format(d.amount)} $ · à soumettre au CANAFE · ${d.ref}`,
+      onClick: () => open.decl(d.id),
+    })),
+    // Programme : seulement ce qui tombe dans les 4 prochains mois (ou en retard).
+    ...checklist.filter((c) => !c.done && c.dueDate && daysUntil(c.dueDate) <= 120).map((c) => ({
+      key: c.id, date: c.dueDate,
+      title: c.label,
+      sub: `Programme de conformité${c.frequency ? ` · ${c.frequency.toLowerCase()}` : ""}`,
+      onClick: open.programme,
+    })),
+  ];
+  return todos.sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999"));
+}
+
+function TodoView({ todos }: { todos: Todo[] }) {
+  const groups: { id: string; label: string; color: string; items: Todo[] }[] = [
+    { id: "late", label: "En retard", color: C.coral, items: todos.filter((t) => t.date && daysUntil(t.date) < 0) },
+    { id: "week", label: "Cette semaine", color: C.sun, items: todos.filter((t) => t.date && daysUntil(t.date) >= 0 && daysUntil(t.date) <= 7) },
+    { id: "later", label: "Plus tard", color: C.t3, items: todos.filter((t) => t.date && daysUntil(t.date) > 7) },
+    { id: "none", label: "Sans échéance légale", color: C.t3, items: todos.filter((t) => !t.date) },
+  ];
+  if (!todos.length) {
+    return <div style={{ marginTop: 24 }}><EmptyState icon={Shield} title="Rien à faire" text="Aucune alerte ouverte, aucun brouillon, aucune échéance du programme dans les quatre prochains mois." /></div>;
+  }
+  return (
+    <div style={{ display: "grid", gap: 30, marginTop: 24, maxWidth: 880 }}>
+      {groups.filter((g) => g.items.length).map((g, i) => (
+        <section key={g.id} style={{ animation: `ui-in .5s cubic-bezier(.22,1,.36,1) ${i * 0.06}s both` }}>
+          <p style={{ margin: "0 0 4px", fontSize: 12.5, color: g.color }}>{g.label} · {g.items.length}</p>
+          {g.items.map((t) => {
+            const d = t.date ? daysUntil(t.date) : null;
+            return (
+              <button key={t.key} type="button" className="ui-row" onClick={t.onClick}
+                style={{ all: "unset", boxSizing: "border-box", width: "100%", cursor: "pointer", display: "flex", alignItems: "center", gap: 18, padding: "12px 0", fontFamily: FONT }}>
+                <span style={{ width: 52, flexShrink: 0, textAlign: "center" }}>
+                  {t.date ? (
+                    <>
+                      <span style={{ display: "block", fontSize: 26, fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums", color: g.id === "late" ? C.coral : g.id === "week" ? C.t1 : C.t2 }}>{Number(t.date.slice(8, 10))}</span>
+                      <span style={{ display: "block", marginTop: 3, fontSize: 11.5, color: C.t3 }}>{monthShort(t.date)}</span>
+                    </>
+                  ) : null}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 14.5, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
+                  <span style={{ display: "block", marginTop: 2, fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {t.sub}{d !== null && <span style={{ color: g.color }}> · {d < 0 ? `${-d} j de retard` : d === 0 ? "aujourd'hui" : `dans ${d} j`}</span>}
+                  </span>
+                </span>
+                {t.who && <span style={{ fontSize: 12.5, color: C.t3, flexShrink: 0 }}>{t.who}</span>}
+              </button>
+            );
+          })}
+        </section>
+      ))}
+    </div>
+  );
+}
+
 // ──────────────── Panneau principal ────────────────
 
-type ComplianceTab = "alertes" | "declarations" | "dossiers" | "programme";
-type Overlay = null | "alert" | "classer" | "declarer" | "decl-detail" | "signaler";
+type ComplianceTab = "afaire" | "alertes" | "declarations" | "dossiers" | "programme";
+type Overlay = null | "alert" | "declarer" | "decl-detail" | "signaler";
 
-const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
+const CompliancePanel = ({ orders, onOpenOrder, onShowClient }: { orders: AdminOrder[]; onOpenOrder?: (id: string) => void; onShowClient?: (id: string) => void }) => {
+  const { user } = useAuth();
   const [overlay, setOverlay] = useState<Overlay>(null);
-  const [tab, setTab] = useState<ComplianceTab>("alertes");
+  const [tab, setTab] = useState<ComplianceTab>("afaire");
   // Dernier état connu affiché tout de suite (mémoire de la session), mis à jour ensuite.
   type Lists = { a: ComplianceAlert[]; d: ComplianceDeclaration[]; c: ChecklistItem[] };
   const cached = peek<Lists>("cmp")?.value;
@@ -872,6 +892,17 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
   useEffect(() => { if (loaded) put<Lists>("cmp", { a: alerts, d: declarations, c: checklist }); }, [alerts, declarations, checklist, loaded]);
 
   useEffect(() => { void load(); }, [load]);
+  // En direct : une nouvelle alerte de l'analyse, une alerte prise ou fermée par un collègue.
+  useEffect(() => {
+    let timer: number | undefined;
+    const ch = supabase.channel("admin-compliance")
+      .on("postgres_changes", { event: "*", schema: "public", table: "compliance_alerts" }, () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => { fetchAlerts().then(setAlerts).catch(() => undefined); }, 400);
+      })
+      .subscribe();
+    return () => { window.clearTimeout(timer); void supabase.removeChannel(ch); };
+  }, []);
 
   /** Exécute une action en base, avec message d'erreur clair. */
   const act = async (fn: () => Promise<void>) => {
@@ -898,7 +929,7 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
   const prendreEnCharge = (id: string) => act(async () => {
     const previous = alerts.find((a) => a.id === id) ?? null;
     await takeAlert(id);
-    setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status: "en_cours", assignedTo: "Vous" } : a)));
+    setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status: "en_cours", assignedTo: user?.name || user?.email || "Vous", mine: true } : a)));
     setSuccessMsg("Alerte prise en charge. Vous en êtes responsable.");
     void logAdminAction({
       action: "compliance.take_charge",
@@ -1056,6 +1087,11 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
     setChecklist((prev) => prev.map((c) => (c.id === id ? { ...c, evidence: evidence.trim() || undefined } : c)));
   });
 
+  const todos = buildTodos(alerts, declarations, checklist, {
+    alert: (a) => { setSelectedAlertId(a.id); setOverlay("alert"); },
+    decl: (id) => { setSelectedDeclId(id); setOverlay("decl-detail"); },
+    programme: () => setTab("programme"),
+  });
   const selectedAlert = selectedAlertId ? alerts.find((a) => a.id === selectedAlertId) : null;
   const selectedDecl = selectedDeclId ? declarations.find((d) => d.id === selectedDeclId) : null;
   const editingDecl = editingDeclId ? declarations.find((d) => d.id === editingDeclId) : null;
@@ -1073,12 +1109,14 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
         checklist={checklist.map((c) => ({ label: c.label, done: c.done, category: c.category }))} />
 
       <Tabs value={tab} onChange={setTab} items={[
+        { id: "afaire", label: "À faire", count: todos.length || undefined, tone: todos.some((t) => t.date && daysUntil(t.date) < 0) ? "danger" : "warn" },
         { id: "alertes", label: "Alertes", count: activeAlerts || undefined, tone: "warn" },
         { id: "declarations", label: "Déclarations", count: pendingDecl || undefined },
         { id: "dossiers", label: "Registre" },
         { id: "programme", label: "Programme" },
       ]} />
 
+      {tab === "afaire" && <TodoView todos={todos} />}
       {tab === "alertes" && (
         <AlertesView alerts={alerts} busy={busy} selectedId={overlay === "alert" ? selectedAlertId : null}
           onOpen={(a) => { setSelectedAlertId(a.id); setOverlay("alert"); }}
@@ -1092,13 +1130,13 @@ const CompliancePanel = ({ orders }: { orders: AdminOrder[] }) => {
       {tab === "programme" && <ProgrammeView checklist={checklist} onToggle={toggleChecklist} onEvidence={saveEvidence} busy={busy} />}
 
       {overlay === "alert" && selectedAlert && (
-        <AlertPanel alert={selectedAlert} busy={busy} onClose={closeAll}
+        <ComplianceAlertView alert={selectedAlert} alerts={alerts} orders={orders} busy={busy} onClose={closeAll}
           onTake={() => prendreEnCharge(selectedAlert.id)}
-          onClasser={() => setOverlay("classer")}
-          onDeclarer={() => openDeclarer(selectedAlert.id)} />
-      )}
-      {overlay === "classer" && selectedAlert && (
-        <ClasserPanel alert={selectedAlert} onSubmit={submitClasser} onClose={() => setOverlay("alert")} busy={busy} />
+          onClassify={submitClasser}
+          onDeclare={() => openDeclarer(selectedAlert.id)}
+          onOpenAlert={(a) => setSelectedAlertId(a.id)}
+          onOpenOrder={onOpenOrder && ((id) => { closeAll(); onOpenOrder(id); })}
+          onShowClient={onShowClient && ((id) => { closeAll(); onShowClient(id); })} />
       )}
       {overlay === "declarer" && declForm && (
         <DeclarationWorkspace
