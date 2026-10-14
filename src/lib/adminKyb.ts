@@ -31,6 +31,9 @@ export interface KybRequest {
   documents: Partial<Record<KybDocKey, string>>;
   reviewNote: string | null;
   reviewedAt: string | null;
+  reviewedByName: string | null;
+  assignedTo: string | null;
+  assignedName: string | null;
   createdAt: string;
 }
 
@@ -60,6 +63,9 @@ export async function fetchKyb(): Promise<KybRequest[]> {
     documents: (r.documents as Partial<Record<KybDocKey, string>>) ?? {},
     reviewNote: r.review_note,
     reviewedAt: r.reviewed_at,
+    reviewedByName: r.reviewed_by_name,
+    assignedTo: r.assigned_to,
+    assignedName: r.assigned_name,
     createdAt: r.created_at,
   }));
 }

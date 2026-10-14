@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useCan } from "@/lib/roles";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { claimReview } from "@/lib/adminKyc";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { Building2, Check, X } from "lucide-react";
 import { decideKyb, fetchKyb, getKybDocumentUrl, resetKyb, type KybRequest } from "@/lib/adminKyb";
@@ -35,17 +38,31 @@ const BusinessKycPanel = () => {
   const can = useCan();
   const canDecide = can("kyc.decide");
   const isAdmin = can("clients.manage");
+  const { user } = useAuth();
+  const me = user ? { id: user.id, name: user.name || user.email || "Équipe" } : null;
   const [rows, setRows] = useState<KybRequest[]>(() => peek<KybRequest[]>("kyb")?.value ?? []);
   const [loading, setLoading] = useState(() => !peek("kyb"));
   const [tab, setTab] = useState<Filter>("pending");
-  const [detail, setDetail] = useState<KybRequest | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const detail = rows.find((r) => r.id === detailId) ?? null;
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
   const load = useCallback((p: string) => getKybDocumentUrl(p), []);
 
-  useEffect(() => { fetchCached("kyb", fetchKyb).then((r) => { setRows(r); setLoading(false); }); }, []);
+  useEffect(() => {
+    fetchCached("kyb", fetchKyb).then((r) => { setRows(r); setLoading(false); });
+    // En direct : nouveau dossier, dossier pris ou décidé par un collègue.
+    let timer: number | undefined;
+    const ch = supabase.channel("admin-kyb")
+      .on("postgres_changes", { event: "*", schema: "public", table: "business_verifications" }, () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => { fetchKyb().then(setRows); }, 400);
+      })
+      .subscribe();
+    return () => { window.clearTimeout(timer); void supabase.removeChannel(ch); };
+  }, []);
   useEffect(() => { if (!loading) put("kyb", rows); }, [rows, loading]);
 
   const counts = {
@@ -55,9 +72,29 @@ const BusinessKycPanel = () => {
   };
   const list = rows.filter((r) => r.status === tab);
 
+  const patch = (id: string, changes: Partial<KybRequest>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...changes } : r)));
   const open = (r: KybRequest) => {
-    setDetail(r); setNote(""); setError(null); setResetStep("idle");
+    setDetailId(r.id); setNote(""); setError(null); setResetStep("idle");
   };
+  // Ouvrir un dossier à examiner, c'est le prendre ; le fermer le libère.
+  const claim = async (r: KybRequest, force = false) => {
+    if (!me) return false;
+    const res = await claimReview("kyb", r.id, me, { force });
+    if (res.error || res.taken) { fetchKyb().then(setRows); return false; }
+    patch(r.id, { assignedTo: me.id, assignedName: me.name });
+    return true;
+  };
+  useEffect(() => {
+    const r = detail;
+    if (!r || r.status !== "pending" || !me || !canDecide) return;
+    let mine = r.assignedTo === me.id;
+    if (!r.assignedTo) void claim(r).then((ok) => { mine = ok; });
+    return () => {
+      if (!mine) return;
+      setRows((rs) => rs.map((x) => (x.id === r.id && x.assignedTo === me.id ? { ...x, assignedTo: null, assignedName: null } : x)));
+      void claimReview("kyb", r.id, null, { me: me.id });
+    };
+  }, [detailId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const decide = async (decision: "approved" | "rejected") => {
     if (!detail) return;
@@ -66,9 +103,7 @@ const BusinessKycPanel = () => {
     const res = await decideKyb(detail, decision, note);
     setBusy(false);
     if (res.error) { setError(res.error); return; }
-    const updated = { ...detail, status: decision, reviewNote: note.trim() || null, reviewedAt: new Date().toISOString() };
-    setRows((rs) => rs.map((r) => (r.id === detail.id ? updated : r)));
-    setDetail(updated);
+    patch(detail.id, { status: decision, reviewNote: note.trim() || null, reviewedAt: new Date().toISOString(), reviewedByName: me?.name ?? null, assignedTo: null, assignedName: null });
   };
 
   const reset = async () => {
@@ -78,13 +113,15 @@ const BusinessKycPanel = () => {
     setResetStep("idle");
     if (res.error) { setError(res.error); return; }
     setRows((rs) => rs.filter((r) => r.userId !== detail.userId));
-    setDetail(null);
+    setDetailId(null);
   };
 
   const columns: Column<KybRequest>[] = [
     { key: "co", header: "Entreprise", sort: (r) => r.legalName, render: (r) => <TwoLine lead={<BusinessMark name={r.legalName} size="sm" />} primary={r.legalName} secondary={r.businessNumber ? `NEQ ${r.businessNumber}` : r.jurisdiction ?? ""} /> },
     { key: "contact", header: "Responsable", hideBelow: 800, render: (r) => <TwoLine primary={r.contactName} secondary={r.email} /> },
-    { key: "status", header: "Statut", render: (r) => <Pill tone={STATUS[r.status]?.[1]} dot>{STATUS[r.status]?.[0] ?? r.status}</Pill> },
+    { key: "status", header: "Statut", render: (r) => (r.status === "pending" && r.assignedTo
+      ? <span style={{ fontSize: 13, color: C.t2 }}>{me && r.assignedTo === me.id ? "Vous l'examinez" : `${(r.assignedName ?? "Un collègue").split(/[\s@]/)[0]} l'examine`}</span>
+      : <Pill tone={STATUS[r.status]?.[1]}>{STATUS[r.status]?.[0] ?? r.status}</Pill>) },
     { key: "date", header: "Soumis", align: "right", sort: (r) => r.createdAt, hideBelow: 700, render: (r) => <span style={{ color: C.t2 }}>{fmtDate(r.createdAt)}</span> },
   ];
 
@@ -107,14 +144,14 @@ const BusinessKycPanel = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <BusinessMark name={r.legalName} size="sm" />
             <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={r.legalName} secondary={`${r.contactName} · ${fmtDate(r.createdAt)}`} /></div>
-            <Pill tone={STATUS[r.status]?.[1]} dot>{STATUS[r.status]?.[0] ?? r.status}</Pill>
+            <Pill tone={STATUS[r.status]?.[1]}>{STATUS[r.status]?.[0] ?? r.status}</Pill>
           </div>
         )} />
 
       {d && (
-        <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetail(null)} panes>
+        <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetailId(null)} panes>
           <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-2 lg:overflow-hidden" style={{ minHeight: 0 }}>
-            {/* Les pièces de l'entreprise en grand, les autres en vignettes dessous. */}
+            {/* Les pièces de l'entreprise sur la table lumineuse : zoom, déplacement, rotation. */}
             <WsPane flat className="h-[64vh] lg:h-auto" style={{ padding: "4px 8px 12px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <DocViewer docs={docKeys.map((k) => ({ key: k, label: DOC_LABELS[k], path: d.documents[k] }))} load={load} />
             </WsPane>
@@ -124,7 +161,7 @@ const BusinessKycPanel = () => {
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <BusinessMark name={d.legalName} size="md" />
                   <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={d.contactName} secondary={d.email} /></div>
-                  <Pill tone={STATUS[d.status]?.[1]} dot>{STATUS[d.status]?.[0] ?? d.status}</Pill>
+                  <Pill tone={STATUS[d.status]?.[1]}>{STATUS[d.status]?.[0] ?? d.status}</Pill>
                 </div>
                 <p style={{ margin: "26px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1.05, textWrap: "balance" } as React.CSSProperties}>{d.legalName}</p>
                 <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t3 }}>{d.activity || "Activité non précisée"} · soumise le {fmtDate(d.createdAt)}</p>
@@ -140,7 +177,7 @@ const BusinessKycPanel = () => {
                 </Section>
 
                 <Section title="Responsable" hint={`${d.contactName} · identité`}>
-                  <Pill tone={STATUS[d.contactKyc]?.[1]} dot>{STATUS[d.contactKyc]?.[0] ?? d.contactKyc}</Pill>
+                  <Pill tone={STATUS[d.contactKyc]?.[1]}>{STATUS[d.contactKyc]?.[0] ?? d.contactKyc}</Pill>
                 </Section>
 
                 <Section title="Administrateurs et propriétaires" hint={`${d.owners.length} personne${d.owners.length > 1 ? "s" : ""} · parts déclarées : ${owned} %`}>
@@ -170,9 +207,12 @@ const BusinessKycPanel = () => {
                   </div>
                 </Section>
 
-                {d.status !== "pending" && d.reviewNote && (
-                  <Section title="Note envoyée au client">
-                    <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t2 }}>{d.reviewNote}</p>
+                {d.status !== "pending" && (
+                  <Section title="Décision">
+                    <p style={{ margin: 0, fontSize: 13.5, color: C.t2 }}>
+                      {d.status === "approved" ? "Approuvée" : "Refusée"}{d.reviewedByName ? ` par ${d.reviewedByName}` : ""}{d.reviewedAt ? ` · ${fmtDate(d.reviewedAt)}` : ""}
+                    </p>
+                    {d.reviewNote && <p style={{ margin: "10px 0 0", fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t1 }}>« {d.reviewNote} »</p>}
                   </Section>
                 )}
 
@@ -205,10 +245,15 @@ const BusinessKycPanel = () => {
               {d.status === "pending" && canDecide && (
                 <div style={{ position: "sticky", bottom: 0, padding: "14px 26px calc(18px + env(safe-area-inset-bottom, 0px))", background: C.bg }}>
                   {error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
-                  <div style={{ display: "flex", gap: 8 }}>
+                  {d.assignedTo && me && d.assignedTo !== me.id ? (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <p style={{ margin: 0, fontSize: 13, color: C.t2 }}>{d.assignedName ?? "Un collègue"} examine ce dossier en ce moment.</p>
+                      <Button onClick={() => void claim(d, true)}>Reprendre le dossier</Button>
+                    </div>
+                  ) : <div style={{ display: "flex", gap: 8 }}>
                     <Button variant="danger" disabled={busy} onClick={() => decide("rejected")} icon={<X style={{ width: 15, height: 15 }} />}>Refuser</Button>
                     <Button variant="primary" disabled={busy} onClick={() => decide("approved")} icon={<Check style={{ width: 15, height: 15 }} />} className="flex-1">Approuver</Button>
-                  </div>
+                  </div>}
                 </div>
               )}
             </WsPane>

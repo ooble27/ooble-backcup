@@ -60,7 +60,7 @@ import { Button, Notice, Workspace } from "./ui";
 import { MailboxHero } from "./heroes";
 import ClientCard from "./ClientCard";
 import { OrderStatusPill } from "./orderBits";
-import { Avatar, DataTable, EmptyState, Pill, SearchField, Tabs, TwoLine, type Column } from "./layout";
+import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, type Column } from "./layout";
 
 // ──────────────────── Recipient model ────────────────────
 //
@@ -1357,14 +1357,6 @@ function findRefs(texts: (string | null | undefined)[]): string[] {
   return [...out];
 }
 
-const INBOX_CSS = `
-.ib-f { all: unset; cursor: pointer; font-family: ${FONT}; font-size: 13.5px; color: var(--a-t3); padding: 3px 0; transition: color .15s; white-space: nowrap; }
-.ib-f:hover, .ib-f[aria-pressed="true"] { color: var(--a-t1); }
-.ib-f[aria-pressed="true"] { font-weight: 500; }
-.ib-f span { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px; padding-bottom: 3px; transition: background-size .35s cubic-bezier(.22,1,.36,1); }
-.ib-f[aria-pressed="true"] span, .ib-f:hover span { background-size: 100% 1.5px; }
-.ib-f:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; border-radius: 4px; }
-`;
 
 function Conversation({ thread, messages, loading, me, onBack, onReply, onState, onAssign, onShowClient, onOpenOrder }: {
   thread: MailThread; messages: MailMessage[]; loading: boolean; me: { id: string; name: string } | null;
@@ -1402,7 +1394,7 @@ function Conversation({ thread, messages, loading, me, onBack, onReply, onState,
       {/* État de la conversation : en texte souligné, d'un clic. */}
       <nav aria-label="État" style={{ display: "flex", gap: 18, flexWrap: "wrap", padding: "4px 20px 12px" }}>
         {(["todo", "waiting", "resolved"] as SupportState[]).map((st) => (
-          <button key={st} type="button" className="ib-f" aria-pressed={thread.supportState === st} onClick={() => onState(st)}><span>{SUPPORT_LABEL[st]}</span></button>
+          <button key={st} type="button" className="ly-f" aria-pressed={thread.supportState === st} onClick={() => onState(st)}><span>{SUPPORT_LABEL[st]}</span></button>
         ))}
       </nav>
 
@@ -1543,19 +1535,14 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
       onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
   );
 
-  if (!wide && selected) return <div className="mb-pane"><style>{INBOX_CSS}</style>{conversation}</div>;
+  if (!wide && selected) return <div className="mb-pane">{conversation}</div>;
 
   const listPane = (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
       <div style={{ display: "grid", gap: 12, padding: "12px 12px 12px" }}>
         <SearchField value={q} onChange={setQ} placeholder="Client, courriel, objet" width={600} />
-        <nav aria-label="Conversations" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {([["todo", "À répondre"], ["waiting", "En attente"], ["mine", "Les miennes"], ["resolved", "Résolues"]] as [InboxFilter, string][]).map(([id, label]) => (
-            <button key={id} type="button" className="ib-f" aria-pressed={filter === id} onClick={() => setFilter(id)}>
-              <span>{label}</span> <small style={{ color: id === "todo" && counts.todo ? C.coral : C.t3 }}>{counts[id]}</small>
-            </button>
-          ))}
-        </nav>
+        <FilterChips value={filter} onChange={setFilter} options={([["todo", "À répondre"], ["waiting", "En attente"], ["mine", "Les miennes"], ["resolved", "Résolues"]] as [InboxFilter, string][])
+          .map(([id, label]) => ({ id, label, count: counts[id], alert: id === "todo" }))} />
       </div>
       {err && <div style={{ padding: "0 12px 10px" }}><Notice tone="err">{err}</Notice></div>}
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
@@ -1591,11 +1578,11 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
     </div>
   );
 
-  if (!wide) return <div className="mb-pane"><style>{INBOX_CSS}</style>{listPane}</div>;
+  if (!wide) return <div className="mb-pane">{listPane}</div>;
 
   return (
     <div className="mb-pane mb-split">
-      <style>{INBOX_CSS}</style>
+      
       {listPane}
       <div className="mb-read">
         {conversation ?? (

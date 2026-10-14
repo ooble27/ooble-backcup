@@ -8,7 +8,7 @@ import { decisionEmailVars } from "@/lib/adminKyb";
 
 type DbKycStatus = Database["public"]["Enums"]["kyc_status"];
 type KycRow = Database["public"]["Tables"]["kyc_verifications"]["Row"];
-type RowWithProfile = KycRow & { profiles: { full_name: string | null; email: string | null } | null };
+type RowWithProfile = KycRow & { profiles: { full_name: string | null; email: string | null; created_at: string | null } | null };
 
 const DB_TO_DEMO: Record<DbKycStatus, KycStatus> = {
   not_started: "attente",
@@ -34,7 +34,7 @@ const minsAgo = (iso: string) =>
 export async function fetchKyc(): Promise<KycRequest[]> {
   const data = await fetchAll((a, b) => supabase
     .from("kyc_verifications")
-    .select("*, profiles(full_name, email)")
+    .select("*, profiles(full_name, email, created_at)")
     .order("created_at", { ascending: false })
     .order("id")
     .range(a, b)).catch(() => null);
@@ -49,7 +49,33 @@ export async function fetchKyc(): Promise<KycRequest[]> {
     submittedMinsAgo: minsAgo(r.created_at),
     status: DB_TO_DEMO[r.status],
     reviewNote: r.review_note,
+    createdAt: r.created_at,
+    assignedTo: r.assigned_to,
+    assignedName: r.assigned_name,
+    reviewedAt: r.reviewed_at,
+    reviewedByName: r.reviewed_by_name,
+    accountCreatedAt: r.profiles?.created_at ?? null,
   }));
+}
+
+/**
+ * Prendre un dossier (personne ou entreprise) : les collègues voient qui l'examine.
+ * Sans `force`, on ne prend pas un dossier déjà pris. `who = null` le libère, s'il est encore à nous.
+ * La base libère d'elle-même le dossier quand la décision tombe.
+ */
+export async function claimReview(
+  kind: "kyc" | "kyb",
+  id: string,
+  who: { id: string; name: string } | null,
+  opts: { force?: boolean; me?: string } = {},
+): Promise<{ error?: string; taken?: boolean }> {
+  const table = kind === "kyc" ? "kyc_verifications" : "business_verifications";
+  let q = supabase.from(table).update({ assigned_to: who?.id ?? null, assigned_name: who?.name ?? null }).eq("id", id);
+  if (who && !opts.force) q = q.is("assigned_to", null);
+  if (!who && opts.me) q = q.eq("assigned_to", opts.me);
+  const { data, error } = await q.select("id");
+  if (error) return { error: error.message };
+  return { taken: !!who && (data?.length ?? 0) === 0 };
 }
 
 export async function getDocumentUrl(path: string): Promise<string | null> {

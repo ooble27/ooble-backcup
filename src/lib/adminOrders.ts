@@ -88,4 +88,12 @@ export interface KycRequest {
   submittedMinsAgo: number;
   status: KycStatus;
   reviewNote?: string | null;
+  createdAt?: string;
+  /** Membre qui examine le dossier en ce moment. */
+  assignedTo?: string | null;
+  assignedName?: string | null;
+  reviewedAt?: string | null;
+  reviewedByName?: string | null;
+  /** Création du compte client, pour le contexte. */
+  accountCreatedAt?: string | null;
 }

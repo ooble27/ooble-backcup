@@ -132,6 +132,8 @@ export type Database = {
         Row: {
           activity: string
           address: string
+          assigned_name: string | null
+          assigned_to: string | null
           attestation: boolean
           business_number: string | null
           created_at: string
@@ -144,6 +146,7 @@ export type Database = {
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          reviewed_by_name: string | null
           status: Database["public"]["Enums"]["kyc_status"]
           updated_at: string
           user_id: string
@@ -152,6 +155,8 @@ export type Database = {
         Insert: {
           activity: string
           address: string
+          assigned_name?: string | null
+          assigned_to?: string | null
           attestation?: boolean
           business_number?: string | null
           created_at?: string
@@ -164,6 +169,7 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          reviewed_by_name?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           updated_at?: string
           user_id: string
@@ -172,6 +178,8 @@ export type Database = {
         Update: {
           activity?: string
           address?: string
+          assigned_name?: string | null
+          assigned_to?: string | null
           attestation?: boolean
           business_number?: string | null
           created_at?: string
@@ -184,6 +192,7 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          reviewed_by_name?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           updated_at?: string
           user_id?: string
@@ -201,6 +210,8 @@ export type Database = {
       }
       kyc_verifications: {
         Row: {
+          assigned_name: string | null
+          assigned_to: string | null
           created_at: string
           doc_type: string | null
           document_paths: Json | null
@@ -210,11 +221,15 @@ export type Database = {
           result_payload: Json | null
           review_note: string | null
           reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
           status: Database["public"]["Enums"]["kyc_status"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          assigned_name?: string | null
+          assigned_to?: string | null
           created_at?: string
           doc_type?: string | null
           document_paths?: Json | null
@@ -224,11 +239,15 @@ export type Database = {
           result_payload?: Json | null
           review_note?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          assigned_name?: string | null
+          assigned_to?: string | null
           created_at?: string
           doc_type?: string | null
           document_paths?: Json | null
@@ -238,6 +257,8 @@ export type Database = {
           result_payload?: Json | null
           review_note?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           updated_at?: string
           user_id?: string

@@ -176,25 +176,18 @@ export function SearchField({ value, onChange, placeholder = "Rechercher", width
 }
 
 /** Choix compact (filtres) : boutons-segments. */
+/** Filtres en texte : le choix actif est souligné (un trait qui se dessine), jamais une pastille. */
 export function FilterChips<T extends string>({ value, options, onChange }: {
-  value: T; options: { id: T; label: React.ReactNode; count?: number }[]; onChange: (v: T) => void;
+  value: T; options: { id: T; label: React.ReactNode; count?: number; /** Le nombre demande une action (corail). */ alert?: boolean }[]; onChange: (v: T) => void;
 }) {
   return (
-    <div className="ly-chips" style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-      {options.map((o) => {
-        const on = o.id === value;
-        return (
-          <button key={o.id} type="button" className="ui-btn" onClick={() => onChange(o.id)} aria-pressed={on}
-            style={{
-              height: 32, padding: "0 11px", borderRadius: 8, fontFamily: FONT, fontSize: 13, cursor: "pointer",
-              border: `1px solid ${on ? C.bd : "transparent"}`, background: on ? C.l2 : "transparent", color: on ? C.t1 : C.t3,
-              display: "inline-flex", alignItems: "center", gap: 6,
-            }}>
-            {o.label}
-            {o.count !== undefined && <span style={{ fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{o.count}</span>}
-          </button>
-        );
-      })}
+    <div className="ly-chips" style={{ display: "inline-flex", gap: 18, flexWrap: "wrap" }}>
+      {options.map((o) => (
+        <button key={o.id} type="button" className="ly-f" onClick={() => onChange(o.id)} aria-pressed={o.id === value}>
+          <span>{o.label}</span>
+          {o.count !== undefined && <small style={{ color: o.alert && o.count ? C.coral : C.t3 }}>{o.count}</small>}
+        </button>
+      ))}
     </div>
   );
 }
@@ -410,6 +403,13 @@ export const LAYOUT_CSS = `
 .ly-tab:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 @media (max-width: 640px) { .ly-stat { padding-left: 0 !important; border-left: none !important } }
 .ly-tabs::-webkit-scrollbar { display: none }
+.ly-f { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 0; font-family: inherit; font-size: 13.5px; color: var(--a-t3); white-space: nowrap; transition: color .15s; }
+.ly-f small { font-size: 12px; font-variant-numeric: tabular-nums; }
+.ly-f:hover, .ly-f[aria-pressed="true"] { color: var(--a-t1); }
+.ly-f[aria-pressed="true"] { font-weight: 500; }
+.ly-f > span { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px; padding-bottom: 4px; transition: background-size .35s cubic-bezier(.22,1,.36,1); }
+.ly-f[aria-pressed="true"] > span, .ly-f:hover > span { background-size: 100% 1.5px; }
+.ly-f:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; border-radius: 4px; }
 .ly-tabs { --fl: 0px; --fr: 0px; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%); }
 .ly-tabs[data-left="1"] { --fl: 28px }
 .ly-tabs[data-right="1"] { --fr: 40px }
