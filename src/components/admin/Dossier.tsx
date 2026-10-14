@@ -7,7 +7,7 @@ import PdfPages from "./PdfPages";
 
 /**
  * Briques d'un dossier de vérification (identité, entreprise) :
- *  - DocViewer : les documents sur une table lumineuse, en grand ou deux à deux pour comparer,
+ *  - DocViewer : les documents posés sur le fond, sans cadre, en grand ou deux à deux pour comparer,
  *    avec zoom (molette, pincement, double clic), déplacement et rotation ;
  *  - Facts : les informations en grille aérée, sans traits ;
  *  - Checklist : les points à contrôler, cochés d'un rond ;
@@ -20,27 +20,27 @@ export interface DossierCompare { a: string; b: string; label: string }
 export const COMPARE = "compare";
 
 const DOSSIER_CSS = `
-.dz-stage { position: relative; flex: 1; min-height: 0; border-radius: 18px; background: var(--a-l2); overflow: hidden; display: flex; align-items: center; justify-content: center;
-  animation: dz-in .45s cubic-bezier(.22,1,.36,1) both; }
-.dz-pair { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.dz-pair > div:nth-child(2) .dz-stage { animation-delay: .06s; }
-@media (max-width: 700px) { .dz-pair { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(260px, 1fr); } }
+.dz-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; animation: dz-in .5s cubic-bezier(.22,1,.36,1) both; }
+.dz-pair { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.dz-pair > .dz-stage:nth-child(2) { animation-delay: .07s; }
+@media (max-width: 700px) { .dz-pair { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(260px, 1fr); gap: 16px; } }
 @keyframes dz-in { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
 .dz-z { position: absolute; inset: 0; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; display: flex; align-items: center; justify-content: center; }
 /* Au repos, un doigt fait défiler la page ; zoomée, l'image suit le doigt. */
 .dz-z[data-zoomed="true"] { touch-action: none; }
-.dz-z img { display: block; object-fit: contain; border-radius: 6px; pointer-events: none; will-change: transform; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.10); }
+.dz-z img { display: block; object-fit: contain; border-radius: 14px; pointer-events: none; will-change: transform; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 24px 60px -18px rgba(0,0,0,.45); }
 .dz-bar { position: absolute; left: 50%; bottom: 14px; transform: translate(-50%, 6px); opacity: 0; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 12px;
   background: color-mix(in srgb, var(--a-l1) 80%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
   box-shadow: 0 0 0 1px var(--a-bds), 0 10px 30px rgba(0,0,0,.14); transition: opacity .25s, transform .35s cubic-bezier(.22,1,.36,1); }
-.dz-z:hover .dz-bar, .dz-z:focus-within .dz-bar, .dz-z[data-zoomed="true"] .dz-bar { opacity: 1; transform: translate(-50%, 0); }
-@media (hover: none) { .dz-bar { opacity: 1; transform: translate(-50%, 0); } }
+/* Les outils se montrent quand on en a besoin : au survol, après un toucher, ou pendant le zoom. */
+.dz-z:focus-within .dz-bar, .dz-z[data-bar="true"] .dz-bar, .dz-z[data-zoomed="true"] .dz-bar { opacity: 1; transform: translate(-50%, 0); }
+@media (hover: hover) { .dz-z:hover .dz-bar { opacity: 1; transform: translate(-50%, 0); } }
+.dz-bar { pointer-events: none; } .dz-z:hover .dz-bar, .dz-z[data-bar="true"] .dz-bar, .dz-z[data-zoomed="true"] .dz-bar, .dz-z:focus-within .dz-bar { pointer-events: auto; }
 .dz-bar button { all: unset; box-sizing: border-box; height: 32px; min-width: 32px; padding: 0 8px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   color: var(--a-t2); font-family: inherit; font-size: 12.5px; font-variant-numeric: tabular-nums; transition: color .15s, transform .25s cubic-bezier(.22,1,.36,1); }
 .dz-bar button:hover:not(:disabled) { color: var(--a-t1); transform: translateY(-1px); }
 .dz-bar button:disabled { opacity: .35; cursor: default; }
 .dz-bar button:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 1px; }
-.dz-cap { font-size: 12px; color: var(--a-t3); margin: 0 0 8px 4px; }
 .dz-check { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: 12px; align-items: flex-start; padding: 9px 2px; font-size: 13.5px; line-height: 1.45; color: var(--a-t2); transition: color .15s; }
 .dz-check:hover { color: var(--a-t1); }
 .dz-check[data-on="true"] { color: var(--a-t1); }
@@ -88,7 +88,7 @@ function Pdf({ url }: { url: string }) {
 
 /* ─── Une image qu'on examine : zoom au point visé, déplacement, rotation ─── */
 const MAX_ZOOM = 6;
-const PAD = 40;
+const PAD = 48;
 type Tf = { s: number; x: number; y: number; r: number };
 const REST: Tf = { s: 1, x: 0, y: 0, r: 0 };
 
@@ -99,6 +99,9 @@ function ZoomImage({ src, alt, onExpand }: { src: string; alt: string; onExpand?
   const [moving, setMoving] = useState(false);
   const ptrs = useRef(new Map<number, { x: number; y: number }>());
   const last = useRef<{ x: number; y: number; d: number } | null>(null);
+  // Un toucher bref (sans glisser) montre ou cache les outils.
+  const [bar, setBar] = useState(false);
+  const tap = useRef<{ x: number; y: number; t: number } | null>(null);
 
   useEffect(() => { setT(REST); }, [src]);
   useEffect(() => {
@@ -136,6 +139,7 @@ function ZoomImage({ src, alt, onExpand }: { src: string; alt: string; onExpand?
   const down = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest(".dz-bar")) return;
     box.current!.setPointerCapture(e.pointerId);
+    tap.current = ptrs.current.size === 0 ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null;
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     last.current = null;
     setMoving(true);
@@ -154,6 +158,9 @@ function ZoomImage({ src, alt, onExpand }: { src: string; alt: string; onExpand?
     setT((p) => (p.s > 1 ? { ...p, x: p.x + mx - prev.x, y: p.y + my - prev.y } : p));
   };
   const up = (e: React.PointerEvent) => {
+    const t0 = tap.current;
+    if (t0 && e.pointerType !== "mouse" && e.timeStamp - t0.t < 300 && Math.hypot(e.clientX - t0.x, e.clientY - t0.y) < 8) setBar((v) => !v);
+    tap.current = null;
     ptrs.current.delete(e.pointerId);
     last.current = null;
     if (ptrs.current.size === 0) setMoving(false);
@@ -172,7 +179,7 @@ function ZoomImage({ src, alt, onExpand }: { src: string; alt: string; onExpand?
   const zoomed = t.s > 1;
 
   return (
-    <div ref={box} className="dz-z" data-zoomed={zoomed} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onDoubleClick={dbl}
+    <div ref={box} className="dz-z" data-zoomed={zoomed} data-bar={bar} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onDoubleClick={dbl}
       style={{ cursor: zoomed ? (moving ? "grabbing" : "grab") : "zoom-in" }}>
       <img src={src} alt={alt} draggable={false}
         style={{ maxWidth: fitW, maxHeight: fitH, transform: `translate(${t.x}px, ${t.y}px) scale(${t.s}) rotate(${t.r}deg)`,
@@ -256,12 +263,7 @@ export function DocViewer({ docs, load, empty, compare, view, onView }: {
       )}
       {cur === COMPARE ? (
         <div className="dz-pair" key={COMPARE}>
-          {[compare!.a, compare!.b].map((k) => (
-            <div key={k} style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <p className="dz-cap">{byKey(k).label}</p>
-              <Frame doc={byKey(k)} load={load} onExpand={expand(byKey(k))} />
-            </div>
-          ))}
+          {[compare!.a, compare!.b].map((k) => <Frame key={k} doc={byKey(k)} load={load} onExpand={expand(byKey(k))} />)}
         </div>
       ) : cur ? (
         <Frame key={cur} doc={byKey(cur)} load={load} onExpand={expand(byKey(cur))} />

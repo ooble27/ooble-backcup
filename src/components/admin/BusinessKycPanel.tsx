@@ -150,14 +150,14 @@ const BusinessKycPanel = () => {
 
       {d && (
         <Workspace title={d.legalName} subtitle={`Vérification d'entreprise · soumise le ${fmtDate(d.createdAt)}`} onClose={() => setDetailId(null)} panes>
-          <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-2 lg:overflow-hidden" style={{ minHeight: 0 }}>
+          <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10 lg:overflow-hidden" style={{ minHeight: 0 }}>
             {/* Les pièces de l'entreprise sur la table lumineuse : zoom, déplacement, rotation. */}
-            <WsPane flat className="h-[64vh] lg:h-auto" style={{ padding: "4px 8px 12px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <WsPane flat className="h-[72vh] lg:h-auto" style={{ padding: "4px 12px 16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <DocViewer docs={docKeys.map((k) => ({ key: k, label: DOC_LABELS[k], path: d.documents[k] }))} load={load} />
             </WsPane>
 
-            <WsPane style={{ display: "flex", flexDirection: "column", fontFamily: FONT }}>
-              <div style={{ flex: 1, padding: "26px 26px 20px" }}>
+            <WsPane flat style={{ display: "flex", flexDirection: "column", fontFamily: FONT }}>
+              <div style={{ flex: 1, padding: "8px 20px 20px 16px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <BusinessMark name={d.legalName} size="md" />
                   <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={d.contactName} secondary={d.email} /></div>
@@ -243,7 +243,7 @@ const BusinessKycPanel = () => {
               </div>
 
               {d.status === "pending" && canDecide && (
-                <div style={{ position: "sticky", bottom: 0, padding: "14px 26px calc(18px + env(safe-area-inset-bottom, 0px))", background: C.bg }}>
+                <div style={{ position: "sticky", bottom: 0, padding: "14px 20px calc(18px + env(safe-area-inset-bottom, 0px)) 16px", background: C.ground }}>
                   {error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
                   {d.assignedTo && me && d.assignedTo !== me.id ? (
                     <div style={{ display: "grid", gap: 10 }}>

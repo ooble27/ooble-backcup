@@ -10,7 +10,7 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice, TextArea, Workspace, WsPane } from "./ui";
 import { Avatar, DataTable, EmptyState, FilterChips, Pill, Tabs, TwoLine, type Column, type Tone } from "./layout";
 import { KycHero } from "./heroes";
-import { Checklist, COMPARE, DocViewer, Facts, Section } from "./Dossier";
+import { Checklist, COMPARE, DocViewer, Section } from "./Dossier";
 import BusinessKycPanel from "./BusinessKycPanel";
 
 const STATUS: Record<KycStatus, [string, Tone]> = { attente: ["À vérifier", "warn"], verifie: ["Vérifiée", "ok"], refuse: ["Refusée", "danger"] };
@@ -40,6 +40,9 @@ const firstName = (name?: string | null) => (name ?? "").split(/[\s@]/)[0];
 type Me = { id: string; name: string };
 
 const REVIEW_CSS = `
+.kv-title { margin: 6px 0 0; font-size: clamp(30px, 3vw, 42px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; overflow-wrap: anywhere; }
+.kv-sub { margin: 14px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--a-t2); }
+.kv-sub b { font-weight: 500; color: var(--a-t1); }
 .kv-pane > * { animation: kv-in .5s cubic-bezier(.22,1,.36,1) both; }
 .kv-pane > *:nth-child(2) { animation-delay: .04s } .kv-pane > *:nth-child(3) { animation-delay: .08s }
 .kv-pane > *:nth-child(4) { animation-delay: .12s } .kv-pane > *:nth-child(n+5) { animation-delay: .16s }
@@ -115,9 +118,9 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
       )}
     >
       <style>{REVIEW_CSS}</style>
-      <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-2 lg:overflow-hidden" style={{ minHeight: 0 }}>
+      <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10 lg:overflow-hidden" style={{ minHeight: 0 }}>
         {/* La table lumineuse, posée sur le fond : selfie et pièce côte à côte, puis chaque face en grand. */}
-        <WsPane flat className="h-[70vh] lg:h-auto" style={{ padding: "6px 8px 12px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <WsPane flat className="h-[72vh] lg:h-auto" style={{ padding: "4px 12px 16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <DocViewer
             docs={keys.map((k) => ({ key: k, label: DOC_LABEL[k] ?? k, path: r.documentPaths![k] }))}
             compare={{ a: "selfie", b: "id_front", label: "Selfie et pièce" }}
@@ -125,42 +128,33 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
             empty={<div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><EmptyState icon={ScanFace} title="Aucun document" text="Ce dossier vient de l'ancien parcours (Sumsub) : aucun fichier n'est stocké chez Ooble." /></div>} />
         </WsPane>
 
-        <WsPane style={{ display: "flex", flexDirection: "column", fontFamily: FONT }}>
-          <div key={r.id} className="kv-pane" style={{ flex: 1, padding: "26px 26px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Avatar name={r.clientName} size={44} />
-              <div style={{ minWidth: 0, flex: 1 }}><TwoLine primary={r.clientName} secondary={r.email} /></div>
-              <Pill tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</Pill>
-            </div>
-
-            {/* Le nom à retrouver sur la pièce, en grand. */}
-            <div style={{ marginTop: 28 }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.t3 }}>Nom du compte</p>
-              <p style={{ margin: "4px 0 0", fontSize: 28, fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1.1, color: C.t1, overflowWrap: "anywhere" }}>{r.clientName}</p>
-            </div>
-
-            <div style={{ marginTop: 22 }}>
-              <Facts items={[
-                ["Pièce", DOC_TYPE[r.docType] ?? r.docType ?? "Document"],
-                ["Envoyée", timeAgo(r.submittedMinsAgo)],
-                ["Compte créé", day(r.accountCreatedAt)],
-                ["Envoi", ordinal(before.length + 1)],
-              ]} />
-            </div>
+        {/* Aucune boîte : le dossier se lit comme une page, la décision reste en bas. */}
+        <WsPane flat style={{ display: "flex", flexDirection: "column", fontFamily: FONT }}>
+          <div key={r.id} className="kv-pane" style={{ flex: 1, padding: "8px 20px 20px 16px" }}>
+            <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Nom du compte, à retrouver sur la pièce</p>
+            <h2 className="kv-title">{r.clientName}</h2>
+            <p className="kv-sub">
+              {r.status === "attente" && <><span style={{ color: C.sun }}>À vérifier</span> · </>}
+              {r.status === "verifie" && <><span style={{ color: C.sage }}>Approuvée</span>{r.reviewedByName ? <> par <b>{r.reviewedByName}</b></> : ""}{r.reviewedAt ? ` le ${day(r.reviewedAt)}` : ""}. </>}
+              {r.status === "refuse" && <><span style={{ color: C.coral }}>Refusée</span>{r.reviewedByName ? <> par <b>{r.reviewedByName}</b></> : ""}{r.reviewedAt ? ` le ${day(r.reviewedAt)}` : ""}. </>}
+              Pièce envoyée {timeAgo(r.submittedMinsAgo)} : <b>{DOC_TYPE[r.docType] ?? r.docType ?? "document"}</b>, {before.length ? <b>{ordinal(before.length + 1).toLowerCase()}</b> : "premier envoi"}.
+              {r.accountCreatedAt ? <> Compte ouvert le {day(r.accountCreatedAt)}.</> : null}
+            </p>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: C.t3 }}>{r.email}</p>
 
             {pending && lastRefusal && (
-              <div style={{ marginTop: 22, padding: "14px 16px", borderRadius: 14, background: C.hover2 }}>
-                <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>
-                  Envoi précédent refusé{lastRefusal.reviewedAt ? ` le ${day(lastRefusal.reviewedAt)}` : ""}{lastRefusal.reviewedByName ? ` par ${firstName(lastRefusal.reviewedByName)}` : ""}
+              <div style={{ marginTop: 28 }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: C.coral }}>
+                  Refusé la dernière fois{lastRefusal.reviewedAt ? `, le ${day(lastRefusal.reviewedAt)}` : ""}{lastRefusal.reviewedByName ? ` par ${firstName(lastRefusal.reviewedByName)}` : ""}
                 </p>
-                {lastRefusal.reviewNote && <p style={{ margin: "6px 0 0", fontSize: 13.5, lineHeight: 1.55, color: C.t1 }}>« {lastRefusal.reviewNote} »</p>}
-                <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t2 }}>Vérifiez d'abord que ce point est corrigé.</p>
+                {lastRefusal.reviewNote && <p style={{ margin: "6px 0 0", fontSize: 15, lineHeight: 1.55, color: C.t1 }}>« {lastRefusal.reviewNote} »</p>}
+                <p style={{ margin: "6px 0 0", fontSize: 13, color: C.t3 }}>Vérifiez d'abord que ce point est corrigé.</p>
               </div>
             )}
 
             {pending ? (
               <>
-                <Section title="À vérifier" hint={`${done} sur ${CHECKS.length} · cocher un point affiche le document suivant.`}>
+                <Section title={`À vérifier · ${done} sur ${CHECKS.length}`}>
                   <Checklist items={CHECKS.map((c) => c.text)} value={checks} onChange={tick} />
                 </Section>
                 {refusing && (
@@ -177,19 +171,17 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
                   </Section>
                 )}
               </>
-            ) : (
-              <Section title="Décision">
-                <p style={{ margin: 0, fontSize: 13.5, color: C.t2 }}>
-                  {r.status === "verifie" ? "Approuvée" : "Refusée"}{r.reviewedByName ? ` par ${r.reviewedByName}` : ""}{r.reviewedAt ? ` · ${day(r.reviewedAt)}` : ""}
-                </p>
-                {r.reviewNote && <p style={{ margin: "10px 0 0", fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: C.t1 }}>« {r.reviewNote} »</p>}
-              </Section>
-            )}
+            ) : r.reviewNote ? (
+              <div style={{ marginTop: 28 }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Motif envoyé au client</p>
+                <p style={{ margin: "6px 0 0", fontSize: 15, lineHeight: 1.55, color: C.t1, whiteSpace: "pre-wrap" }}>« {r.reviewNote} »</p>
+              </div>
+            ) : null}
           </div>
 
           {pending && canDecide && (
             // Décision toujours à portée de main, en bas du volet.
-            <div style={{ position: "sticky", bottom: 0, padding: "14px 26px calc(18px + env(safe-area-inset-bottom, 0px))", background: C.bg }}>
+            <div style={{ position: "sticky", bottom: 0, padding: "14px 20px calc(18px + env(safe-area-inset-bottom, 0px)) 16px", background: C.ground }}>
               {error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
               {byOther ? (
                 <div style={{ display: "grid", gap: 10 }}>
