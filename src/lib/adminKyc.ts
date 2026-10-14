@@ -55,6 +55,12 @@ export async function fetchKyc(): Promise<KycRequest[]> {
     reviewedAt: r.reviewed_at,
     reviewedByName: r.reviewed_by_name,
     accountCreatedAt: r.profiles?.created_at ?? null,
+    birthDate: r.birth_date,
+    addressLine: r.address_line,
+    city: r.city,
+    province: r.province,
+    postalCode: r.postal_code,
+    occupation: r.occupation,
   }));
 }
 
@@ -76,6 +82,26 @@ export async function claimReview(
   const { data, error } = await q.select("id");
   if (error) return { error: error.message };
   return { taken: !!who && (data?.length ?? 0) === 0 };
+}
+
+/** Identité vérifiée la plus récente d'un client, pour pré-remplir une déclaration au CANAFE. */
+export async function fetchKycIdentity(userId: string): Promise<{
+  birthDate: string; addressLine: string; city: string; province: string; postalCode: string; occupation: string; docType: string;
+} | null> {
+  const { data } = await supabase.from("kyc_verifications")
+    .select("status, doc_type, birth_date, address_line, city, province, postal_code, occupation, created_at")
+    .eq("user_id", userId)
+    .not("birth_date", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  const rows = data ?? [];
+  const r = rows.find((x) => x.status === "approved") ?? rows[0];
+  if (!r) return null;
+  return {
+    birthDate: r.birth_date ?? "", addressLine: r.address_line ?? "", city: r.city ?? "", province: r.province ?? "",
+    postalCode: r.postal_code ?? "", occupation: r.occupation ?? "",
+    docType: r.doc_type ? (DOC_TYPE_LABELS[r.doc_type] ?? r.doc_type) : "",
+  };
 }
 
 export async function getDocumentUrl(path: string): Promise<string | null> {

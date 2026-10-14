@@ -14,15 +14,18 @@ import { Checklist, COMPARE, DocViewer, Section } from "./Dossier";
 import BusinessKycPanel from "./BusinessKycPanel";
 
 const STATUS: Record<KycStatus, [string, Tone]> = { attente: ["À vérifier", "warn"], verifie: ["Vérifiée", "ok"], refuse: ["Refusée", "danger"] };
-const DOC_LABEL: Record<string, string> = { selfie: "Selfie", id_front: "Recto", id_back: "Verso" };
-const DOC_ORDER = ["selfie", "id_front", "id_back"];
+const DOC_LABEL: Record<string, string> = { selfie: "Selfie", id_front: "Recto", id_back: "Verso", address_proof: "Preuve d'adresse" };
+const DOC_ORDER = ["selfie", "id_front", "id_back", "address_proof"];
 const DOC_TYPE: Record<string, string> = { passport: "Passeport", drivers_license: "Permis de conduire", id_card: "Carte d'identité", pr_card: "Carte de résident permanent" };
 /** Chaque point à contrôler montre le document qui permet de le vérifier. */
-const CHECKS: { text: string; view: string }[] = [
+/** Chaque point à contrôler montre le document qui permet de le vérifier (`needs` : seulement si le dossier l'a). */
+const CHECKS: { text: string; view: string; needs?: string }[] = [
   { text: "Le visage du selfie correspond à la photo de la pièce", view: COMPARE },
   { text: "Le nom correspond à celui du compte", view: "id_front" },
+  { text: "La date de naissance correspond à celle déclarée", view: "id_front", needs: "address_proof" },
   { text: "La pièce n'est pas expirée", view: "id_front" },
   { text: "Les photos sont nettes et complètes", view: "id_back" },
+  { text: "La preuve d'adresse a moins de 3 mois, au nom du client et à l'adresse déclarée", view: "address_proof", needs: "address_proof" },
 ];
 const REASONS = [
   "La photo de la pièce est floue : le texte n'est pas lisible.",
@@ -35,6 +38,10 @@ const REASONS = [
 const dayFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric" });
 const day = (iso?: string | null) => (iso ? dayFmt.format(new Date(iso)) : "");
 const ordinal = (n: number) => (n === 1 ? "Premier envoi" : `${n}e envoi`);
+const ageYears = (iso: string) => {
+  const b = new Date(`${iso}T12:00:00`), n = new Date();
+  return n.getFullYear() - b.getFullYear() - (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate()) ? 1 : 0);
+};
 const firstName = (name?: string | null) => (name ?? "").split(/[\s@]/)[0];
 
 type Me = { id: string; name: string };
@@ -66,12 +73,13 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
 }) {
   const r = list[index];
   const [note, setNote] = useState("");
-  const [checks, setChecks] = useState<boolean[]>(CHECKS.map(() => false));
+  const items = useMemo(() => CHECKS.filter((c) => !c.needs || !!r?.documentPaths?.[c.needs]), [r?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [checks, setChecks] = useState<boolean[]>(() => items.map(() => false));
   const [view, setView] = useState<string>(COMPARE);
   const [refusing, setRefusing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { setNote(""); setChecks(CHECKS.map(() => false)); setView(COMPARE); setRefusing(false); setError(null); }, [r?.id]);
+  useEffect(() => { setNote(""); setChecks(items.map(() => false)); setView(COMPARE); setRefusing(false); setError(null); }, [r?.id, items]);
   const load = useCallback((p: string) => getDocumentUrl(p), []);
 
   // Ouvrir un dossier, c'est le prendre : les collègues voient qui l'examine. Le fermer le libère.
@@ -94,7 +102,7 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
   const tick = (next: boolean[]) => {
     setChecks(next);
     const j = next.findIndex((v) => !v);
-    if (j >= 0 && next.filter(Boolean).length > checks.filter(Boolean).length) setView(CHECKS[j].view);
+    if (j >= 0 && next.filter(Boolean).length > checks.filter(Boolean).length) setView(items[j].view);
   };
 
   const decide = async (status: KycStatus) => {
@@ -120,9 +128,9 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
       )}
     >
       <style>{REVIEW_CSS}</style>
-      <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10 lg:overflow-hidden" style={{ minHeight: 0 }}>
+      <div className="ws-split">
         {/* La table lumineuse, posée sur le fond : selfie et pièce côte à côte, puis chaque face en grand. */}
-        <WsPane flat className="h-[72vh] lg:h-auto" style={{ padding: "4px 12px 16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <WsPane flat className="ws-media" style={{ padding: "4px 12px 16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <DocViewer
             docs={keys.map((k) => ({ key: k, label: DOC_LABEL[k] ?? k, path: r.documentPaths![k] }))}
             compare={{ a: "selfie", b: "id_front", label: "Selfie et pièce" }}
@@ -144,6 +152,19 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
             </p>
             <p style={{ margin: "6px 0 0", fontSize: 13, color: C.t3 }}>{r.email}</p>
 
+            {r.birthDate ? (
+              <div style={{ marginTop: 24 }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Déclaré par le client, à comparer aux documents</p>
+                <p style={{ margin: "6px 0 0", fontSize: 15, lineHeight: 1.6, color: C.t1 }}>
+                  Né(e) le {day(r.birthDate)}<span style={{ color: C.t3 }}> · {ageYears(r.birthDate)} ans</span>
+                  {r.occupation && <><br />{r.occupation}</>}
+                  <br />{r.addressLine}, {r.city} ({r.province}) {r.postalCode}
+                </p>
+              </div>
+            ) : (
+              <p style={{ margin: "18px 0 0", fontSize: 13, color: C.t3 }}>Envoi de l'ancien parcours : date de naissance, adresse et profession non fournies.</p>
+            )}
+
             {pending && lastRefusal && (
               <div style={{ marginTop: 28 }}>
                 <p style={{ margin: 0, fontSize: 12.5, color: C.coral }}>
@@ -159,11 +180,11 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
                 {/* Le compte des points vérifiés, en grand : il avance à chaque coche. */}
                 <div style={{ marginTop: 34 }}>
                   <p style={{ margin: 0, display: "flex", alignItems: "baseline", gap: 10 }}>
-                    <span key={done} className="kv-count" style={{ color: done === CHECKS.length ? C.sage : C.t1 }}>{done}</span>
-                    <span style={{ fontSize: 15, color: C.t3 }}>sur {CHECKS.length} points vérifiés</span>
+                    <span key={done} className="kv-count" style={{ color: done === items.length ? C.sage : C.t1 }}>{done}</span>
+                    <span style={{ fontSize: 15, color: C.t3 }}>sur {items.length} points vérifiés</span>
                   </p>
                   <div style={{ marginTop: 8 }}>
-                    <Checklist items={CHECKS.map((c) => c.text)} value={checks} onChange={tick} focus={CHECKS.map((c) => c.view === view)} />
+                    <Checklist items={items.map((c) => c.text)} value={checks} onChange={tick} focus={items.map((c) => c.view === view)} />
                   </div>
                 </div>
                 {refusing && (
@@ -190,7 +211,7 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
 
           {pending && canDecide && (
             // Décision toujours à portée de main, en bas du volet.
-            <div style={{ position: "sticky", bottom: 0, padding: "14px 20px calc(18px + env(safe-area-inset-bottom, 0px)) 16px", background: C.ground }}>
+            <div className="ws-foot">
               {error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
               {byOther ? (
                 <div style={{ display: "grid", gap: 10 }}>
@@ -204,15 +225,15 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
                 </div>
               ) : (
                 <div style={{ display: "grid", gap: 12 }}>
-                <p key={done} style={{ margin: 0, fontSize: 13.5, color: done === CHECKS.length ? C.sage : C.t2, animation: "kv-in .4s cubic-bezier(.22,1,.36,1) both" }}>
+                <p key={done} style={{ margin: 0, fontSize: 13.5, color: done === items.length ? C.sage : C.t2, animation: "kv-in .4s cubic-bezier(.22,1,.36,1) both" }}>
                   {done === 0 ? "Regardez les documents et cochez chaque point."
-                    : done < CHECKS.length ? `Encore ${CHECKS.length - done} point${CHECKS.length - done > 1 ? "s" : ""} à vérifier.`
+                    : done < items.length ? `Encore ${items.length - done} point${items.length - done > 1 ? "s" : ""} à vérifier.`
                     : "Tout est conforme : vous pouvez approuver."}
                 </p>
                 <div style={{ display: "flex", gap: 8 }}>
                   <Button variant="danger" disabled={busy} onClick={() => setRefusing(true)} icon={<X style={{ width: 15, height: 15 }} />}>Refuser</Button>
                   <Button variant="primary" disabled={busy} onClick={() => decide("verifie")} icon={<Check style={{ width: 15, height: 15 }} />} className="flex-1">
-                    {done === CHECKS.length ? "Approuver" : "Approuver quand même"}
+                    {done === items.length ? "Approuver" : "Approuver quand même"}
                   </Button>
                 </div>
                 </div>

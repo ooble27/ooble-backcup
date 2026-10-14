@@ -23,6 +23,7 @@ import {
   type RegisterStats, type SanctionListStatus,
 } from "@/lib/complianceLive";
 import { logAdminAction } from "@/lib/audit";
+import { fetchKycIdentity } from "@/lib/adminKyc";
 import { C, FONT } from "./adminTheme";
 import { Button, Field, Group, Notice, SidePanel, TextArea, TextInput, Workspace, fieldInput } from "./ui";
 import { ComplianceHero } from "./heroes";
@@ -1032,6 +1033,23 @@ const CompliancePanel = ({ orders, onOpenOrder, onShowClient }: { orders: AdminO
     const order = a.orderId ? orders.find((o) => o.id === a.orderId) : undefined;
     setSelectedAlertId(id); setEditingDeclId(null);
     setDeclForm(initialDeclarationForm(a, order)); setOverlay("declarer");
+    // Ce que le client a déclaré à sa vérification d'identité complète le formulaire (sans écraser une saisie).
+    if (a.userId) {
+      void fetchKycIdentity(a.userId).then((k) => {
+        if (!k) return;
+        const provinceCode = PROVINCES.find((p) => p.code === k.province)?.code ?? k.province;
+        setDeclForm((f) => f && ({
+          ...f,
+          clientDob: f.clientDob || k.birthDate,
+          clientAddress: f.clientAddress || k.addressLine,
+          clientCity: f.clientCity || k.city,
+          clientProvince: f.clientProvince || provinceCode,
+          clientPostalCode: f.clientPostalCode || k.postalCode,
+          clientOccupation: f.clientOccupation || k.occupation,
+          clientIdType: f.clientIdType || ((ID_TYPES as readonly string[]).includes(k.docType) ? k.docType : ""),
+        }));
+      });
+    }
   };
 
   const resumeDraft = () => {

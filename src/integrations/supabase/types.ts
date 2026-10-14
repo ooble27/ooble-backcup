@@ -210,14 +210,20 @@ export type Database = {
       }
       kyc_verifications: {
         Row: {
+          address_line: string | null
           assigned_name: string | null
           assigned_to: string | null
+          birth_date: string | null
+          city: string | null
           created_at: string
           doc_type: string | null
           document_paths: Json | null
           external_reference: string | null
           id: string
+          occupation: string | null
+          postal_code: string | null
           provider: string
+          province: string | null
           result_payload: Json | null
           review_note: string | null
           reviewed_at: string | null
@@ -228,14 +234,20 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address_line?: string | null
           assigned_name?: string | null
           assigned_to?: string | null
+          birth_date?: string | null
+          city?: string | null
           created_at?: string
           doc_type?: string | null
           document_paths?: Json | null
           external_reference?: string | null
           id?: string
+          occupation?: string | null
+          postal_code?: string | null
           provider?: string
+          province?: string | null
           result_payload?: Json | null
           review_note?: string | null
           reviewed_at?: string | null
@@ -246,14 +258,20 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address_line?: string | null
           assigned_name?: string | null
           assigned_to?: string | null
+          birth_date?: string | null
+          city?: string | null
           created_at?: string
           doc_type?: string | null
           document_paths?: Json | null
           external_reference?: string | null
           id?: string
+          occupation?: string | null
+          postal_code?: string | null
           provider?: string
+          province?: string | null
           result_payload?: Json | null
           review_note?: string | null
           reviewed_at?: string | null

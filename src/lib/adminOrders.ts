@@ -96,4 +96,11 @@ export interface KycRequest {
   reviewedByName?: string | null;
   /** Création du compte client, pour le contexte. */
   accountCreatedAt?: string | null;
+  /** Informations déclarées par le client à l'envoi (à comparer aux documents). */
+  birthDate?: string | null;
+  addressLine?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postalCode?: string | null;
+  occupation?: string | null;
 }

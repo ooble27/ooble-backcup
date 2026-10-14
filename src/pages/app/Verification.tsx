@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, ShieldCheck, Check, Clock, Camera, IdCard, Lock,
   ChevronRight, User, Image, RotateCcw, CircleCheck,
-  CreditCard, BookOpen, Fingerprint, AlertCircle,
+  CreditCard, BookOpen, Fingerprint, AlertCircle, FileText, Home,
 } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { getMyKyc, peekMyKyc, type KycDbStatus } from "@/lib/kyc";
 import { useAuth } from "@/lib/auth";
-import { submitKycDocuments, type DocType } from "@/lib/kycUpload";
+import { submitKycDocuments, type DocType, type KycIdentityInfo } from "@/lib/kycUpload";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { VERIFICATION_ENABLED } from "@/lib/config";
@@ -28,6 +28,7 @@ const CHECKLIST: { icon: React.ElementType; key: TKey }[] = [
   { icon: IdCard, key: "kyc.check1" },
   { icon: Camera, key: "kyc.check2" },
   { icon: Fingerprint, key: "kyc.check3" },
+  { icon: Home, key: "kyc.check4" },
 ];
 
 /* ─── Document types ─── */
@@ -40,10 +41,25 @@ const DOC_TYPES: { id: DocType; labelKey: TKey; descKey: TKey; icon: React.Eleme
 
 /* ─── Steps ─── */
 
-type Step = "intro" | "doc_type" | "id_front" | "id_back" | "selfie" | "review" | "submitting" | "done";
+type Step = "intro" | "info" | "doc_type" | "id_front" | "id_back" | "selfie" | "address_proof" | "review" | "submitting" | "done";
 
-const STEP_ORDER_2: Step[] = ["doc_type", "id_front", "selfie"];
-const STEP_ORDER_3: Step[] = ["doc_type", "id_front", "id_back", "selfie"];
+const STEP_ORDER_2: Step[] = ["info", "doc_type", "id_front", "selfie", "address_proof"];
+const STEP_ORDER_3: Step[] = ["info", "doc_type", "id_front", "id_back", "selfie", "address_proof"];
+
+const PROVINCES = ["AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"];
+const POSTAL_RE = /^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$/;
+const EMPTY_INFO: KycIdentityInfo = { birthDate: "", addressLine: "", city: "", province: "QC", postalCode: "", occupation: "" };
+
+/** Âge en années révolues à partir d'une date AAAA-MM-JJ. */
+function ageOf(iso: string): number {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return -1;
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) a--;
+  return a;
+}
+const isPdfFile = (f: File | null) => !!f && (f.type === "application/pdf" || /\.pdf$/i.test(f.name));
 
 /* ─── Capture zone ─── */
 
@@ -61,7 +77,7 @@ function CaptureZone({
   onClear: () => void;
   titleKey: TKey;
   descKey: TKey;
-  guideType: "card" | "selfie";
+  guideType: "card" | "selfie" | "document";
   t: (k: TKey) => string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,15 +86,15 @@ function CaptureZone({
   const [drag, setDrag] = useState(false);
 
   useEffect(() => {
-    if (!file) { setPreview(null); return; }
+    if (!file || isPdfFile(file)) { setPreview(null); return; }
     const url = URL.createObjectURL(file);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
   const handleFile = useCallback((f: File) => {
-    if (f.type.startsWith("image/") || f.type.startsWith("video/")) onFile(f);
-  }, [onFile]);
+    if (f.type.startsWith("image/") || f.type.startsWith("video/") || (guideType === "document" && isPdfFile(f))) onFile(f);
+  }, [onFile, guideType]);
 
   return (
     <div>
@@ -89,7 +105,7 @@ function CaptureZone({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={guideType === "document" ? "image/*,application/pdf" : "image/*"}
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
       />
@@ -103,7 +119,15 @@ function CaptureZone({
       />
 
       {/* Preview or Capture area */}
-      {preview ? (
+      {file && isPdfFile(file) ? (
+        <div className="relative flex items-center gap-3 rounded-2xl border border-border px-4 py-4">
+          <FileText className="h-6 w-6 shrink-0 text-muted-foreground" strokeWidth={1.6} />
+          <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{file.name}</span>
+          <button type="button" onClick={onClear} className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-90">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : preview ? (
         <div className="relative">
           <div className="overflow-hidden rounded-2xl border border-border">
             <img src={preview} alt="" className="w-full object-contain max-h-[280px] bg-secondary/30" />
@@ -131,7 +155,11 @@ function CaptureZone({
           }}
         >
           {/* Guide overlay */}
-          {guideType === "card" ? (
+          {guideType === "document" ? (
+            <div className="mb-4 flex h-[100px] w-[80px] items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30">
+              <Home className="h-7 w-7 text-muted-foreground/30" strokeWidth={1.2} />
+            </div>
+          ) : guideType === "card" ? (
             <div className="mb-4 flex h-[100px] w-[160px] items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30">
               <CreditCard className="h-8 w-8 text-muted-foreground/30" strokeWidth={1.2} />
             </div>
@@ -154,11 +182,11 @@ function CaptureZone({
               onClick={() => inputRef.current?.click()}
               className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-foreground transition-all hover:bg-secondary active:scale-95"
             >
-              <Image className="h-4 w-4" /> {t("kyc.gallery")}
+              <Image className="h-4 w-4" /> {guideType === "document" ? t("kyc.chooseFile") : t("kyc.gallery")}
             </button>
           </div>
 
-          <p className="mt-3 text-[11px] text-muted-foreground/60">JPG, PNG &middot; max 10 MB</p>
+          <p className="mt-3 text-[11px] text-muted-foreground/60">{guideType === "document" ? "JPG, PNG, PDF" : "JPG, PNG"} &middot; max 10 MB</p>
         </div>
       )}
     </div>
@@ -184,6 +212,8 @@ function StepProgress({ steps, current }: { steps: Step[]; current: Step }) {
   );
 }
 
+const FIELD = "h-12 w-full rounded-xl border border-border bg-card px-4 text-[15px] text-foreground outline-none transition-colors focus:border-foreground";
+
 /* ─── Main component ─── */
 
 const Verification = () => {
@@ -199,6 +229,12 @@ const Verification = () => {
   const [idFront, setIdFront] = useState<File | null>(null);
   const [idBack, setIdBack] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
+  const [addressProof, setAddressProof] = useState<File | null>(null);
+  const [info, setInfo] = useState<KycIdentityInfo>(EMPTY_INFO);
+  const setField = (k: keyof KycIdentityInfo) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setInfo((v) => ({ ...v, [k]: e.target.value }));
+  const age = info.birthDate ? ageOf(info.birthDate) : null;
+  const postalOk = POSTAL_RE.test(info.postalCode.trim());
+  const infoOk = age !== null && age >= 18 && age < 120 && !!info.addressLine.trim() && !!info.city.trim() && !!info.province && postalOk && !!info.occupation.trim();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(cachedKyc === undefined);
 
@@ -217,28 +253,29 @@ const Verification = () => {
     const idx = stepOrder.indexOf(step);
     if (idx >= 0 && idx < stepOrder.length - 1) {
       setStep(stepOrder[idx + 1]);
-    } else if (step === "selfie") {
+    } else if (idx === stepOrder.length - 1) {
       setStep("review");
     }
   };
 
   const goBack = () => {
-    if (step === "review") { setStep("selfie"); return; }
+    if (step === "review") { setStep("address_proof"); return; }
     const idx = stepOrder.indexOf(step);
     if (idx > 0) setStep(stepOrder[idx - 1]);
-    else if (step === "doc_type") setStep("intro");
+    else if (step === "info") setStep("intro");
     else navigate("/app/compte");
   };
 
   const submit = async () => {
-    if (!docType || !idFront || !selfie) return;
+    if (!docType || !idFront || !selfie || !addressProof || !infoOk) return;
     setStep("submitting");
     setError(null);
     const res = await submitKycDocuments(docType, {
       idFront,
       idBack: needsBack ? idBack ?? undefined : undefined,
       selfie,
-    });
+      addressProof,
+    }, info);
     if (res.error) {
       setError(res.error);
       setStep("review");
@@ -253,6 +290,8 @@ const Verification = () => {
     if (step === "id_front") return !!idFront;
     if (step === "id_back") return !!idBack;
     if (step === "selfie") return !!selfie;
+    if (step === "info") return infoOk;
+    if (step === "address_proof") return !!addressProof;
     return false;
   };
 
@@ -384,7 +423,7 @@ const Verification = () => {
             {/* CTA */}
             <div className="mt-6 flex items-center justify-end gap-4">
               {isStaff && <p className="mr-auto text-[12px] leading-relaxed text-muted-foreground">Compte de l'équipe : vous pouvez envoyer de nouveaux documents autant de fois que vous voulez, pour tester.</p>}
-              <Button variant="appSolid" shape="rounded" className="shrink-0 gap-2 px-5 text-[13px]" disabled={!VERIFICATION_ENABLED && !isStaff} onClick={() => setStep("doc_type")}>
+              <Button variant="appSolid" shape="rounded" className="shrink-0 gap-2 px-5 text-[13px]" disabled={!VERIFICATION_ENABLED && !isStaff} onClick={() => setStep("info")}>
                 {isStaff && status !== "not_started" ? "Nouvel envoi" : inReview ? t("kyc.resume") : t("kyc.start")}
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -404,6 +443,51 @@ const Verification = () => {
         <div className="mb-5">
           <StepProgress steps={stepOrder} current={step} />
         </div>
+      )}
+
+      {/* ── Vos informations ── */}
+      {step === "info" && (
+        <>
+          <p className="mb-1 text-[15px] font-semibold tracking-tight">{t("kyc.infoTitle")}</p>
+          <p className="mb-5 text-[12.5px] leading-relaxed text-muted-foreground">{t("kyc.infoSub")}</p>
+          <div className="grid gap-4">
+            <label className="grid gap-1.5">
+              <span className="text-[12.5px] font-semibold text-muted-foreground">{t("kyc.birthDate")}</span>
+              <input type="date" value={info.birthDate} onChange={setField("birthDate")} max={new Date().toISOString().slice(0, 10)} className={FIELD} />
+              {age !== null && age >= 0 && age < 18 && <span className="text-[12px] text-destructive">{t("kyc.adultOnly")}</span>}
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-[12.5px] font-semibold text-muted-foreground">{t("kyc.addressLine")}</span>
+              <input value={info.addressLine} onChange={setField("addressLine")} placeholder={t("kyc.addressLinePh")} autoComplete="street-address" className={FIELD} />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="grid gap-1.5">
+                <span className="text-[12.5px] font-semibold text-muted-foreground">{t("kyc.city")}</span>
+                <input value={info.city} onChange={setField("city")} autoComplete="address-level2" className={FIELD} />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-[12.5px] font-semibold text-muted-foreground">{t("kyc.province")}</span>
+                <select value={info.province} onChange={setField("province")} autoComplete="address-level1" className={FIELD}>
+                  {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </label>
+            </div>
+            <label className="grid gap-1.5">
+              <span className="text-[12.5px] font-semibold text-muted-foreground">{t("kyc.postalCode")}</span>
+              <input value={info.postalCode} onChange={setField("postalCode")} placeholder="H2X 1Y4" autoComplete="postal-code" autoCapitalize="characters" maxLength={7} className={cn(FIELD, "uppercase")} />
+              {info.postalCode.trim().length >= 6 && !postalOk && <span className="text-[12px] text-destructive">{t("kyc.postalInvalid")}</span>}
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-[12.5px] font-semibold text-muted-foreground">{t("kyc.occupation")}</span>
+              <input value={info.occupation} onChange={setField("occupation")} placeholder={t("kyc.occupationPh")} autoComplete="organization-title" className={FIELD} />
+            </label>
+          </div>
+          <div className="mt-5 flex justify-end">
+            <Button variant="appSolid" shape="rounded" size="lg" className="gap-2 px-6" disabled={!canNext()} onClick={goNext}>
+              {t("kyc.next")} <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </>
       )}
 
       {/* ── Document type ── */}
@@ -522,6 +606,27 @@ const Verification = () => {
         </>
       )}
 
+      {/* ── Preuve d'adresse ── */}
+      {step === "address_proof" && (
+        <>
+          <CaptureZone
+            file={addressProof}
+            onFile={setAddressProof}
+            onClear={() => setAddressProof(null)}
+            titleKey="kyc.proofTitle"
+            descKey="kyc.proofSub"
+            guideType="document"
+            t={t}
+          />
+          <p className="mt-4 text-[12.5px] leading-relaxed text-muted-foreground">{t("kyc.proofTip")}</p>
+          <div className="mt-5 flex justify-end">
+            <Button variant="appSolid" shape="rounded" size="lg" className="gap-2 px-6" disabled={!canNext()} onClick={goNext}>
+              {t("kyc.next")} <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </>
+      )}
+
       {/* ── Review ── */}
       {(step === "review" || step === "submitting") && (
         <>
@@ -537,11 +642,20 @@ const Verification = () => {
             </span>
           </div>
 
+          <div className="mb-3 rounded-xl border border-border px-4 py-3.5 text-[13px] leading-relaxed">
+            <p className="font-semibold">{t("kyc.infoTitle")}</p>
+            <p className="mt-1 text-muted-foreground">
+              {info.birthDate} · {info.occupation}<br />
+              {info.addressLine}, {info.city} ({info.province}) {info.postalCode.toUpperCase()}
+            </p>
+          </div>
+
           {/* Photos */}
-          <div className={cn("grid gap-3", needsBack ? "grid-cols-3" : "grid-cols-2")}>
+          <div className={cn("grid gap-3", needsBack ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
             <ReviewThumb file={idFront} label={t("kyc.front")} />
             {needsBack && <ReviewThumb file={idBack} label={t("kyc.back")} />}
             <ReviewThumb file={selfie} label={t("kyc.selfieLabel")} />
+            <ReviewThumb file={addressProof} label={t("kyc.proofLabel")} />
           </div>
 
           {error && (
@@ -559,7 +673,7 @@ const Verification = () => {
           <div className="mt-5 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => setStep("selfie")}
+              onClick={() => setStep("address_proof")}
               className="text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("kyc.editPhotos")}
@@ -593,7 +707,7 @@ const Verification = () => {
 function ReviewThumb({ file, label }: { file: File | null; label: string }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
-    if (!file) return;
+    if (!file || isPdfFile(file)) return;
     const u = URL.createObjectURL(file);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
@@ -605,7 +719,7 @@ function ReviewThumb({ file, label }: { file: File | null; label: string }) {
         <img src={url} alt={label} className="aspect-[4/3] w-full object-cover bg-secondary/30" />
       ) : (
         <div className="flex aspect-[4/3] items-center justify-center bg-secondary/30">
-          <Image className="h-5 w-5 text-muted-foreground/40" />
+          {isPdfFile(file) ? <FileText className="h-5 w-5 text-muted-foreground/60" /> : <Image className="h-5 w-5 text-muted-foreground/40" />}
         </div>
       )}
       <p className="border-t border-border bg-secondary/30 px-2.5 py-1.5 text-center text-[11px] font-semibold text-muted-foreground">{label}</p>

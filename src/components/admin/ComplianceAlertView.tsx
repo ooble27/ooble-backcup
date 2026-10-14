@@ -81,7 +81,7 @@ export default function ComplianceAlertView({ alert, alerts, orders, busy, onClo
   return (
     <Workspace title={`Alerte ${alert.ref}`} subtitle={`${meta.full} · ${alert.clientName}`} onClose={onClose} panes>
       <style>{CSS}</style>
-      <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:overflow-hidden" style={{ minHeight: 0 }}>
+      <div className="ws-split">
         {/* Ce qui s'est passé */}
         <WsPane flat style={{ fontFamily: FONT }}>
           <div key={alert.id} className="ca-col" style={{ padding: "12px 20px 32px", maxWidth: 760 }}>
@@ -223,7 +223,7 @@ export default function ComplianceAlertView({ alert, alerts, orders, busy, onClo
           </div>
 
           {open && (
-            <div style={{ position: "sticky", bottom: 0, padding: "14px 20px calc(18px + env(safe-area-inset-bottom, 0px)) 16px", background: C.ground }}>
+            <div className="ws-foot">
               {classifying ? (
                 <div style={{ display: "flex", gap: 8 }}>
                   <Button variant="ghost" disabled={busy} onClick={() => setClassifying(false)}>Annuler</Button>
