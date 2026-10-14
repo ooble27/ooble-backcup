@@ -80,7 +80,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
       .eq("resolved", false)
       .order("created_at", { ascending: false })
       .limit(20),
-    (supabase as any)
+    supabase
       .from("treasury_balance_snapshots")
       .select("balance_usdt, treasury_addresses(network, label, active)")
       .order("recorded_at", { ascending: false })
@@ -106,23 +106,23 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
       .select("order_id, previous_status, new_status, actor, note, created_at")
       .order("created_at", { ascending: false })
       .limit(30),
-    (supabase as any)
+    supabase
       .from("announcements")
       .select("kind, title_fr, body_fr, created_at")
       .eq("active", true)
       .order("created_at", { ascending: false })
       .limit(10),
-    (supabase as any)
+    supabase
       .from("maintenance_windows")
       .select("title_fr, body_fr, starts_at, ends_at, active")
       .order("starts_at", { ascending: false })
       .limit(5),
-    (supabase as any)
+    supabase
       .from("treasury_movements")
       .select("amount_usdt, tx_hash, reason, notes, created_at, from_address:treasury_addresses!from_address_id(label, network), to_address:treasury_addresses!to_address_id(label, network)")
       .order("created_at", { ascending: false })
       .limit(15),
-    (supabase as any)
+    supabase
       .from("admin_audit_log")
       .select("actor_email, action, entity_kind, entity_id, created_at")
       .order("created_at", { ascending: false })
@@ -223,7 +223,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
   }>;
 
   const unreadThreadIds = threadRows.filter((t) => t.has_unread).slice(0, 8).map((t) => t.id);
-  let messagesByThread: Record<string, Array<{
+  const messagesByThread: Record<string, Array<{
     direction: string;
     from_name: string | null;
     body_text: string | null;

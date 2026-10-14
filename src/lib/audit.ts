@@ -90,11 +90,11 @@ export async function logAdminAction(input: LogAdminActionInput): Promise<void> 
     const client = supabase as any;
     const { error } = await client.from("admin_audit_log").insert(row);
     if (error) {
-      // eslint-disable-next-line no-console
+       
       console.warn("[audit] insert failed:", error.message, input.action);
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.warn("[audit] unexpected error:", err);
   }
 }
@@ -180,7 +180,7 @@ export async function fetchAuditLog(
 
   const { data, count, error } = await q;
   if (error) {
-    // eslint-disable-next-line no-console
+     
     console.warn("[audit] fetch failed:", error.message);
     return { rows: [], total: 0 };
   }

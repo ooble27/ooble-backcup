@@ -236,10 +236,7 @@ export interface ComplianceAlertsCount {
 }
 
 export async function getComplianceAlertsCount(): Promise<ComplianceAlertsCount> {
-  // Table récente, absente des types générés.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as unknown as { from: (t: string) => any };
-  const data = await fetchAll<{ type: string }>((a, b) => db
+  const data = await fetchAll<{ type: string }>((a, b) => supabase
     .from("compliance_alerts")
     .select("type")
     .in("status", ["nouveau", "en_cours"])

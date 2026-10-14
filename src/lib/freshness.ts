@@ -12,6 +12,7 @@
 
 const CHECK_EVERY = 3 * 60_000;
 const IDLE_BEFORE_RELOAD = 60_000;
+const LONG_AWAY = 5 * 60_000;
 
 let pending = false;
 let lastInput = Date.now();
@@ -50,12 +51,18 @@ export function startFreshnessCheck() {
   if (import.meta.env.DEV || typeof window === "undefined") return;
 
   // Retour sur l'app : on vérifie, et on recharge tout de suite si une version attend (rien n'est en cours de saisie).
+  // Après une longue absence, le back-office reste masqué le temps de cette vérification : on ne revoit jamais
+  // une ancienne version s'afficher une seconde avant le rechargement.
+  let hiddenAt = 0;
   const onVisible = async () => {
-    if (document.visibilityState !== "visible") return;
+    if (document.visibilityState !== "visible") { hiddenAt = Date.now(); return; }
+    const veil = hiddenAt > 0 && Date.now() - hiddenAt > LONG_AWAY && location.pathname.startsWith("/admin");
+    if (veil) document.documentElement.style.visibility = "hidden";
     // Le navigateur revérifie aussi le service worker : s'il a changé, il recharge les vieilles fenêtres du back-office.
     void navigator.serviceWorker?.getRegistration().then((r) => r?.update()).catch(() => undefined);
-    await check();
-    if (pending) reload();
+    await Promise.race([check(), new Promise((r) => window.setTimeout(r, 2500))]);
+    if (pending) { reload(); return; }
+    if (veil) document.documentElement.style.visibility = "";
   };
   document.addEventListener("visibilitychange", onVisible);
   window.addEventListener("pageshow", (e) => { if ((e as PageTransitionEvent).persisted) void onVisible(); });

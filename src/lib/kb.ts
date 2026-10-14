@@ -23,20 +23,19 @@ export interface DocArticle {
   updatedAt: string;
 }
 
-// La table est récente : elle n'est pas encore dans les types générés.
-const table = () => (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }).from("kb_articles");
+const table = () => supabase.from("kb_articles");
 
-const map = (r: Record<string, unknown>): DocArticle => ({
-  id: r.id as string,
-  slug: r.slug as string,
+const map = (r: { id: string; slug: string; section: string; category: string | null; title: string; summary: string | null; body: string | null; position: number | null; audience: string; updated_at: string }): DocArticle => ({
+  id: r.id,
+  slug: r.slug,
   section: r.section as DocSection,
-  category: (r.category as string) ?? "",
-  title: r.title as string,
-  summary: (r.summary as string) ?? "",
-  body: (r.body as string) ?? "",
-  position: (r.position as number) ?? 0,
+  category: r.category ?? "",
+  title: r.title,
+  summary: r.summary ?? "",
+  body: r.body ?? "",
+  position: r.position ?? 0,
   audience: r.audience === "admin" ? "admin" : "staff",
-  updatedAt: r.updated_at as string,
+  updatedAt: r.updated_at,
 });
 
 export async function fetchDocs(section: DocSection): Promise<DocArticle[]> {
@@ -46,7 +45,7 @@ export async function fetchDocs(section: DocSection): Promise<DocArticle[]> {
     .eq("archived", false)
     .order("position", { ascending: true });
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Record<string, unknown>[]).map(map);
+  return (data ?? []).map(map);
 }
 
 export interface DocDraft {
@@ -67,7 +66,7 @@ export async function createDoc(section: DocSection, draft: DocDraft, position: 
     .select("id, slug, section, category, title, summary, body, position, audience, updated_at")
     .single();
   if (error || !data) throw new Error(error?.message ?? "Enregistrement impossible.");
-  return map(data as Record<string, unknown>);
+  return map(data);
 }
 
 export async function updateDoc(id: string, draft: DocDraft, userId?: string): Promise<DocArticle> {
@@ -77,7 +76,7 @@ export async function updateDoc(id: string, draft: DocDraft, userId?: string): P
     .select("id, slug, section, category, title, summary, body, position, audience, updated_at")
     .single();
   if (error || !data) throw new Error(error?.message ?? "Enregistrement impossible.");
-  return map(data as Record<string, unknown>);
+  return map(data);
 }
 
 export async function archiveDoc(id: string, userId?: string): Promise<void> {

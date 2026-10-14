@@ -4,7 +4,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, Power, BookUser, Menu, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown,
+  LayoutDashboard, Bell, Mail, Power, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -44,7 +44,6 @@ import { prefetchClient } from "@/lib/clientProfileCache";
 import { prefetchOrder } from "@/lib/orderDetailCache";
 
 /** Téléphone : navigation en cadran (false = ancien menu latéral). */
-const DIAL_NAV = true;
 
 export type { TabId };
 
@@ -119,7 +118,6 @@ const SHELL_CSS = `
 .sh-sub > div { overflow: hidden; min-height: 0 }
 .sh-chev { transition: transform .22s cubic-bezier(.22,1,.36,1) }
 @media (prefers-reduced-motion: reduce) { .sh-sub, .sh-chev { transition: none } }
-@keyframes sh-drawer { from { transform: translateX(-24px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes sh-page { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 /* Entrée de page, comme Campagnes : le contenu est déjà là (cache), il monte en douceur bloc par bloc,
    les grands titres arrivent un peu après, les graphiques se dessinent de gauche à droite.
@@ -170,7 +168,6 @@ const AdminPortal = () => {
   const [loading, setLoading] = useState(() => !peek("orders"));
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
-  const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const [vw, vh] = useViewport();
@@ -204,7 +201,6 @@ const AdminPortal = () => {
     setTabState(id);
     setSelected(null);
     setClientView(null);
-    setDrawer(false);
     const url = new URL(window.location.href);
     url.searchParams.set("tab", id);
     url.searchParams.delete("doc");
@@ -489,149 +485,8 @@ const AdminPortal = () => {
 
   const panel = vw >= 768; // même seuil que le mode « drawer »
 
-  return (
-    /* Ordinateur et tablette : tout le back-office tient dans un conteneur fixe, pleine largeur, de couleur unie.
-       C'est ce que WebKit cherche en haut de l'écran : il reprend cette couleur au lieu de flouter la barre
-       d'état des apps installées (PWA, iOS 26). La page elle-même ne défile plus : rien ne passe dessous. */
-    <div className="admin-scope" style={panel
-      ? { position: "fixed", inset: 0, overflow: "hidden", background: C.ground, color: C.t1, fontFamily: FONT }
-      : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
-      {panel && (
-        <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
-          {sidebar(rail)}
-        </aside>
-      )}
-
-      {DIAL_NAV && mode === "drawer" && (
-        <DialNav current={tab} onSelect={(id) => setTab(id as TabId)}
-          items={visibleGroups.flatMap((g) => g.items).map((it) => ({ id: it.id, label: it.label, desc: it.desc, icon: it.icon, badge: badges[it.id] }))} />
-      )}
-      {!DIAL_NAV && drawer && mode === "drawer" && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 80 }}>
-          {/* Sans voile sombre : iOS ne pourrait pas assombrir la barre d'état, une bande claire resterait en haut. */}
-          <div onClick={() => setDrawer(false)} style={{ position: "absolute", inset: 0, background: "transparent" }} />
-          {/* Toute la hauteur, de la couleur de la page : le haut se fond dans la barre d'état, aucune bande. */}
-          <aside style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 84, background: C.bg, borderRadius: "0 0 22px 0", boxShadow: "8px 0 32px -12px rgba(0,0,0,.28)", paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", animation: "sh-drawer .22s cubic-bezier(.22,1,.36,1)" }}>
-            {sidebar(true)}
-          </aside>
-        </div>
-      )}
-
-      {panel ? (
-        /* Écrin : posé sur le fond, coins arrondis, aucun trait ne croise la barre latérale. */
-        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 1px" }}>
-          <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
-            {/* L'en-tête (fil d'Ariane, recherche) défile avec la page : aucun bandeau ne cache le haut de l'écrin. */}
-            <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-            <header style={panel
-              ? { flexShrink: 0, background: C.bg }
-              : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
-              <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: mode === "drawer" ? "0 12px" : "0 28px" }}>
-                {mode === "drawer" && (
-                  <button type="button" className="sh-icon" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}
-                    style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "transparent", color: C.t1, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-                    <Menu style={{ width: 19, height: 19 }} />
-                  </button>
-                )}
-                <ol aria-label="Fil d'Ariane" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1, fontSize: 13.5 }}>
-                  {crumbs.map((c, i) => {
-                    const last = i === crumbs.length - 1;
-                    const hideOnPhone = mode === "drawer" && i < crumbs.length - 1;
-                    return (
-                      <li key={i} style={{ display: hideOnPhone ? "none" : "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                        {i > 0 && mode !== "drawer" && <ChevronRight style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />}
-                        {c.onClick
-                          ? <button type="button" onClick={c.onClick} style={{ all: "unset", cursor: "pointer", color: C.t3, whiteSpace: "nowrap" }}>{c.label}</button>
-                          : <span style={{ color: last ? C.t1 : C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>}
-                      </li>
-                    );
-                  })}
-                </ol>
-                {/* Un simple bouton : la recherche s'ouvre au centre de l'écran (⌘K partout). */}
-                <button type="button" className="sh-round" onClick={() => setPalette(true)} aria-label="Rechercher (⌘K)" title="Rechercher · ⌘K">
-                  <Search style={{ width: 17, height: 17 }} strokeWidth={1.9} />
-                </button>
-              </div>
-            </header>
-              <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
-                style={{ maxWidth: 1320, margin: "0 auto", padding: mode === "drawer" ? "24px 16px 96px" : "32px 32px 96px" }}>
-                {clientView ? (
-                  <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
-                ) : selected ? (
-                  <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
-                ) : (
-                  <>
-                    {tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}
-                    {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
-                      <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
-                    ) : (
-                      <>
-                        {tab === "dashboard" && <KpiDashboard orders={orders} onNavigate={navigateTab} />}
-                        {tab === "queue" && <OrdersQueue orders={orders} onOpen={openOrder} onPatch={patch} />}
-                        {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}
-                        {tab === "clients" && <ClientsPanel onOpen={openClient} />}
-                        {tab === "kyc" && <KycPanel />}
-                        {tab === "accounting" && <AccountingPanel onOpenOrder={openOrderById} />}
-                        {tab === "compliance" && <CompliancePanel orders={orders} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClient : undefined} />}
-                        {tab === "settlement" && <SettlementPanel />}
-                        {tab === "mailbox" && <MailboxPanel onShowClient={allowedTabs.has("clients") ? showClient : undefined} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} />}
-                        {tab === "campaigns" && <CampaignsPanel />}
-                        {tab === "announcements" && <AnnouncementsPanel />}
-                        {tab === "team" && (
-                          <>
-                            <TeamPanel />
-                            <Section title="Journal d'audit" description="Chaque action de l'équipe, horodatée et non modifiable (exigence CANAFE).">
-                              <AuditLogPanel />
-                            </Section>
-                          </>
-                        )}
-                        {tab === "platform" && <PlatformPanel />}
-                        {tab === "kb" && <DocsPanel section="kb" />}
-                        {tab === "manual" && <DocsPanel section="manual" />}
-                        {tab === "techdocs" && <DocsPanel section="tech" />}
-                      </>
-                    )}
-                  </>
-                )}
-              </main>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div style={{ minWidth: 0 }}>
-        {/* Téléphone : pas de barre ni de bande ; deux boutons ronds et le nom de la page, qui défilent avec elle. */}
-        <header style={{ paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
-          <div style={{ height: 64, display: "flex", alignItems: "center", gap: 12, padding: "0 14px 0 16px" }}>
-            {!DIAL_NAV && (
-              <button type="button" className="sh-round" aria-label="Ouvrir le menu" onClick={() => setDrawer(true)}>
-                <Menu style={{ width: 18, height: 18 }} strokeWidth={1.9} />
-              </button>
-            )}
-            {/* Nom de la page à gauche (rien d'autre n'occupe ce côté). */}
-            <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "flex-start" }}>
-              {(() => {
-                const last = crumbs[crumbs.length - 1];
-                const back = crumbs.length > 1 ? crumbs[crumbs.length - 2] : undefined;
-                return back?.onClick ? (
-                  <button type="button" onClick={back.onClick} aria-label={`Retour : ${back.label}`}
-                    style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%", marginLeft: -4, fontSize: 15, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em" }}>
-                    <ChevronLeft style={{ width: 18, height: 18, color: C.t2, flexShrink: 0 }} />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
-                  </button>
-                ) : (
-                  <span style={{ minWidth: 0, fontSize: 15, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
-                );
-              })()}
-            </div>
-            <button type="button" className="sh-round" onClick={() => setPalette(true)} aria-label="Rechercher">
-              <Search style={{ width: 17, height: 17 }} strokeWidth={1.9} />
-            </button>
-          </div>
-        </header>
-
-        <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
-          style={{ maxWidth: 1320, margin: "0 auto", padding: mode === "drawer" ? "24px 16px 96px" : "32px 32px 96px" }}>
-          {clientView ? (
+  // Contenu de la page, le même sur ordinateur et sur téléphone.
+  const page = clientView ? (
             <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
           ) : selected ? (
             <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
@@ -668,7 +523,91 @@ const AdminPortal = () => {
                 </>
               )}
             </>
-          )}
+          );
+
+  return (
+    /* Ordinateur et tablette : tout le back-office tient dans un conteneur fixe, pleine largeur, de couleur unie.
+       C'est ce que WebKit cherche en haut de l'écran : il reprend cette couleur au lieu de flouter la barre
+       d'état des apps installées (PWA, iOS 26). La page elle-même ne défile plus : rien ne passe dessous. */
+    <div className="admin-scope" style={panel
+      ? { position: "fixed", inset: 0, overflow: "hidden", background: C.ground, color: C.t1, fontFamily: FONT }
+      : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
+      {panel && (
+        <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
+          {sidebar(rail)}
+        </aside>
+      )}
+
+      {mode === "drawer" && (
+        <DialNav current={tab} onSelect={(id) => setTab(id as TabId)}
+          items={visibleGroups.flatMap((g) => g.items).map((it) => ({ id: it.id, label: it.label, desc: it.desc, icon: it.icon, badge: badges[it.id] }))} />
+      )}
+      {panel ? (
+        /* Écrin : posé sur le fond, coins arrondis, aucun trait ne croise la barre latérale. */
+        <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 1px" }}>
+          <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
+            {/* L'en-tête (fil d'Ariane, recherche) défile avec la page : aucun bandeau ne cache le haut de l'écrin. */}
+            <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <header style={panel
+              ? { flexShrink: 0, background: C.bg }
+              : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
+              <div style={{ height: 60, display: "flex", alignItems: "center", gap: 10, padding: "0 28px" }}>
+                <ol aria-label="Fil d'Ariane" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1, fontSize: 13.5 }}>
+                  {crumbs.map((c, i) => {
+                    const last = i === crumbs.length - 1;
+                    return (
+                      <li key={i} style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                        {i > 0 && <ChevronRight style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />}
+                        {c.onClick
+                          ? <button type="button" onClick={c.onClick} style={{ all: "unset", cursor: "pointer", color: C.t3, whiteSpace: "nowrap" }}>{c.label}</button>
+                          : <span style={{ color: last ? C.t1 : C.t3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>}
+                      </li>
+                    );
+                  })}
+                </ol>
+                {/* Un simple bouton : la recherche s'ouvre au centre de l'écran (⌘K partout). */}
+                <button type="button" className="sh-round" onClick={() => setPalette(true)} aria-label="Rechercher (⌘K)" title="Rechercher · ⌘K">
+                  <Search style={{ width: 17, height: 17 }} strokeWidth={1.9} />
+                </button>
+              </div>
+            </header>
+              <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
+                style={{ maxWidth: 1320, margin: "0 auto", padding: "32px 32px 96px" }}>
+                {page}
+              </main>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ minWidth: 0 }}>
+        {/* Téléphone : pas de barre ni de bande ; deux boutons ronds et le nom de la page, qui défilent avec elle. */}
+        <header style={{ paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
+          <div style={{ height: 64, display: "flex", alignItems: "center", gap: 12, padding: "0 14px 0 16px" }}>
+            {/* Nom de la page à gauche (rien d'autre n'occupe ce côté). */}
+            <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "flex-start" }}>
+              {(() => {
+                const last = crumbs[crumbs.length - 1];
+                const back = crumbs.length > 1 ? crumbs[crumbs.length - 2] : undefined;
+                return back?.onClick ? (
+                  <button type="button" onClick={back.onClick} aria-label={`Retour : ${back.label}`}
+                    style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%", marginLeft: -4, fontSize: 15, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em" }}>
+                    <ChevronLeft style={{ width: 18, height: 18, color: C.t2, flexShrink: 0 }} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
+                  </button>
+                ) : (
+                  <span style={{ minWidth: 0, fontSize: 15, fontWeight: 500, color: C.t1, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last?.label}</span>
+                );
+              })()}
+            </div>
+            <button type="button" className="sh-round" onClick={() => setPalette(true)} aria-label="Rechercher">
+              <Search style={{ width: 17, height: 17 }} strokeWidth={1.9} />
+            </button>
+          </div>
+        </header>
+
+        <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
+          style={{ maxWidth: 1320, margin: "0 auto", padding: "24px 16px 96px" }}>
+          {page}
         </main>
         </div>
       )}

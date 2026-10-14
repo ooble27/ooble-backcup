@@ -107,7 +107,7 @@ const TRADES: Bi[] = [
   { fr: "Consultants", en: "Consultants" }, { fr: "Développeurs", en: "Developers" }, { fr: "Événementiel", en: "Events" },
 ];
 
-const nf = (n: number, lang: string) => (lang === "en" ? n.toLocaleString("en-CA") : n.toLocaleString("fr-CA").replace(/ | /g, " "));
+const nf = (n: number, lang: string) => (lang === "en" ? n.toLocaleString("en-CA") : n.toLocaleString("fr-CA").replace(/[\u202f\u00a0]/g, " "));
 
 const Entreprises = () => {
   const [lang] = useLang();

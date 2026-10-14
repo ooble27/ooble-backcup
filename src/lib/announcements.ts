@@ -2,11 +2,7 @@
  * Ooble — bannière annonce + fenêtres de maintenance.
  *
  * Tables : `announcements`, `maintenance_windows` (créées par la migration
- * 20260804000000_announcements_and_maintenance.sql).
- *
- * Les types Supabase générés (`types.ts`) ne connaissent pas encore ces
- * tables ; on décrit ici la forme de la ligne et on caste `supabase as any`
- * pour les appels — inoffensif car les policies RLS restent l'autorité.
+ * 20260804000000_announcements_and_maintenance.sql). Les policies RLS restent l'autorité.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,39 +37,12 @@ export interface MaintenanceWindow {
   updated_at: string;
 }
 
-// Certains projets n'ont pas encore les types générés à jour ; on caste
-// localement pour éviter de mentir sur toute l'API Supabase.
-type AnySb = {
-  from: (t: string) => {
-    select: (cols?: string) => AnySb;
-    insert: (values: unknown) => AnySb;
-    update: (values: unknown) => AnySb;
-    delete: () => AnySb;
-    eq: (col: string, val: unknown) => AnySb;
-    neq: (col: string, val: unknown) => AnySb;
-    order: (col: string, opts?: { ascending?: boolean }) => AnySb;
-    limit: (n: number) => AnySb;
-    maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
-    single: () => Promise<{ data: unknown; error: unknown }>;
-    then: <T>(cb: (r: { data: unknown; error: unknown }) => T) => Promise<T>;
-  };
-  channel: (name: string) => {
-    on: (event: string, filter: unknown, cb: () => void) => AnyChan;
-    subscribe: () => AnyChan;
-  };
-  removeChannel: (c: AnyChan) => void;
-};
-type AnyChan = {
-  on: (event: string, filter: unknown, cb: () => void) => AnyChan;
-  subscribe: () => AnyChan;
-};
-const sb = supabase as unknown as AnySb;
 
 // ─────────────────────────── Lecture publique ───────────────────────────
 
 /** Récupère l'annonce active (lecture publique — RLS l'autorise). */
 export async function fetchActiveAnnouncement(): Promise<Announcement | null> {
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("announcements")
     .select("*")
     .eq("active", true)
@@ -85,7 +54,7 @@ export async function fetchActiveAnnouncement(): Promise<Announcement | null> {
 
 /** Récupère la fenêtre de maintenance active. */
 export async function fetchActiveMaintenance(): Promise<MaintenanceWindow | null> {
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("maintenance_windows")
     .select("*")
     .eq("active", true)
@@ -118,7 +87,7 @@ export function useLiveNotices() {
     };
     refresh();
 
-    const ch = sb
+    const ch = supabase
       .channel("public-notices")
       .on("postgres_changes", { event: "*", schema: "public", table: "announcements" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "maintenance_windows" }, refresh)
@@ -132,7 +101,7 @@ export function useLiveNotices() {
     return () => {
       active = false;
       window.clearInterval(t);
-      sb.removeChannel(ch);
+      supabase.removeChannel(ch);
     };
   }, []);
 
@@ -142,7 +111,7 @@ export function useLiveNotices() {
 // ─────────────────────────── CRUD admin ───────────────────────────
 
 export async function listAnnouncements(): Promise<Announcement[]> {
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("announcements")
     .select("*")
     .order("created_at", { ascending: false });
@@ -151,7 +120,7 @@ export async function listAnnouncements(): Promise<Announcement[]> {
 }
 
 export async function listMaintenanceWindows(): Promise<MaintenanceWindow[]> {
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("maintenance_windows")
     .select("*")
     .order("created_at", { ascending: false });
@@ -175,11 +144,11 @@ export type AnnouncementDraft = {
  */
 export async function createAnnouncement(draft: AnnouncementDraft): Promise<{ error?: string }> {
   if (draft.active) {
-    const { error: dErr } = await sb.from("announcements").update({ active: false }).eq("active", true);
+    const { error: dErr } = await supabase.from("announcements").update({ active: false }).eq("active", true);
     if (dErr) return { error: String((dErr as { message?: string }).message ?? dErr) };
   }
   const { data: userRes } = await supabase.auth.getUser();
-  const { error } = await sb
+  const { error } = await supabase
     .from("announcements")
     .insert({ ...draft, created_by: userRes.user?.id ?? null });
   return error ? { error: String((error as { message?: string }).message ?? error) } : {};
@@ -191,19 +160,19 @@ export async function updateAnnouncement(
 ): Promise<{ error?: string }> {
   // Si on active cette annonce, désactive toutes les autres d'abord.
   if (patch.active === true) {
-    const { error: dErr } = await sb
+    const { error: dErr } = await supabase
       .from("announcements")
       .update({ active: false })
       .eq("active", true)
       .neq("id", id);
     if (dErr) return { error: String((dErr as { message?: string }).message ?? dErr) };
   }
-  const { error } = await sb.from("announcements").update(patch).eq("id", id);
+  const { error } = await supabase.from("announcements").update(patch).eq("id", id);
   return error ? { error: String((error as { message?: string }).message ?? error) } : {};
 }
 
 export async function deleteAnnouncement(id: string): Promise<{ error?: string }> {
-  const { error } = await sb.from("announcements").delete().eq("id", id);
+  const { error } = await supabase.from("announcements").delete().eq("id", id);
   return error ? { error: String((error as { message?: string }).message ?? error) } : {};
 }
 
@@ -219,11 +188,11 @@ export type MaintenanceDraft = {
 
 export async function createMaintenance(draft: MaintenanceDraft): Promise<{ error?: string }> {
   if (draft.active) {
-    const { error: dErr } = await sb.from("maintenance_windows").update({ active: false }).eq("active", true);
+    const { error: dErr } = await supabase.from("maintenance_windows").update({ active: false }).eq("active", true);
     if (dErr) return { error: String((dErr as { message?: string }).message ?? dErr) };
   }
   const { data: userRes } = await supabase.auth.getUser();
-  const { error } = await sb
+  const { error } = await supabase
     .from("maintenance_windows")
     .insert({ ...draft, created_by: userRes.user?.id ?? null });
   return error ? { error: String((error as { message?: string }).message ?? error) } : {};
@@ -234,18 +203,18 @@ export async function updateMaintenance(
   patch: Partial<MaintenanceDraft>,
 ): Promise<{ error?: string }> {
   if (patch.active === true) {
-    const { error: dErr } = await sb
+    const { error: dErr } = await supabase
       .from("maintenance_windows")
       .update({ active: false })
       .eq("active", true)
       .neq("id", id);
     if (dErr) return { error: String((dErr as { message?: string }).message ?? dErr) };
   }
-  const { error } = await sb.from("maintenance_windows").update(patch).eq("id", id);
+  const { error } = await supabase.from("maintenance_windows").update(patch).eq("id", id);
   return error ? { error: String((error as { message?: string }).message ?? error) } : {};
 }
 
 export async function deleteMaintenance(id: string): Promise<{ error?: string }> {
-  const { error } = await sb.from("maintenance_windows").delete().eq("id", id);
+  const { error } = await supabase.from("maintenance_windows").delete().eq("id", id);
   return error ? { error: String((error as { message?: string }).message ?? error) } : {};
 }

@@ -38,7 +38,7 @@ export default function ClientCard({ clientId, name, email, onShowClient, onWrit
   const last = notes?.[0];
 
   return (
-    <div style={{ display: "grid", gap: 12, fontFamily: FONT }}>
+    <div style={{ display: "grid", gap: 12, minWidth: 0, fontFamily: FONT }}>
       <button type="button" className="ui-lift" onClick={() => clientId && onShowClient?.(clientId)} disabled={!clientId || !onShowClient}
         style={{ all: "unset", boxSizing: "border-box", width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, background: C.hover2, cursor: clientId && onShowClient ? "pointer" : "default", fontFamily: FONT }}>
         <Avatar name={name || email} size={38} />

@@ -57,7 +57,7 @@ export function saveCampaign(record: CampaignRecord): void {
   const all = loadCampaigns();
   all.unshift(record);
   const trimmed = all.slice(0, MAX);
-  try { window.localStorage.setItem(KEY, JSON.stringify(trimmed)); } catch {}
+  try { window.localStorage.setItem(KEY, JSON.stringify(trimmed)); } catch { /* stockage indisponible : la liste reste en mémoire */ }
 }
 
 export const SEGMENT_LABEL: Record<CampaignSegment, string> = {

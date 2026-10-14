@@ -32,7 +32,7 @@ import { fetchCached, peek, put } from "@/lib/adminCache";
 import {
   Send, Mail, Inbox, Eye, Bold, Italic,
   List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus,
-  X, User, Users, Wand2, Loader2, ArrowLeft, Reply, MailOpen,
+  X, User, Users, Wand2, Loader2, ArrowLeft, Reply, MailOpen, Trash2,
   ChevronRight, Hand,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -51,7 +51,7 @@ import {
   substituteVars, extractRemainingVars, CLIENT_VARS,
 } from "@/lib/mailComposer";
 import {
-  fetchThreads, fetchMessages, markThreadRead, setThreadState, assignThread, SUPPORT_LABEL, type SupportState,
+  fetchThreads, fetchMessages, markThreadRead, removeThread, assignThread, SUPPORT_LABEL,
   createThread, insertOutboundMessage, threadReplyTo, countUnread, fetchSentMessages, type SentRow,
   type MailThread, type MailMessage, type MailboxId,
 } from "@/lib/mailThreads";
@@ -488,6 +488,7 @@ const dateFmt = new Intl.DateTimeFormat("fr-CA", {
   day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
 });
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
+const CLIENT_VAR_SET = new Set<string>(CLIENT_VARS);
 
 // ────────────────────────────────────────────────────────────
 // Composer libre
@@ -568,9 +569,8 @@ function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, rep
 
   // Variables `{{xxx}}` non-client encore dans le texte : on prévient
   // l'agent qu'elles partiront telles quelles s'il n'y touche pas.
-  const clientVarSet = new Set<string>(CLIENT_VARS);
   const remainingVars = useMemo(
-    () => extractRemainingVars(`${subject}\n${body}`).filter((v) => !clientVarSet.has(v)),
+    () => extractRemainingVars(`${subject}\n${body}`).filter((v) => !CLIENT_VAR_SET.has(v)),
     [subject, body],
   );
 
@@ -1338,7 +1338,7 @@ function snippet(text: string | null, max = 100): string {
 
 /* ─────────────────── Réception : le poste Support ─────────────────── */
 
-type InboxFilter = "todo" | "waiting" | "resolved" | "mine";
+type InboxFilter = "todo" | "all";
 
 /** « 3 min », « 2 h », « 3 j » depuis une date. */
 function since(iso: string | null): string {
@@ -1358,9 +1358,9 @@ function findRefs(texts: (string | null | undefined)[]): string[] {
 }
 
 
-function Conversation({ thread, messages, loading, me, onBack, onReply, onState, onAssign, onShowClient, onOpenOrder }: {
+function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove, onAssign, onShowClient, onOpenOrder }: {
   thread: MailThread; messages: MailMessage[]; loading: boolean; me: { id: string; name: string } | null;
-  onBack?: () => void; onReply: (ref?: string) => void; onState: (s: SupportState) => void; onAssign: (who: { id: string; name: string } | null) => void;
+  onBack?: () => void; onReply: (ref?: string) => void; onRemove: () => void; onAssign: (who: { id: string; name: string } | null) => void;
   onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
 }) {
   const refs = findRefs([thread.subject, ...messages.map((m) => m.bodyText ?? snippet(m.bodyHtml, 4000))]);
@@ -1388,19 +1388,13 @@ function Conversation({ thread, messages, loading, me, onBack, onReply, onState,
         ) : me && (
           <Button size="sm" onClick={() => onAssign(me)} icon={<Hand style={{ width: 14, height: 14 }} />}>Prendre</Button>
         )}
+        <Button size="sm" variant="ghost" aria-label="Supprimer la conversation" title="Supprimer la conversation" onClick={onRemove} icon={<Trash2 style={{ width: 15, height: 15 }} />} />
         <Button size="sm" variant="primary" onClick={() => onReply(order?.ref ?? refs[0])} icon={<Reply style={{ width: 14, height: 14 }} strokeWidth={2} />}>Répondre</Button>
       </div>
 
-      {/* État de la conversation : en texte souligné, d'un clic. */}
-      <nav aria-label="État" style={{ display: "flex", gap: 18, flexWrap: "wrap", padding: "4px 20px 12px" }}>
-        {(["todo", "waiting", "resolved"] as SupportState[]).map((st) => (
-          <button key={st} type="button" className="ly-f" aria-pressed={thread.supportState === st} onClick={() => onState(st)}><span>{SUPPORT_LABEL[st]}</span></button>
-        ))}
-      </nav>
-
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 20px 24px" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "8px 20px 24px" }}>
         {/* Le client et la commande dont il parle, avant de lire. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 12, marginBottom: 10 }}>
           <ClientCard clientId={thread.clientId} name={thread.clientName ?? ""} email={thread.clientEmail} onShowClient={onShowClient} compact />
           {refs.length > 0 && (
             order ? (
@@ -1496,12 +1490,15 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
     }
   };
 
-  const changeState = async (st: SupportState) => {
-    if (!selected) return;
-    const prev = selected.supportState;
-    patchLocal(selected.id, { supportState: st });
-    const res = await setThreadState(selected.id, st);
-    if (res.error) { patchLocal(selected.id, { supportState: prev }); setErr(res.error); }
+  // Supprimer : la conversation disparaît tout de suite ; elle revient si la base refuse.
+  const remove = async () => {
+    if (!selected || !confirm("Supprimer cette conversation ? Elle disparaîtra de la messagerie.")) return;
+    const gone = selected;
+    setThreads((prev) => { const next = prev.filter((x) => x.id !== gone.id); put("mail.threads", next); return next; });
+    setSelectedId(null);
+    const res = await removeThread(gone.id, me?.id ?? null);
+    if (res.error) { setErr(res.error); void reload(); }
+    onCount();
   };
   const changeAssign = async (who: { id: string; name: string } | null) => {
     if (!selected) return;
@@ -1513,25 +1510,19 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
 
   const needle = q.trim().toLowerCase();
   const matches = (t: MailThread) => !needle || `${t.clientName ?? ""} ${t.clientEmail} ${t.subject}`.toLowerCase().includes(needle);
-  const counts = {
-    todo: threads.filter((t) => t.supportState === "todo").length,
-    waiting: threads.filter((t) => t.supportState === "waiting").length,
-    resolved: threads.filter((t) => t.supportState === "resolved").length,
-    mine: threads.filter((t) => me && t.assignedTo === me.id && t.supportState !== "resolved").length,
-  };
-  // À répondre : celui qui attend depuis le plus longtemps en premier. Ailleurs : le plus récent en premier.
-  const rank = (t: MailThread) => (t.supportState === "todo" ? 0 : t.supportState === "waiting" ? 1 : 2);
+  const counts = { todo: threads.filter((t) => t.supportState === "todo").length, all: threads.length };
+  // À répondre : celui qui attend depuis le plus longtemps en premier. Toutes : la plus récente en premier.
   const list = threads
-    .filter((t) => (filter === "mine" ? me && t.assignedTo === me.id && t.supportState !== "resolved" : t.supportState === filter))
+    .filter((t) => filter === "all" || t.supportState === "todo")
     .filter(matches)
-    .sort((a, b) => rank(a) - rank(b) || (a.supportState === "todo" && b.supportState === "todo"
+    .sort((a, b) => (filter === "todo"
       ? (a.lastInboundAt ?? a.lastMessageAt).localeCompare(b.lastInboundAt ?? b.lastMessageAt)
       : b.lastMessageAt.localeCompare(a.lastMessageAt)));
 
   const conversation = selected && (
     <Conversation thread={selected} messages={messages} loading={msgsLoading} me={me}
       onBack={wide ? undefined : () => setSelectedId(null)}
-      onReply={(ref) => onReply(selected, ref)} onState={changeState} onAssign={changeAssign}
+      onReply={(ref) => onReply(selected, ref)} onRemove={remove} onAssign={changeAssign}
       onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
   );
 
@@ -1541,7 +1532,7 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
       <div style={{ display: "grid", gap: 12, padding: "12px 12px 12px" }}>
         <SearchField value={q} onChange={setQ} placeholder="Client, courriel, objet" width={600} />
-        <FilterChips value={filter} onChange={setFilter} options={([["todo", "À répondre"], ["waiting", "En attente"], ["mine", "Les miennes"], ["resolved", "Résolues"]] as [InboxFilter, string][])
+        <FilterChips value={filter} onChange={setFilter} options={([["todo", "À répondre"], ["all", "Toutes"]] as [InboxFilter, string][])
           .map(([id, label]) => ({ id, label, count: counts[id], alert: id === "todo" }))} />
       </div>
       {err && <div style={{ padding: "0 12px 10px" }}><Notice tone="err">{err}</Notice></div>}
@@ -1671,7 +1662,7 @@ const MailboxPanel = ({ onShowClient, onOpenOrder }: { onShowClient?: (id: strin
     if (!d) return;
     const first = d.fullName.split(/\s+/)[0] || d.email.split("@")[0];
     openComposer({ recipients: [{ id: d.clientId, email: d.email, firstName: first, fullName: d.fullName }], cc: "", subject: d.subject, body: d.body }, `Message à ${d.fullName || d.email}`);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadSnippet = (s: Snippet) => openComposer({ recipients: [], cc: "", subject: s.subject, body: s.body }, s.name);
 

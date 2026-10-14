@@ -73,7 +73,6 @@ const CAPS = {
   "settlement.configure": ["admin"],
   "kyc.decide": ["admin", "kyc_reviewer", "compliance"],
   "register.export": ["admin", "compliance"],
-  "clients.manage": ["admin"],
   "docs.edit": ["admin"],
   "accounting.close": ["admin", "accounting"],
   "accounting.reopen": ["admin"],

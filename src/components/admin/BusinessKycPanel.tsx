@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { claimReview } from "@/lib/adminKyc";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { Building2, Check, X } from "lucide-react";
-import { decideKyb, fetchKyb, getKybDocumentUrl, resetKyb, type KybRequest } from "@/lib/adminKyb";
+import { decideKyb, fetchKyb, getKybDocumentUrl, type KybRequest } from "@/lib/adminKyb";
 import type { KybDocKey, OwnerRole } from "@/lib/kyb";
 import BusinessMark from "@/components/app/BusinessMark";
 import { C, FONT } from "./adminTheme";
@@ -34,10 +34,9 @@ const fmtDate = (iso: string) => {
 };
 
 const BusinessKycPanel = () => {
-  // Décider : Administrateur, Vérification, Conformité. Réinitialiser un dossier : Administrateur.
+  // Décider : Administrateur, Vérification, Conformité.
   const can = useCan();
   const canDecide = can("kyc.decide");
-  const isAdmin = can("clients.manage");
   const { user } = useAuth();
   const me = user ? { id: user.id, name: user.name || user.email || "Équipe" } : null;
   const [rows, setRows] = useState<KybRequest[]>(() => peek<KybRequest[]>("kyb")?.value ?? []);
@@ -48,7 +47,6 @@ const BusinessKycPanel = () => {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
   const load = useCallback((p: string) => getKybDocumentUrl(p), []);
 
   useEffect(() => {
@@ -74,7 +72,7 @@ const BusinessKycPanel = () => {
 
   const patch = (id: string, changes: Partial<KybRequest>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...changes } : r)));
   const open = (r: KybRequest) => {
-    setDetailId(r.id); setNote(""); setError(null); setResetStep("idle");
+    setDetailId(r.id); setNote(""); setError(null);
   };
   // Ouvrir un dossier à examiner, c'est le prendre ; le fermer le libère.
   const claim = async (r: KybRequest, force = false) => {
@@ -104,16 +102,6 @@ const BusinessKycPanel = () => {
     setBusy(false);
     if (res.error) { setError(res.error); return; }
     patch(detail.id, { status: decision, reviewNote: note.trim() || null, reviewedAt: new Date().toISOString(), reviewedByName: me?.name ?? null, assignedTo: null, assignedName: null });
-  };
-
-  const reset = async () => {
-    if (!detail) return;
-    setResetStep("busy"); setError(null);
-    const res = await resetKyb(detail.userId, { businessStatus: detail.status, businessName: detail.legalName });
-    setResetStep("idle");
-    if (res.error) { setError(res.error); return; }
-    setRows((rs) => rs.filter((r) => r.userId !== detail.userId));
-    setDetailId(null);
   };
 
   const columns: Column<KybRequest>[] = [
@@ -223,23 +211,6 @@ const BusinessKycPanel = () => {
                   </Section>
                 )}
 
-                {isAdmin && (
-                  <div style={{ marginTop: 30 }}>
-                    {d.status !== "pending" && error && <div style={{ marginBottom: 10 }}><Notice tone="err">{error}</Notice></div>}
-                    {resetStep === "confirm" ? (
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        <span style={{ flex: "1 1 180px", fontSize: 13, color: C.t2 }}>Supprimer ce dossier ? Le client repartira d'un dossier vide.</span>
-                        <Button size="sm" variant="ghost" onClick={() => setResetStep("idle")}>Annuler</Button>
-                        <Button size="sm" variant="danger" onClick={reset}>Réinitialiser</Button>
-                      </div>
-                    ) : (
-                      <button type="button" disabled={resetStep === "busy"} onClick={() => { setError(null); setResetStep("confirm"); }}
-                        style={{ all: "unset", cursor: "pointer", fontSize: 12.5, color: C.t3, textDecoration: "underline", textUnderlineOffset: 3 }}>
-                        {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification"}
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
 
               {d.status === "pending" && canDecide && (

@@ -61,7 +61,7 @@ export function toAIOrderSummaries(orders: ClientOrder[]): AIOrderSummary[] {
 
 interface AICallError { error: string }
 
-async function invoke<T>(body: unknown): Promise<T | AICallError> {
+async function invoke<T>(body: Record<string, unknown>): Promise<T | AICallError> {
   const { data, error } = await supabase.functions.invoke("ai-assist", { body });
   if (error) {
     // Extraire le message réel du body de la réponse (le SDK Supabase le

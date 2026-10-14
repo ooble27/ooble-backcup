@@ -14,7 +14,7 @@ import type {
   DeclarationFormData, DeclarationStatus, DeclarationType,
 } from "@/lib/compliance";
 
-// Tables récentes, absentes des types générés.
+// Les lignes sont décrites par nos propres interfaces (plus précises que les types générés).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as unknown as { from: (t: string) => any; rpc: (fn: string, args?: Record<string, unknown>) => any };
 

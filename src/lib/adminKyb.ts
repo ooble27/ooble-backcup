@@ -88,27 +88,6 @@ export function decisionEmailVars(fullName: string, reason: string | null, retry
   };
 }
 
-/**
- * Réinitialise la vérification d'entreprise d'un client (admin uniquement,
- * contrôlé en base) : ses dossiers sont supprimés et il repart d'un dossier
- * vide. Les fichiers déposés restent dans le stockage privé.
- */
-export async function resetKyb(userId: string, before: { businessStatus: DbStatus; businessName: string | null }): Promise<{ error?: string }> {
-  const { data, error } = await supabase.rpc("reset_business_verification", { _user_id: userId });
-  if (error) {
-    return { error: error.code === "42501" ? "Réservé aux administrateurs." : error.message };
-  }
-  void logAdminAction({
-    action: "kyb.reset",
-    entityKind: "client",
-    entityId: userId,
-    before: { business_status: before.businessStatus },
-    after: { business_status: "not_started" },
-    metadata: { business_name: before.businessName, dossiers_supprimes: data ?? 0 },
-  });
-  return {};
-}
-
 /** Approuve ou refuse un dossier, journalise la décision et prévient le client. */
 export async function decideKyb(
   req: KybRequest,

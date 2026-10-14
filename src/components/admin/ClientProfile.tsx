@@ -8,7 +8,6 @@ import { orderRef } from "@/lib/orders";
 import { KYC_LABEL, type ClientProfile as ClientProfileData, type ClientOrder } from "@/lib/adminClient";
 import { loadClient, peekClient } from "@/lib/clientProfileCache";
 import { summarizeClient, isAIError, toAIClientContext, toAIOrderSummaries } from "@/lib/ai";
-import { resetKyb } from "@/lib/adminKyb";
 import { logAdminAction } from "@/lib/audit";
 import { placeLabel, type SignupOrigin } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
@@ -48,10 +47,9 @@ function Block({ title, right, children }: { title: string; right?: React.ReactN
 }
 
 const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
-  // Registre du client : Administrateur et Conformité. Gestion du compte : Administrateur.
+  // Registre du client : Administrateur et Conformité.
   const can = useCan();
   const canRegister = can("register.export");
-  const isAdmin = can("clients.manage");
   const [regBusy, setRegBusy] = useState(false);
   const downloadRegister = async () => {
     setRegBusy(true);
@@ -70,8 +68,6 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   const [copied, setCopied] = useState<string | null>(null);
   // La fiche montre les 6 dernières commandes ; l'historique complet a sa propre page.
   const [history, setHistory] = useState(false);
-  const [resetStep, setResetStep] = useState<"idle" | "confirm" | "busy">("idle");
-  const [resetMsg, setResetMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -107,16 +103,6 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
     const res = await summarizeClient({ client: toAIClientContext(profile), orders: toAIOrderSummaries(orders) });
     setAiBusy(false);
     if (isAIError(res)) setAiError(res.error); else setAiSummary(res.summary);
-  };
-
-  const doReset = async () => {
-    if (!profile) return;
-    setResetStep("busy");
-    const res = await resetKyb(userId, { businessStatus: profile.businessStatus, businessName: profile.businessName });
-    setResetStep("idle");
-    if (res.error) { setResetMsg({ ok: false, text: res.error }); return; }
-    setProfile((p) => (p ? { ...p, businessStatus: "not_started" } : p));
-    setResetMsg({ ok: true, text: "Vérification réinitialisée : le client repart d'un dossier vide." });
   };
 
   const name = profile?.fullName ?? clientName;
@@ -220,22 +206,6 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
                 ...(profile.businessAddress ? [["Adresse", profile.businessAddress] as [string, React.ReactNode]] : []),
                 ...(profile.businessPhone ? [["Téléphone", profile.businessPhone] as [string, React.ReactNode]] : []),
               ]} />
-              {isAdmin && (profile.businessStatus !== "not_started" || resetMsg) && (
-                <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-                  {resetMsg && <Notice tone={resetMsg.ok ? "ok" : "err"}>{resetMsg.text}</Notice>}
-                  {profile.businessStatus !== "not_started" && (resetStep === "confirm" ? (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <span style={{ fontSize: 13, color: C.t2, flex: "1 1 160px" }}>Supprimer son dossier et le faire recommencer ?</span>
-                      <Button size="sm" variant="ghost" onClick={() => setResetStep("idle")}>Annuler</Button>
-                      <Button size="sm" variant="danger" onClick={doReset}>Réinitialiser</Button>
-                    </div>
-                  ) : (
-                    <Button size="sm" variant="ghost" disabled={resetStep === "busy"} onClick={() => { setResetMsg(null); setResetStep("confirm"); }}>
-                      {resetStep === "busy" ? "Réinitialisation…" : "Réinitialiser la vérification d'entreprise"}
-                    </Button>
-                  ))}
-                </div>
-              )}
             </Block>
           )}
 

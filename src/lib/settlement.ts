@@ -4,10 +4,8 @@
  * Côté serveur : fonctions edge `mail-webhook` (avis) et `usdt-payout` (envois).
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-// Tables récentes, absentes des types générés.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as unknown as { from: (t: string) => any };
 
 export interface SettlementSettings {
   auto_payout: boolean;
@@ -73,7 +71,7 @@ export const EXPLORER_NAME: Record<string, string> = {
 
 /** Transaction d'envoi des USDT d'un achat (visible par le client via RLS). */
 export async function fetchOutboundTx(orderId: string): Promise<{ network: string; tx_hash: string } | null> {
-  const { data } = await db.from("blockchain_transactions").select("network, tx_hash")
+  const { data } = await supabase.from("blockchain_transactions").select("network, tx_hash")
     .eq("order_id", orderId).eq("direction", "outbound").order("created_at", { ascending: false }).limit(1);
   return (data?.[0] as { network: string; tx_hash: string } | undefined) ?? null;
 }
@@ -90,19 +88,19 @@ export const reconcilePayouts = () => invoke<{ ok: boolean }>({ action: "reconci
 
 export async function updateSettings(patch: Partial<SettlementSettings>): Promise<{ error?: string }> {
   const { data: auth } = await supabase.auth.getSession();
-  const { error } = await db.from("settlement_settings")
+  const { error } = await supabase.from("settlement_settings")
     .update({ ...patch, updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null })
     .eq("id", 1);
   return error ? { error: error.message } : {};
 }
 
 export async function fetchReceipts(limit = 30): Promise<InteracReceipt[]> {
-  const { data } = await db.from("interac_receipts").select("*").order("received_at", { ascending: false }).limit(limit);
+  const { data } = await supabase.from("interac_receipts").select("*").order("received_at", { ascending: false }).limit(limit);
   return (data ?? []) as InteracReceipt[];
 }
 
 export async function fetchPayouts(orderId?: string, limit = 30): Promise<UsdtPayout[]> {
-  let q = db.from("usdt_payouts").select("*").order("created_at", { ascending: false }).limit(limit);
+  let q = supabase.from("usdt_payouts").select("*").order("created_at", { ascending: false }).limit(limit);
   if (orderId) q = q.eq("order_id", orderId);
   const { data } = await q;
   return (data ?? []) as UsdtPayout[];
@@ -124,7 +122,7 @@ export interface ChainDeposit {
 
 /** Dépôts lus sur la blockchain (fonction edge `sell-watch`, toutes les 2 minutes). */
 export async function fetchDeposits(opts: { orderId?: string; limit?: number } = {}): Promise<ChainDeposit[]> {
-  let q = db.from("chain_deposits").select("id, network, tx_hash, from_address, usdt_amount, block_time, order_id, status, reason")
+  let q = supabase.from("chain_deposits").select("id, network, tx_hash, from_address, usdt_amount, block_time, order_id, status, reason")
     .order("block_time", { ascending: false }).limit(opts.limit ?? 50);
   if (opts.orderId) q = q.eq("order_id", opts.orderId);
   const { data } = await q;
@@ -133,7 +131,7 @@ export async function fetchDeposits(opts: { orderId?: string; limit?: number } =
 
 /** Dernière lecture réussie, par réseau. */
 export async function fetchScanState(): Promise<{ network: string; updated_at: string }[]> {
-  const { data } = await db.from("chain_scan_state").select("network, updated_at");
+  const { data } = await supabase.from("chain_scan_state").select("network, updated_at");
   return (data ?? []) as { network: string; updated_at: string }[];
 }
 
@@ -158,8 +156,8 @@ export async function ignoreDeposit(depositId: string, reason: string): Promise<
 
 /** Ventes en attente des USDT, pour rattacher un dépôt à la main. */
 export async function fetchPendingSells(network: string): Promise<{ id: string; usdt_amount: number; created_at: string }[]> {
-  const { data } = await db.from("orders").select("id, usdt_amount, created_at")
-    .eq("side", "sell").eq("network", network).in("status", ["created", "awaiting_payment"])
+  const { data } = await supabase.from("orders").select("id, usdt_amount, created_at")
+    .eq("side", "sell").eq("network", network as Database["public"]["Enums"]["usdt_network"]).in("status", ["created", "awaiting_payment"])
     .order("created_at", { ascending: false }).limit(20);
   return (data ?? []) as { id: string; usdt_amount: number; created_at: string }[];
 }

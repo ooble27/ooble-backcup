@@ -113,11 +113,9 @@ export async function exportAccountingCsv(from: string, to: string, name: string
 
 /* ─── Clôture des mois ─── */
 export interface Closure { month: string; action: "close" | "reopen"; totals: AcctTotals | null; note: string | null; by: string | null; at: string }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as unknown as { from: (t: string) => any };
 /** État de chaque mois (sa dernière ligne) : clôturé ou rouvert, par qui, quand, avec les totaux figés. */
 export const loadClosures = () => fetchCached("acct.closures", async () => {
-  const { data, error } = await db.from("accounting_closures").select("month, action, totals, note, by_name, at").order("at", { ascending: false }).limit(500);
+  const { data, error } = await supabase.from("accounting_closures").select("month, action, totals, note, by_name, at").order("at", { ascending: false }).limit(500);
   if (error) throw new Error(error.message);
   const map = new Map<string, Closure>();
   for (const c of (data ?? []) as Record<string, unknown>[]) {

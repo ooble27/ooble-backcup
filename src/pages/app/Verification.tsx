@@ -453,7 +453,9 @@ const Verification = () => {
           <div className="grid gap-4">
             <label className="grid gap-1.5">
               <span className="text-[12.5px] font-semibold text-muted-foreground">{t("kyc.birthDate")}</span>
-              <input type="date" value={info.birthDate} onChange={setField("birthDate")} max={new Date().toISOString().slice(0, 10)} className={FIELD} />
+              {/* iOS donne au champ date une largeur propre : on le force à la largeur des autres champs. */}
+              <input type="date" value={info.birthDate} onChange={setField("birthDate")} max={new Date().toISOString().slice(0, 10)}
+                className={cn(FIELD, "block min-w-0 max-w-full appearance-none text-left [&::-webkit-date-and-time-value]:text-left", !info.birthDate && "text-muted-foreground")} />
               {age !== null && age >= 0 && age < 18 && <span className="text-[12px] text-destructive">{t("kyc.adultOnly")}</span>}
             </label>
             <label className="grid gap-1.5">

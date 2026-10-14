@@ -34,11 +34,15 @@ export const UI_CSS = `
 }
 /* Examen en deux volets (documents à gauche, dossier à droite) : côte à côte dès la tablette (iPad en portrait compris),
    l'un sous l'autre sur téléphone, dans un seul défilement. La barre de décision a la couleur du fond, partout. */
-.ws-split { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; overflow-y: auto; }
-.ws-split > .ws-media { height: 70vh; }
+/* Téléphone : un simple empilement (pas de grille, qui écrasait la hauteur des volets sur iPhone) ; les volets ne défilent pas
+   eux-mêmes, toute la page défile d'un bloc et la barre de décision reste collée en bas de l'écran. */
+.ws-split { flex: 1; min-height: 0; display: block; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+.ws-split > * { overflow: visible !important; height: auto; }
+.ws-split > .ws-media { height: 68vh !important; overflow: hidden !important; display: flex; flex-direction: column; }
 @media (min-width: 768px) {
-  .ws-split { grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; overflow: hidden; align-content: stretch; }
-  .ws-split > .ws-media { height: auto; }
+  .ws-split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; overflow: hidden; }
+  .ws-split > * { overflow-y: auto !important; overflow-x: hidden !important; min-height: 0; }
+  .ws-split > .ws-media { height: auto !important; overflow: hidden !important; }
 }
 @media (min-width: 1100px) { .ws-split { grid-template-columns: minmax(0, 1fr) 400px; gap: 44px; } }
 .ws-foot { position: sticky; bottom: 0; background: var(--a-ground); padding: 14px 20px calc(18px + env(safe-area-inset-bottom, 0px)) 16px; }
