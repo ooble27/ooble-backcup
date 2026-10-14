@@ -189,7 +189,7 @@ function StepProgress({ steps, current }: { steps: Step[]; current: Step }) {
 const Verification = () => {
   const navigate = useNavigate();
   const t = useT();
-  const { user } = useAuth();
+  const { user, isStaff } = useAuth();
   // Statut déjà chargé (préchargement de l'app) : affiché tout de suite.
   const [cachedKyc] = useState(() => peekMyKyc(user?.id));
   const [status, setStatus] = useState<KycDbStatus | null>(cachedKyc === undefined ? null : cachedKyc?.status ?? "not_started");
@@ -310,7 +310,8 @@ const Verification = () => {
 
   if (step === "intro") {
     const m = STATUS_META[status ?? "not_started"];
-    const verified = status === "approved";
+    // L'équipe peut renvoyer ses documents à volonté, pour essayer le parcours de bout en bout.
+    const verified = status === "approved" && !isStaff;
     const inReview = status === "pending";
 
     return (
@@ -381,9 +382,10 @@ const Verification = () => {
             </div>
 
             {/* CTA */}
-            <div className="mt-6 flex justify-end">
-              <Button variant="appSolid" shape="rounded" className="gap-2 px-5 text-[13px]" disabled={!VERIFICATION_ENABLED} onClick={() => setStep("doc_type")}>
-                {inReview ? t("kyc.resume") : t("kyc.start")}
+            <div className="mt-6 flex items-center justify-end gap-4">
+              {isStaff && <p className="mr-auto text-[12px] leading-relaxed text-muted-foreground">Compte de l'équipe : vous pouvez envoyer de nouveaux documents autant de fois que vous voulez, pour tester.</p>}
+              <Button variant="appSolid" shape="rounded" className="shrink-0 gap-2 px-5 text-[13px]" disabled={!VERIFICATION_ENABLED && !isStaff} onClick={() => setStep("doc_type")}>
+                {isStaff && status !== "not_started" ? "Nouvel envoi" : inReview ? t("kyc.resume") : t("kyc.start")}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

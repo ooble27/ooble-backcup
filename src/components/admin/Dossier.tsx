@@ -28,10 +28,10 @@ const DOSSIER_CSS = `
 .dz-z { position: absolute; inset: 0; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; display: flex; align-items: center; justify-content: center; }
 /* Au repos, un doigt fait défiler la page ; zoomée, l'image suit le doigt. */
 .dz-z[data-zoomed="true"] { touch-action: none; }
-.dz-z img { display: block; object-fit: contain; border-radius: 14px; pointer-events: none; will-change: transform; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 24px 60px -18px rgba(0,0,0,.45); }
+.dz-z img { display: block; object-fit: contain; border-radius: 14px; pointer-events: none; will-change: transform; }
 .dz-bar { position: absolute; left: 50%; bottom: 14px; transform: translate(-50%, 6px); opacity: 0; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 12px;
-  background: color-mix(in srgb, var(--a-l1) 80%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
-  box-shadow: 0 0 0 1px var(--a-bds), 0 10px 30px rgba(0,0,0,.14); transition: opacity .25s, transform .35s cubic-bezier(.22,1,.36,1); }
+  background: color-mix(in srgb, var(--a-ground) 82%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
+  transition: opacity .25s, transform .35s cubic-bezier(.22,1,.36,1); }
 /* Les outils se montrent quand on en a besoin : au survol, après un toucher, ou pendant le zoom. */
 .dz-z:focus-within .dz-bar, .dz-z[data-bar="true"] .dz-bar, .dz-z[data-zoomed="true"] .dz-bar { opacity: 1; transform: translate(-50%, 0); }
 @media (hover: hover) { .dz-z:hover .dz-bar { opacity: 1; transform: translate(-50%, 0); } }
@@ -307,12 +307,16 @@ export function Section({ title, hint, children, first }: { title: string; hint?
   );
 }
 
-export function Checklist({ items, value, onChange }: { items: string[]; value: boolean[]; onChange: (v: boolean[]) => void }) {
+export function Checklist({ items, value, onChange, focus }: {
+  items: string[]; value: boolean[]; onChange: (v: boolean[]) => void;
+  /** Points concernés par le document affiché : les autres s'effacent un peu. */
+  focus?: boolean[];
+}) {
   return (
     <div style={{ display: "grid" }}>
       <style>{DOSSIER_CSS}</style>
       {items.map((c, i) => (
-        <button key={c} type="button" role="checkbox" aria-checked={value[i]} className="dz-check" data-on={value[i]}
+        <button key={c} type="button" role="checkbox" aria-checked={value[i]} className="dz-check" data-on={value[i]} style={{ opacity: focus && !focus[i] && !value[i] ? 0.45 : 1, transition: "opacity .3s, color .15s" }}
           onClick={() => onChange(value.map((x, j) => (j === i ? !x : x)))}>
           <span>{value[i] && <Check style={{ width: 12, height: 12 }} strokeWidth={3} />}</span>
           <span>{c}</span>

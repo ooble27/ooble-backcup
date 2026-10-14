@@ -43,11 +43,13 @@ const REVIEW_CSS = `
 .kv-title { margin: 6px 0 0; font-size: clamp(30px, 3vw, 42px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; overflow-wrap: anywhere; }
 .kv-sub { margin: 14px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--a-t2); }
 .kv-sub b { font-weight: 500; color: var(--a-t1); }
+.kv-count { font-size: 44px; line-height: 1; font-weight: 600; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; display: inline-block; animation: kv-pop .45s cubic-bezier(.34,1.56,.64,1) both; transition: color .3s; }
+@keyframes kv-pop { from { opacity: .3; transform: translateY(6px) scale(.92); } to { opacity: 1; transform: none; } }
 .kv-pane > * { animation: kv-in .5s cubic-bezier(.22,1,.36,1) both; }
 .kv-pane > *:nth-child(2) { animation-delay: .04s } .kv-pane > *:nth-child(3) { animation-delay: .08s }
 .kv-pane > *:nth-child(4) { animation-delay: .12s } .kv-pane > *:nth-child(n+5) { animation-delay: .16s }
 @keyframes kv-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .kv-pane > * { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .kv-pane > *, .kv-count { animation: none; } }
 `;
 
 /** Envois du même client avant celui-ci, du plus récent au plus ancien. */
@@ -154,9 +156,16 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
 
             {pending ? (
               <>
-                <Section title={`À vérifier · ${done} sur ${CHECKS.length}`}>
-                  <Checklist items={CHECKS.map((c) => c.text)} value={checks} onChange={tick} />
-                </Section>
+                {/* Le compte des points vérifiés, en grand : il avance à chaque coche. */}
+                <div style={{ marginTop: 34 }}>
+                  <p style={{ margin: 0, display: "flex", alignItems: "baseline", gap: 10 }}>
+                    <span key={done} className="kv-count" style={{ color: done === CHECKS.length ? C.sage : C.t1 }}>{done}</span>
+                    <span style={{ fontSize: 15, color: C.t3 }}>sur {CHECKS.length} points vérifiés</span>
+                  </p>
+                  <div style={{ marginTop: 8 }}>
+                    <Checklist items={CHECKS.map((c) => c.text)} value={checks} onChange={tick} focus={CHECKS.map((c) => c.view === view)} />
+                  </div>
+                </div>
                 {refusing && (
                   <Section title="Motif pour le client" hint="Il figure dans le courriel envoyé au client.">
                     <TextArea rows={3} maxLength={1000} value={note} autoFocus onChange={(e) => setNote(e.target.value)} placeholder="Ce que le client doit corriger." />
@@ -194,11 +203,18 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
                   <Button variant="danger" disabled={busy || !note.trim()} onClick={() => decide("refuse")} icon={<X style={{ width: 15, height: 15 }} />} className="flex-1">Refuser et prévenir le client</Button>
                 </div>
               ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                <p key={done} style={{ margin: 0, fontSize: 13.5, color: done === CHECKS.length ? C.sage : C.t2, animation: "kv-in .4s cubic-bezier(.22,1,.36,1) both" }}>
+                  {done === 0 ? "Regardez les documents et cochez chaque point."
+                    : done < CHECKS.length ? `Encore ${CHECKS.length - done} point${CHECKS.length - done > 1 ? "s" : ""} à vérifier.`
+                    : "Tout est conforme : vous pouvez approuver."}
+                </p>
                 <div style={{ display: "flex", gap: 8 }}>
                   <Button variant="danger" disabled={busy} onClick={() => setRefusing(true)} icon={<X style={{ width: 15, height: 15 }} />}>Refuser</Button>
                   <Button variant="primary" disabled={busy} onClick={() => decide("verifie")} icon={<Check style={{ width: 15, height: 15 }} />} className="flex-1">
                     {done === CHECKS.length ? "Approuver" : "Approuver quand même"}
                   </Button>
+                </div>
                 </div>
               )}
             </div>
