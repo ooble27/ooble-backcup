@@ -12,7 +12,7 @@ import { loadClient, peekClient, type ClientBundle } from "@/lib/clientProfileCa
 import { loadNotes, peekNotes, type ClientNote } from "@/lib/clientNotes";
 import { assessClient, RISK_LEVEL } from "@/lib/riskScore";
 import {
-  ALERT_TYPE_META, ALERT_STATUS_META, CLASSIFICATION_REASONS, RECORD_RETENTION_YEARS, daysUntil,
+  ALERT_GUIDE, ALERT_TYPE_META, ALERT_STATUS_META, CLASSIFICATION_REASONS, RECORD_RETENTION_YEARS, daysUntil,
   type ComplianceAlert,
 } from "@/lib/compliance";
 import { C, FONT } from "./adminTheme";
@@ -92,6 +92,22 @@ export default function ComplianceAlertView({ alert, alerts, orders, busy, onClo
               Opération du {day(alert.occurredAt)}
               {open && alert.dueDate && <> · <span style={{ color: dueColor }}>déclaration à soumettre {due! < 0 ? `depuis ${-due!} j (échéance dépassée)` : due === 0 ? "aujourd'hui" : `d'ici le ${day(alert.dueDate)}, dans ${due} j`}</span></>}
             </p>
+
+            {/* La marche à suivre, en clair : on n'a pas besoin de connaître la loi pour traiter l'alerte. */}
+            {open && (
+              <>
+                <p className="ca-h">Que faire</p>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: C.t2, maxWidth: 620 }}>{ALERT_GUIDE[alert.type].why}</p>
+                <ol style={{ margin: "14px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 12, maxWidth: 620, counterReset: "step" }}>
+                  {ALERT_GUIDE[alert.type].steps.map((st, i) => (
+                    <li key={i} style={{ display: "flex", gap: 14, fontSize: 14, lineHeight: 1.55, color: C.t1 }}>
+                      <span style={{ width: 18, flexShrink: 0, fontSize: 15, fontWeight: 600, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
+                      <span>{st}</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
 
             {involved.length > 0 && (
               <>

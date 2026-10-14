@@ -53,6 +53,65 @@ export const ALERT_TYPE_META: Record<AlertType, { label: string; critical: boole
   sanctions: { label: "Sanctions",     critical: true,  full: "Correspondance possible avec une liste de sanctions" },
 };
 
+/**
+ * Que faire devant chaque type d'alerte, en clair : la marche à suivre affichée dans l'alerte.
+ * Fondée sur les lignes directrices du CANAFE (DOIMV, DOT, DBT, règle du voyage, PPV).
+ */
+export const ALERT_GUIDE: Record<AlertType, { why: string; steps: string[] }> = {
+  doimv: {
+    why: "Ooble a reçu 10 000 $ ou plus en monnaie virtuelle en une opération : la loi oblige à le déclarer au CANAFE, même si rien n'est suspect.",
+    steps: [
+      "Vérifiez que l'opération est bien une réception d'USDT de 10 000 $ CA ou plus.",
+      "Vérifiez que le dossier du client est complet : nom, date de naissance, adresse, profession, pièce d'identité, et si le client agit pour quelqu'un d'autre.",
+      "Préparez la DOIMV avec « Déclarer » : Ooble remplit ce qu'il connaît.",
+      "Soumettez-la sur le portail du CANAFE avant l'échéance (5 jours ouvrables après la réception), puis saisissez le numéro de confirmation dans la déclaration.",
+    ],
+  },
+  doimv_24h: {
+    why: "Plusieurs réceptions d'USDT du même client totalisent 10 000 $ ou plus en 24 heures : la règle des 24 heures les traite comme une seule opération à déclarer.",
+    steps: [
+      "Vérifiez que les commandes en cause appartiennent bien au même client (ou au même bénéficiaire).",
+      "Vérifiez que le dossier du client est complet : nom, date de naissance, adresse, profession, pièce d'identité.",
+      "Préparez une seule DOIMV regroupant les commandes, avec « Déclarer ».",
+      "Soumettez-la sur le portail du CANAFE dans les 5 jours ouvrables, puis saisissez le numéro de confirmation.",
+    ],
+  },
+  dot: {
+    why: "Quelque chose sort de l'ordinaire. Ce n'est pas une accusation : il faut regarder et décider s'il existe des motifs raisonnables de soupçonner un lien avec du blanchiment ou du financement du terrorisme.",
+    steps: [
+      "Regardez le client et ses commandes : son profil, d'où vient l'argent, à quoi sert l'opération, ce qui a changé.",
+      "Ne prévenez jamais le client qu'une déclaration est envisagée : c'est interdit par la loi.",
+      "Si vous avez des motifs raisonnables de soupçonner : déclarez (DOT) dès que possible, même si l'opération n'a pas abouti.",
+      "Sinon : classez sans suite en écrivant pourquoi. Ce motif est gardé 5 ans et sera lu lors d'un examen.",
+    ],
+  },
+  sanctions: {
+    why: "Le nom du client ou une adresse de portefeuille ressemble à une inscription sur une liste de sanctions. Souvent c'est un homonyme, mais il faut le vérifier tout de suite.",
+    steps: [
+      "Comparez avec la pièce d'identité du client : date de naissance, pays, deuxième prénom.",
+      "En attendant, n'envoyez rien et ne traitez aucune commande de ce client. Ne lui dites rien.",
+      "Si c'est la même personne (ou son portefeuille) : bloquez ses biens, déclarez (DBT) immédiatement au CANAFE, et prévenez la GRC et le SCRS.",
+      "Si c'est un homonyme : classez sans suite en notant ce qui les distingue (date de naissance, pays).",
+    ],
+  },
+  voyage: {
+    why: "Pour tout transfert de monnaie virtuelle de 1 000 $ ou plus, Ooble doit recueillir et garder le nom, l'adresse et le numéro de compte ou de portefeuille de l'émetteur et du bénéficiaire.",
+    steps: [
+      "Vérifiez quelles informations manquent pour ce transfert.",
+      "Complétez-les auprès du client, ou expliquez dans la note pourquoi elles ne peuvent pas l'être.",
+      "Si les informations ne peuvent pas être obtenues, évaluez s'il faut refuser ou suspendre ce type d'opération, et si elles éveillent un soupçon (DOT).",
+    ],
+  },
+  ppv: {
+    why: "Le client est peut-être une personne politiquement vulnérable, un dirigeant d'organisation internationale, ou un proche de l'une d'elles.",
+    steps: [
+      "Confirmez le statut avec des sources fiables (déclaration du client, recherche publique).",
+      "Si c'est confirmé : établissez l'origine des fonds, faites approuver la relation par la direction, et surveillez ses opérations de plus près.",
+      "Notez votre décision et ses raisons dans l'alerte.",
+    ],
+  },
+};
+
 export const ALERT_STATUS_META: Record<AlertStatus, { label: string; text: string }> = {
   nouveau:  { label: "Nouveau",  text: "text-foreground" },
   en_cours: { label: "En cours", text: "text-foreground" },

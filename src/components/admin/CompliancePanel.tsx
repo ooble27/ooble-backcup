@@ -19,8 +19,8 @@ import {
 import {
   fetchAlerts, fetchDeclarations, fetchChecklist, fetchRegisterStats,
   runScan, takeAlert, classifyAlert, markAlertDeclared, createManualAlert, findClientByEmail,
-  saveDeclaration, updateDeclarationStatus, setChecklistItem, downloadRegister,
-  type RegisterStats,
+  saveDeclaration, updateDeclarationStatus, setChecklistItem, downloadRegister, fetchSanctionStatus,
+  type RegisterStats, type SanctionListStatus,
 } from "@/lib/complianceLive";
 import { logAdminAction } from "@/lib/audit";
 import { C, FONT } from "./adminTheme";
@@ -345,6 +345,59 @@ function DeclarationWorkspace({ sourceRef, dueDate, form, onChange, onSubmit, on
 
 // ──────────────── Détail d'une déclaration ────────────────
 
+/** Les informations de la déclaration, dans l'ordre où le portail du CANAFE les demande. */
+function portalFields(d: ComplianceDeclaration, f: DeclarationFormData): { label: string; value: string; required: boolean; mono?: boolean }[] {
+  const doimv = d.type === "doimv";
+  return [
+    { label: "Nom complet du client", value: f.clientName, required: true },
+    { label: "Date de naissance", value: f.clientDob, required: doimv },
+    { label: "Adresse", value: f.clientAddress, required: doimv },
+    { label: "Ville", value: f.clientCity, required: doimv },
+    { label: "Province", value: f.clientProvince, required: doimv },
+    { label: "Code postal", value: f.clientPostalCode, required: doimv },
+    { label: "Profession ou activité", value: f.clientOccupation, required: doimv },
+    { label: "Type de pièce d'identité", value: f.clientIdType, required: doimv },
+    { label: "Numéro de la pièce", value: f.clientIdNumber, required: doimv, mono: true },
+    { label: "Courriel", value: f.clientEmail, required: false },
+    { label: "Date de l'opération", value: f.operationDate, required: true },
+    { label: "Type d'opération", value: f.operationType === "sell" ? "Réception de monnaie virtuelle (le client vend des USDT)" : "Envoi de monnaie virtuelle (le client achète des USDT)", required: true },
+    { label: "Montant en dollars canadiens", value: f.amountCad, required: true, mono: true },
+    { label: "Monnaie virtuelle", value: "USDT (Tether)", required: doimv },
+    { label: "Montant en monnaie virtuelle", value: f.amountUsdt, required: doimv, mono: true },
+    { label: "Réseau", value: f.network, required: doimv },
+    { label: "Adresse de portefeuille", value: f.walletAddress, required: doimv, mono: true },
+    { label: "Mode de paiement", value: f.paymentMethod, required: false },
+    ...(d.type !== "doimv" ? [
+      { label: "Indicateurs de soupçon", value: f.suspicionIndicators.join(" ; "), required: d.type === "dot" },
+      { label: "Description (pourquoi vous soupçonnez)", value: f.observations, required: true },
+    ] : [{ label: "Observations", value: f.observations, required: false }]),
+  ].filter((x) => x.required || x.value);
+}
+
+function CopyRow({ label, value, required, mono }: { label: string; value: string; required: boolean; mono?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const missing = required && !value.trim();
+  const copy = () => {
+    void navigator.clipboard?.writeText(value).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1500); });
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "8px 0" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: 12, color: C.t3 }}>{label}</p>
+        <p style={{ margin: "2px 0 0", lineHeight: 1.45, color: missing ? C.coral : C.t1, overflowWrap: "anywhere", whiteSpace: "pre-wrap",
+          fontFamily: mono && !missing ? "ui-monospace, Menlo, monospace" : FONT, fontSize: mono && !missing ? 13 : 14 }}>
+          {missing ? "À compléter" : value}
+        </p>
+      </div>
+      {!missing && (
+        <button type="button" onClick={copy} style={{ all: "unset", cursor: "pointer", fontSize: 12.5, color: copied ? C.sage : C.t2, textDecoration: copied ? "none" : "underline", textUnderlineOffset: 3, flexShrink: 0 }}>
+          {copied ? "Copié" : "Copier"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function DeclarationPanel({ decl, onClose, onResume, onStatus, busy }: {
   decl: ComplianceDeclaration; onClose: () => void; onResume: () => void;
   onStatus: (status: DeclarationStatus, canafeRef?: string) => void; busy?: boolean;
@@ -389,41 +442,34 @@ function DeclarationPanel({ decl, onClose, onResume, onStatus, busy }: {
         </Section>
       )}
 
-      {f && (
-        <>
-          <Section title="Client" style={{ marginTop: 28 }}>
-            <KeyValues items={[
-              ["Courriel", f.clientEmail],
-              ...(f.clientDob ? [["Naissance", f.clientDob] as [string, string]] : []),
-              ...(f.clientIdType ? [["Pièce", `${f.clientIdType} · ${f.clientIdNumber}`] as [string, string]] : []),
-              ...(f.clientAddress ? [["Adresse", `${f.clientAddress}, ${f.clientCity}, ${f.clientProvince} ${f.clientPostalCode}`] as [string, string]] : []),
-              ...(f.clientOccupation ? [["Occupation", f.clientOccupation] as [string, string]] : []),
-            ]} />
+      {f && (() => {
+        const fields = portalFields(decl, f);
+        const missing = fields.filter((x) => x.required && !x.value.trim()).length;
+        return (
+          <Section title="Pour le portail du CANAFE" style={{ marginTop: 28 }}>
+            {decl.status === "brouillon" && (
+              <ol style={{ margin: "0 0 14px", padding: 0, listStyle: "none", display: "grid", gap: 8, fontSize: 13.5, lineHeight: 1.55, color: C.t2 }}>
+                {[
+                  "Connectez-vous au portail de déclaration du CANAFE (FWR).",
+                  `Créez une nouvelle déclaration : ${DECL_TYPE_META[decl.type].full}.`,
+                  "Copiez chaque information ci-dessous dans le champ du même nom.",
+                  "Soumettez, puis saisissez plus haut le numéro de confirmation donné par le portail.",
+                ].map((t, i) => (
+                  <li key={i} style={{ display: "flex", gap: 12 }}><span style={{ width: 14, flexShrink: 0, fontWeight: 600, color: C.t3 }}>{i + 1}</span><span>{t}</span></li>
+                ))}
+              </ol>
+            )}
+            {missing > 0 && (
+              <p style={{ margin: "0 0 10px", fontSize: 13.5, color: C.coral }}>
+                {missing} information{missing > 1 ? "s manquent" : " manque"}. Reprenez le brouillon pour {missing > 1 ? "les" : "la"} compléter avant de soumettre.
+              </p>
+            )}
+            <div style={{ display: "grid" }}>
+              {fields.map((x) => <CopyRow key={x.label} {...x} />)}
+            </div>
           </Section>
-          <Section title="Opération" style={{ marginTop: 28 }}>
-            <KeyValues items={[
-              ["Type", f.operationType === "sell" ? "Vente" : "Achat"],
-              ["Date", f.operationDate],
-              ...(f.amountUsdt ? [["USDT", f.amountUsdt] as [string, string]] : []),
-              ...(f.paymentMethod ? [["Paiement", f.paymentMethod] as [string, string]] : []),
-              ...(f.network ? [["Réseau", f.network] as [string, string]] : []),
-              ...(f.walletAddress ? [["Portefeuille", <span key="w" style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 12.5 }}>{f.walletAddress}</span>] as [string, React.ReactNode]] : []),
-            ]} />
-          </Section>
-          {f.suspicionIndicators.length > 0 && (
-            <Section title="Indicateurs de soupçon" style={{ marginTop: 28 }}>
-              <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc", display: "grid", gap: 4, fontSize: 13.5 }}>
-                {f.suspicionIndicators.map((ind) => <li key={ind}>{ind}</li>)}
-              </ul>
-            </Section>
-          )}
-          {f.observations && (
-            <Section title="Observations" style={{ marginTop: 28 }}>
-              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{f.observations}</p>
-            </Section>
-          )}
-        </>
-      )}
+        );
+      })()}
       <p style={{ margin: "28px 0 0", fontSize: 12, color: C.t3 }}>Conservée {RECORD_RETENTION_YEARS} ans (LRPCFAT). Une déclaration ne peut pas être supprimée.</p>
     </SidePanel>
   );
@@ -798,6 +844,22 @@ function buildTodos(alerts: ComplianceAlert[], declarations: ComplianceDeclarati
   return todos.sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999"));
 }
 
+const SANCTION_SOURCE: Record<SanctionListStatus["source"], string> = { canada: "Canada", onu: "ONU", ofac_wallets: "adresses de portefeuille" };
+const nf0 = new Intl.NumberFormat("fr-CA");
+
+/** Ce que les contrôles automatiques vérifient, et quand les listes de sanctions ont été lues. */
+function Watch({ lists }: { lists: SanctionListStatus[] | null }) {
+  const failed = (lists ?? []).filter((l) => !l.ok);
+  const last = (lists ?? []).map((l) => l.checkedAt).sort().pop();
+  return (
+    <p style={{ margin: "20px 0 0", fontSize: 13.5, lineHeight: 1.6, color: C.t2, maxWidth: 880 }}>
+      Toutes les 10 minutes, Ooble vérifie les seuils du CANAFE, la règle des 24 heures, le fractionnement, les paiements de tiers, les comptes récents et les hausses brusques
+      {lists?.length ? <>, et compare chaque client et chaque portefeuille aux listes de sanctions lues le <b style={{ color: C.t1, fontWeight: 500 }}>{new Date(last!).toLocaleDateString("fr-CA", { day: "numeric", month: "short" })}</b> ({lists.filter((l) => l.ok).map((l) => `${SANCTION_SOURCE[l.source]} ${nf0.format(l.entries)}`).join(", ")})</> : null}.
+      {failed.length > 0 && <span style={{ color: C.coral }}> La liste {failed.map((l) => SANCTION_SOURCE[l.source]).join(", ")} n'a pas pu être téléchargée : la version précédente reste utilisée.</span>}
+    </p>
+  );
+}
+
 function TodoView({ todos }: { todos: Todo[] }) {
   const groups: { id: string; label: string; color: string; items: Todo[] }[] = [
     { id: "late", label: "En retard", color: C.coral, items: todos.filter((t) => t.date && daysUntil(t.date) < 0) },
@@ -858,6 +920,7 @@ const CompliancePanel = ({ orders, onOpenOrder, onShowClient }: { orders: AdminO
   const [declarations, setDeclarations] = useState<ComplianceDeclaration[]>(cached?.d ?? []);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(cached?.c ?? []);
   const [stats, setStats] = useState<RegisterStats | null>(peek<RegisterStats>("cmp.stats")?.value ?? null);
+  const [sanctionLists, setSanctionLists] = useState<SanctionListStatus[] | null>(peek<SanctionListStatus[]>("cmp.sanctions")?.value ?? null);
   const [loaded, setLoaded] = useState(!!cached);
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState<RecordCategoryId | null>(null);
@@ -888,6 +951,7 @@ const CompliancePanel = ({ orders, onOpenOrder, onShowClient }: { orders: AdminO
       setLoaded(true);
     }
     fetchCached("cmp.stats", fetchRegisterStats).then(setStats).catch(() => setStats(null));
+    fetchCached("cmp.sanctions", fetchSanctionStatus).then(setSanctionLists).catch(() => setSanctionLists([]));
   }, []);
   useEffect(() => { if (loaded) put<Lists>("cmp", { a: alerts, d: declarations, c: checklist }); }, [alerts, declarations, checklist, loaded]);
 
@@ -1116,7 +1180,7 @@ const CompliancePanel = ({ orders, onOpenOrder, onShowClient }: { orders: AdminO
         { id: "programme", label: "Programme" },
       ]} />
 
-      {tab === "afaire" && <TodoView todos={todos} />}
+      {tab === "afaire" && <><Watch lists={sanctionLists} /><TodoView todos={todos} /></>}
       {tab === "alertes" && (
         <AlertesView alerts={alerts} busy={busy} selectedId={overlay === "alert" ? selectedAlertId : null}
           onOpen={(a) => { setSelectedAlertId(a.id); setOverlay("alert"); }}

@@ -77,11 +77,29 @@ export async function fetchAlerts(): Promise<ComplianceAlert[]> {
   return (data as AlertRow[]).map((r) => toAlert(r, me));
 }
 
-/** Lance l'analyse tout de suite (elle tourne aussi toutes les 10 min). */
+/** Lance l'analyse tout de suite : règles CANAFE, comportements inhabituels, sanctions (elle tourne aussi toutes les 10 min). */
 export async function runScan(): Promise<number> {
-  const { data, error } = await db.rpc("compliance_scan");
+  const { data, error } = await db.rpc("compliance_scan_all");
   if (error) throw new Error(error.message);
   return Number(data ?? 0);
+}
+
+export interface SanctionListStatus { source: "canada" | "onu" | "ofac_wallets"; entries: number; checkedAt: string; ok: boolean }
+
+/** Dernière vérification de chaque liste de sanctions (téléchargées chaque jour). */
+export async function fetchSanctionStatus(): Promise<SanctionListStatus[]> {
+  const { data, error } = await db.from("compliance_sanction_lists")
+    .select("source, status, entries, loaded_at, fetched_at")
+    .order("id", { ascending: false })
+    .limit(30);
+  if (error) return [];
+  const rows = data as { source: SanctionListStatus["source"]; status: string; entries: number | null; loaded_at: string | null; fetched_at: string }[];
+  return (["canada", "onu", "ofac_wallets"] as const).flatMap((source) => {
+    const latest = rows.find((r) => r.source === source && r.status !== "pending");
+    const loaded = rows.find((r) => r.source === source && r.status === "loaded");
+    if (!latest) return [];
+    return [{ source, entries: loaded?.entries ?? 0, checkedAt: latest.loaded_at ?? latest.fetched_at, ok: latest.status !== "error" }];
+  });
 }
 
 export async function takeAlert(id: string): Promise<void> {
