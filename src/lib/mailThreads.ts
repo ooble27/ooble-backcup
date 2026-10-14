@@ -20,7 +20,16 @@ export interface MailThread {
   mailbox: MailboxId;
   createdAt: string;
   lastSnippet?: string;
+  /** Support : à répondre, en attente du client, résolue (la base le tient à jour à chaque message). */
+  supportState: SupportState;
+  assignedTo: string | null;
+  assignedName: string | null;
+  /** Dernier message du client : sert à dire depuis quand il attend. */
+  lastInboundAt: string | null;
 }
+
+export type SupportState = "todo" | "waiting" | "resolved";
+export const SUPPORT_LABEL: Record<SupportState, string> = { todo: "À répondre", waiting: "En attente du client", resolved: "Résolue" };
 
 export type MailboxId = "support" | "otc";
 
@@ -39,13 +48,14 @@ export interface MailMessage {
 }
 
 /** Réception : uniquement les messages laissés sur le site (formulaires Contact et OTC). */
-export async function fetchThreads(limit = 50): Promise<MailThread[]> {
+export async function fetchThreads(limit = 300): Promise<MailThread[]> {
   const { data, error } = await supabase
     .from("mail_threads")
     .select("*")
     .eq("origin", "form")
     .order("last_message_at", { ascending: false })
     .limit(limit);
+  // (Les résolues restent chargées : le filtre « Résolues » les montre.)
   if (error || !data) return [];
   return data.map(mapThread);
 }
@@ -77,11 +87,22 @@ export async function markThreadRead(threadId: string): Promise<void> {
     .eq("id", threadId);
 }
 
-export async function archiveThread(threadId: string): Promise<void> {
-  await supabase
-    .from("mail_threads")
-    .update({ status: "archived" })
+/** Change l'état d'une conversation (résolue = archivée ; un nouveau message du client la rouvre). */
+export async function setThreadState(threadId: string, state: SupportState): Promise<{ error?: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("mail_threads")
+    .update({ support_state: state, status: state === "resolved" ? "archived" : "open" })
     .eq("id", threadId);
+  return error ? { error: error.message } : {};
+}
+
+/** Prend (ou libère) une conversation : toute l'équipe voit qui s'en occupe. */
+export async function assignThread(threadId: string, who: { id: string; name: string } | null): Promise<{ error?: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("mail_threads")
+    .update({ assigned_to: who?.id ?? null, assigned_name: who?.name ?? null })
+    .eq("id", threadId);
+  return error ? { error: error.message } : {};
 }
 
 export async function createThread(params: {
@@ -176,6 +197,10 @@ function mapThread(r: Record<string, unknown>): MailThread {
     status: (r.status as "open" | "archived") ?? "open",
     mailbox: r.mailbox === "otc" ? "otc" : "support",
     createdAt: r.created_at as string,
+    supportState: (r.support_state as SupportState) ?? (r.status === "archived" ? "resolved" : "todo"),
+    assignedTo: (r.assigned_to as string) ?? null,
+    assignedName: (r.assigned_name as string) ?? null,
+    lastInboundAt: (r.last_inbound_at as string) ?? null,
   };
 }
 
