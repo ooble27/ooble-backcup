@@ -30,12 +30,17 @@ const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SITE = Deno.env.get("SITE_URL") ?? "https://ooble.ca";
 
-/** Adresses de dépôt affichées aux clients (mêmes valeurs que src/pages/app/AppVendre.tsx).
- *  Tron et EVM : portefeuille MetaMask d'Ooble. */
-const DEPOSIT = {
-  trc20: "TPf6rXmbeRzueBB7SM19vQ4wDz2fcrEtAs",
-  evm: "0x0aC6f6202Ebff35D36A2Dca04C4f556FF95Fc093",
-};
+/** Une adresse remplacée dans Réglages reste surveillée ce temps-là (les ventes en cours y arrivent encore). */
+const RETIRED_WATCH_MS = 7 * 86400_000;
+
+/** Adresses de dépôt à surveiller (Back-office › Réglages › Adresses de dépôt) : l'active, et les récemment remplacées. */
+async function depositAddresses(db: SupabaseClient): Promise<{ tron: string[]; evm: string[] }> {
+  const { data } = await db.from("deposit_addresses").select("family, address, active, retired_at");
+  const since = Date.now() - RETIRED_WATCH_MS;
+  const watched = (data ?? []).filter((r: { active: boolean; retired_at: string | null }) => r.active || (r.retired_at && new Date(r.retired_at).getTime() > since));
+  const of = (f: string) => watched.filter((r: { family: string }) => r.family === f).map((r: { address: string }) => r.address);
+  return { tron: of("tron"), evm: of("evm") };
+}
 
 type EvmNet = "bep20" | "polygon" | "avalanche" | "erc20";
 const EVM: Record<EvmNet, { rpc: string; env: string; usdt: string; decimals: number; confirmations: number; chunk: number; startBack: number }> = {
@@ -78,12 +83,9 @@ const units = (raw: bigint, decimals: number) => {
 
 // ───────────────────────── Tron ─────────────────────────
 
-/** Ancienne adresse Tron (Binance), encore surveillée pour les ventes passées
- *  avant le changement d'adresse. À retirer une fois ces ventes réglées. */
-const OLD_TRC20 = "TSPUk2W5bcGGNPpKzx1xTDc2NuxpRJRCBb";
-
-async function scanTron(cursorMs: number): Promise<{ deposits: Deposit[]; cursor: number }> {
-  const all = await Promise.all([DEPOSIT.trc20, OLD_TRC20].map((a) => scanTronAddress(a, cursorMs)));
+async function scanTron(addresses: string[], cursorMs: number): Promise<{ deposits: Deposit[]; cursor: number }> {
+  if (!addresses.length) return { deposits: [], cursor: cursorMs };
+  const all = await Promise.all(addresses.map((a) => scanTronAddress(a, cursorMs)));
   return { deposits: all.flatMap((r) => r.deposits), cursor: Math.min(...all.map((r) => r.cursor)) };
 }
 
@@ -119,14 +121,16 @@ async function rpc<T>(url: string, method: string, params: unknown[]): Promise<T
   return b.result as T;
 }
 
-async function scanEvm(net: EvmNet, cursor: number | null): Promise<{ deposits: Deposit[]; cursor: number }> {
+async function scanEvm(net: EvmNet, addresses: string[], cursor: number | null): Promise<{ deposits: Deposit[]; cursor: number }> {
   const c = EVM[net];
   const url = Deno.env.get(c.env) || c.rpc;
   const head = Number(BigInt(await rpc<string>(url, "eth_blockNumber", []))) - c.confirmations;
   let from = cursor ?? head - c.startBack;
   const deposits: Deposit[] = [];
   const times = new Map<string, string>();
-  const topicTo = "0x" + DEPOSIT.evm.slice(2).toLowerCase().padStart(64, "0");
+  if (!addresses.length) return { deposits, cursor: cursor ?? head };
+  // Plusieurs adresses surveillées : le filtre accepte une liste (l'une ou l'autre).
+  const topicTo = addresses.map((a) => "0x" + a.slice(2).toLowerCase().padStart(64, "0"));
 
   for (let k = 0; k < MAX_CHUNKS && from <= head; k++) {
     const to = Math.min(head, from + c.chunk - 1);
@@ -140,7 +144,8 @@ async function scanEvm(net: EvmNet, cursor: number | null): Promise<{ deposits: 
       }
       deposits.push({
         network: net, tx_hash: l.transactionHash, log_index: Number(BigInt(l.logIndex)),
-        from_address: "0x" + l.topics[1].slice(26), to_address: DEPOSIT.evm,
+        from_address: "0x" + l.topics[1].slice(26),
+        to_address: addresses.find((a) => a.slice(2).toLowerCase() === l.topics[2].slice(26).toLowerCase()) ?? "0x" + l.topics[2].slice(26),
         usdt_amount: units(BigInt(l.data), c.decimals), block_time: times.get(l.blockNumber)!,
       });
     }
@@ -156,10 +161,11 @@ async function scan(db: SupabaseClient) {
   const cur = new Map((state ?? []).map((s: { network: string; cursor: number }) => [s.network, Number(s.cursor)]));
   const report: Record<string, string> = {};
   let found = 0;
+  const addr = await depositAddresses(db);
 
   const jobs: [string, () => Promise<{ deposits: Deposit[]; cursor: number }>][] = [
-    ["trc20", () => scanTron(cur.get("trc20") ?? Date.now() - 6 * 3600_000)],
-    ...(Object.keys(EVM) as EvmNet[]).map((n) => [n, () => scanEvm(n, cur.get(n) ?? null)] as [string, () => Promise<{ deposits: Deposit[]; cursor: number }>]),
+    ["trc20", () => scanTron(addr.tron, cur.get("trc20") ?? Date.now() - 6 * 3600_000)],
+    ...(Object.keys(EVM) as EvmNet[]).map((n) => [n, () => scanEvm(n, addr.evm, cur.get(n) ?? null)] as [string, () => Promise<{ deposits: Deposit[]; cursor: number }>]),
   ];
 
   await Promise.all(jobs.map(async ([net, run]) => {

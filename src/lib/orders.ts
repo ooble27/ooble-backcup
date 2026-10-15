@@ -125,8 +125,8 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
   }
 
   const rateLockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-  // Vente : l'adresse de dépôt Ooble sera générée côté serveur plus tard.
-  const walletAddress = input.side === "buy" ? (input.address ?? "") : "à générer";
+  // Achat : l'adresse du client. Vente : l'adresse de dépôt d'Ooble annoncée au client (gardée avec la commande).
+  const walletAddress = input.address ?? "";
 
   const { data, error } = await supabase
     .from("orders")

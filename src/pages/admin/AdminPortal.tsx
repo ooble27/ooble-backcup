@@ -205,6 +205,7 @@ const AdminPortal = () => {
     const url = new URL(window.location.href);
     url.searchParams.set("tab", id);
     url.searchParams.delete("doc");
+    url.searchParams.delete("reglage");
     window.history.pushState({ tab: id }, "", url);
     toTop();
   }, [toTop]);
@@ -530,7 +531,7 @@ const AdminPortal = () => {
                       </Section>
                     </>
                   )}
-                  {tab === "platform" && <SettingsPanel />}
+                  {tab === "platform" && <SettingsPanel onTab={(id) => { if (allowedTabs.has(id)) setTab(id); }} />}
                   {tab === "kb" && <DocsPanel section="kb" />}
                   {tab === "manual" && <DocsPanel section="manual" />}
                   {tab === "techdocs" && <DocsPanel section="tech" />}

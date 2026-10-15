@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
+import { familyOf, useDepositAddresses } from "@/lib/depositAddresses";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, ShieldOff } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -20,21 +21,6 @@ import { useOtcVisible } from "@/lib/otc";
 
 type Step = "amount" | "reception" | "network" | "deposit" | "done";
 
-/**
- * Adresses de dépôt des ventes. Réseaux EVM : le portefeuille MetaMask d'Ooble
- * (le même que celui d'envoi des achats : les USDT vendus servent aux achats).
- * Tron et Solana : même compte MetaMask. Mêmes valeurs dans
- * supabase/functions/sell-watch (lecture des dépôts, sauf Solana).
- */
-const OOBLE_EVM = "0x0aC6f6202Ebff35D36A2Dca04C4f556FF95Fc093";
-const OOBLE_DEPOSIT: Record<NetId, string> = {
-  trx: "TPf6rXmbeRzueBB7SM19vQ4wDz2fcrEtAs",
-  bnb: OOBLE_EVM,
-  eth: OOBLE_EVM,
-  matic: OOBLE_EVM,
-  sol: "BKLnZeaEccUbBSR2WjBQ1j9arjBy82m9fZXRoH3w3M2i",
-  avax: OOBLE_EVM,
-};
 
 const nfCad = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
@@ -154,7 +140,8 @@ const AppVendreForm = () => {
       })
     : "";
   const network = NETWORKS.find((n) => n.id === net) ?? null;
-  const depositAddr = net ? OOBLE_DEPOSIT[net] : "";
+  const deposit = useDepositAddresses();
+  const depositAddr = net && deposit ? deposit[familyOf(net)] ?? "" : "";
 
   const submit = async () => {
     if (saving) return;
@@ -166,6 +153,7 @@ const AppVendreForm = () => {
       usdt,
       rate: sellRate,
       network: net ?? undefined,
+      address: depositAddr,
       interacEmail: email,
     });
     setSaving(false);

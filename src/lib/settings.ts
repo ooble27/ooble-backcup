@@ -16,6 +16,9 @@ export interface AppSettings {
   otcEnabled: boolean;
   tradeMinCad: number;
   tradeDailyMaxCad: number;
+  /** Marge d'Ooble au-dessus du cours du marché (achats) et en dessous (ventes), en %. */
+  buyMarginPct: number;
+  sellMarginPct: number;
   updatedAt: string | null;
   updatedByName: string | null;
 }
@@ -23,7 +26,7 @@ export interface AppSettings {
 /** Tant que rien n'est lu : tout fermé, limites légales par défaut. */
 const DEFAULTS: AppSettings = {
   tradingEnabled: false, verificationEnabled: false, otcEnabled: false,
-  tradeMinCad: 100, tradeDailyMaxCad: 9999, updatedAt: null, updatedByName: null,
+  tradeMinCad: 100, tradeDailyMaxCad: 9999, buyMarginPct: 2, sellMarginPct: 2, updatedAt: null, updatedByName: null,
 };
 /** Seuil de déclaration du CANAFE : les limites restent en dessous. */
 export const LEGAL_DAILY_MAX_CAD = 9999;
@@ -41,12 +44,14 @@ function publish(s: AppSettings) {
   listeners.forEach((l) => l(s));
 }
 
-const fromRow = (r: { trading_enabled: boolean; verification_enabled: boolean; otc_enabled: boolean; trade_min_cad: number; trade_daily_max_cad: number; updated_at: string; updated_by_name: string | null }): AppSettings => ({
+const fromRow = (r: Database["public"]["Tables"]["app_settings"]["Row"]): AppSettings => ({
   tradingEnabled: r.trading_enabled,
   verificationEnabled: r.verification_enabled,
   otcEnabled: r.otc_enabled,
   tradeMinCad: Number(r.trade_min_cad),
   tradeDailyMaxCad: Number(r.trade_daily_max_cad),
+  buyMarginPct: Number(r.buy_margin_pct),
+  sellMarginPct: Number(r.sell_margin_pct),
   updatedAt: r.updated_at,
   updatedByName: r.updated_by_name,
 });
@@ -80,13 +85,16 @@ export function useAppSettings(): AppSettings {
 }
 
 /** Administrateurs : change un ou plusieurs réglages (la base refuse les autres rôles et les limites hors cadre). */
-export async function saveAppSettings(patch: Partial<Pick<AppSettings, "tradingEnabled" | "verificationEnabled" | "otcEnabled" | "tradeMinCad" | "tradeDailyMaxCad">>): Promise<{ error?: string }> {
+export type SettingsPatch = Partial<Omit<AppSettings, "updatedAt" | "updatedByName">>;
+export async function saveAppSettings(patch: SettingsPatch): Promise<{ error?: string }> {
   const row: Database["public"]["Tables"]["app_settings"]["Update"] = {};
   if (patch.tradingEnabled !== undefined) row.trading_enabled = patch.tradingEnabled;
   if (patch.verificationEnabled !== undefined) row.verification_enabled = patch.verificationEnabled;
   if (patch.otcEnabled !== undefined) row.otc_enabled = patch.otcEnabled;
   if (patch.tradeMinCad !== undefined) row.trade_min_cad = patch.tradeMinCad;
   if (patch.tradeDailyMaxCad !== undefined) row.trade_daily_max_cad = patch.tradeDailyMaxCad;
+  if (patch.buyMarginPct !== undefined) row.buy_margin_pct = patch.buyMarginPct;
+  if (patch.sellMarginPct !== undefined) row.sell_margin_pct = patch.sellMarginPct;
   const { data, error } = await supabase.from("app_settings").update(row).eq("id", 1).select("*").maybeSingle();
   if (error) return { error: error.message };
   if (data) publish(fromRow(data));

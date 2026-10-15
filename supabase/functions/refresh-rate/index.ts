@@ -1,13 +1,15 @@
 // Fonction edge Ooble — rafraîchit le taux USDT/CAD dans `exchange_rates`.
 //
-// Récupère le taux de marché (CoinGecko), applique la marge Ooble, et insère
-// une nouvelle ligne. À planifier (cron Supabase) toutes les quelques minutes.
+// Récupère le taux de marché (CoinGecko), applique les marges d'Ooble réglées dans
+// Back-office › Réglages › Taux et marge (app_settings), et insère une nouvelle ligne.
+// Planifiée toutes les 10 minutes (cron), et appelée tout de suite quand une marge change.
 //
 // Utilise SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (injectés automatiquement).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const MARGIN = 0.02;
+/** Marge par défaut si les réglages ne peuvent pas être lus. */
+const DEFAULT_MARGIN_PCT = 2;
 
 Deno.serve(async () => {
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -29,12 +31,15 @@ Deno.serve(async () => {
     });
   }
 
-  const buy_rate = Math.round(base * (1 + MARGIN) * 1e6) / 1e6;
-  const sell_rate = Math.round(base * (1 - MARGIN) * 1e6) / 1e6;
+  const { data: s } = await supabase.from("app_settings").select("buy_margin_pct, sell_margin_pct").eq("id", 1).maybeSingle();
+  const buyPct = Number(s?.buy_margin_pct ?? DEFAULT_MARGIN_PCT);
+  const sellPct = Number(s?.sell_margin_pct ?? DEFAULT_MARGIN_PCT);
+  const buy_rate = Math.round(base * (1 + buyPct / 100) * 1e6) / 1e6;
+  const sell_rate = Math.round(base * (1 - sellPct / 100) * 1e6) / 1e6;
 
   const { error } = await supabase
     .from("exchange_rates")
-    .insert({ source: "coingecko", buy_rate, sell_rate });
+    .insert({ source: "coingecko", buy_rate, sell_rate, market_rate: base });
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {

@@ -41,3 +41,19 @@ export async function fetchPlatformHealth(): Promise<JobHealth[]> {
     lastMessage: r.last_message, runs24h: r.runs_24h, failures24h: r.failures_24h,
   }));
 }
+
+export interface LatestRate { market: number | null; buy: number; sell: number; at: string }
+
+/** Dernier taux publié (celui que voient les clients). */
+export async function fetchLatestRate(): Promise<LatestRate | null> {
+  const { data, error } = await supabase.from("exchange_rates").select("market_rate, buy_rate, sell_rate, fetched_at")
+    .order("fetched_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? { market: data.market_rate == null ? null : Number(data.market_rate), buy: Number(data.buy_rate), sell: Number(data.sell_rate), at: data.fetched_at } : null;
+}
+
+/** Recalcule le taux tout de suite (cours du marché + marges enregistrées) au lieu d'attendre le prochain passage. */
+export async function refreshRateNow(): Promise<void> {
+  const { error } = await supabase.functions.invoke("refresh-rate", { body: {} });
+  if (error) throw new Error(error.message);
+}

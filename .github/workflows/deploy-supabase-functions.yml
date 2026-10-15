@@ -40,5 +40,6 @@ jobs:
           supabase functions deploy delete-account --project-ref uukxacjjviiktmbikdwp
           supabase functions deploy reset-test-data --project-ref uukxacjjviiktmbikdwp
           supabase functions deploy admin-tools --project-ref uukxacjjviiktmbikdwp
+          supabase functions deploy refresh-rate --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

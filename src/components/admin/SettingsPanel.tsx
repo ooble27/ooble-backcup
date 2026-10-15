@@ -1,21 +1,19 @@
 /**
  * Réglages : tout ce qu'un administrateur gère sans écrire de code.
  *
- * Une page qui se lit de haut en bas, sans cadres : à gauche un sommaire qui suit la lecture,
- * à droite les sections, chacune avec son titre, une phrase pour dire à quoi elle sert, puis des
- * lignes « ce que c'est, à gauche · le réglage, à droite ».
- *   1. Ouverture : achats et ventes, vérification, bureau OTC, limites (appliqués par la base).
- *   2. Courriels : ce qu'il reste dans le forfait d'envoi, aujourd'hui et ce mois-ci.
- *   3. Santé : le dernier passage de chaque tâche automatique.
- *   4. Tests : un dossier de vérification fictif, à la demande.
- *   5. Démarrage : remise à zéro des commandes de test, puis lancement.
- *   6. Sauvegardes.
+ * Une liste de réglages rangés par thème ; chacun ouvre sa propre page (?reglage= dans l'adresse,
+ * le bouton « retour » du navigateur ramène à la liste). Sur la liste, chaque ligne dit déjà
+ * l'état du réglage. Équipe et Bannière vivent dans leurs onglets : leurs lignes y mènent.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import {
+  ArrowUpRight, BellRing, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, Mail, Percent, Power, Rocket, SlidersHorizontal, Users, Wallet,
+} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { peek, put } from "@/lib/adminCache";
 import { loadBackupRuns, loadPlatformPreview } from "@/lib/adminData";
 import { useAppSettings, saveAppSettings, LEGAL_DAILY_MAX_CAD } from "@/lib/settings";
+import { useDepositAddresses } from "@/lib/depositAddresses";
 import { fetchEmailUsage, fetchPlatformHealth, sendTestKyc, type EmailUsage, type JobHealth } from "@/lib/adminTools";
 import { logAdminAction } from "@/lib/audit";
 import { versionLabel } from "@/lib/freshness";
@@ -24,47 +22,38 @@ import { Button, Notice } from "./ui";
 import { PlatformHero } from "./heroes";
 import BackupsCard from "./BackupsCard";
 import { LaunchSections, type PlatformPreview } from "./PlatformPanel";
+import SettingsRate from "./SettingsRate";
+import SettingsDeposit from "./SettingsDeposit";
+import { Presets, Row, SaveBar, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf } from "./settingsUi";
 
-const CSS = `
-.st { display: grid; gap: 56px; margin-top: 8px; }
-@media (min-width: 1100px) { .st { grid-template-columns: 180px minmax(0, 1fr); gap: 56px; } }
-.st-toc { display: none; }
-@media (min-width: 1100px) { .st-toc { display: grid; gap: 4px; align-content: start; position: sticky; top: 24px; } }
-.st-toc a { font-size: 13.5px; color: var(--a-t3); text-decoration: none; padding: 5px 0; transition: color .15s, transform .3s cubic-bezier(.22,1,.36,1); }
-.st-toc a:hover { color: var(--a-t1); transform: translateX(4px); }
-.st-toc a[data-on="true"] { color: var(--a-t1); font-weight: 500; }
-.st-body { display: grid; gap: 72px; min-width: 0; }
-.st-sec { scroll-margin-top: 24px; animation: st-in .5s cubic-bezier(.22,1,.36,1) both; }
-.st-sec:nth-child(2) { animation-delay: .05s } .st-sec:nth-child(3) { animation-delay: .1s } .st-sec:nth-child(n+4) { animation-delay: .15s }
-@keyframes st-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.st-h2 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.035em; color: var(--a-t1); }
-.st-h3 { margin: 0; font-size: 16px; font-weight: 500; color: var(--a-t1); }
-.st-desc { margin: 6px 0 0; font-size: 14px; line-height: 1.6; color: var(--a-t3); max-width: 620px; }
-.st-rows { display: grid; gap: 22px; margin-top: 26px; max-width: 760px; }
-.st-row { display: flex; align-items: center; gap: 24px; }
-.st-row > div:first-child { flex: 1; min-width: 0; }
-.st-label { margin: 0; font-size: 15px; color: var(--a-t1); }
-.st-hint { margin: 3px 0 0; font-size: 13px; line-height: 1.55; color: var(--a-t3); }
-.st-sw { position: relative; flex-shrink: 0; width: 50px; height: 30px; border-radius: 99px; border: none; padding: 0; cursor: pointer; background: var(--a-l3); transition: background .25s; }
-.st-sw[aria-checked="true"] { background: var(--a-sage); }
-.st-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 99px; background: #fff; transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
-.st-sw[aria-checked="true"]::after { transform: translateX(20px); }
-.st-sw:disabled { opacity: .5; cursor: default; }
-.st-sw:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
-.st-num { width: 110px; height: 40px; border-radius: 10px; border: 1px solid var(--a-bd); background: transparent; color: var(--a-t1); font: inherit; font-size: 15px; text-align: right; padding: 0 12px; font-variant-numeric: tabular-nums; }
-.st-num:focus { outline: none; border-color: var(--a-t1); }
-.st-big { font-size: 44px; font-weight: 600; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
-@media (prefers-reduced-motion: reduce) { .st-sec, .st-sw::after { animation: none; transition: none; } }
+const INDEX_CSS = `
+.sx { display: grid; gap: 44px 64px; margin-top: 16px; }
+@media (min-width: 1100px) { .sx { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sx-group { animation: st-in .5s cubic-bezier(.22,1,.36,1) both; }
+.sx-group:nth-child(2) { animation-delay: .06s } .sx-group:nth-child(3) { animation-delay: .12s } .sx-group:nth-child(4) { animation-delay: .18s }
+.sx-eyebrow { margin: 0 0 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-t3); }
+.sx-row { display: flex; align-items: center; gap: 16px; width: 100%; padding: 14px 0; border: none; background: none; cursor: pointer; font: inherit; text-align: left; color: inherit; transition: transform .35s cubic-bezier(.22,1,.36,1); }
+.sx-row:hover { transform: translateX(6px); }
+.sx-row:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 4px; border-radius: 6px; }
+.sx-ico { width: 22px; height: 22px; flex-shrink: 0; color: var(--a-t3); transition: color .2s; }
+.sx-row:hover .sx-ico { color: var(--a-t1); }
+.sx-txt { flex: 1; min-width: 0; }
+.sx-name { display: block; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--a-t1); }
+.sx-desc { display: block; margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--a-t3); }
+.sx-val { flex-shrink: 0; max-width: 42%; text-align: right; font-size: 13.5px; color: var(--a-t2); font-variant-numeric: tabular-nums; }
+.sx-go { width: 18px; height: 18px; flex-shrink: 0; color: var(--a-t3); transition: transform .35s cubic-bezier(.22,1,.36,1), color .2s; }
+.sx-row:hover .sx-go { transform: translateX(3px); color: var(--a-t1); }
+@media (max-width: 640px) { .sx-val { display: none; } }
+@media (prefers-reduced-motion: reduce) { .sx-group { animation: none; } .sx-row, .sx-go { transition: none; } }
 `;
 
-const SECTIONS = [
-  { id: "ouverture", label: "Ouverture" },
-  { id: "courriels", label: "Courriels" },
-  { id: "sante", label: "Santé" },
-  { id: "tests", label: "Tests" },
-  { id: "demarrage", label: "Démarrage" },
-  { id: "sauvegardes", label: "Sauvegardes" },
-];
+type PageId = "ouverture" | "limites" | "taux" | "adresses" | "courriels" | "sante" | "tests" | "demarrage" | "sauvegardes";
+const PAGES: PageId[] = ["ouverture", "limites", "taux", "adresses", "courriels", "sante", "tests", "demarrage", "sauvegardes"];
+const PARAM = "reglage";
+const readPage = (): PageId | null => {
+  const v = new URLSearchParams(window.location.search).get(PARAM);
+  return PAGES.includes(v as PageId) ? (v as PageId) : null;
+};
 
 /** Nom et rythme de chaque tâche automatique, dits simplement. */
 const JOBS: Record<string, { name: string; every: string }> = {
@@ -75,64 +64,29 @@ const JOBS: Record<string, { name: string; every: string }> = {
   "refresh-usdt-rate": { name: "Mise à jour du taux", every: "toutes les 10 minutes" },
   "sanctions-fetch": { name: "Téléchargement des listes de sanctions", every: "chaque jour" },
 };
+const pct = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
+const isBad = (j: JobHealth) => j.lastStatus === "failed" || j.failures24h > 0 || !j.active;
+type BackupRun = { started_at: string; finished_at: string | null; status: string };
 
-const nf = new Intl.NumberFormat("fr-CA");
-const fmtDay = (iso: string) => new Date(iso).toLocaleString("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const ago = (iso: string | null) => {
-  if (!iso) return "jamais";
-  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`;
-};
-
-function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
-  return <button type="button" role="switch" aria-checked={on} aria-label={label} className="st-sw" disabled={disabled} onClick={() => onChange(!on)} />;
-}
-
-function Row({ label, hint, children }: { label: React.ReactNode; hint?: React.ReactNode; children?: React.ReactNode }) {
-  return (
-    <div className="st-row">
-      <div><p className="st-label">{label}</p>{hint && <p className="st-hint">{hint}</p>}</div>
-      {children}
-    </div>
-  );
-}
-
-function Sec({ id, title, desc, children }: { id: string; title: string; desc: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section id={`st-${id}`} className="st-sec">
-      <h2 className="st-h2">{title}</h2>
-      <p className="st-desc">{desc}</p>
-      {children}
-    </section>
-  );
-}
-
-/* ─── 1. Ouverture ─── */
-function Opening() {
+/* ─── Ouverture ─── */
+function Opening({ onBack }: { onBack: () => void }) {
   const s = useAppSettings();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [min, setMin] = useState(String(s.tradeMinCad));
-  const [max, setMax] = useState(String(s.tradeDailyMaxCad));
-  useEffect(() => { setMin(String(s.tradeMinCad)); setMax(String(s.tradeDailyMaxCad)); }, [s.tradeMinCad, s.tradeDailyMaxCad]);
-
-  const save = async (patch: Parameters<typeof saveAppSettings>[0], what: string) => {
-    setBusy(true); setErr(null);
-    const res = await saveAppSettings(patch);
-    setBusy(false);
-    if (res.error) { setErr(res.error.includes("check") ? "Valeurs refusées : le maximum reste entre le minimum et 9 999 $." : res.error); return; }
-    void logAdminAction({ action: "settings.update", entityKind: "app_settings", metadata: { ...patch, what } });
-  };
-  const flip = (key: "tradingEnabled" | "verificationEnabled" | "otcEnabled", label: string) => (v: boolean) => {
+  const flip = (key: "tradingEnabled" | "verificationEnabled" | "otcEnabled", what: string) => async (v: boolean) => {
     if (v && key === "tradingEnabled" && !confirm("Ouvrir les achats et les ventes à tous les clients vérifiés ?")) return;
-    void save({ [key]: v }, label);
+    setBusy(true); setErr(null);
+    const res = await saveAppSettings({ [key]: v });
+    setBusy(false);
+    if (res.error) { setErr(res.error); return; }
+    void logAdminAction({ action: "settings.update", entityKind: "app_settings", metadata: { [key]: v, what } });
   };
-  const minN = Number(min.replace(",", ".")), maxN = Number(max.replace(",", "."));
-  const limitsChanged = minN !== s.tradeMinCad || maxN !== s.tradeDailyMaxCad;
-  const limitsOk = minN >= 1 && maxN >= minN && maxN <= LEGAL_DAILY_MAX_CAD;
-
+  const word = (on: boolean) => <span style={{ color: on ? C.sage : C.coral }}>{on ? "ouverts" : "fermés"}</span>;
+  const wordF = (on: boolean) => <span style={{ color: on ? C.sage : C.coral }}>{on ? "ouverte" : "fermée"}</span>;
   return (
-    <Sec id="ouverture" title="Ouverture" desc="Ce que les clients peuvent faire. Chaque changement prend effet tout de suite, sans publication ; la base le fait respecter, même à qui contournerait l'app.">
+    <SettingsPage onBack={onBack}
+      title={<>Achats et ventes {word(s.tradingEnabled)}<span className="mute">, vérification</span> {wordF(s.verificationEnabled)}<span className="mute">, bureau OTC</span> {s.otcEnabled ? <span style={{ color: C.sage }}>ouvert</span> : <span style={{ color: C.coral }}>fermé</span>}<span className="mute">.</span></>}
+      desc="Ce que les clients peuvent faire. Chaque changement prend effet tout de suite, sans publication ; la base le fait respecter, même à qui contournerait l'app.">
       <div className="st-rows">
         <Row label="Achats et ventes" hint={s.tradingEnabled ? "Ouverts aux clients vérifiés." : "Fermés aux clients. L'équipe peut toujours passer des commandes de test."}>
           <Toggle on={s.tradingEnabled} disabled={busy} label="Achats et ventes" onChange={flip("tradingEnabled", "Achats et ventes")} />
@@ -143,60 +97,106 @@ function Opening() {
         <Row label="Bureau OTC (gros montants)" hint={s.otcEnabled ? "Les clients peuvent demander une cotation." : "Réservé à l'équipe."}>
           <Toggle on={s.otcEnabled} disabled={busy} label="Bureau OTC" onChange={flip("otcEnabled", "Bureau OTC")} />
         </Row>
-        <Row label="Montant minimum par commande" hint="En dollars canadiens, achats comme ventes.">
-          <input className="st-num" inputMode="decimal" value={min} onChange={(e) => setMin(e.target.value)} aria-label="Minimum par commande" />
-        </Row>
-        <Row label="Maximum sur 24 heures" hint={`Par client et par sens (achats d'un côté, ventes de l'autre). Jamais plus de ${nf.format(LEGAL_DAILY_MAX_CAD)} $ : on reste sous le seuil de déclaration du CANAFE.`}>
-          <input className="st-num" inputMode="decimal" value={max} onChange={(e) => setMax(e.target.value)} aria-label="Maximum sur 24 heures" />
-        </Row>
-        {limitsChanged && (
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <Button variant="primary" disabled={!limitsOk || busy} onClick={() => save({ tradeMinCad: minN, tradeDailyMaxCad: maxN }, "Limites")}>Enregistrer les limites</Button>
-            {!limitsOk && <span style={{ fontSize: 13, color: C.coral }}>Le maximum doit être entre le minimum et {nf.format(LEGAL_DAILY_MAX_CAD)} $.</span>}
-          </div>
-        )}
-        {err && <p style={{ margin: 0, fontSize: 13.5, color: C.coral }}>{err}</p>}
-        {s.updatedAt && <p className="st-hint">Dernier changement {s.updatedByName ? `par ${s.updatedByName} ` : ""}le {fmtDay(s.updatedAt)}.</p>}
       </div>
-    </Sec>
+      {err && <p className="st-hint" style={{ color: C.coral }}>{err}</p>}
+      {s.updatedAt && <p className="st-hint" style={{ margin: 0 }}>Dernier changement des réglages {s.updatedByName ? `par ${s.updatedByName} ` : ""}le {fmtDay(s.updatedAt)}.</p>}
+    </SettingsPage>
   );
 }
 
-/* ─── 2. Courriels ─── */
-function Emails() {
+/* ─── Limites ─── */
+function Limits({ onBack }: { onBack: () => void }) {
+  const s = useAppSettings();
+  const [min, setMin] = useState(s.tradeMinCad);
+  const [max, setMax] = useState(s.tradeDailyMaxCad);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => { setMin(s.tradeMinCad); setMax(s.tradeDailyMaxCad); }, [s.tradeMinCad, s.tradeDailyMaxCad]);
+  const dirty = min !== s.tradeMinCad || max !== s.tradeDailyMaxCad;
+  const ok = min >= 1 && max >= min && max <= LEGAL_DAILY_MAX_CAD;
+  const $ = (n: number) => `${nf.format(n)}\u00a0$`;
+
+  const save = async () => {
+    setBusy(true); setMsg(null);
+    const res = await saveAppSettings({ tradeMinCad: min, tradeDailyMaxCad: max });
+    setBusy(false);
+    if (res.error) { setMsg({ ok: false, text: res.error.includes("check") ? `Le maximum doit rester entre le minimum et ${$(LEGAL_DAILY_MAX_CAD)}.` : res.error }); return; }
+    void logAdminAction({ action: "settings.update", entityKind: "app_settings", metadata: { tradeMinCad: min, tradeDailyMaxCad: max, what: "Limites" } });
+    setMsg({ ok: true, text: "Enregistré : les nouvelles limites s'appliquent aux prochaines commandes." });
+  };
+
+  return (
+    <SettingsPage onBack={onBack}
+      title={<>Un client commande <span className="mute">entre</span> <span style={{ color: C.sun }}>{$(min)}</span> <span className="mute">et</span> <span style={{ color: C.sun }}>{$(max)}</span> <span className="mute">par jour.</span></>}
+      desc={`Achats comme ventes, en dollars canadiens. Jamais plus de ${$(LEGAL_DAILY_MAX_CAD)} sur 24 heures : on reste sous le seuil de déclaration du CANAFE. Au-delà, le client passe par le bureau OTC.`}>
+      <section>
+        <h3 className="st-h3">Minimum par commande</h3>
+        <p className="st-hint">En dessous, l'app refuse la commande.</p>
+        <div style={{ marginTop: 18 }}>
+          <Stepper value={min} onChange={setMin} step={5} min={1} max={Math.min(max, LEGAL_DAILY_MAX_CAD)} unit="$" label="le minimum par commande" />
+          <Presets options={[20, 50, 100, 250]} value={min} onPick={setMin} format={$} />
+        </div>
+      </section>
+      <section>
+        <h3 className="st-h3">Maximum sur 24 heures</h3>
+        <p className="st-hint">Par client et par sens : les achats d'un côté, les ventes de l'autre.</p>
+        <div style={{ marginTop: 18 }}>
+          <Stepper value={max} onChange={setMax} step={100} min={Math.max(1, min)} max={LEGAL_DAILY_MAX_CAD} unit="$" label="le maximum sur 24 heures" />
+          <Presets options={[1000, 2500, 5000, LEGAL_DAILY_MAX_CAD]} value={max} onPick={setMax} format={$} />
+        </div>
+      </section>
+      {(dirty || msg) && (
+        <div style={{ display: "grid", gap: 12 }}>
+          <SaveBar show={dirty} ok={ok} busy={busy} onSave={save} onCancel={() => { setMin(s.tradeMinCad); setMax(s.tradeDailyMaxCad); setMsg(null); }}
+            note={ok ? `${$(s.tradeMinCad)} à ${$(s.tradeDailyMaxCad)} → ${$(min)} à ${$(max)}` : `Le maximum doit rester entre le minimum et ${$(LEGAL_DAILY_MAX_CAD)}.`} />
+          {msg && <p style={{ margin: 0, fontSize: 13.5, color: msg.ok ? C.sage : C.coral }}>{msg.text}</p>}
+        </div>
+      )}
+    </SettingsPage>
+  );
+}
+
+/* ─── Courriels ─── */
+function Emails({ onBack }: { onBack: () => void }) {
   const [u, setU] = useState<EmailUsage | null>(() => peek<EmailUsage>("st.email")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => { fetchEmailUsage().then((x) => { setU(x); put("st.email", x); }).catch((e) => setErr((e as Error).message)); }, []);
-  const left = u ? Math.max(0, u.dayLimit - u.today) : null;
-  const monthLeft = u ? Math.max(0, u.monthLimit - u.month) : null;
-  const tone = (n: number, of: number) => (n <= of * 0.1 ? C.coral : n <= of * 0.3 ? C.sun : C.t1);
+  const left = u ? Math.max(0, u.dayLimit - u.today) : 0;
+  const monthLeft = u ? Math.max(0, u.monthLimit - u.month) : 0;
+  const tone = (n: number, of: number) => (n <= of * 0.1 ? C.coral : n <= of * 0.3 ? C.sun : C.sage);
   return (
-    <Sec id="courriels" title="Courriels" desc="Le forfait d'envoi compte tous les courriels : confirmations de commande, réponses de la Messagerie et campagnes.">
-      <div style={{ display: "flex", gap: 64, flexWrap: "wrap", marginTop: 26 }}>
-        <div>
-          <p className="st-big" style={{ margin: 0, color: u ? tone(left!, u.dayLimit) : C.t3 }}>{u ? nf.format(left!) : "…"}</p>
-          <p className="st-hint" style={{ marginTop: 8 }}>{u ? <>restants aujourd'hui sur {u.dayLimit} · {u.today} envoyés · repart à zéro à {new Date(u.resetsAt).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}</> : "restants aujourd'hui"}</p>
+    <SettingsPage onBack={onBack}
+      title={u ? <>Il reste <span style={{ color: tone(left, u.dayLimit) }}>{nf.format(left)} {left > 1 ? "courriels" : "courriel"}</span> <span className="mute">aujourd'hui, et</span> <span style={{ color: tone(monthLeft, u.monthLimit) }}>{nf.format(monthLeft)}</span> <span className="mute">ce mois-ci.</span></> : <span className="mute">Courriels</span>}
+      desc="Le forfait d'envoi compte tous les courriels : confirmations de commande, réponses de la Messagerie et campagnes.">
+      {u && (
+        <div style={{ display: "flex", gap: 64, flexWrap: "wrap" }}>
+          <div>
+            <p className="st-big" style={{ margin: 0, color: C.t1 }}>{u.today}<span className="st-step-unit"> / {u.dayLimit}</span></p>
+            <p className="st-hint" style={{ marginTop: 8 }}>envoyés aujourd'hui · repart à zéro à {new Date(u.resetsAt).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}</p>
+          </div>
+          <div>
+            <p className="st-big" style={{ margin: 0, color: C.t1 }}>{nf.format(u.month)}<span className="st-step-unit"> / {nf.format(u.monthLimit)}</span></p>
+            <p className="st-hint" style={{ marginTop: 8 }}>envoyés ce mois-ci · repart le {new Date(u.monthResetsAt).toLocaleDateString("fr-CA", { day: "numeric", month: "long" })}</p>
+          </div>
         </div>
-        <div>
-          <p className="st-big" style={{ margin: 0, color: u ? tone(monthLeft!, u.monthLimit) : C.t3 }}>{u ? nf.format(monthLeft!) : "…"}</p>
-          <p className="st-hint" style={{ marginTop: 8 }}>{u ? <>restants ce mois-ci sur {nf.format(u.monthLimit)} · repart le {new Date(u.monthResetsAt).toLocaleDateString("fr-CA", { day: "numeric", month: "long" })}</> : "restants ce mois-ci"}</p>
-        </div>
-      </div>
-      {err && <p style={{ margin: "14px 0 0", fontSize: 13.5, color: C.coral }}>Lecture impossible : {err}</p>}
-    </Sec>
+      )}
+      {err && <p className="st-hint" style={{ color: C.coral }}>Lecture impossible : {err}</p>}
+    </SettingsPage>
   );
 }
 
-/* ─── 3. Santé ─── */
-function Health() {
+/* ─── Santé ─── */
+function Health({ onBack }: { onBack: () => void }) {
   const [jobs, setJobs] = useState<JobHealth[] | null>(() => peek<JobHealth[]>("st.health")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => { fetchPlatformHealth().then((x) => { setJobs(x); put("st.health", x); }).catch((e) => setErr((e as Error).message)); }, []);
-  const failing = (jobs ?? []).filter((j) => j.lastStatus === "failed" || j.failures24h > 0 || !j.active);
+  const failing = (jobs ?? []).filter(isBad);
   return (
-    <Sec id="sante" title="Santé" desc={jobs ? (failing.length
-      ? <span style={{ color: C.coral }}>{failing.length} tâche{failing.length > 1 ? "s" : ""} à regarder.</span>
-      : <>Toutes les tâches automatiques tournent normalement. <span style={{ color: C.t2 }}>Version en ligne : {versionLabel()}.</span></>) : "Les tâches qui tournent seules sur le serveur."}>
+    <SettingsPage onBack={onBack}
+      title={!jobs ? <span className="mute">Santé</span> : failing.length
+        ? <><span style={{ color: C.coral }}>{failing.length} {failing.length > 1 ? "tâches" : "tâche"}</span> <span className="mute">à regarder sur {jobs.length}.</span></>
+        : <>Les {jobs.length} tâches automatiques <span style={{ color: C.sage }}>tournent normalement</span><span className="mute">.</span></>}
+      desc={<>Les tâches qui tournent seules sur le serveur, et leur dernier passage. Version en ligne : {versionLabel()}.</>}>
       <div className="st-rows">
         {(jobs ?? []).map((j) => {
           const meta = JOBS[j.jobname] ?? { name: j.jobname, every: j.schedule };
@@ -210,15 +210,14 @@ function Health() {
             </Row>
           );
         })}
-        {!jobs && !err && <Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} />}
-        {err && <p style={{ margin: 0, fontSize: 13.5, color: C.coral }}>{err}</p>}
       </div>
-    </Sec>
+      {err && <p className="st-hint" style={{ color: C.coral }}>{err}</p>}
+    </SettingsPage>
   );
 }
 
-/* ─── 4. Tests ─── */
-function Tests() {
+/* ─── Tests ─── */
+function Tests({ onBack }: { onBack: () => void }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const send = async () => {
@@ -230,68 +229,155 @@ function Tests() {
     setBusy(false);
   };
   return (
-    <Sec id="tests" title="Tests" desc="Pour essayer les parcours sans vrai client.">
+    <SettingsPage onBack={onBack} title={<>Essayer les parcours <span className="mute">sans vrai client.</span></>}
+      desc="Des données fictives, clairement marquées, pour voir ce que voit l'équipe.">
       <div className="st-rows">
         <Row label="Dossier de vérification d'identité" hint="Le client fictif Camille Tremblay envoie un nouveau dossier complet : informations, pièce, selfie et preuve d'adresse, tous marqués « SPÉCIMEN ».">
           <Button disabled={busy} onClick={send} icon={busy ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : undefined}>Envoyer</Button>
         </Row>
         {msg && <p style={{ margin: 0, fontSize: 13.5, color: msg.ok ? C.sage : C.coral, display: "flex", alignItems: "center", gap: 8 }}>{msg.ok && <Check style={{ width: 15, height: 15 }} />}{msg.text}</p>}
       </div>
-    </Sec>
+    </SettingsPage>
   );
 }
 
-export default function SettingsPanel() {
+/* ─── Liste des réglages ─── */
+interface Item { id: string; icon: React.ComponentType<{ className?: string }>; name: string; desc: string; value?: React.ReactNode; onOpen: () => void; external?: boolean }
+
+function Index({ items, p, runs }: { items: { title: string; rows: Item[] }[]; p: PlatformPreview | null; runs: BackupRun[] | null }) {
+  const orders = p?.core.find((c) => c.table === "orders")?.n ?? 0;
+  return (
+    <>
+      <PlatformHero loading={!p} launchedAt={p?.launchedAt ?? null} testOrders={orders} runs={runs} />
+      <div className="sx">
+        {items.filter((g) => g.rows.length).map((g) => (
+          <section key={g.title} className="sx-group">
+            <h3 className="sx-eyebrow">{g.title}</h3>
+            {g.rows.map((it) => {
+              const Icon = it.icon;
+              const Go = it.external ? ArrowUpRight : ChevronRight;
+              return (
+                <button key={it.id} type="button" className="sx-row" onClick={it.onOpen}>
+                  <Icon className="sx-ico" />
+                  <span className="sx-txt"><span className="sx-name">{it.name}</span><span className="sx-desc">{it.desc}</span></span>
+                  {it.value != null && <span className="sx-val">{it.value}</span>}
+                  <Go className="sx-go" />
+                </button>
+              );
+            })}
+          </section>
+        ))}
+      </div>
+    </>
+  );
+}
+
+export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announcements") => void }) {
+  const [page, setPageState] = useState<PageId | null>(readPage);
   const [p, setP] = useState<PlatformPreview | null>(() => peek<PlatformPreview>("pf.preview")?.value ?? null);
-  type HeroRun = { started_at: string; finished_at: string | null; status: string };
-  const [runs, setRuns] = useState<HeroRun[] | null>(() => peek<HeroRun[]>("pf.backups")?.value ?? null);
+  const [runs, setRuns] = useState<BackupRun[] | null>(() => peek<BackupRun[]>("pf.backups")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
-  const [current, setCurrent] = useState(SECTIONS[0].id);
+  const [email, setEmail] = useState<EmailUsage | null>(() => peek<EmailUsage>("st.email")?.value ?? null);
+  const [health, setHealth] = useState<JobHealth[] | null>(() => peek<JobHealth[]>("st.health")?.value ?? null);
+  const s = useAppSettings();
+  const deposit = useDepositAddresses();
+
   const load = useCallback(() => {
     loadPlatformPreview<PlatformPreview>().then((d) => { setP(d); setErr(null); }).catch((e) => setErr(e.message));
   }, []);
   useEffect(load, [load]);
-  useEffect(() => { void loadBackupRuns<HeroRun>().then(setRuns).catch(() => setRuns([])); }, []);
-
-  // Le sommaire suit la lecture.
+  useEffect(() => { void loadBackupRuns<BackupRun>().then(setRuns).catch(() => setRuns([])); }, []);
+  // L'état affiché sur la liste se met à jour à chaque retour.
   useEffect(() => {
-    const els = SECTIONS.map((s) => document.getElementById(`st-${s.id}`)).filter(Boolean) as HTMLElement[];
-    const io = new IntersectionObserver((entries) => {
-      const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      if (top) setCurrent(top.target.id.slice(3));
-    }, { rootMargin: "0px 0px -60% 0px" });
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [p]);
+    if (page) return;
+    fetchEmailUsage().then((x) => { setEmail(x); put("st.email", x); }).catch(() => {});
+    fetchPlatformHealth().then((x) => { setHealth(x); put("st.health", x); }).catch(() => {});
+  }, [page]);
 
-  const orders = p?.core.find((c) => c.table === "orders")?.n ?? 0;
+  // La page suit l'adresse (?reglage=) : « retour » ramène à la liste.
+  useEffect(() => {
+    const on = () => setPageState(readPage());
+    window.addEventListener("popstate", on);
+    return () => window.removeEventListener("popstate", on);
+  }, []);
+  const go = (id: PageId | null) => {
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set(PARAM, id); else url.searchParams.delete(PARAM);
+    window.history.pushState(window.history.state, "", url);
+    setPageState(id);
+    window.scrollTo({ top: 0 });
+    document.querySelector("main")?.scrollTo?.({ top: 0 });
+  };
+  const back = () => go(null);
+
+  const $ = (n: number) => `${nf.format(n)}\u00a0$`;
+  const addrCount = deposit ? Object.values(deposit).filter(Boolean).length : null;
+  const failing = health?.filter(isBad).length ?? null;
+  const lastOk = runs?.find((r) => r.status === "success");
+  const open = s.tradingEnabled;
+
+  const items: { title: string; rows: Item[] }[] = [
+    {
+      title: "Ce que voient les clients",
+      rows: [
+        { id: "ouverture", icon: Power, name: "Ouverture", desc: "Achats et ventes, vérification, bureau OTC.", value: <span style={{ color: open ? C.sage : C.coral }}>{open ? "Ouverts" : "Fermés aux clients"}</span>, onOpen: () => go("ouverture") },
+        { id: "limites", icon: SlidersHorizontal, name: "Limites", desc: "Montant minimum par commande, maximum sur 24 heures.", value: `${$(s.tradeMinCad)} à ${$(s.tradeDailyMaxCad)}`, onOpen: () => go("limites") },
+        { id: "taux", icon: Percent, name: "Taux et marge", desc: "Le pourcentage ajouté au cours à l'achat, retiré à la vente.", value: `+${pct.format(s.buyMarginPct)} % · −${pct.format(s.sellMarginPct)} %`, onOpen: () => go("taux") },
+        { id: "adresses", icon: Wallet, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
+      ],
+    },
+    {
+      title: "L'équipe",
+      rows: [
+        ...(onTab ? [
+          { id: "team", icon: Users, name: "Équipe et rôles", desc: "Membres, rôles, permissions et journal d'audit.", onOpen: () => onTab("team"), external: true },
+          { id: "announcements", icon: BellRing, name: "Bannière et maintenance", desc: "Message à tous les clients, mode maintenance.", onOpen: () => onTab("announcements"), external: true },
+        ] : []),
+      ],
+    },
+    {
+      title: "La plateforme",
+      rows: [
+        { id: "sante", icon: HeartPulse, name: "Santé", desc: "Les tâches automatiques et leur dernier passage.", value: failing == null ? null : <span style={{ color: failing ? C.coral : C.sage }}>{failing ? `${failing} à regarder` : "En ordre"}</span>, onOpen: () => go("sante") },
+        { id: "courriels", icon: Mail, name: "Courriels", desc: "Ce qu'il reste dans le forfait d'envoi.", value: email ? `${nf.format(Math.max(0, email.dayLimit - email.today))} restants aujourd'hui` : null, onOpen: () => go("courriels") },
+        { id: "sauvegardes", icon: DatabaseBackup, name: "Sauvegardes", desc: "Chaque nuit, chiffrées, restauration testée.", value: lastOk ? ago(lastOk.finished_at ?? lastOk.started_at) : null, onOpen: () => go("sauvegardes") },
+      ],
+    },
+    {
+      title: "Avant le lancement",
+      rows: [
+        { id: "tests", icon: FlaskConical, name: "Tests", desc: "Un dossier de vérification fictif, à la demande.", onOpen: () => go("tests") },
+        { id: "demarrage", icon: Rocket, name: "Démarrage", desc: "Effacer les commandes de test, puis lancer.", value: p ? (p.launchedAt ? <span style={{ color: C.sage }}>Lancé</span> : <span style={{ color: C.sun }}>Mode test</span>) : null, onOpen: () => go("demarrage") },
+      ],
+    },
+  ];
+
   return (
     <div style={{ fontFamily: FONT }}>
-      <style>{CSS}</style>
-      <PlatformHero loading={!p} launchedAt={p?.launchedAt ?? null} testOrders={orders} runs={runs} />
-      {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
-      <div className="st">
-        <nav className="st-toc" aria-label="Sommaire des réglages">
-          {SECTIONS.map((s) => (
-            <a key={s.id} href={`#st-${s.id}`} data-on={current === s.id}
-              onClick={(e) => { e.preventDefault(); document.getElementById(`st-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
-              {s.label}
-            </a>
-          ))}
-        </nav>
-        <div className="st-body">
-          <Opening />
-          <Emails />
-          <Health />
-          <Tests />
-          <Sec id="demarrage" title="Démarrage" desc="Avant le lancement : effacer les commandes de test. Puis, une seule fois, démarrer les activités.">
-            <div style={{ marginTop: 26 }}>{p ? <LaunchSections p={p} reload={load} /> : <Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} />}</div>
-          </Sec>
-          <Sec id="sauvegardes" title="Sauvegardes" desc="Chaque nuit à 3 h 17 : base de données et pièces d'identité, chiffrées, puis restauration testée.">
-            <BackupsCard bare />
-          </Sec>
-        </div>
-      </div>
+      <style>{ST_CSS + INDEX_CSS}</style>
+      {err && !page && <div style={{ marginBottom: 16 }}><Notice tone="err">{err}</Notice></div>}
+      {!page && <Index items={items} p={p} runs={runs} />}
+      {page === "ouverture" && <Opening onBack={back} />}
+      {page === "limites" && <Limits onBack={back} />}
+      {page === "taux" && <SettingsRate onBack={back} />}
+      {page === "adresses" && <SettingsDeposit onBack={back} />}
+      {page === "courriels" && <Emails onBack={back} />}
+      {page === "sante" && <Health onBack={back} />}
+      {page === "tests" && <Tests onBack={back} />}
+      {page === "demarrage" && (
+        <SettingsPage onBack={back}
+          title={p?.launchedAt ? <>Ooble est <span style={{ color: C.sage }}>lancée</span><span className="mute">.</span></> : <>Ooble est <span style={{ color: C.sun }}>en test</span><span className="mute">.</span></>}
+          desc="Avant le lancement : effacer les commandes de test. Puis, une seule fois, démarrer les activités.">
+          {p && <LaunchSections p={p} reload={load} />}
+        </SettingsPage>
+      )}
+      {page === "sauvegardes" && (
+        <SettingsPage onBack={back}
+          title={lastOk ? <>Dernière sauvegarde <span style={{ color: C.sage }}>{ago(lastOk.finished_at ?? lastOk.started_at)}</span><span className="mute">.</span></> : <span className="mute">Sauvegardes</span>}
+          desc="Chaque nuit à 3 h 17 : base de données et pièces d'identité, chiffrées, puis restauration testée.">
+          <BackupsCard bare />
+        </SettingsPage>
+      )}
     </div>
   );
 }

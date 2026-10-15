@@ -262,8 +262,10 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          buy_margin_pct: number
           id: number
           otc_enabled: boolean
+          sell_margin_pct: number
           trade_daily_max_cad: number
           trade_min_cad: number
           trading_enabled: boolean
@@ -273,8 +275,10 @@ export type Database = {
           verification_enabled: boolean
         }
         Insert: {
+          buy_margin_pct?: number
           id?: number
           otc_enabled?: boolean
+          sell_margin_pct?: number
           trade_daily_max_cad?: number
           trade_min_cad?: number
           trading_enabled?: boolean
@@ -284,8 +288,10 @@ export type Database = {
           verification_enabled?: boolean
         }
         Update: {
+          buy_margin_pct?: number
           id?: number
           otc_enabled?: boolean
+          sell_margin_pct?: number
           trade_daily_max_cad?: number
           trade_min_cad?: number
           trading_enabled?: boolean
@@ -942,11 +948,45 @@ export type Database = {
         }
         Relationships: []
       }
+      deposit_addresses: {
+        Row: {
+          active: boolean
+          added_at: string
+          added_by: string | null
+          added_by_name: string | null
+          address: string
+          family: string
+          id: number
+          retired_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          added_at?: string
+          added_by?: string | null
+          added_by_name?: string | null
+          address: string
+          family: string
+          id?: number
+          retired_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          added_at?: string
+          added_by?: string | null
+          added_by_name?: string | null
+          address?: string
+          family?: string
+          id?: number
+          retired_at?: string | null
+        }
+        Relationships: []
+      }
       exchange_rates: {
         Row: {
           buy_rate: number
           fetched_at: string
           id: number
+          market_rate: number | null
           sell_rate: number
           source: string
         }
@@ -954,6 +994,7 @@ export type Database = {
           buy_rate: number
           fetched_at?: string
           id?: never
+          market_rate?: number | null
           sell_rate: number
           source: string
         }
@@ -961,6 +1002,7 @@ export type Database = {
           buy_rate?: number
           fetched_at?: string
           id?: never
+          market_rate?: number | null
           sell_rate?: number
           source?: string
         }
@@ -2209,6 +2251,10 @@ export type Database = {
           _lang?: string
           _p256dh: string
         }
+        Returns: undefined
+      }
+      set_deposit_address: {
+        Args: { _address: string; _family: string }
         Returns: undefined
       }
       set_my_lang: { Args: { p_lang: string }; Returns: undefined }

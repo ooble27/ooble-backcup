@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-/** Marge Ooble appliquée au taux de marché réel. */
-export const OOBLE_MARGIN = 0.02;
+import { getAppSettingsNow } from "@/lib/settings";
 
 /** Valeur de repli tant qu'aucun taux n'est chargé (USDT/CAD). */
 const FALLBACK_BASE = 1.4020;
@@ -35,6 +33,12 @@ let last: (Loaded & { at: number }) | null = (() => {
 })();
 let inflight: Promise<Loaded | null> | null = null;
 
+/** Applique les marges réglées (Back-office › Réglages › Taux et marge) à un taux de marché. */
+function withMargins(base: number): Loaded {
+  const s = getAppSettingsNow();
+  return { base, buy: base * (1 + s.buyMarginPct / 100), sell: base * (1 - s.sellMarginPct / 100) };
+}
+
 function remember(v: Loaded) {
   last = { ...v, at: Date.now() };
   try { localStorage.setItem(STORE_KEY, JSON.stringify(v)); } catch { /* stockage indisponible */ }
@@ -55,20 +59,20 @@ export function useUsdtRate(): UsdtRate {
       // 1) Taux officiel Ooble depuis la base.
       const { data } = await supabase
         .from("exchange_rates")
-        .select("buy_rate, sell_rate")
+        .select("buy_rate, sell_rate, market_rate")
         .order("fetched_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (data) {
         const buy = Number(data.buy_rate);
         const sell = Number(data.sell_rate);
-        return { buy, sell, base: (buy + sell) / 2 };
+        return { buy, sell, base: data.market_rate ? Number(data.market_rate) : (buy + sell) / 2 };
       }
       // 2) Repli marché en direct (CoinGecko).
       try {
         const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cad");
         const v = r.ok ? (await r.json())?.tether?.cad : null;
-        if (typeof v === "number" && v > 0) return { base: v, buy: v * (1 + OOBLE_MARGIN), sell: v * (1 - OOBLE_MARGIN) };
+        if (typeof v === "number" && v > 0) return withMargins(v);
       } catch { /* on garde le repli fixe */ }
       return null;
     })().finally(() => { inflight = null; });
@@ -84,9 +88,7 @@ export function useUsdtRate(): UsdtRate {
 
   if (loaded) return { ...loaded, live: true };
   return {
-    base: FALLBACK_BASE,
-    buy: FALLBACK_BASE * (1 + OOBLE_MARGIN),
-    sell: FALLBACK_BASE * (1 - OOBLE_MARGIN),
+    ...withMargins(FALLBACK_BASE),
     live: false,
   };
 }

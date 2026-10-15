@@ -26,14 +26,6 @@ function snippet(text: string | null, len = 120): string {
   return clean.length <= len ? clean : `${clean.slice(0, len)}…`;
 }
 
-const OOBLE_DEPOSIT_ADDRESSES: Record<string, string> = {
-  trx: "TPf6rXmbeRzueBB7SM19vQ4wDz2fcrEtAs",
-  bnb: "0x0aC6f6202Ebff35D36A2Dca04C4f556FF95Fc093",
-  eth: "0x0aC6f6202Ebff35D36A2Dca04C4f556FF95Fc093",
-  matic: "0x0aC6f6202Ebff35D36A2Dca04C4f556FF95Fc093",
-  sol: "BKLnZeaEccUbBSR2WjBQ1j9arjBy82m9fZXRoH3w3M2i",
-  avax: "0x0aC6f6202Ebff35D36A2Dca04C4f556FF95Fc093",
-};
 
 export async function fetchPlatformContext(): Promise<PlatformContext> {
   const todayStart = new Date();
@@ -43,6 +35,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
   const [
     ordersRes, kycCountRes, kycDetailsRes, mailCountRes, threadsRes, rateRes, flagsRes, treasuryRes,
     profilesRes, blockchainTxRes, paymentConfRes, orderEventsRes, announcementsRes, maintenanceRes, treasuryMovRes, auditLogRes,
+    depositRes,
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -127,7 +120,14 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
       .select("actor_email, action, entity_kind, entity_id, created_at")
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase.from("deposit_addresses").select("family, address").eq("active", true),
   ]);
+
+  const byFamily = Object.fromEntries((depositRes.data ?? []).map((r) => [r.family, r.address])) as Record<string, string>;
+  const oobleDepositAddresses: Record<string, string> = {};
+  for (const [net, fam] of [["trx", "tron"], ["bnb", "evm"], ["eth", "evm"], ["matic", "evm"], ["avax", "evm"], ["sol", "solana"]] as const) {
+    if (byFamily[fam]) oobleDepositAddresses[net] = byFamily[fam];
+  }
 
   const orders = (ordersRes.data ?? []) as Array<{
     id: string;
@@ -514,7 +514,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
     sellRate,
     recentOrders,
     alerts,
-    oobleDepositAddresses: OOBLE_DEPOSIT_ADDRESSES,
+    oobleDepositAddresses,
     pendingKycDetails,
     recentThreads,
     complianceFlags,
