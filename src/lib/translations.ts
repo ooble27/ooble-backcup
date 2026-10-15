@@ -1004,7 +1004,7 @@ const dict = {
   "del.doneTitle": { fr: "Votre compte est supprimé", en: "Your account is deleted" },
   "del.doneSub": { fr: "Un courriel de confirmation vous a été envoyé. Merci d'avoir utilisé Ooble.", en: "We've sent you a confirmation email. Thank you for using Ooble." },
   "del.home": { fr: "Retour à l'accueil", en: "Back to home" },
-  "login.errClosed": { fr: "Ce compte a été fermé. Vous pouvez en ouvrir un nouveau.", en: "This account has been closed. You can open a new one." },
+  "login.errSuspended": { fr: "Ce compte est suspendu. Écrivez-nous à support@ooble.ca pour en savoir plus.", en: "This account is suspended. Write to us at support@ooble.ca to find out more." },
   "regb.errBusinessRequired": { fr: "Le nom de l'entreprise est requis.", en: "Business name is required." },
 
   // ── Registration errors ──
