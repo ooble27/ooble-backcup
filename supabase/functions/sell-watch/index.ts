@@ -202,7 +202,7 @@ async function notify(db: SupabaseClient, orderId: string, depositId: string) {
   const to = p?.email ?? o.interac_email;
   if (!to) return;
   const [base, name] = EXPLORER[d.network] ?? ["", ""];
-  const fr = (n: number, dec = 2) => n.toLocaleString("fr-CA", { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/ | /g, " ");
+  const fr = (n: number, dec = 2) => n.toLocaleString("fr-CA", { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/\u202f|\u00a0/g, " ");
   await fetch(`${SB_URL}/functions/v1/send-email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE}` },
