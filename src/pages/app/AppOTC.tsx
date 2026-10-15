@@ -433,7 +433,7 @@ function OtcFlow() {
 
   return (
     <AppShell header={<StepHeader title={t("otcApp.sentTitle")} sub={t("otcApp.sentSub")} />}>
-      <div className="mb-4 flex items-start gap-2.5 rounded-[14px] border border-border bg-secondary/40 px-4 py-3.5">
+      <div className="mb-5 flex items-start gap-2.5">
         <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
           <Check className="h-[14px] w-[14px]" strokeWidth={2.5} />
         </span>

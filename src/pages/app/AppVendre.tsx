@@ -456,7 +456,7 @@ const AppVendreForm = () => {
           <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} USDT`} />
         </div>
 
-        <div className="mt-3 flex items-start gap-2.5 rounded-[12px] border border-amber-300/60 bg-amber-50 px-4 py-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+        <div className="mt-3 flex items-start gap-2.5">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" strokeWidth={2} />
           <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">
             {t("sell.networkWarn")} <strong>{network?.tag}</strong>. {t("sell.networkWarnLoss")}
@@ -484,7 +484,7 @@ const AppVendreForm = () => {
 
   return (
     <AppShell header={<StepHeader title={t("sell.sentTitle")} sub={t("sell.sentSub")} />}>
-      <div className="mb-4 flex items-start gap-2.5 rounded-[14px] border border-border bg-secondary/40 px-4 py-3.5">
+      <div className="mb-5 flex items-start gap-2.5">
         <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-white">
           <Check className="h-[14px] w-[14px]" strokeWidth={2.5} />
         </span>

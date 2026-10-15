@@ -160,7 +160,7 @@ if (message === "disposable_email") return t("reg.errDisposable");
           <Captcha ref={captchaRef} onToken={setCaptcha} className="mt-4" />
 
           {error && (
-            <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-[13px] text-destructive">
+            <p className="mt-3 text-[13.5px] leading-snug text-destructive">
               {error}
             </p>
           )}

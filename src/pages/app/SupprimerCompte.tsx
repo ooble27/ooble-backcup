@@ -88,7 +88,7 @@ const SupprimerCompte = () => {
           <span>{t(isStaff ? "del.staff" : "del.active")}</span>
         </div>
       ) : (
-        <section className="mt-4 rounded-2xl border border-destructive/30 bg-card p-5">
+        <section className="mt-4">
           <label htmlFor="del-confirm" className="block text-[13.5px] text-muted-foreground">
             {t("del.type")}
           </label>

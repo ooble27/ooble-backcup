@@ -366,7 +366,7 @@ const Verification = () => {
         </div>
 
         {status === "rejected" && reviewNote && (
-          <div className="mt-4 rounded-2xl bg-destructive/10 px-4 py-3.5 text-destructive">
+          <div className="mt-4 text-destructive">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em]">{t("kyc.reviewNote")}</p>
             <p className="mt-1 whitespace-pre-wrap text-[13.5px] leading-relaxed">{reviewNote}</p>
           </div>
@@ -596,7 +596,7 @@ const Verification = () => {
             t={t}
           />
 
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-secondary/30 px-4 py-3">
+          <div className="mt-4 flex items-start gap-2.5">
             <Fingerprint className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.9} />
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">{t("kyc.selfieTip")}</p>
           </div>
@@ -662,13 +662,13 @@ const Verification = () => {
           </div>
 
           {error && (
-            <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
+            <div className="mt-4 flex items-start gap-2.5">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
               <p className="text-[13px] text-destructive">{error}</p>
             </div>
           )}
 
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-secondary/30 px-4 py-3">
+          <div className="mt-4 flex items-start gap-2.5">
             <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.9} />
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">{t("kyc.reviewPrivacy")}</p>
           </div>

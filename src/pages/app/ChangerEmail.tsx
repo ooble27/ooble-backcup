@@ -97,7 +97,7 @@ const ChangerEmail = () => {
         </div>
 
         {error && (
-          <p className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[13px] text-destructive">
+          <p className="mt-3 text-[13.5px] leading-snug text-destructive">
             {error}
           </p>
         )}

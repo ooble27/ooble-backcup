@@ -127,7 +127,7 @@ const Reinitialiser = () => {
               )}
 
               {error && (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+                <p className="text-[13.5px] font-medium leading-snug text-destructive">
                   {error}
                 </p>
               )}
@@ -140,7 +140,7 @@ const Reinitialiser = () => {
               </div>
             </form>
           ) : (
-            <p className="mt-7 rounded-xl border border-border bg-secondary px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
+            <p className="mt-7 text-[13px] leading-relaxed text-muted-foreground">
               <T en="Open this page from the link sent to your email. If you're already here,">
                 Ouvrez cette page depuis le lien reçu par courriel. Si vous y êtes déjà,
               </T>{" "}
