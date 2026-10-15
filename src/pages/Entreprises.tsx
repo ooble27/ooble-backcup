@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
 import OtcVideo from "@/components/OtcVideo";
-import { TRADE_DAILY_MAX_CAD } from "@/lib/config";
+import { LEGAL_DAILY_MAX_CAD as TRADE_DAILY_MAX_CAD } from "@/lib/settings";
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 

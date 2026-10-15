@@ -16,6 +16,7 @@ import { Avatar, DataTable, EmptyState, KeyValues, Pill, TwoLine, type Column, t
 import ClientNotes from "./ClientNotes";
 import ClientTimeline from "./ClientTimeline";
 import RiskScoreCard from "./RiskScoreCard";
+import ClientAccess from "./ClientAccess";
 
 interface Props {
   userId: string;
@@ -196,6 +197,8 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
               ["Identifiant", copyable(userId, "uid", true)],
             ]} />
           </Block>
+
+          {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
 
           {profile?.accountType === "business" && (
             <Block title="Entreprise">

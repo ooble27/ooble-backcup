@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAppSettings } from "@/lib/settings";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Coins, Check, ShieldOff } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
@@ -13,7 +14,7 @@ import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { OOBLE_INTERAC_EMAIL, STAFF_TEST_MIN_CAD, TRADE_DAILY_MAX_CAD, TRADE_MIN_CAD, TRADING_ENABLED } from "@/lib/config";
+import { OOBLE_INTERAC_EMAIL, STAFF_TEST_MIN_CAD } from "@/lib/config";
 import { useOtcVisible } from "@/lib/otc";
 
 type Step = "amount" | "network" | "address" | "recap" | "done";
@@ -44,8 +45,9 @@ const StepHeader = ({ title, sub, onBack, backLabel }: { title: string; sub: str
    l'équipe, chargés après le premier affichage, ne changent jamais le nombre de hooks du formulaire. */
 const AppAcheter = () => {
   const { isStaff, rolesLoading } = useAuth();
+  const { tradingEnabled } = useAppSettings();
   const t = useT();
-  if (!TRADING_ENABLED && !isStaff) {
+  if (!tradingEnabled && !isStaff) {
     if (rolesLoading) return null;
     return (
       <AppShell center>
@@ -76,6 +78,7 @@ const AppAcheter = () => {
 const AppAcheterForm = () => {
   const rate = useUsdtRate();
   const { user, isStaff } = useAuth();
+  const { tradeMinCad, tradeDailyMaxCad } = useAppSettings();
   const t = useT();
   const otc = useOtcVisible();
 
@@ -93,9 +96,9 @@ const AppAcheterForm = () => {
   // en base). Même taux quel que soit le montant.
   const [allowance, setAllowance] = useState<TradeAllowance | null>(() => peekAllowance(user?.id, "buy") ?? null);
   useEffect(() => { getAllowance("buy").then(setAllowance); }, []);
-  const maxCad = Math.floor(Math.min(TRADE_DAILY_MAX_CAD, allowance?.remaining ?? TRADE_DAILY_MAX_CAD));
+  const maxCad = Math.floor(Math.min(tradeDailyMaxCad, allowance?.remaining ?? tradeDailyMaxCad));
   // L'équipe peut faire de petits achats de test (dès 2 $).
-  const minCad = isStaff ? STAFF_TEST_MIN_CAD : TRADE_MIN_CAD;
+  const minCad = isStaff ? STAFF_TEST_MIN_CAD : tradeMinCad;
   const blocked = allowance !== null && maxCad < minCad;
 
   const buyRate = rate.buy;

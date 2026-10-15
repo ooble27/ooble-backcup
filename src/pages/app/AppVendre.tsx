@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAppSettings } from "@/lib/settings";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, ShieldOff } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -15,7 +16,6 @@ import { getMyProfile, peekMyProfile } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { TRADE_DAILY_MAX_CAD, TRADE_MIN_CAD, TRADING_ENABLED } from "@/lib/config";
 import { useOtcVisible } from "@/lib/otc";
 
 type Step = "amount" | "reception" | "network" | "deposit" | "done";
@@ -62,8 +62,9 @@ const StepHeader = ({ title, sub, onBack, backLabel }: { title: string; sub: str
    l'équipe, chargés après le premier affichage, ne changent jamais le nombre de hooks du formulaire. */
 const AppVendre = () => {
   const { isStaff, rolesLoading } = useAuth();
+  const { tradingEnabled } = useAppSettings();
   const t = useT();
-  if (!TRADING_ENABLED && !isStaff) {
+  if (!tradingEnabled && !isStaff) {
     if (rolesLoading) return null;
     return (
       <AppShell center>
@@ -94,6 +95,7 @@ const AppVendre = () => {
 const AppVendreForm = () => {
   const rate = useUsdtRate();
   const { user, isStaff } = useAuth();
+  const { tradeMinCad, tradeDailyMaxCad } = useAppSettings();
   const t = useT();
   const otc = useOtcVisible();
 
@@ -125,9 +127,9 @@ const AppVendreForm = () => {
   useEffect(() => { getAllowance("sell").then(setAllowance); }, []);
   // L'équipe Ooble (tous les rôles) vend n'importe quel montant, pour les
   // tests : ni minimum, ni plafond (la base les exempte aussi).
-  const minCad = isStaff ? 0 : TRADE_MIN_CAD;
-  const maxCad = isStaff ? Infinity : Math.floor(Math.min(TRADE_DAILY_MAX_CAD, allowance?.remaining ?? TRADE_DAILY_MAX_CAD));
-  const blocked = !isStaff && allowance !== null && maxCad < TRADE_MIN_CAD;
+  const minCad = isStaff ? 0 : tradeMinCad;
+  const maxCad = isStaff ? Infinity : Math.floor(Math.min(tradeDailyMaxCad, allowance?.remaining ?? tradeDailyMaxCad));
+  const blocked = !isStaff && allowance !== null && maxCad < tradeMinCad;
 
   const sellRate = rate.sell;
   const value = parseAmount(amount);

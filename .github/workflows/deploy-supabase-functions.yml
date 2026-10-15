@@ -39,5 +39,6 @@ jobs:
           supabase functions deploy sell-watch --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
           supabase functions deploy delete-account --project-ref uukxacjjviiktmbikdwp
           supabase functions deploy reset-test-data --project-ref uukxacjjviiktmbikdwp
+          supabase functions deploy admin-tools --project-ref uukxacjjviiktmbikdwp
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

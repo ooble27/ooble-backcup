@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAppSettings } from "@/lib/settings";
 import { Link, useNavigate } from "react-router-dom";
 import { Clock, Coins, HandCoins, Inbox, ChevronRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
@@ -11,7 +12,6 @@ import { ActivityRow } from "@/components/app/ActivityList";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { TRADING_ENABLED } from "@/lib/config";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import BusinessMark from "@/components/app/BusinessMark";
@@ -76,6 +76,7 @@ const Dashboard = () => {
   const rate = useUsdtRate();
   const history = useUsdtHistory();
   const { user, isStaff } = useAuth();
+  const { tradingEnabled } = useAppSettings();
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
   useEffect(() => { getMyProfile().then(setProfile); }, []);
   const kybPending = profile?.businessStatus === "pending";
@@ -146,12 +147,12 @@ const Dashboard = () => {
               to="/app/acheter"
               className={cn(
                 "flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 transition-colors",
-                (TRADING_ENABLED || isStaff)
+                (tradingEnabled || isStaff)
                   ? "hover:bg-secondary/50 active:bg-secondary"
                   : "pointer-events-none opacity-40",
               )}
-              aria-disabled={!(TRADING_ENABLED || isStaff)}
-              tabIndex={(TRADING_ENABLED || isStaff) ? undefined : -1}
+              aria-disabled={!(tradingEnabled || isStaff)}
+              tabIndex={(tradingEnabled || isStaff) ? undefined : -1}
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-foreground/60">
                 <Coins className="h-5 w-5" strokeWidth={1.6} />
@@ -162,12 +163,12 @@ const Dashboard = () => {
               to="/app/vendre"
               className={cn(
                 "flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 transition-colors",
-                (TRADING_ENABLED || isStaff)
+                (tradingEnabled || isStaff)
                   ? "hover:bg-secondary/50 active:bg-secondary"
                   : "pointer-events-none opacity-40",
               )}
-              aria-disabled={!(TRADING_ENABLED || isStaff)}
-              tabIndex={(TRADING_ENABLED || isStaff) ? undefined : -1}
+              aria-disabled={!(tradingEnabled || isStaff)}
+              tabIndex={(tradingEnabled || isStaff) ? undefined : -1}
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-foreground/60">
                 <HandCoins className="h-5 w-5" strokeWidth={1.6} />
@@ -175,7 +176,7 @@ const Dashboard = () => {
               <span className="text-[15px] font-medium">{t("dash.sell")}</span>
             </Link>
           </div>
-          {!TRADING_ENABLED && !isStaff && (
+          {!tradingEnabled && !isStaff && (
             <p className="text-center text-[12px] text-muted-foreground/70">
              {t("dash.tradingSuspended")}
             </p>

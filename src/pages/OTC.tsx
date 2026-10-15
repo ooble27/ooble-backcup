@@ -7,7 +7,8 @@ import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
 import OtcVideo from "@/components/OtcVideo";
 import { ORDER_NETWORKS } from "@/components/app/networks";
-import { OOBLE_OTC_EMAIL, TRADE_DAILY_MAX_CAD } from "@/lib/config";
+import { OOBLE_OTC_EMAIL } from "@/lib/config";
+import { LEGAL_DAILY_MAX_CAD as TRADE_DAILY_MAX_CAD } from "@/lib/settings";
 import { useOtcVisible } from "@/lib/otc";
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,7 @@ import { cn } from "@/lib/utils";
    préparer, les questions, et une bande finale pleine largeur.
    Les demandes arrivent dans la boîte otc@ooble.ca (Admin → Messagerie,
    pastille « OTC »). Le bouton « Demander un prix » (formulaire /app/otc)
-   n'apparaît que pour l'équipe Ooble tant que OTC_ENABLED vaut false ; les
+   n'apparaît que pour l'équipe Ooble tant que le bureau OTC n'est pas ouvert dans Réglages ; les
    autres écrivent à otc@ooble.ca. */
 
 type Bi = { fr: string; en: string };

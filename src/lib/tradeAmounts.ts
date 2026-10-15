@@ -1,6 +1,6 @@
 /**
  * Montants d'un achat ou d'une vente saisis en CAD ou en USDT. Les limites
- * (TRADE_MIN_CAD, TRADE_DAILY_MAX_CAD) portent toujours sur le montant CAD.
+ * (Back-office › Réglages) portent toujours sur le montant CAD.
  */
 export type Unit = "CAD" | "USDT";
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useAppSettings } from "@/lib/settings";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, ShieldCheck, Check, Clock, Camera, IdCard, Lock,
@@ -12,7 +13,6 @@ import { useAuth } from "@/lib/auth";
 import { submitKycDocuments, type DocType, type KycIdentityInfo } from "@/lib/kycUpload";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { VERIFICATION_ENABLED } from "@/lib/config";
 import type { TKey } from "@/lib/translations";
 
 /* ─── Status display ─── */
@@ -220,6 +220,7 @@ const Verification = () => {
   const navigate = useNavigate();
   const t = useT();
   const { user, isStaff } = useAuth();
+  const { verificationEnabled } = useAppSettings();
   // Statut déjà chargé (préchargement de l'app) : affiché tout de suite.
   const [cachedKyc] = useState(() => peekMyKyc(user?.id));
   const [status, setStatus] = useState<KycDbStatus | null>(cachedKyc === undefined ? null : cachedKyc?.status ?? "not_started");
@@ -423,7 +424,7 @@ const Verification = () => {
             {/* CTA */}
             <div className="mt-6 flex items-center justify-end gap-4">
               {isStaff && <p className="mr-auto text-[12px] leading-relaxed text-muted-foreground">Compte de l'équipe : vous pouvez envoyer de nouveaux documents autant de fois que vous voulez, pour tester.</p>}
-              <Button variant="appSolid" shape="rounded" className="shrink-0 gap-2 px-5 text-[13px]" disabled={!VERIFICATION_ENABLED && !isStaff} onClick={() => setStep("info")}>
+              <Button variant="appSolid" shape="rounded" className="shrink-0 gap-2 px-5 text-[13px]" disabled={!verificationEnabled && !isStaff} onClick={() => setStep("info")}>
                 {isStaff && status !== "not_started" ? "Nouvel envoi" : inReview ? t("kyc.resume") : t("kyc.start")}
                 <ChevronRight className="h-4 w-4" />
               </Button>

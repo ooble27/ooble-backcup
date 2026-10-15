@@ -4,7 +4,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, Power, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -27,7 +27,7 @@ import AnnouncementsPanel from "@/components/admin/AnnouncementsPanel";
 import SettlementPanel from "@/components/admin/SettlementPanel";
 import MailboxPanel from "@/components/admin/MailboxPanel";
 import CampaignsPanel from "@/components/admin/CampaignsPanel";
-import PlatformPanel from "@/components/admin/PlatformPanel";
+import SettingsPanel from "@/components/admin/SettingsPanel";
 import ClientsPanel from "@/components/admin/ClientsPanel";
 import DocsPanel from "@/components/admin/DocsPanel";
 import CommandPalette from "@/components/admin/CommandPalette";
@@ -74,7 +74,7 @@ const GROUPS: NavGroup[] = [
   ] },
   { label: "Administration", items: [
     { id: "team", label: "Équipe", desc: "Membres, rôles et permissions, et le journal de toutes les actions de l'équipe.", icon: Users },
-    { id: "platform", label: "Plateforme", desc: "Lancement, données de test et sauvegardes.", icon: Power },
+    { id: "platform", label: "Réglages", desc: "Ouverture, courriels, santé, tests, démarrage et sauvegardes.", icon: Settings2 },
   ] },
   // Ressources : un seul bouton qui se déplie, au lieu de trois entrées de plus dans le menu.
   { label: "Ressources", menu: { label: "Ressources", icon: Library }, items: [
@@ -530,7 +530,7 @@ const AdminPortal = () => {
                       </Section>
                     </>
                   )}
-                  {tab === "platform" && <PlatformPanel />}
+                  {tab === "platform" && <SettingsPanel />}
                   {tab === "kb" && <DocsPanel section="kb" />}
                   {tab === "manual" && <DocsPanel section="manual" />}
                   {tab === "techdocs" && <DocsPanel section="tech" />}

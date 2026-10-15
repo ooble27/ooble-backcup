@@ -1,11 +1,12 @@
 import { useAuth } from "@/lib/auth";
-import { OTC_ENABLED } from "@/lib/config";
+import { useAppSettings } from "@/lib/settings";
 
 /**
- * Le desk OTC est-il visible pour la personne connectée ? Tant que
- * OTC_ENABLED vaut false, seulement pour l'équipe Ooble (staff).
+ * Le desk OTC est-il visible pour la personne connectée ? Tant qu'il n'est pas
+ * ouvert dans Réglages, seulement pour l'équipe Ooble (staff).
  */
 export function useOtcVisible(): boolean {
   const { isStaff } = useAuth();
-  return OTC_ENABLED || isStaff;
+  const { otcEnabled } = useAppSettings();
+  return otcEnabled || isStaff;
 }

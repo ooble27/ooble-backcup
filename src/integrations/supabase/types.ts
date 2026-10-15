@@ -260,6 +260,42 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          id: number
+          otc_enabled: boolean
+          trade_daily_max_cad: number
+          trade_min_cad: number
+          trading_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+          verification_enabled: boolean
+        }
+        Insert: {
+          id?: number
+          otc_enabled?: boolean
+          trade_daily_max_cad?: number
+          trade_min_cad?: number
+          trading_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+          verification_enabled?: boolean
+        }
+        Update: {
+          id?: number
+          otc_enabled?: boolean
+          trade_daily_max_cad?: number
+          trade_min_cad?: number
+          trading_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+          verification_enabled?: boolean
+        }
+        Relationships: []
+      }
       backup_runs: {
         Row: {
           archive_bytes: number | null
@@ -2050,6 +2086,20 @@ export type Database = {
       admin_order_totals: {
         Args: { _since: string; _split: string; _statuses: string[] }
         Returns: Json
+      }
+      admin_platform_health: {
+        Args: never
+        Returns: {
+          active: boolean
+          failures_24h: number
+          jobname: string
+          last_end: string
+          last_message: string
+          last_start: string
+          last_status: string
+          runs_24h: number
+          schedule: string
+        }[]
       }
       attach_chain_deposit: {
         Args: { _deposit: string; _order: string }

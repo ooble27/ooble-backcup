@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAppSettings } from "@/lib/settings";
 import { Link } from "react-router-dom";
 import {
   BadgeCheck, Building2, Check, ChevronRight, Copy, Gauge, Globe, Handshake, LayoutGrid, Lock, LogOut, Mail,
@@ -8,7 +9,6 @@ import BusinessMark from "@/components/app/BusinessMark";
 import { useLang, useT } from "@/lib/i18n";
 import { getTheme, onThemeChange, setTheme, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-import { VERIFICATION_ENABLED } from "@/lib/config";
 import type { KycDbStatus } from "@/lib/kyc";
 import type { MyProfile } from "@/lib/profile";
 import type { TKey } from "@/lib/translations";
@@ -106,6 +106,7 @@ interface Props {
 
 const MobileAccount = ({ profile, kyc, name, email, isStaff, otc, onLogout }: Props) => {
   const t = useT();
+  const { verificationEnabled } = useAppSettings();
   const [lang, setLang] = useLang();
   const [theme, setThemeState] = useState<Theme>(getTheme);
   useEffect(() => onThemeChange(setThemeState), []);
@@ -118,7 +119,7 @@ const MobileAccount = ({ profile, kyc, name, email, isStaff, otc, onLogout }: Pr
   // Bandeau d'action : seulement quand il y a vraiment quelque chose à faire
   // (vérification ouverte, ou dossier en cours ou refusé).
   const pendingStatus: KycDbStatus | null = business ? bizStatus ?? null : kyc;
-  const showBanner = !!pendingStatus && pendingStatus !== "approved" && (VERIFICATION_ENABLED || pendingStatus !== "not_started");
+  const showBanner = !!pendingStatus && pendingStatus !== "approved" && (verificationEnabled || pendingStatus !== "not_started");
   const banner = pendingStatus === "pending"
     ? { title: business ? t("kyb.stPending") : t("acct.verifyPendingTitle"), sub: business ? t("kyb.gatePending") : t("acct.verifyPendingSub"), cta: t("acct.verifyOpen") }
     : pendingStatus === "rejected"

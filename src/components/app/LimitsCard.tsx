@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getAllowance, peekAllowance, type TradeAllowance } from "@/lib/orders";
 import { useAuth } from "@/lib/auth";
-import { TRADE_DAILY_MAX_CAD } from "@/lib/config";
+import { getAppSettingsNow } from "@/lib/settings";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { TKey } from "@/lib/translations";
@@ -25,7 +25,8 @@ export default function LimitsCard({ className }: { className?: string }) {
   // la carte s'affiche tout de suite à sa taille finale, sans saut, puis se
   // met à jour.
   const [lim, setLim] = useState<{ buy: TradeAllowance; sell: TradeAllowance }>(() => {
-    const full: TradeAllowance = { limit: TRADE_DAILY_MAX_CAD, used: 0, remaining: TRADE_DAILY_MAX_CAD, nextAt: null };
+    const max = getAppSettingsNow().tradeDailyMaxCad;
+    const full: TradeAllowance = { limit: max, used: 0, remaining: max, nextAt: null };
     return { buy: peekAllowance(user?.id, "buy") ?? full, sell: peekAllowance(user?.id, "sell") ?? full };
   });
   useEffect(() => {

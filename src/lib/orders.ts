@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getAppSettings } from "@/lib/settings";
 import type { Database } from "@/integrations/supabase/types";
 import type { NetId } from "@/components/app/networks";
 import { getLang } from "@/lib/i18n";
@@ -72,10 +73,10 @@ export const peekAllowance = (uid: string | null | undefined, side: "buy" | "sel
   peekCache<TradeAllowance>(uid ? `allow:${side}:${uid}` : null);
 
 export async function getAllowance(side: "buy" | "sell"): Promise<TradeAllowance> {
-  const { TRADE_DAILY_MAX_CAD, TRADE_MIN_CAD } = await import("@/lib/config");
+  const { tradeDailyMaxCad, tradeMinCad } = await getAppSettings();
   const { data: auth } = await supabase.auth.getSession();
   const uid = auth.session?.user?.id;
-  const fallback = { limit: TRADE_DAILY_MAX_CAD, used: 0, remaining: TRADE_DAILY_MAX_CAD, nextAt: null };
+  const fallback = { limit: tradeDailyMaxCad, used: 0, remaining: tradeDailyMaxCad, nextAt: null };
   if (!uid) return fallback;
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const [{ data: prof }, { data: rows }] = await Promise.all([
@@ -89,17 +90,17 @@ export async function getAllowance(side: "buy" | "sell"): Promise<TradeAllowance
       .gt("created_at", since)
       .order("created_at", { ascending: true }),
   ]);
-  const limit = Math.min(Number(prof?.daily_limit_cad ?? TRADE_DAILY_MAX_CAD), TRADE_DAILY_MAX_CAD);
+  const limit = Math.min(Number(prof?.daily_limit_cad ?? tradeDailyMaxCad), tradeDailyMaxCad);
   const list = (rows ?? []).map((r) => ({ cad: Number(r.cad_amount), at: new Date(r.created_at) }));
   const used = list.reduce((s, r) => s + r.cad, 0);
   const remaining = Math.max(0, Math.floor((limit - used) * 100) / 100);
   // Limite atteinte : on attend que d'anciens ordres sortent de la fenêtre.
   let nextAt: Date | null = null;
-  if (remaining < TRADE_MIN_CAD) {
+  if (remaining < tradeMinCad) {
     let freed = remaining;
     for (const r of list) {
       freed += r.cad;
-      if (freed >= TRADE_MIN_CAD) { nextAt = new Date(r.at.getTime() + 24 * 3600 * 1000); break; }
+      if (freed >= tradeMinCad) { nextAt = new Date(r.at.getTime() + 24 * 3600 * 1000); break; }
     }
   }
   return putCache(`allow:${side}:${uid}`, { limit, used, remaining, nextAt });
@@ -111,8 +112,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
   const uid = auth.session?.user?.id;
   if (!uid) return { error: getLang() === "en" ? "You must be logged in." : "Vous devez être connecté." };
 
-  const { TRADING_ENABLED } = await import("@/lib/config");
-  if (!TRADING_ENABLED) {
+  if (!(await getAppSettings()).tradingEnabled) {
     const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", uid);
     const isStaff = (roleRows ?? []).length > 0;
     if (!isStaff) {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useAppSettings } from "@/lib/settings";
 import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock, FileText, Lock, Plus, Upload, Users } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
@@ -10,7 +11,6 @@ import {
   getMyKyb, peekMyKyb, submitKyb, KYB_ACCEPT, KYB_DOCS, KYB_MAX_FILE,
   type BusinessInfo, type BusinessOwner, type KybDocKey, type KybStatus, type MyKyb, type OwnerRole,
 } from "@/lib/kyb";
-import { KYB_PREVIEW_USERS, VERIFICATION_ENABLED } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -113,10 +113,12 @@ const ErrorLine = ({ msg }: { msg: string | null }) =>
 const Entreprise = () => {
   const navigate = useNavigate();
   const t = useT();
-  const { user } = useAuth();
+  const { user, isStaff } = useAuth();
+  const { verificationEnabled } = useAppSettings();
   const [lang] = useLang();
   const placeLabel = (v: string) => ALL_PLACES.find((p) => p.fr === v || p.en === v)?.[lang] ?? v;
-  const kybOpen = VERIFICATION_ENABLED || (!!user && KYB_PREVIEW_USERS.includes(user.id));
+  // Avant l'ouverture, l'équipe peut parcourir la vérification d'entreprise pour la tester.
+  const kybOpen = verificationEnabled || isStaff;
 
   // Données déjà chargées (préchargement de l'app) : la page s'affiche tout
   // de suite ; la lecture en arrière-plan ne met à jour que les statuts.

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAppSettings } from "@/lib/settings";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Check, Handshake, ShieldOff } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
@@ -8,7 +9,7 @@ import { NETWORKS, ORDER_NETWORKS, type NetId } from "@/components/app/networks"
 import { Button } from "@/components/ui/button";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { useAuth } from "@/lib/auth";
-import { OOBLE_OTC_EMAIL, OTC_ENABLED } from "@/lib/config";
+import { OOBLE_OTC_EMAIL } from "@/lib/config";
 import { getMyProfile } from "@/lib/profile";
 import { T, useLang, useT } from "@/lib/i18n";
 import { parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";
    Même parcours qu'Acheter / Vendre : montant → réseau → origine des fonds →
    récapitulatif. La demande arrive dans la boîte otc@ooble.ca (Admin →
    Messagerie, pastille « OTC ») ; le desk répond avec un prix ferme.
-   Réservé à l'équipe Ooble tant que OTC_ENABLED vaut false. */
+   Réservé à l'équipe Ooble tant que le bureau OTC n'est pas ouvert dans Réglages. */
 
 type Side = "buy" | "sell";
 type Step = "amount" | "network" | "funds" | "recap" | "done";
@@ -91,8 +92,9 @@ const Continue = ({ disabled, onClick, children }: { disabled?: boolean; onClick
 /** Accès : équipe Ooble seulement tant que le desk n'est pas ouvert. */
 const AppOTC = () => {
   const { isStaff, rolesLoading } = useAuth();
+  const { otcEnabled } = useAppSettings();
   const t = useT();
-  if (OTC_ENABLED || isStaff) return <OtcFlow />;
+  if (otcEnabled || isStaff) return <OtcFlow />;
   if (rolesLoading) return <AppShell center>{null}</AppShell>;
   return (
     <AppShell center>

@@ -1,15 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, Lock, RotateCcw } from "lucide-react";
-import { peek } from "@/lib/adminCache";
-import { loadBackupRuns, loadPlatformPreview, resetTestData } from "@/lib/adminData";
-import BackupsCard from "@/components/admin/BackupsCard";
+import { resetTestData } from "@/lib/adminData";
 import { C, FONT } from "@/components/admin/adminTheme";
 import { Button, Notice, Switch, TextInput } from "@/components/admin/ui";
-import { Section } from "@/components/admin/layout";
-import { PlatformHero } from "@/components/admin/heroes";
 
 /*
- * Plateforme : remettre à zéro les commandes de test, puis démarrer les
+ * Réglages › Démarrage : remettre à zéro les commandes de test, puis démarrer les
  * activités. Seules les commandes et ce qui s'y rattache sont effacés ;
  * comptes clients, vérifications, adresses enregistrées et registre de
  * conformité ne sont jamais touchés. Une fois la plateforme lancée, plus de
@@ -17,7 +13,7 @@ import { PlatformHero } from "@/components/admin/heroes";
  */
 
 type Count = { table: string; label: string; n: number };
-interface Preview {
+export interface PlatformPreview {
   launchedAt: string | null;
   lastResetAt: string | null;
   core: Count[];
@@ -43,7 +39,7 @@ const call = resetTestData;
 
 /** Ligne de liste à plat : libellé, détail, valeur à droite. */
 const Line = ({ children, right, muted }: { children: React.ReactNode; right?: React.ReactNode; muted?: boolean }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 13.5, color: muted ? C.t3 : C.t1 }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", fontSize: 13.5, color: muted ? C.t3 : C.t1 }}>
     <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
     {right}
   </div>
@@ -70,11 +66,8 @@ const Confirm = ({ word, value, onChange, onSubmit, disabled, busy, label, dange
   );
 };
 
-export default function PlatformPanel() {
-  const [p, setP] = useState<Preview | null>(() => peek<Preview>("pf.preview")?.value ?? null);
-  type HeroRun = { started_at: string; finished_at: string | null; status: string };
-  const [runs, setRuns] = useState<HeroRun[] | null>(() => peek<HeroRun[]>("pf.backups")?.value ?? null);
-  useEffect(() => { void loadBackupRuns<HeroRun>().then(setRuns).catch(() => setRuns([])); }, []);
+/** Remise à zéro des commandes de test et démarrage des activités (la vue d'ensemble est lue par Réglages). */
+export function LaunchSections({ p, reload }: { p: PlatformPreview; reload: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [mail, setMail] = useState(true);
   const [logs, setLogs] = useState(true);
@@ -83,26 +76,19 @@ export default function PlatformPanel() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ResetResult | null>(null);
 
-  const load = useCallback(() => {
-    loadPlatformPreview<Preview>().then((d) => { setP(d); setErr(null); }).catch((e) => setErr(e.message));
-  }, []);
-  useEffect(load, [load]);
-
   const run = async (body: Record<string, unknown>, after: (r: unknown) => void) => {
     setBusy(true); setErr(null);
-    try { after(await call(body)); load(); } catch (e) { setErr((e as Error).message); }
+    try { after(await call(body)); reload(); } catch (e) { setErr((e as Error).message); }
     setBusy(false);
   };
 
-  const launched = !!p?.launchedAt;
-  const orders = p?.core.find((c) => c.table === "orders")?.n ?? 0;
-  const linked = p ? sum(p.core.filter((c) => c.table !== "orders")) : 0;
-  const total = p ? sum(p.core) + (mail ? sum(p.mail) : 0) + (logs ? sum(p.logs) : 0) : 0;
+  const launched = !!p.launchedAt;
+  const orders = p.core.find((c) => c.table === "orders")?.n ?? 0;
+  const linked = sum(p.core.filter((c) => c.table !== "orders"));
+  const total = sum(p.core) + (mail ? sum(p.mail) : 0) + (logs ? sum(p.logs) : 0);
 
   return (
-    <div style={{ fontFamily: FONT }}>
-      <PlatformHero loading={!p} launchedAt={p?.launchedAt ?? null} testOrders={orders} runs={runs} />
-
+    <div style={{ fontFamily: FONT, display: "grid", gap: 36 }}>
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
 
       {result && (
@@ -120,12 +106,14 @@ export default function PlatformPanel() {
         </div>
       )}
 
-      {p && !launched && (
-        <Section title="Remettre les commandes à zéro" description="Pour partir propre au lancement. Autant de fois que vous voulez d'ici là.">
+      {!launched && (
+        <div>
+          <p className="st-h3">Remettre les commandes à zéro</p>
+          <p className="st-desc">Pour partir propre au lancement. Autant de fois que vous voulez d'ici là.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "8px 48px" }}>
             <div>
               <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>Effacé</p>
-              <div style={{ borderTop: `1px solid ${C.bds}` }}>
+              <div>
                 <Line right={<Num n={orders} />}>Commandes et leur historique</Line>
                 <Line right={<Num n={linked} />}>Virements reçus, envois USDT, dépôts reçus</Line>
                 <Line>
@@ -140,7 +128,7 @@ export default function PlatformPanel() {
             </div>
             <div>
               <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>Toujours gardé</p>
-              <div style={{ borderTop: `1px solid ${C.bds}` }}>
+              <div>
                 {KEPT.map((k) => (
                   <Line key={k} muted>
                     <span style={{ display: "flex", alignItems: "center", gap: 10, color: C.t2 }}>
@@ -160,11 +148,12 @@ export default function PlatformPanel() {
             label="Remettre à zéro"
             onSubmit={() => run({ action: "reset", confirm: typed, mail, logs }, (r) => { setResult(r as ResetResult); setTyped(""); })}
           />
-        </Section>
+        </div>
       )}
 
-      {p && (
-        <Section title="Démarrer les activités" description={launched ? undefined : "Une seule fois, le jour où les vrais clients arrivent."}>
+      <div>
+          <p className="st-h3">Démarrer les activités</p>
+          {!launched && <p className="st-desc">Une seule fois, le jour où les vrais clients arrivent.</p>}
           {launched ? (
             <p style={{ margin: 0, fontSize: 13.5, color: C.t2, lineHeight: 1.65, maxWidth: 680 }}>
               Lancée le {fmtDate(p.launchedAt!)}. Chaque commande fait maintenant partie du registre des opérations et se
@@ -187,10 +176,7 @@ export default function PlatformPanel() {
               />
             </div>
           )}
-        </Section>
-      )}
-
-      <BackupsCard />
+      </div>
     </div>
   );
 }

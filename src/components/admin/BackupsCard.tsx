@@ -47,7 +47,8 @@ const STATUS = {
   running: { label: "En cours", tone: "info" },
 } as const;
 
-export default function BackupsCard() {
+/** `bare` : sans titre ni description (la page qui l'accueille les donne). */
+export default function BackupsCard({ bare }: { bare?: boolean } = {}) {
   const [runs, setRuns] = useState<Run[] | null>(() => peek<Run[]>("pf.backups")?.value ?? null);
   const [open, setOpen] = useState<Run | null>(null);
 
@@ -74,8 +75,9 @@ export default function BackupsCard() {
 
   return (
     <Section
-      title="Sauvegardes"
-      description="Chaque nuit à 3 h 17 : base de données et pièces d'identité, chiffrées, restauration testée."
+      title={bare ? undefined : "Sauvegardes"}
+      description={bare ? undefined : "Chaque nuit à 3 h 17 : base de données et pièces d'identité, chiffrées, restauration testée."}
+      style={bare ? { marginTop: 22 } : undefined}
       actions={lastOk && (
         <Link to="/admin/sauvegarde" className="ui-btn ui-btn-secondary"
           style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 32, padding: "0 12px", borderRadius: 9, border: `1px solid ${C.bds}`, background: C.l1, color: C.t1, fontSize: 12.5, textDecoration: "none" }}>
