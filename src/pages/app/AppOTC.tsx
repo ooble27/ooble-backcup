@@ -5,11 +5,10 @@ import { ArrowLeft, Check, Handshake, ShieldOff } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { NETWORKS, ORDER_NETWORKS, type NetId } from "@/components/app/networks";
+import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { Button } from "@/components/ui/button";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { useAuth } from "@/lib/auth";
-import { OOBLE_OTC_EMAIL } from "@/lib/config";
 import { getMyProfile } from "@/lib/profile";
 import { T, useLang, useT } from "@/lib/i18n";
 import { parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
@@ -120,6 +119,7 @@ const AppOTC = () => {
 
 function OtcFlow() {
   const t = useT();
+  const { networks, otcEmail } = useAppSettings();
   const [lang] = useLang();
   const { user } = useAuth();
   const rate = useUsdtRate();
@@ -320,7 +320,7 @@ function OtcFlow() {
           backLabel={t("misc.back")}
         />
         <div className="flex flex-wrap gap-2">
-          {ORDER_NETWORKS.map((n) => (
+          {openNetworks(networks).map((n) => (
             <button
               key={n.id}
               type="button"
@@ -447,7 +447,7 @@ function OtcFlow() {
       <p className="mb-2 mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("otcApp.yourRef")}</p>
       <div className="divide-y divide-border overflow-hidden rounded-[16px] border border-border bg-card">
         <CopyRow label={t("otcApp.requestRef")} value={ref} mono />
-        <CopyRow label={lang === "en" ? "OTC desk" : "Desk OTC"} value={OOBLE_OTC_EMAIL} mono />
+        <CopyRow label={lang === "en" ? "OTC desk" : "Desk OTC"} value={otcEmail} mono />
       </div>
 
       <div className="mt-6 flex justify-end gap-2.5">

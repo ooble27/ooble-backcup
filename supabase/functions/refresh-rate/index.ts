@@ -2,6 +2,8 @@
 //
 // Récupère le taux de marché (CoinGecko), applique les marges d'Ooble réglées dans
 // Back-office › Réglages › Taux et marge (app_settings), et insère une nouvelle ligne.
+// Taux de secours : si un cours a été figé à la main (Réglages › Taux de secours), il remplace
+// CoinGecko jusqu'à ce qu'on revienne au cours automatique.
 // Planifiée toutes les 10 minutes (cron), et appelée tout de suite quand une marge change.
 //
 // Utilise SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (injectés automatiquement).
@@ -16,9 +18,12 @@ Deno.serve(async () => {
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(url, key);
 
-  // Taux de marché réel.
-  let base: number | null = null;
-  try {
+  const { data: s } = await supabase.from("app_settings").select("buy_margin_pct, sell_margin_pct, manual_market_rate").eq("id", 1).maybeSingle();
+  const manual = s?.manual_market_rate != null ? Number(s.manual_market_rate) : null;
+
+  // Taux de marché réel, ou le cours figé à la main.
+  let base: number | null = manual && manual > 0 ? manual : null;
+  if (!base) try {
     const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cad");
     const data = await res.json();
     const v = data?.tether?.cad;
@@ -31,7 +36,6 @@ Deno.serve(async () => {
     });
   }
 
-  const { data: s } = await supabase.from("app_settings").select("buy_margin_pct, sell_margin_pct").eq("id", 1).maybeSingle();
   const buyPct = Number(s?.buy_margin_pct ?? DEFAULT_MARGIN_PCT);
   const sellPct = Number(s?.sell_margin_pct ?? DEFAULT_MARGIN_PCT);
   const buy_rate = Math.round(base * (1 + buyPct / 100) * 1e6) / 1e6;
@@ -39,7 +43,7 @@ Deno.serve(async () => {
 
   const { error } = await supabase
     .from("exchange_rates")
-    .insert({ source: "coingecko", buy_rate, sell_rate, market_rate: base });
+    .insert({ source: manual ? "manual" : "coingecko", buy_rate, sell_rate, market_rate: base });
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {

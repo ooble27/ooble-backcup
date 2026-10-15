@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Clock, Coins, HandCoins, Inbox, ChevronRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import RateChart from "@/components/app/RateChart";
-import { ORDER_NETWORKS } from "@/components/app/networks";
+import { openNetworks } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { useUsdtHistory } from "@/hooks/useUsdtHistory";
 import { listMyOrders, peekMyOrders, type OrderRow } from "@/lib/orders";
@@ -76,7 +76,7 @@ const Dashboard = () => {
   const rate = useUsdtRate();
   const history = useUsdtHistory();
   const { user, isStaff } = useAuth();
-  const { tradingEnabled } = useAppSettings();
+  const { tradingEnabled, networks } = useAppSettings();
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
   useEffect(() => { getMyProfile().then(setProfile); }, []);
   const kybPending = profile?.businessStatus === "pending";
@@ -187,7 +187,7 @@ const Dashboard = () => {
               {t("dash.networks")}
             </p>
             <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-              {ORDER_NETWORKS.map((n) => (
+              {openNetworks(networks).map((n) => (
                 <div
                   key={n.id}
                   className="flex shrink-0 items-center gap-2.5 rounded-[10px] border border-border bg-card py-2 pl-2 pr-3.5"

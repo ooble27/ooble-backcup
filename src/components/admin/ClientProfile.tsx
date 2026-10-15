@@ -18,6 +18,7 @@ import ClientNotes from "./ClientNotes";
 import ClientTimeline from "./ClientTimeline";
 import RiskScoreCard from "./RiskScoreCard";
 import ClientAccess from "./ClientAccess";
+import ClientLimit from "./ClientLimit";
 import ClientWallets from "./ClientWallets";
 
 interface Props {
@@ -229,6 +230,11 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
           <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
 
           {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
+          {profile && can("clients.limit") && (
+            <Block title="Limite quotidienne">
+              <ClientLimit userId={userId} limit={profile.dailyLimitCad} onChange={(v) => setProfile({ ...profile, dailyLimitCad: v })} />
+            </Block>
+          )}
 
           {profile?.accountType === "business" && (
             <Block title="Entreprise">

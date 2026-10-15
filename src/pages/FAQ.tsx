@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { GUIDES, guideKey, guideMedia } from "@/lib/guides";
 import { FAQ_CATEGORIES, HELP_COLORS, PAY_RULES, POPULAR, categoryVideos, fold } from "@/lib/faq";
 import type { TKey } from "@/lib/translations";
+import { supportEmail } from "@/lib/config";
 
 /* Centre d'aide — même langage que la page Entreprises : grands titres, touches
    corail / tournesol / menthe, formes pleines, liens texte plutôt que boutons.
@@ -295,8 +296,8 @@ const FAQ = () => {
               <Link to="/contact" className={linkCls}>
                 {t("faqp.writeUs")} <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
               </Link>
-              <a href="mailto:support@ooble.ca" className={cn(linkCls, "text-muted-foreground hover:text-foreground")}>
-                support@ooble.ca
+              <a href={`mailto:${supportEmail()}`} className={cn(linkCls, "text-muted-foreground hover:text-foreground")}>
+                {supportEmail()}
               </a>
             </Reveal>
           </Wrap>

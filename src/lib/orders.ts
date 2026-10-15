@@ -126,7 +126,8 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
     }
   }
 
-  const rateLockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  // Indicatif : la base fixe elle-même la fin du taux garanti (Réglages › Délais).
+  const rateLockedUntil = new Date(Date.now() + (await getAppSettings()).rateLockMinutes * 60 * 1000).toISOString();
   // Achat : l'adresse du client. Vente : l'adresse de dépôt d'Ooble annoncée au client (gardée avec la commande).
   const walletAddress = input.address ?? "";
 
@@ -149,7 +150,11 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
     .select("id")
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    // Réseau fermé dans Réglages : message de la base, sans son code technique.
+    const m = error.message.replace(/^NETWORK_CLOSED:\s*/, "");
+    return { error: m.charAt(0).toUpperCase() + m.slice(1) };
+  }
   return { id: data.id };
 }
 

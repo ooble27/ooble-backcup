@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Coins, Check, ShieldOff } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { NETWORKS, ORDER_NETWORKS, type NetId } from "@/components/app/networks";
+import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { Button } from "@/components/ui/button";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance } from "@/lib/orders";
@@ -14,7 +14,7 @@ import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { OOBLE_INTERAC_EMAIL, STAFF_TEST_MIN_CAD } from "@/lib/config";
+import { STAFF_TEST_MIN_CAD } from "@/lib/config";
 import { useOtcVisible } from "@/lib/otc";
 
 type Step = "amount" | "network" | "address" | "recap" | "done";
@@ -78,7 +78,7 @@ const AppAcheter = () => {
 const AppAcheterForm = () => {
   const rate = useUsdtRate();
   const { user, isStaff } = useAuth();
-  const { tradeMinCad, tradeDailyMaxCad } = useAppSettings();
+  const { tradeMinCad, tradeDailyMaxCad, networks, interacEmail } = useAppSettings();
   const t = useT();
   const otc = useOtcVisible();
 
@@ -265,7 +265,7 @@ const AppAcheterForm = () => {
       <AppShell center>
         <StepHeader title={t("buy.dest")} sub={t("buy.destSub")} onBack={() => setStep("amount")} backLabel={t("misc.back")} />
         <div className="flex flex-wrap gap-2">
-          {ORDER_NETWORKS.map((n) => {
+          {openNetworks(networks, "buy").map((n) => {
             const sel = net === n.id;
             return (
               <button
@@ -376,7 +376,7 @@ const AppAcheterForm = () => {
 
       <p className="mb-2 mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("buy.sendEtransfer")}</p>
       <div className="divide-y divide-border overflow-hidden rounded-[16px] border border-border bg-card">
-        <CopyRow label={t("buy.recipient")} value={OOBLE_INTERAC_EMAIL} mono />
+        <CopyRow label={t("buy.recipient")} value={interacEmail} mono />
         <CopyRow label={t("buy.exactAmount")} value={`${nfCad.format(cad)} CAD`} />
         <CopyRow label={t("buy.reference")} value={savedRef} mono />
       </div>

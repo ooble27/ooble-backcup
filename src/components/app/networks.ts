@@ -1,3 +1,5 @@
+import type { DbNet, NetworkSwitches } from "@/lib/settings";
+
 /** Réseaux sur lesquels recevoir/envoyer des USDT (USDT uniquement). */
 export type NetId = "trx" | "bnb" | "eth" | "matic" | "sol" | "avax";
 
@@ -18,6 +20,19 @@ export const NETWORKS: Network[] = [
   { id: "avax", name: "Avalanche", tag: "C-Chain", retired: true },
 ];
 
-/** Réseaux proposés pour un nouvel ordre (Ethereum et Avalanche retirés : frais
- *  d'envoi trop élevés ou trop peu demandés). */
+/** Réseaux proposés par défaut, avant la lecture des réglages (pages publiques pré-rendues). */
 export const ORDER_NETWORKS: Network[] = NETWORKS.filter((n) => !n.retired);
+
+/** Identifiant du réseau en base. */
+export const NET_DB: Record<NetId, DbNet> = { trx: "trc20", bnb: "bep20", eth: "erc20", matic: "polygon", sol: "spl", avax: "avalanche" };
+
+/**
+ * Réseaux ouverts, d'après Back-office › Réglages › Réseaux : pour un sens (achat, vente),
+ * ou ouverts dans au moins un sens. La base refuse aussi une commande sur un réseau fermé.
+ */
+export function openNetworks(switches: NetworkSwitches, side?: "buy" | "sell"): Network[] {
+  return NETWORKS.filter((n) => {
+    const sw = switches[NET_DB[n.id]];
+    return side ? !!sw?.[side] : !!(sw?.buy || sw?.sell);
+  });
+}

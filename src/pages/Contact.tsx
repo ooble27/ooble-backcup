@@ -9,6 +9,7 @@ import { HELP_COLORS, type HelpShape as Shape } from "@/lib/faq";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { TKey } from "@/lib/translations";
+import { supportEmail } from "@/lib/config";
 
 /* Contact — même langage que la page Entreprises et le centre d'aide : le sujet
    se choisit parmi de grands mots (chacun avec sa forme), le formulaire est
@@ -66,7 +67,7 @@ const Contact = () => {
   };
 
   const facts: { k: TKey; v: React.ReactNode }[] = [
-    { k: "cont.email", v: <a href="mailto:support@ooble.ca" className="underline-offset-4 hover:underline">support@ooble.ca</a> },
+    { k: "cont.email", v: <a href={`mailto:${supportEmail()}`} className="underline-offset-4 hover:underline">{supportEmail()}</a> },
     { k: "cont.delay", v: t("cont.delayV") },
     { k: "cont.langs", v: t("cont.langsV") },
     { k: "cont.volumes", v: <Link to="/otc" className="underline-offset-4 hover:underline">{t("cont.volumesV")}</Link> },

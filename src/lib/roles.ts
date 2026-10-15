@@ -78,6 +78,7 @@ const CAPS = {
   "accounting.reopen": ["admin"],
   "accounts.unlock": ["admin", "support"],
   "accounts.suspend": ["admin", "compliance"],
+  "clients.limit": ["admin", "compliance"],
 } as const satisfies Record<string, readonly Role[]>;
 export type Capability = keyof typeof CAPS;
 

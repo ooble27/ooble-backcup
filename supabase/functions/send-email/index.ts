@@ -23,14 +23,15 @@
 //       "order": { ref, side, cadAmount, usdtAmount, network, address,
 //                  clientEmail, clientName, adminUrl } }
 //
-//   Le destinataire est lu côté serveur (STAFF_NOTIFICATION_EMAIL) —
-//   jamais fourni par le client — pour qu'aucun appel navigateur ne
+//   Les destinataires sont lus côté serveur : Back-office › Réglages › Alertes de l'équipe
+//   (app_private_settings, réservé aux administrateurs), sinon STAFF_NOTIFICATION_EMAIL —
+//   jamais fournis par le client — pour qu'aucun appel navigateur ne
 //   puisse rediriger la notification ailleurs.
 //
 // Secrets requis (Supabase → Edge Functions → Secrets) :
 //   RESEND_API_KEY              clé API Resend
 //   EMAIL_FROM                  ex. "Ooble <bonjour@ooble.ca>" (domaine vérifié)
-//   STAFF_NOTIFICATION_EMAIL    destinataire des notifs internes (nouvelles commandes)
+//   STAFF_NOTIFICATION_EMAIL    destinataire des notifs internes si aucun n'est choisi dans les Réglages
 //   EMAIL_ASSET_BASE            ex. "https://ooble.ca/email-assets"
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -73,6 +74,22 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+/**
+ * Qui reçoit les alertes internes (nouvelle commande, message de contact) : la liste choisie dans
+ * Back-office › Réglages › Alertes de l'équipe ; à défaut, le secret STAFF_NOTIFICATION_EMAIL.
+ */
+async function staffRecipients(): Promise<string[]> {
+  const url = Deno.env.get("SUPABASE_URL") ?? "";
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (url && key) {
+    const { data } = await createClient(url, key).from("app_private_settings").select("staff_alert_emails").eq("id", 1).maybeSingle();
+    const list = ((data?.staff_alert_emails ?? []) as string[]).map((e) => e.trim()).filter((e) => /^\S+@\S+\.\S+$/.test(e));
+    if (list.length) return list;
+  }
+  const secret = Deno.env.get("STAFF_NOTIFICATION_EMAIL")?.trim();
+  return secret ? [secret] : [];
+}
 
 /** Échappe le HTML (données saisies côté client). */
 function escHtml(s: string): string {
@@ -186,14 +203,14 @@ Deno.serve(async (req) => {
   let finalHtml: string;
   let finalText: string | undefined;
   let finalSubject: string;
-  let to = rawTo;
+  let to: string | string[] | undefined = rawTo;
 
   if (staffNotify === "new-order") {
     // ─── Mode staffNotify — destinataire déterminé côté serveur ─
-    const staffTo = Deno.env.get("STAFF_NOTIFICATION_EMAIL")?.trim();
-    if (!staffTo) {
+    const staffTo = await staffRecipients();
+    if (!staffTo.length) {
       return json({
-        error: "STAFF_NOTIFICATION_EMAIL manquant : configurer le secret dans Supabase pour recevoir les notifications de nouvelles commandes.",
+        error: "Aucun destinataire : choisissez qui reçoit les alertes dans Back-office › Réglages › Alertes de l'équipe.",
       }, 500);
     }
     if (!order?.ref) return json({ error: "Champ 'order' requis (avec ref, side, montants…)." }, 400);
@@ -280,7 +297,7 @@ Deno.serve(async (req) => {
 // comme un e-mail envoyé à support@ooble.ca — ou à otc@ooble.ca pour une
 // demande du desk OTC (desk: "otc") : nouveau fil au nom du visiteur, à
 // qui l'équipe répond depuis le back-office. Une alerte part
-// aussi vers STAFF_NOTIFICATION_EMAIL si ce secret est défini.
+// aussi aux destinataires des alertes de l'équipe (Réglages), s'il y en a.
 //
 // Ouvert sans connexion, donc bridé : destinataire fixe, texte brut
 // uniquement, longueurs limitées, champ piège, 3 messages par heure et
@@ -368,8 +385,8 @@ async function handleContact(c: ContactPayload, req: Request, apiKey: string, fr
   }
 
   // Alerte à l'équipe (facultative) : répondre à ce courriel écrit au visiteur.
-  const staffTo = Deno.env.get("STAFF_NOTIFICATION_EMAIL")?.trim();
-  if (staffTo) {
+  const staffTo = await staffRecipients();
+  if (staffTo.length) {
     const site = Deno.env.get("SITE_URL") ?? "https://ooble.ca";
     const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#141414">
       <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#777">${otc ? "Desk OTC" : "Formulaire de contact"}</p>

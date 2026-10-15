@@ -7,7 +7,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowUpRight, BellRing, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, Mail, Percent, Power, Rocket, SlidersHorizontal, Users, Wallet,
+  ArrowUpRight, AtSign, BellRing, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, LifeBuoy, Mail, Network, Percent, Power, Rocket,
+  Send, SlidersHorizontal, Timer, UserPlus, Users, Wallet,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { peek, put } from "@/lib/adminCache";
@@ -24,6 +25,8 @@ import BackupsCard from "./BackupsCard";
 import { LaunchSections, type PlatformPreview } from "./PlatformPanel";
 import SettingsRate from "./SettingsRate";
 import SettingsDeposit from "./SettingsDeposit";
+import { ContactsPage, DelaysPage, NetworksPage, RateFallbackPage, SignupsPage, StaffAlertsPage } from "./SettingsOps";
+import { NETWORKS, NET_DB } from "@/components/app/networks";
 import { Presets, Row, SaveBar, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf } from "./settingsUi";
 import { scrollAdminTop } from "@/lib/pageMotion";
 
@@ -48,8 +51,10 @@ const INDEX_CSS = `
 @media (prefers-reduced-motion: reduce) { .sx-group { animation: none; } .sx-row, .sx-go { transition: none; } }
 `;
 
-type PageId = "ouverture" | "limites" | "taux" | "adresses" | "courriels" | "sante" | "tests" | "demarrage" | "sauvegardes";
-const PAGES: PageId[] = ["ouverture", "limites", "taux", "adresses", "courriels", "sante", "tests", "demarrage", "sauvegardes"];
+type PageId = "ouverture" | "limites" | "taux" | "adresses" | "reseaux" | "inscriptions" | "delais" | "secours" | "coordonnees" | "alertes"
+  | "courriels" | "sante" | "tests" | "demarrage" | "sauvegardes";
+const PAGES: PageId[] = ["ouverture", "limites", "taux", "adresses", "reseaux", "inscriptions", "delais", "secours", "coordonnees", "alertes",
+  "courriels", "sante", "tests", "demarrage", "sauvegardes"];
 const PARAM = "reglage";
 const readPage = (): PageId | null => {
   const v = new URLSearchParams(window.location.search).get(PARAM);
@@ -273,7 +278,7 @@ function Index({ items, p, runs }: { items: { title: string; rows: Item[] }[]; p
   );
 }
 
-export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announcements") => void }) {
+export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announcements" | "settlement") => void }) {
   const [page, setPageState] = useState<PageId | null>(readPage);
   const [p, setP] = useState<PlatformPreview | null>(() => peek<PlatformPreview>("pf.preview")?.value ?? null);
   const [runs, setRuns] = useState<BackupRun[] | null>(() => peek<BackupRun[]>("pf.backups")?.value ?? null);
@@ -316,6 +321,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
   const lastOk = runs?.find((r) => r.status === "success");
   const open = s.tradingEnabled;
 
+  const netOpen = (side: "buy" | "sell") => NETWORKS.filter((n) => s.networks[NET_DB[n.id]]?.[side]).length;
   const items: { title: string; rows: Item[] }[] = [
     {
       title: "Ce que voient les clients",
@@ -324,6 +330,10 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
         { id: "limites", icon: SlidersHorizontal, name: "Limites", desc: "Montant minimum par commande, maximum sur 24 heures.", value: `${$(s.tradeMinCad)} à ${$(s.tradeDailyMaxCad)}`, onOpen: () => go("limites") },
         { id: "taux", icon: Percent, name: "Taux et marge", desc: "Le pourcentage ajouté au cours à l'achat, retiré à la vente.", value: `+${pct.format(s.buyMarginPct)} % · −${pct.format(s.sellMarginPct)} %`, onOpen: () => go("taux") },
         { id: "adresses", icon: Wallet, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
+        { id: "reseaux", icon: Network, name: "Réseaux", desc: "Ouverts ou fermés, à l'achat et à la vente.", value: `${netOpen("buy")} à l'achat · ${netOpen("sell")} à la vente`, onOpen: () => go("reseaux") },
+        { id: "inscriptions", icon: UserPlus, name: "Inscriptions", desc: "Nouveaux comptes, particuliers et entreprises.", value: s.signupsIndividual && s.signupsBusiness ? "Ouvertes" : <span style={{ color: C.coral }}>{!s.signupsIndividual && !s.signupsBusiness ? "Fermées" : "En partie fermées"}</span>, onOpen: () => go("inscriptions") },
+        { id: "delais", icon: Timer, name: "Délais", desc: "Taux garanti, expiration d'une vente non envoyée.", value: `${s.rateLockMinutes} min · ${s.sellExpiryHours} h`, onOpen: () => go("delais") },
+        { id: "coordonnees", icon: AtSign, name: "Coordonnées", desc: "Adresses support, Interac et OTC affichées aux clients.", value: s.supportEmail, onOpen: () => go("coordonnees") },
       ],
     },
     {
@@ -333,11 +343,14 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
           { id: "team", icon: Users, name: "Équipe et rôles", desc: "Membres, rôles, permissions et journal d'audit.", onOpen: () => onTab("team"), external: true },
           { id: "announcements", icon: BellRing, name: "Bannière et maintenance", desc: "Message à tous les clients, mode maintenance.", onOpen: () => onTab("announcements"), external: true },
         ] : []),
+        { id: "alertes", icon: Send, name: "Alertes de l'équipe", desc: "Qui reçoit un courriel à chaque nouvelle commande.", onOpen: () => go("alertes") },
       ],
     },
     {
       title: "La plateforme",
       rows: [
+        { id: "secours", icon: LifeBuoy, name: "Taux de secours", desc: "Figer le cours quand la source ne répond plus.", value: s.manualMarketRate != null ? <span style={{ color: C.sun }}>Cours figé</span> : "Automatique", onOpen: () => go("secours") },
+        ...(onTab ? [{ id: "settlement", icon: Send, name: "Règlement automatique", desc: "Envoi automatique des USDT, plafonds, portefeuille d'envoi.", onOpen: () => onTab("settlement"), external: true }] : []),
         { id: "sante", icon: HeartPulse, name: "Santé", desc: "Les tâches automatiques et leur dernier passage.", value: failing == null ? null : <span style={{ color: failing ? C.coral : C.sage }}>{failing ? `${failing} à regarder` : "En ordre"}</span>, onOpen: () => go("sante") },
         { id: "courriels", icon: Mail, name: "Courriels", desc: "Ce qu'il reste dans le forfait d'envoi.", value: email ? `${nf.format(Math.max(0, email.dayLimit - email.today))} restants aujourd'hui` : null, onOpen: () => go("courriels") },
         { id: "sauvegardes", icon: DatabaseBackup, name: "Sauvegardes", desc: "Chaque nuit, chiffrées, restauration testée.", value: lastOk ? ago(lastOk.finished_at ?? lastOk.started_at) : null, onOpen: () => go("sauvegardes") },
@@ -361,6 +374,12 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       {page === "limites" && <Limits onBack={back} />}
       {page === "taux" && <SettingsRate onBack={back} />}
       {page === "adresses" && <SettingsDeposit onBack={back} />}
+      {page === "reseaux" && <NetworksPage onBack={back} />}
+      {page === "inscriptions" && <SignupsPage onBack={back} />}
+      {page === "delais" && <DelaysPage onBack={back} />}
+      {page === "secours" && <RateFallbackPage onBack={back} onOpening={() => go("ouverture")} />}
+      {page === "coordonnees" && <ContactsPage onBack={back} />}
+      {page === "alertes" && <StaffAlertsPage onBack={back} />}
       {page === "courriels" && <Emails onBack={back} />}
       {page === "sante" && <Health onBack={back} />}
       {page === "tests" && <Tests onBack={back} />}

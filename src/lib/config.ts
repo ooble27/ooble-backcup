@@ -6,11 +6,18 @@
  * prévu mais pas encore en place — quand il le sera, cette constante ne servira
  * plus qu'au repli.
  */
+import { getAppSettingsNow } from "./settings";
+
 export const OOBLE_INTERAC_EMAIL = "interac@ooble.ca";
 
 export const OOBLE_SUPPORT_EMAIL = "support@ooble.ca";
 /** Desk OTC (gros volumes) : arrive dans Admin → Messagerie, pastille « OTC ». */
 export const OOBLE_OTC_EMAIL = "otc@ooble.ca";
+
+/** Adresses affichées aux clients, réglables dans Back-office › Réglages › Coordonnées (les constantes ci-dessus : valeurs par défaut). */
+export const supportEmail = () => getAppSettingsNow().supportEmail || OOBLE_SUPPORT_EMAIL;
+export const interacEmail = () => getAppSettingsNow().interacEmail || OOBLE_INTERAC_EMAIL;
+export const otcEmail = () => getAppSettingsNow().otcEmail || OOBLE_OTC_EMAIL;
 
 /**
  * Captcha Cloudflare Turnstile — clé de SITE (publique). Vide = captcha

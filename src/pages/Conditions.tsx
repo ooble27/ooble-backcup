@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { FINTRAC_MSB_NUMBER, FINTRAC_REGISTRY_URL } from "@/lib/legal";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { RATE_LOCK_MINUTES } from "@/lib/rates";
-import { OOBLE_INTERAC_EMAIL } from "@/lib/config";
+import { rateLockMinutes } from "@/lib/rates";
+import { interacEmail, supportEmail } from "@/lib/config";
 import { useLang } from "@/lib/i18n";
 
 const LAST_UPDATED = { fr: "11 octobre 2026", en: "October 11, 2026" };
@@ -618,7 +618,7 @@ const PARTS: Part[] = [
           <P>
             Le taux affiché correspond au cours du marché USDT/CAD majoré d'une marge de 2 %, déjà
             incluse dans le prix affiché : aucun frais additionnel n'est appliqué. Ce taux est
-            verrouillé pendant {RATE_LOCK_MINUTES} minutes à compter de la création de l'ordre.
+            verrouillé pendant {rateLockMinutes()} minutes à compter de la création de l'ordre.
             Passé ce délai sans règlement complet de votre part, Ooble peut annuler l'ordre et vous
             inviter à en créer un nouveau au taux courant.
           </P>
@@ -641,7 +641,7 @@ const PARTS: Part[] = [
           <P>
             The displayed rate corresponds to the USDT/CAD market rate plus a 2% margin, already
             included in the displayed price: no additional fees apply. This rate is locked for{" "}
-            {RATE_LOCK_MINUTES} minutes from the creation of the order. After this period without
+            {rateLockMinutes()} minutes from the creation of the order. After this period without
             complete settlement on your part, Ooble may cancel the order and invite you to create
             a new one at the current rate.
           </P>
@@ -864,8 +864,8 @@ const PARTS: Part[] = [
             conformité, y compris pour joindre notre agent de conformité :
           </P>
           <Ul>
-            <li>Courriel : support@ooble.ca</li>
-            <li>Interac e-Transfer (paiements) : {OOBLE_INTERAC_EMAIL}</li>
+            <li>Courriel : {supportEmail()}</li>
+            <li>Interac e-Transfer (paiements) : {interacEmail()}</li>
             <li>Adresse postale : Ooble Technologies Inc., 8580, avenue Lesperance, Québec (Québec) G2K 1M3, Canada</li>
           </Ul>
         </>
@@ -877,8 +877,8 @@ const PARTS: Part[] = [
             to reach our compliance officer:
           </P>
           <Ul>
-            <li>Email: support@ooble.ca</li>
-            <li>Interac e-Transfer (payments): {OOBLE_INTERAC_EMAIL}</li>
+            <li>Email: {supportEmail()}</li>
+            <li>Interac e-Transfer (payments): {interacEmail()}</li>
             <li>Postal address: Ooble Technologies Inc., 8580 avenue Lesperance, Québec City, Quebec G2K 1M3, Canada</li>
           </Ul>
         </>

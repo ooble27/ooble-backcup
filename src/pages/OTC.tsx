@@ -6,8 +6,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
 import OtcVideo from "@/components/OtcVideo";
-import { ORDER_NETWORKS } from "@/components/app/networks";
-import { OOBLE_OTC_EMAIL } from "@/lib/config";
+import { openNetworks } from "@/components/app/networks";
+import { useAppSettings } from "@/lib/settings";
+import { otcEmail } from "@/lib/config";
 import { LEGAL_DAILY_MAX_CAD as TRADE_DAILY_MAX_CAD } from "@/lib/settings";
 import { useOtcVisible } from "@/lib/otc";
 import { useLang } from "@/lib/i18n";
@@ -87,8 +88,9 @@ const OTC = () => {
   const [lang] = useLang();
   const L = (b: Bi) => b[lang];
   const canRequest = useOtcVisible();
+  const { networks } = useAppSettings();
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
-  const mailto = `mailto:${OOBLE_OTC_EMAIL}`;
+  const mailto = `mailto:${otcEmail()}`;
   const fr = lang === "fr";
 
   /** Appel principal, en simple lien : formulaire pour l'équipe, courriel pour les autres. */
@@ -189,7 +191,7 @@ const OTC = () => {
                 </p>
                 <p className="mt-8 text-[12px] uppercase tracking-[0.16em] text-muted-foreground">{L({ fr: "Sur les mêmes réseaux que l'app", en: "On the same networks as the app" })}</p>
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3">
-                  {ORDER_NETWORKS.map((n) => (
+                  {openNetworks(networks).map((n) => (
                     <span key={n.id} className="flex items-center gap-2 text-[14px]">
                       <img src={`/coins/${n.id}.svg`} alt="" className="h-6 w-6 rounded-full" />
                       {n.name}
@@ -306,7 +308,7 @@ const OTC = () => {
             </Reveal>
             <Reveal delay={120}>
               <a href={mailto} className="mt-10 inline-flex items-center gap-2 font-display text-[1.4rem] tracking-[-0.03em] underline-offset-[6px] hover:underline sm:text-[1.8rem]">
-                {OOBLE_OTC_EMAIL} <ArrowRight className="h-5 w-5" strokeWidth={1.8} />
+                {otcEmail()} <ArrowRight className="h-5 w-5" strokeWidth={1.8} />
               </a>
             </Reveal>
             {canRequest && (

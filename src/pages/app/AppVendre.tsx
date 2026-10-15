@@ -8,7 +8,7 @@ import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
 import { Button } from "@/components/ui/button";
-import { NETWORKS, ORDER_NETWORKS, type NetId } from "@/components/app/networks";
+import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance } from "@/lib/orders";
 import { amountText, parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
@@ -83,7 +83,7 @@ const AppVendre = () => {
 const AppVendreForm = () => {
   const rate = useUsdtRate();
   const { user, isStaff } = useAuth();
-  const { tradeMinCad, tradeDailyMaxCad } = useAppSettings();
+  const { tradeMinCad, tradeDailyMaxCad, networks } = useAppSettings();
   const t = useT();
   const otc = useOtcVisible();
 
@@ -366,7 +366,7 @@ const AppVendreForm = () => {
       <AppShell center>
         <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} backLabel={t("misc.back")} />
         <div className="flex flex-wrap gap-2">
-          {ORDER_NETWORKS.map((n) => {
+          {openNetworks(networks, "sell").map((n) => {
             const sel = net === n.id;
             return (
               <button

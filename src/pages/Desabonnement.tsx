@@ -4,6 +4,7 @@ import { Check, Loader2, MailX } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { supportEmail } from "@/lib/config";
 
 const COPY = {
   fr: {
@@ -14,7 +15,7 @@ const COPY = {
     resubTitle: "Vous êtes réabonné",
     resubSub: (e: string) => `${e} recevra de nouveau nos nouvelles.`,
     badTitle: "Lien invalide",
-    badSub: "Ce lien de désabonnement n'est pas reconnu. Écrivez-nous à support@ooble.ca et nous vous retirerons de la liste.",
+    badSub: "Ce lien de désabonnement n'est pas reconnu. Écrivez-nous à {support} et nous vous retirerons de la liste.",
     home: "Retour à l'accueil",
   },
   en: {
@@ -25,7 +26,7 @@ const COPY = {
     resubTitle: "You're subscribed again",
     resubSub: (e: string) => `${e} will receive our news again.`,
     badTitle: "Invalid link",
-    badSub: "This unsubscribe link isn't recognized. Write to support@ooble.ca and we'll remove you from the list.",
+    badSub: "This unsubscribe link isn't recognized. Write to {support} and we'll remove you from the list.",
     home: "Back to home",
   },
 };
@@ -69,7 +70,7 @@ const Desabonnement = () => {
   };
 
   const title = state === "done" ? c.doneTitle : state === "resub" ? c.resubTitle : state === "bad" ? c.badTitle : c.loading;
-  const sub = state === "done" ? c.doneSub(email) : state === "resub" ? c.resubSub(email) : state === "bad" ? c.badSub : "";
+  const sub = state === "done" ? c.doneSub(email) : state === "resub" ? c.resubSub(email) : state === "bad" ? c.badSub.replace("{support}", supportEmail()) : "";
 
   return (
     <div className="app-surface app-type flex min-h-screen flex-col bg-background px-6">

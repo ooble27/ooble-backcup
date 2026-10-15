@@ -1,5 +1,5 @@
 import type { Lang } from "./i18n";
-import { RATE_LOCK_MINUTES } from "./rates";
+import { getAppSettingsNow } from "./settings";
 
 const dict = {
   // ── Header / Nav ──
@@ -89,8 +89,8 @@ const dict = {
   },
   "how.2t": { fr: "Créez votre ordre", en: "Create your order" },
   "how.2d": {
-    fr: `Montant, réseau, adresse. Le taux se verrouille ${RATE_LOCK_MINUTES} minutes.`,
-    en: `Amount, network, address. The rate locks for ${RATE_LOCK_MINUTES} minutes.`,
+    fr: `Montant, réseau, adresse. Le taux se verrouille {lock} minutes.`,
+    en: `Amount, network, address. The rate locks for {lock} minutes.`,
   },
   "how.3t": { fr: "Règlement direct", en: "Direct settlement" },
   "how.3d": {
@@ -127,7 +127,7 @@ const dict = {
   "nc.s3k": { fr: "Vérification d'identité", en: "Identity verification" },
   "nc.s3v": { fr: "Une seule fois", en: "Once" },
   "nc.s4k": { fr: "Taux verrouillé", en: "Rate locked" },
-  "nc.s4v": { fr: `${RATE_LOCK_MINUTES} minutes`, en: `${RATE_LOCK_MINUTES} minutes` },
+  "nc.s4v": { fr: `{lock} minutes`, en: `{lock} minutes` },
   "nc.s5k": { fr: "Paiement", en: "Payment" },
   "nc.s5v": { fr: "Interac e-Transfer", en: "Interac e-Transfer" },
 
@@ -165,8 +165,8 @@ const dict = {
   },
   "faq.2q": { fr: "Combien de temps le taux est-il garanti ?", en: "How long is the rate guaranteed?" },
   "faq.2a": {
-    fr: `Le taux est verrouillé ${RATE_LOCK_MINUTES} minutes à la création de l'ordre.`,
-    en: `The rate is locked for ${RATE_LOCK_MINUTES} minutes from order creation.`,
+    fr: `Le taux est verrouillé {lock} minutes à la création de l'ordre.`,
+    en: `The rate is locked for {lock} minutes from order creation.`,
   },
   "faq.3q": { fr: "Ooble garde-t-il mes fonds ?", en: "Does Ooble hold my funds?" },
   "faq.3a": {
@@ -1004,6 +1004,7 @@ const dict = {
   "del.doneTitle": { fr: "Votre compte est supprimé", en: "Your account is deleted" },
   "del.doneSub": { fr: "Un courriel de confirmation vous a été envoyé. Merci d'avoir utilisé Ooble.", en: "We've sent you a confirmation email. Thank you for using Ooble." },
   "del.home": { fr: "Retour à l'accueil", en: "Back to home" },
+  "reg.closed": { fr: "Les inscriptions sont fermées pour le moment. Revenez bientôt, ou écrivez-nous à support@ooble.ca.", en: "Sign-ups are closed for now. Come back soon, or write to us at support@ooble.ca." },
   "login.errSuspended": { fr: "Ce compte est suspendu. Écrivez-nous à support@ooble.ca pour en savoir plus.", en: "This account is suspended. Write to us at support@ooble.ca to find out more." },
   "regb.errBusinessRequired": { fr: "Le nom de l'entreprise est requis.", en: "Business name is required." },
 
@@ -1447,5 +1448,18 @@ export function t(key: TKey, lang: Lang): string {
     if (typeof console !== "undefined") console.warn("[i18n] clé manquante:", key);
     return key;
   }
-  return entry[lang] ?? entry.fr ?? key;
+  return withSettings(entry[lang] ?? entry.fr ?? key);
+}
+
+/**
+ * Textes qui suivent Back-office › Réglages : durée du taux garanti ({lock}) et adresses
+ * affichées (support, Interac, OTC), écrites avec leurs valeurs par défaut dans les textes.
+ */
+function withSettings(text: string): string {
+  const s = getAppSettingsNow();
+  let out = text.includes("{lock}") ? text.split("{lock}").join(String(s.rateLockMinutes || 15)) : text;
+  if (s.supportEmail && s.supportEmail !== "support@ooble.ca") out = out.split("support@ooble.ca").join(s.supportEmail);
+  if (s.interacEmail && s.interacEmail !== "interac@ooble.ca") out = out.split("interac@ooble.ca").join(s.interacEmail);
+  if (s.otcEmail && s.otcEmail !== "otc@ooble.ca") out = out.split("otc@ooble.ca").join(s.otcEmail);
+  return out;
 }

@@ -260,12 +260,42 @@ export type Database = {
         }
         Relationships: []
       }
+      app_private_settings: {
+        Row: {
+          id: number
+          staff_alert_emails: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          staff_alert_emails?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          staff_alert_emails?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           buy_margin_pct: number
           id: number
+          interac_email: string
+          manual_market_rate: number | null
+          networks: Json
+          otc_email: string
           otc_enabled: boolean
+          rate_lock_minutes: number
+          sell_expiry_hours: number
           sell_margin_pct: number
+          signups_business: boolean
+          signups_individual: boolean
+          support_email: string
           trade_daily_max_cad: number
           trade_min_cad: number
           trading_enabled: boolean
@@ -277,8 +307,17 @@ export type Database = {
         Insert: {
           buy_margin_pct?: number
           id?: number
+          interac_email?: string
+          manual_market_rate?: number | null
+          networks?: Json
+          otc_email?: string
           otc_enabled?: boolean
+          rate_lock_minutes?: number
+          sell_expiry_hours?: number
           sell_margin_pct?: number
+          signups_business?: boolean
+          signups_individual?: boolean
+          support_email?: string
           trade_daily_max_cad?: number
           trade_min_cad?: number
           trading_enabled?: boolean
@@ -290,8 +329,17 @@ export type Database = {
         Update: {
           buy_margin_pct?: number
           id?: number
+          interac_email?: string
+          manual_market_rate?: number | null
+          networks?: Json
+          otc_email?: string
           otc_enabled?: boolean
+          rate_lock_minutes?: number
+          sell_expiry_hours?: number
           sell_margin_pct?: number
+          signups_business?: boolean
+          signups_individual?: boolean
+          support_email?: string
           trade_daily_max_cad?: number
           trade_min_cad?: number
           trading_enabled?: boolean
@@ -2321,6 +2369,10 @@ export type Database = {
           _p256dh: string
         }
         Returns: undefined
+      }
+      set_client_daily_limit: {
+        Args: { _limit: number; _uid: string }
+        Returns: number
       }
       set_deposit_address: {
         Args: { _address: string; _family: string }

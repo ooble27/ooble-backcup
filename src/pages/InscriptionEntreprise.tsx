@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import AuthShell from "@/components/auth/AuthShell";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useAppSettings } from "@/lib/settings";
 
 type Step = 1 | 2;
 
@@ -47,6 +48,7 @@ const Field = ({
 const InscriptionEntreprise = () => {
   const navigate = useNavigate();
   const { signUp } = useAuth();
+  const closed = !useAppSettings().signupsBusiness;
   const t = useT();
   const [step, setStep] = useState<Step>(1);
 
@@ -69,6 +71,7 @@ const InscriptionEntreprise = () => {
   function traduireErreur(message: string): string {
     const m = message.toLowerCase();
 if (message === "disposable_email") return t("reg.errDisposable");
+    if (m.includes("signups_closed") || m.includes("database error saving new user")) return t("reg.closed");
     if (m.includes("captcha")) return t("auth.errCaptcha");
     if (m.includes("already registered") || m.includes("already been registered")) return t("reg.errAlreadyExists");
     if (m.includes("password should be at least")) return t("reg.errPasswordShort");
@@ -170,7 +173,15 @@ if (message === "disposable_email") return t("reg.errDisposable");
         </>
       )}
 
-      {notice ? (
+      {closed && !notice ? (
+        // Inscriptions fermées (Back-office › Réglages › Inscriptions) : on le dit, sans formulaire.
+        <div className="mt-8">
+          <p className="text-[15px] leading-relaxed text-foreground">{t("reg.closed")}</p>
+          <Link to="/connexion" className="mt-4 inline-flex items-center gap-2 text-[14px] text-muted-foreground hover:text-foreground hover:underline">
+            {t("regi.goLogin")} <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      ) : notice ? (
         <>
           <h1 className="font-display text-[2rem] leading-[1.05] tracking-[-0.04em] sm:text-[2.4rem]">
             {t("regb.accountCreated")}

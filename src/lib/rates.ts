@@ -1,3 +1,4 @@
+import { getAppSettingsNow } from "./settings";
 // Taux de démonstration (CAD par USDT) — seront remplacés par le flux de
 // taux en direct (agrégateur + marge Ooble) côté backend.
 export const DEMO_RATES = {
@@ -6,6 +7,8 @@ export const DEMO_RATES = {
 };
 
 export const RATE_LOCK_MINUTES = 15;
+/** Durée du taux garanti, réglable dans Back-office › Réglages › Délais (15 minutes par défaut). */
+export const rateLockMinutes = () => getAppSettingsNow().rateLockMinutes || RATE_LOCK_MINUTES;
 
 /**
  * Taux de change en dollars canadiens, à quatre décimales (1,3702 $).

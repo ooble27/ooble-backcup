@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { FINTRAC_MSB_NUMBER } from "@/lib/legal";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { OOBLE_SUPPORT_EMAIL } from "@/lib/config";
+import { supportEmail } from "@/lib/config";
 import { useLang } from "@/lib/i18n";
 
 const LAST_UPDATED = { fr: "20 septembre 2026", en: "September 20, 2026" };
@@ -46,7 +46,7 @@ const PARTS: Part[] = [
             La plateforme Ooble est exploitée par Ooble Technologies Inc., société constituée au
             Canada. Ooble est responsable de la collecte et du traitement des renseignements
             personnels décrits dans la présente politique. Pour toute question relative à vos données,
-            vous pouvez nous joindre à l'adresse courriel {OOBLE_SUPPORT_EMAIL}.
+            vous pouvez nous joindre à l'adresse courriel {supportEmail()}.
           </P>
         </>
       ),
@@ -56,7 +56,7 @@ const PARTS: Part[] = [
             The Ooble platform is operated by Ooble Technologies Inc., a corporation incorporated in
             Canada. Ooble is responsible for the collection and processing of personal information
             described in this policy. For any questions regarding your data, you can reach us at{" "}
-            {OOBLE_SUPPORT_EMAIL}.
+            {supportEmail()}.
           </P>
         </>
       ),
@@ -543,7 +543,7 @@ const PARTS: Part[] = [
             </li>
           </Ul>
           <P>
-            Pour exercer l'un de ces droits, écrivez-nous à {OOBLE_SUPPORT_EMAIL}. Nous répondrons
+            Pour exercer l'un de ces droits, écrivez-nous à {supportEmail()}. Nous répondrons
             dans un délai de trente (30) jours.
           </P>
         </>
@@ -581,7 +581,7 @@ const PARTS: Part[] = [
             </li>
           </Ul>
           <P>
-            To exercise any of these rights, write to us at {OOBLE_SUPPORT_EMAIL}. We will respond
+            To exercise any of these rights, write to us at {supportEmail()}. We will respond
             within thirty (30) days.
           </P>
         </>
@@ -648,7 +648,7 @@ const PARTS: Part[] = [
             traitement de vos renseignements personnels :
           </P>
           <Ul>
-            <li>Courriel : {OOBLE_SUPPORT_EMAIL}</li>
+            <li>Courriel : {supportEmail()}</li>
             <li>
               Page de contact :{" "}
               <Link to="/contact" className="text-foreground underline underline-offset-2">
@@ -665,7 +665,7 @@ const PARTS: Part[] = [
             personal information:
           </P>
           <Ul>
-            <li>Email: {OOBLE_SUPPORT_EMAIL}</li>
+            <li>Email: {supportEmail()}</li>
             <li>
               Contact page:{" "}
               <Link to="/contact" className="text-foreground underline underline-offset-2">

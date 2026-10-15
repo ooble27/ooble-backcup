@@ -19,14 +19,37 @@ export interface AppSettings {
   /** Marge d'Ooble au-dessus du cours du marché (achats) et en dessous (ventes), en %. */
   buyMarginPct: number;
   sellMarginPct: number;
+  /** Réseaux ouverts, par sens (clés de la base : trc20, bep20, erc20, polygon, spl, avalanche). */
+  networks: NetworkSwitches;
+  signupsIndividual: boolean;
+  signupsBusiness: boolean;
+  /** Durée du taux garanti à la création d'une commande, en minutes. */
+  rateLockMinutes: number;
+  /** Une vente jamais envoyée expire après ce délai, en heures. */
+  sellExpiryHours: number;
+  /** Cours du marché figé à la main (taux de secours), sinon null : cours automatique. */
+  manualMarketRate: number | null;
+  supportEmail: string;
+  interacEmail: string;
+  otcEmail: string;
   updatedAt: string | null;
   updatedByName: string | null;
 }
 
+export type DbNet = "trc20" | "bep20" | "erc20" | "polygon" | "spl" | "avalanche";
+export type NetworkSwitches = Record<DbNet, { buy: boolean; sell: boolean }>;
+const NETS_DEFAULT: NetworkSwitches = {
+  trc20: { buy: true, sell: true }, bep20: { buy: true, sell: true }, erc20: { buy: false, sell: false },
+  polygon: { buy: true, sell: true }, spl: { buy: true, sell: true }, avalanche: { buy: false, sell: false },
+};
+
 /** Tant que rien n'est lu : tout fermé, limites légales par défaut. */
 const DEFAULTS: AppSettings = {
   tradingEnabled: false, verificationEnabled: false, otcEnabled: false,
-  tradeMinCad: 100, tradeDailyMaxCad: 9999, buyMarginPct: 2, sellMarginPct: 2, updatedAt: null, updatedByName: null,
+  tradeMinCad: 100, tradeDailyMaxCad: 9999, buyMarginPct: 2, sellMarginPct: 2,
+  networks: NETS_DEFAULT, signupsIndividual: true, signupsBusiness: true, rateLockMinutes: 15, sellExpiryHours: 48,
+  manualMarketRate: null, supportEmail: "support@ooble.ca", interacEmail: "interac@ooble.ca", otcEmail: "otc@ooble.ca",
+  updatedAt: null, updatedByName: null,
 };
 /** Seuil de déclaration du CANAFE : les limites restent en dessous. */
 export const LEGAL_DAILY_MAX_CAD = 9999;
@@ -52,6 +75,15 @@ const fromRow = (r: Database["public"]["Tables"]["app_settings"]["Row"]): AppSet
   tradeDailyMaxCad: Number(r.trade_daily_max_cad),
   buyMarginPct: Number(r.buy_margin_pct),
   sellMarginPct: Number(r.sell_margin_pct),
+  networks: { ...NETS_DEFAULT, ...((r.networks ?? {}) as Partial<NetworkSwitches>) },
+  signupsIndividual: r.signups_individual,
+  signupsBusiness: r.signups_business,
+  rateLockMinutes: r.rate_lock_minutes,
+  sellExpiryHours: r.sell_expiry_hours,
+  manualMarketRate: r.manual_market_rate == null ? null : Number(r.manual_market_rate),
+  supportEmail: r.support_email,
+  interacEmail: r.interac_email,
+  otcEmail: r.otc_email,
   updatedAt: r.updated_at,
   updatedByName: r.updated_by_name,
 });
@@ -95,6 +127,15 @@ export async function saveAppSettings(patch: SettingsPatch): Promise<{ error?: s
   if (patch.tradeDailyMaxCad !== undefined) row.trade_daily_max_cad = patch.tradeDailyMaxCad;
   if (patch.buyMarginPct !== undefined) row.buy_margin_pct = patch.buyMarginPct;
   if (patch.sellMarginPct !== undefined) row.sell_margin_pct = patch.sellMarginPct;
+  if (patch.networks !== undefined) row.networks = patch.networks;
+  if (patch.signupsIndividual !== undefined) row.signups_individual = patch.signupsIndividual;
+  if (patch.signupsBusiness !== undefined) row.signups_business = patch.signupsBusiness;
+  if (patch.rateLockMinutes !== undefined) row.rate_lock_minutes = patch.rateLockMinutes;
+  if (patch.sellExpiryHours !== undefined) row.sell_expiry_hours = patch.sellExpiryHours;
+  if (patch.manualMarketRate !== undefined) row.manual_market_rate = patch.manualMarketRate;
+  if (patch.supportEmail !== undefined) row.support_email = patch.supportEmail.trim();
+  if (patch.interacEmail !== undefined) row.interac_email = patch.interacEmail.trim();
+  if (patch.otcEmail !== undefined) row.otc_email = patch.otcEmail.trim();
   const { data, error } = await supabase.from("app_settings").update(row).eq("id", 1).select("*").maybeSingle();
   if (error) return { error: error.message };
   if (data) publish(fromRow(data));
