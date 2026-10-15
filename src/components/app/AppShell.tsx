@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { warmAppData } from "@/lib/warm";
 import { ensurePush } from "@/lib/pushNotifications";
 import { recordOrigin, recordLang } from "@/lib/origin";
+import { useNoZoom } from "@/lib/noZoom";
 
 /**
  * Marque <html> pendant que l'app est montée pour que la racine, le <body> et
@@ -68,6 +69,8 @@ interface AppShellProps {
  */
 const AppShell = ({ children, header, backTo, wide, wider, center, className }: AppShellProps) => {
   useAppScope();
+  // Pas de zoom dans l'app, comme dans le back-office (ordinateur et téléphone).
+  useNoZoom();
   const { user } = useAuth();
   const [lang] = useLang();
   useEffect(() => { warmAppData(user?.id); }, [user?.id]);

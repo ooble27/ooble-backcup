@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
 /**
- * Pas de zoom dans le back-office (pincement, double tap, Ctrl/⌘ + molette ou +/−, zoom automatique
- * d'iOS sur les champs) : un zoom faisait déborder les pages, sur ordinateur comme sur téléphone.
+ * Pas de zoom dans le back-office et dans l'app client (pincement, double tap, Ctrl/⌘ + molette ou
+ * +/−, zoom automatique d'iOS sur les champs) : un zoom faisait déborder les pages, sur ordinateur
+ * comme sur téléphone.
  */
 export function useNoZoom() {
   useEffect(() => {

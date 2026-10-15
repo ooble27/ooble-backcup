@@ -18,7 +18,7 @@ import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useOtcVisible } from "@/lib/otc";
-import { cancelUnsentSell, declareSellSent, fetchMyWallets, isSenderAddress, type KnownWallet } from "@/lib/sellProof";
+import { cancelUnsentSell, declareSellSent, isSenderAddress } from "@/lib/sellProof";
 
 type Step = "amount" | "reception" | "network" | "from" | "deposit" | "done";
 const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
@@ -96,7 +96,6 @@ const AppVendreForm = () => {
   const [savedRef, setSavedRef] = useState("");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [sender, setSender] = useState("");
-  const [known, setKnown] = useState<KnownWallet[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [interacQA, setInteracQA] = useState<{ q: string; a: string } | null>(() => {
@@ -149,19 +148,6 @@ const AppVendreForm = () => {
   const depositAddr = net && deposit ? deposit[familyOf(net)] ?? "" : "";
   const family = net ? familyOf(net) : null;
   const senderOk = !!family && isSenderAddress(family, sender);
-
-  // Les adresses déjà utilisées par le client sur ce réseau, à reprendre d'un geste.
-  useEffect(() => {
-    if (step !== "from" || !family) return;
-    let on = true;
-    void fetchMyWallets(family).then((w) => {
-      if (!on) return;
-      setKnown(w);
-      if (w[0] && !sender) setSender(w[0].address);
-    });
-    return () => { on = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, family]);
 
   const resetAll = () => {
     setStep("amount"); setAmount(""); setEmail(""); setNet(null); setSavedRef(""); setErr(null);
@@ -391,7 +377,7 @@ const AppVendreForm = () => {
               <button
                 key={n.id}
                 type="button"
-                onClick={() => setNet(n.id)}
+                onClick={() => { if (net !== n.id) setSender(""); setNet(n.id); }}
                 className={cn(
                   "flex items-center gap-2.5 rounded-[10px] border py-2 pl-2 pr-3.5 transition-colors active:scale-[0.98]",
                   sel ? "border-foreground bg-secondary" : "border-border bg-card",
@@ -442,20 +428,8 @@ const AppVendreForm = () => {
             {senderOk ? t("sell.senderOk") : `${t("sell.senderBad")} ${network?.tag ?? ""}.`}
           </p>
         )}
-        {known.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.recentWallets")}</p>
-            <div className="flex flex-wrap gap-2">
-              {known.map((w) => (
-                <button key={w.address} type="button" onClick={() => setSender(w.address)}
-                  className={cn("max-w-full truncate rounded-[10px] border px-3 py-2 font-mono text-[12px] transition-colors active:scale-[0.98]",
-                    sender === w.address ? "border-foreground bg-secondary" : "border-border bg-card")}>
-                  {short(w.address)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Carnet d'adresses par réseau, le même que pour les achats : une adresse enregistrée sur BEP20 ne s'affiche que sur BEP20. */}
+        <RecipientBook kind="wallet" network={net} value={sender} onPick={setSender} />
 
         {err && <p className="mt-3 text-[13px] text-destructive">{err}</p>}
 

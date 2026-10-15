@@ -712,7 +712,6 @@ const dict = {
   "sell.senderAddr": { fr: "Votre adresse", en: "Your address" },
   "sell.senderOk": { fr: "Adresse valide.", en: "Valid address." },
   "sell.senderBad": { fr: "Ce n'est pas une adresse du réseau", en: "This isn't an address on" },
-  "sell.recentWallets": { fr: "Déjà utilisées", en: "Used before" },
   "sell.cancelSell": { fr: "Annuler la vente", en: "Cancel the sale" },
   "sell.cancelConfirm": { fr: "Annuler cette vente ? N'envoyez pas d'USDT à cette adresse ensuite.", en: "Cancel this sale? Don't send USDT to this address afterwards." },
   "sell.sentFrom": { fr: "Envoyé depuis", en: "Sent from" },
