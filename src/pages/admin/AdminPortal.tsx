@@ -4,7 +4,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, Power, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown,
+  LayoutDashboard, Bell, Mail, Power, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -86,11 +86,26 @@ const GROUPS: NavGroup[] = [
 const NAV = GROUPS.flatMap((g) => g.items);
 const GROUP_OF = new Map(GROUPS.flatMap((g) => g.items.map((i) => [i.id, g.label] as const)));
 
+const SIDEBAR_KEY = "ooble.admin.sidebar";
+
 const SHELL_CSS = `
 /* Survol : la page se soulève. Page ouverte : son icône se pose dans un rond plein (comme le cadran), sans bande. */
 .sh-nav { transition: color .2s }
 .sh-nav:hover { color: var(--a-t1) }
-@media (prefers-reduced-motion: reduce) { .sh-nav, .sh-rail-ic { transition: none; animation: none } }
+.sh-nav:active .sh-tx { opacity: .7 }
+/* Survol : le nom se souligne d'un trait qui se trace de gauche à droite ; l'icône prend la couleur du texte. */
+.sh-tx { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px;
+  padding-bottom: 3px; transition: background-size .4s cubic-bezier(.22,1,.36,1) }
+.sh-nav:hover .sh-tx, .sh-nav:focus-visible .sh-tx { background-size: 100% 1.5px }
+.sh-nav[aria-current="page"] .sh-tx { background-size: 100% 1.5px }
+.sh-ic { transition: background .25s, color .2s, transform .3s cubic-bezier(.22,1,.36,1) }
+.sh-nav:hover .sh-ic { transform: scale(1.1); color: var(--a-t1) }
+/* Noms de groupes : petites capitales espacées, discrètes. */
+.sh-grp { margin: 0 12px 6px; font-size: 10.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--a-t3) }
+.sh-nav:hover .sh-ic[data-on="true"] { color: var(--a-bg) }
+.sh-ic[data-on="true"] { animation: sh-pop .42s cubic-bezier(.34,1.56,.64,1) }
+@keyframes sh-pop { from { transform: scale(.55); opacity: .4 } to { transform: scale(1); opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .sh-nav, .sh-ic, .sh-tx { transition: none; animation: none } }
 .admin-scope, .admin-scope * { -webkit-tap-highlight-color: transparent }
 .sh-nav:focus-visible, .sh-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px }
 .sh-icon:hover { color: var(--a-t1) }
@@ -156,6 +171,8 @@ const AdminPortal = () => {
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [clientView, setClientView] = useState<{ userId: string; name: string } | null>(null);
   const [palette, setPalette] = useState(false);
+  // Barre latérale : icônes seules ou avec les noms (préférence de chaque membre, gardée sur cet appareil).
+  const [names, setNames] = useState(() => { try { return localStorage.getItem(SIDEBAR_KEY) === "names"; } catch { return false; } });
   const [flash, setFlash] = useState<string | null>(null);
   const [vw] = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -339,64 +356,146 @@ const AdminPortal = () => {
   if (selected) crumbs.push({ label: `Commande ${selected.ref}` });
   if (clientView) crumbs.push({ label: clientView.name });
 
-  // Barre latérale en icônes seules : le nom de chaque page apparaît au survol ; la page ouverte a son icône dans un rond plein.
-  const navButton = (key: string, label: string, Icon: React.ElementType, on: boolean, onClick: () => void, extra?: React.ReactNode, expanded?: boolean) => (
-    <button key={key} type="button" className="sh-nav" onClick={onClick} aria-current={on ? "page" : undefined} aria-expanded={expanded}
-      aria-label={label} title={label}
-      style={{
-        position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, padding: 0, borderRadius: 99,
-        border: "none", cursor: "pointer", fontFamily: FONT, background: on ? C.t1 : "transparent", color: on ? C.bg : C.t2,
-      }}>
-      <Icon className="sh-rail-ic" style={{ width: 20, height: 20, flexShrink: 0 }} strokeWidth={on ? 1.9 : 1.7} />
-      {extra}
+  const toggleNames = () => setNames((v) => {
+    try { localStorage.setItem(SIDEBAR_KEY, v ? "icons" : "names"); } catch { /* stockage indisponible */ }
+    return !v;
+  });
+  const namesToggle = (
+    <button type="button" className="sh-icon" onClick={toggleNames} title={names ? "Icônes seules" : "Afficher les noms"} aria-label={names ? "Icônes seules" : "Afficher les noms"}
+      style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 99, border: "none", background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t3 }}>
+      {names ? <PanelLeftClose style={{ width: 17, height: 17 }} /> : <PanelLeftOpen style={{ width: 17, height: 17 }} />}
     </button>
   );
 
-  const sidebar = () => (
-    <nav aria-label="Navigation du back-office" style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: FONT }}>
-      <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <img src="/icons/icon-192.png" alt="Ooble" width={36} height={36} style={{ borderRadius: 9 }} />
-      </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "4px 0 10px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        {visibleGroups.map((g, gi) => {
-          const items = g.items.map((it) => {
-            const n = badges[it.id];
-            return navButton(it.id, it.label, it.icon, it.id === tab, () => setTab(it.id), !!n && (
-              <span style={{ position: "absolute", top: 1, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums", boxShadow: `0 0 0 2px ${C.ground}` }}>{n}</span>
-            ));
-          });
-          const inMenu = !!g.menu && g.items.some((i) => i.id === tab);
-          return (
-            <div key={g.label ?? gi} style={{ marginTop: gi ? 10 : 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-              {!g.menu ? items : (
-                <>
-                  {navButton(`menu-${gi}`, g.menu.label, g.menu.icon ?? Library, inMenu && !menuOpen, () => setMenuOpen((v) => !v), (
-                    <ChevronDown className="sh-chev" style={{ position: "absolute", bottom: 3, left: "50%", marginLeft: -6, width: 12, height: 12, color: C.t3, transform: menuOpen ? "rotate(180deg)" : "none" }} />
-                  ), menuOpen)}
-                  <div className="sh-sub" data-open={menuOpen} style={{ width: 52 }}>
-                    <div><div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "4px 0", marginTop: 2 }}>{items}</div></div>
-                  </div>
-                </>
-              )}
+  // Barre latérale : icônes seules (nom au survol) ou icônes et noms, au choix de chacun.
+  const sidebar = (compact: boolean) => {
+    return (
+      <nav aria-label="Navigation du back-office" style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: FONT }}>
+        <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: compact ? "center" : "flex-start", gap: 12, padding: compact ? 0 : "0 12px 0 18px", flexShrink: 0 }}>
+          <img src="/icons/icon-192.png" alt="Ooble" width={compact ? 36 : 32} height={compact ? 36 : 32} style={{ borderRadius: 9, flexShrink: 0 }} />
+          {!compact && (
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: C.t1, lineHeight: 1.2 }}>Ooble</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.3 }}>Administration</p>
             </div>
-          );
-        })}
-      </div>
-      <div style={{ padding: "8px 0 calc(14px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        <ThemeToggle />
-        <span title={`${user?.email ?? ""}\n${roleText}\nVersion du ${versionLabel()}`}
-          style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {(user?.email ?? "?")[0].toUpperCase()}
-        </span>
-        <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
-          style={{ width: 40, height: 40, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t2 }}>
-          <ArrowLeft style={{ width: 18, height: 18 }} />
-        </Link>
-      </div>
-    </nav>
-  );
+          )}
+          {!compact && (
+            <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
+              style={{ width: 34, height: 34, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t3, flexShrink: 0 }}>
+              <ArrowLeft style={{ width: 17, height: 17 }} />
+            </Link>
+          )}
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: compact ? "4px 0 10px" : "4px 12px 14px", display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center" }}>
+          {visibleGroups.map((g, gi) => {
+            const isMenu = !!g.menu;
+            const inMenu = isMenu && g.items.some((i) => i.id === tab);
+            const MenuIcon = g.menu?.icon ?? Library;
+            const itemButtons = g.items.map((it) => {
+                const on = it.id === tab;
+                const Icon = it.icon;
+                const n = badges[it.id];
+                return (
+                  <button key={it.id} type="button" className="sh-nav" onClick={() => setTab(it.id)} aria-current={on ? "page" : undefined}
+                    aria-label={compact ? it.label : undefined} title={compact ? it.label : undefined}
+                    style={{
+                      position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+                      ...(compact
+                        ? { width: 46, height: 46, justifyContent: "center", borderRadius: 99, padding: 0 }
+                        : { width: "100%", height: 38, padding: "0 12px 0 6px", borderRadius: 11, marginBottom: 1 }),
+                      background: on && compact ? C.t1 : "transparent",
+                      color: on ? (compact ? C.bg : C.t1) : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: on ? 500 : 400,
+                      ...(compact ? {} : { gap: 10 }),
+                    }}>
+                    {compact
+                      ? <Icon className="sh-rail-ic" style={{ width: 20, height: 20, flexShrink: 0 }} strokeWidth={on ? 1.9 : 1.7} />
+                      : <span className="sh-ic" data-on={on} style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: on ? C.t1 : "transparent", color: on ? C.bg : C.t3 }}>
+                          <Icon style={{ width: 16, height: 16 }} strokeWidth={on ? 1.9 : 1.6} />
+                        </span>}
+                    {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "4px 0" }}><span className="sh-tx">{it.label}</span></span>}
+                    {!!n && (compact
+                      ? <span style={{ position: "absolute", top: 1, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums", boxShadow: `0 0 0 2px ${C.ground}` }}>{n}</span>
+                      : <span style={{ fontSize: 11.5, fontWeight: 500, minWidth: 20, height: 20, padding: "0 7px", borderRadius: 99, background: "rgba(242,97,61,.12)", color: "var(--a-coral)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
+                  </button>
+                );
+              });
+            return (
+              <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 20) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                {g.label && !compact && !isMenu && <p className="sh-grp">{g.label}</p>}
+                {!isMenu ? itemButtons : (
+                  <>
+                    <button type="button" className="sh-nav" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}
+                      aria-label={compact ? g.menu!.label : undefined} title={compact ? g.menu!.label : undefined}
+                      style={{
+                        position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+                        ...(compact
+                          ? { width: 46, height: 46, justifyContent: "center", borderRadius: 99, padding: 0 }
+                          : { width: "100%", height: 38, padding: "0 12px 0 6px", borderRadius: 11, marginBottom: 1 }),
+                        background: inMenu && !menuOpen && compact ? C.t1 : "transparent",
+                        color: inMenu ? (compact && !menuOpen ? C.bg : C.t1) : C.t2, fontSize: 14.5, letterSpacing: "-0.015em", fontWeight: inMenu ? 500 : 400,
+                        ...(compact ? {} : { gap: 10 }),
+                      }}>
+                      {compact
+                        ? <MenuIcon style={{ width: 23, height: 23, flexShrink: 0 }} strokeWidth={inMenu ? 2 : 1.75} />
+                        : <span className="sh-ic" data-on={inMenu && !menuOpen} style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: inMenu && !menuOpen ? C.t1 : "transparent", color: inMenu && !menuOpen ? C.bg : C.t3 }}>
+                            <MenuIcon style={{ width: 16, height: 16 }} strokeWidth={inMenu ? 1.9 : 1.6} />
+                          </span>}
+                      {!compact && <span style={{ flex: 1, minWidth: 0 }}><span className="sh-tx">{g.menu!.label}</span></span>}
+                      <ChevronDown className="sh-chev" style={{
+                        width: compact ? 12 : 16, height: compact ? 12 : 16, color: C.t3, flexShrink: 0, transform: menuOpen ? "rotate(180deg)" : "none",
+                        ...(compact ? { position: "absolute", bottom: 3, left: "50%", marginLeft: -6 } : {}),
+                      }} />
+                    </button>
+                    <div className="sh-sub" data-open={menuOpen} style={{ width: compact ? 52 : "100%" }}>
+                      <div>
+                        <div style={{
+                          display: "flex", flexDirection: "column", alignItems: compact ? "center" : "stretch", gap: 2,
+                          ...(compact ? { padding: "4px 0", marginTop: 2 } : { padding: "2px 0 2px 18px" }),
+                        }}>
+                          {itemButtons}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding: compact ? "8px 0 calc(14px + env(safe-area-inset-bottom, 0px))" : "10px 12px 14px", display: "flex", alignItems: "center", justifyContent: compact ? "center" : "flex-start", gap: 10, flexShrink: 0 }}>
+          {compact ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+              <ThemeToggle />
+              {namesToggle}
+              <span title={`${user?.email ?? ""}\n${roleText}\nVersion du ${versionLabel()}`} style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {(user?.email ?? "?")[0].toUpperCase()}
+              </span>
+              <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
+                style={{ width: 40, height: 40, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t2 }}>
+                <ArrowLeft style={{ width: 18, height: 18 }} />
+              </Link>
+            </div>
+          ) : (
+            <>
+              <span title={user?.email ?? ""} style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {(user?.email ?? "?")[0].toUpperCase()}
+              </span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
+                <p title={roleText} style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{roleText}</p>
+                {/* Version en cours : en cas de doute, un coup d'œil suffit (voir lib/freshness.ts). */}
+                <p style={{ margin: "1px 0 0", fontSize: 11, color: C.t3, opacity: 0.75, whiteSpace: "nowrap" }}>Version du {versionLabel()}</p>
+              </div>
+              {namesToggle}
+              <ThemeToggle />
+            </>
+          )}
+        </div>
+      </nav>
+    );
+  };
 
-  const sideWidth = mode === "full" ? 76 : 0;
+  const sideWidth = mode === "full" ? (names ? 264 : 76) : 0;
 
   const panel = vw >= 768; // même seuil que le mode « drawer »
 
@@ -449,7 +548,7 @@ const AdminPortal = () => {
       : { background: C.bg, color: C.t1, minHeight: "100vh", fontFamily: FONT }}>
       {panel && (
         <aside style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: sideWidth, background: C.ground, zIndex: 30, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>
-          {sidebar()}
+          {sidebar(!names)}
         </aside>
       )}
 
