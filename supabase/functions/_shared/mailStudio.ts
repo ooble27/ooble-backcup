@@ -171,6 +171,118 @@ export const MAILS: MailSpec[] = [
   },
 ];
 
+/** Ce qui change d'une langue à l'autre dans un courriel. */
+export interface MailCopy {
+  eyebrow: string; subject: string; heading: string; lead: string; button: string;
+  rows: Row[]; hero?: [label: string, value: string]; phrase: string; notice?: string;
+}
+
+/**
+ * Version anglaise des courriels. Les {mots} restent ceux du studio ({prénom}, {référence}…),
+ * remplacés par les mêmes valeurs à l'envoi.
+ */
+export const MAIL_EN: Record<MailKind, MailCopy> = {
+  welcome: {
+    eyebrow: "Welcome", subject: "Welcome to Ooble",
+    heading: "Welcome to Ooble, {prénom}",
+    lead: "Your account is ready. You can buy and sell USDT in Canadian dollars, settled by Interac e-Transfer: simple, fast and non-custodial.",
+    button: "Verify my email",
+    rows: [["USDT", "4 networks to choose from"], ["Payment", "Interac e-Transfer"], ["Model", "Non-custodial"]],
+    phrase: "Welcome to Ooble, *{{firstName}}*.",
+  },
+  "order-buy": {
+    eyebrow: "Buy order", subject: "Your Ooble buy order ({référence})",
+    heading: "Pay by Interac to receive your USDT",
+    lead: "Send an Interac e-Transfer with the details below. As soon as it arrives, we send your USDT to the address you gave us.",
+    button: "View my order",
+    rows: [["Reference", "{{ref}}", true], ["Amount to pay", "{{cadAmount}} CAD"], ["You'll receive", "{{usdtAmount}} USDT"], ["Network", "{{network}}"], ["Receiving address", "{{receptionAddress}}", true]],
+    hero: ["Amount to pay", "{{cadAmount}} CAD"],
+    phrase: "Pay *{{cadAmount}} CAD* by Interac, receive *{{usdtAmount}} USDT*.",
+  },
+  "order-sell": {
+    eyebrow: "Sell order", subject: "Your Ooble sell order ({référence})",
+    heading: "Send your USDT to receive your dollars",
+    lead: "Transfer your USDT to the address below. Once it's confirmed on the blockchain, you receive your CAD by Interac e-Transfer.",
+    button: "View my order",
+    rows: [["Reference", "{{ref}}", true], ["You send", "{{usdtAmount}} USDT"], ["You'll receive", "{{cadAmount}} CAD"], ["Network", "{{network}}"], ["Deposit address", "{{depositAddress}}", true]],
+    hero: ["You send", "{{usdtAmount}} USDT"],
+    notice: "Only send USDT on the <strong>{{network}}</strong> network. Sending on any other network would lose the funds.",
+    phrase: "Send *{{usdtAmount}} USDT*, receive *{{cadAmount}} CAD*.",
+  },
+  "payment-received": {
+    eyebrow: "Payment received", subject: "Payment received, we're processing your order ({référence})",
+    heading: "We received your payment",
+    lead: "Your payment is confirmed. Our team is processing your order. You'll receive your USDT very soon.",
+    button: "Track my order",
+    rows: [["Reference", "{{ref}}", true], ["Amount received", "{{amount}}"], ["You'll receive", "{{usdtAmount}} USDT"], ["Status", "Processing"]],
+    hero: ["Amount received", "{{amount}}"],
+    phrase: "Your payment of *{{amount}}* has been received.",
+  },
+  "usdt-received": {
+    eyebrow: "USDT received", subject: "USDT received, your transfer is being prepared ({référence})",
+    heading: "Your USDT has arrived",
+    lead: "We received your USDT on the blockchain. Your Interac transfer is being prepared: you'll receive it at the email address on your order.",
+    button: "Track my sale",
+    rows: [["Reference", "{{ref}}", true], ["USDT received", "{{usdtAmount}} USDT"], ["You'll receive", "{{cadAmount}} CAD"], ["Interac transfer to", "{{interacEmail}}"], ["Network", "{{network}}"], ["Transaction", "{{txLinkHtml}}"]],
+    hero: ["You'll receive", "{{cadAmount}} CAD"],
+    phrase: "Your *{{usdtAmount}} USDT* has arrived.",
+  },
+  "order-completed": {
+    eyebrow: "Completed", subject: "Transaction completed ({référence})",
+    heading: "Your transaction is complete",
+    lead: "All done. Here's the summary of your transaction.",
+    button: "View receipt",
+    rows: [["Reference", "{{ref}}", true], ["{{summaryLabel}}", "{{summaryValue}}"], ["Network", "{{network}}"], ["{{txLabel}}", "{{txLinkHtml}}"]],
+    hero: ["{{summaryLabel}}", "{{summaryValue}}"],
+    phrase: "{{summaryLabel}} *{{summaryValue}}*. All done.",
+  },
+  "kyc-approved": {
+    eyebrow: "Identity verified", subject: "Your identity is verified",
+    heading: "Your identity is verified, {prénom}",
+    lead: "Good news: our compliance team has approved your ID. Your Ooble account is verified, and you won't need to do this again.",
+    button: "Open Ooble",
+    rows: [["Verification", "Identity"], ["Status", "Verified"], ["Date", "{{date}}"]],
+    hero: ["Identity", "Verified"],
+    phrase: "Your identity is *verified*, {{firstName}}.",
+  },
+  "kyc-rejected": {
+    eyebrow: "Identity verification", subject: "Your identity verification needs another try",
+    heading: "Something is missing to verify your identity",
+    lead: "Hi {prénom}, we couldn't approve your verification. It isn't final: fix the point below and try again. It only takes a few minutes.",
+    button: "Restart verification",
+    rows: [],
+    notice: "<strong>What to fix</strong><br>{{reason}}",
+    phrase: "Your verification needs ~another try~.",
+  },
+  "kyb-approved": {
+    eyebrow: "Business verified", subject: "{entreprise} is verified on Ooble",
+    heading: "{entreprise} is verified",
+    lead: "Hi {prénom}, our compliance team has approved your business file. Your business account can now buy and sell on Ooble.",
+    button: "Open Ooble",
+    rows: [["Business", "{{businessName}}"], ["Status", "Verified"], ["Date", "{{date}}"]],
+    hero: ["{{businessName}}", "Verified"],
+    phrase: "*{{businessName}}* is verified.",
+  },
+  "kyb-rejected": {
+    eyebrow: "Business verification", subject: "Your business file needs corrections",
+    heading: "The file for {entreprise} needs corrections",
+    lead: "Hi {prénom}, we couldn't approve your business file. Fix the point below and resubmit it from your account. Your information is saved.",
+    button: "Fix my file",
+    rows: [],
+    notice: "<strong>What to fix</strong><br>{{reason}}",
+    phrase: "The file for *{{businessName}}* ~needs corrections~.",
+  },
+};
+
+export type MailLang = "fr" | "en";
+
+/** Le texte d'origine d'un courriel dans une langue. */
+export function copyOf(spec: MailSpec, lang: MailLang = "fr"): MailCopy {
+  if (lang === "en") return MAIL_EN[spec.id];
+  const { eyebrow, subject, heading, lead, button, rows, hero, phrase, notice } = spec;
+  return { eyebrow, subject, heading, lead, button, rows, hero, phrase, notice };
+}
+
 export const MAIL_BY_ID = Object.fromEntries(MAILS.map((m) => [m.id, m])) as Record<MailKind, MailSpec>;
 export const isMailKind = (k: string): k is MailKind => k in MAIL_BY_ID;
 export const isMailStyle = (s: unknown): s is MailStyle => MAIL_STYLES.some((x) => x.id === s);
@@ -200,13 +312,14 @@ function textToHtml(s: string, allowed: string[], multiline = false): string {
 }
 
 /** Le texte en vigueur : celui du studio s'il est rempli, sinon l'original. */
-export function effective(spec: MailSpec, text: MailText | null | undefined) {
+export function effective(spec: MailSpec, text: MailText | null | undefined, lang: MailLang = "fr") {
   const pick = (v: string | null | undefined, d: string) => (v && v.trim() ? v.trim() : d);
+  const o = copyOf(spec, lang);
   return {
-    subject: pick(text?.subject, spec.subject),
-    heading: pick(text?.heading, spec.heading),
-    lead: pick(text?.lead, spec.lead),
-    button: pick(text?.button, spec.button),
+    subject: pick(text?.subject, o.subject),
+    heading: pick(text?.heading, o.heading),
+    lead: pick(text?.lead, o.lead),
+    button: pick(text?.button, o.button),
   };
 }
 
@@ -224,11 +337,11 @@ const brandMark = () => `<table role="presentation" cellpadding="0" cellspacing=
     <td style="vertical-align:middle;font:600 17px/1 ${POP};letter-spacing:-0.02em;color:${INK};">Ooble</td>
   </tr></table>`;
 
-interface Parts { eyebrow: string; heading: string; lead: string; button: string; url: string; rows: Row[]; hero?: [string, string]; notice?: string; phrase: string }
+interface Parts { lang: MailLang; eyebrow: string; heading: string; lead: string; button: string; url: string; rows: Row[]; hero?: [string, string]; notice?: string; phrase: string }
 
-function shell(opts: { bg: string; font: string; inner: string; preheader: string; poppins?: boolean }): string {
+function shell(opts: { lang: MailLang; bg: string; font: string; inner: string; preheader: string; poppins?: boolean }): string {
   return `<!doctype html>
-<html lang="fr">
+<html lang="${opts.lang}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -256,21 +369,24 @@ ${opts.inner}
 </html>`;
 }
 
-function footer(c: MailCompany, tone: { text: string; link: string; rule: string; brand: string }, align: "left" | "center" = "left"): string {
+function footer(c: MailCompany, tone: { text: string; link: string; rule: string; brand: string }, lang: MailLang, align: "left" | "center" = "left"): string {
+  const en = lang === "en";
   const host = c.website.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const contact = [c.email ? `<a href="mailto:${esc(c.email)}" style="color:${tone.link};text-decoration:none;">${esc(c.email)}</a>` : "",
     c.phone ? esc(c.phone) : "", `<a href="${esc(c.website)}" style="color:${tone.link};text-decoration:none;">${esc(host)}</a>`].filter(Boolean).join(" &nbsp;·&nbsp; ");
   const place = [c.address, c.locality, c.country].filter((s) => s && s.trim()).map(esc).join(" · ");
-  const link = (href: string, label: string) => `<a href="${esc(c.website)}${href}" style="color:${tone.link};text-decoration:none;margin:0 ${align === "center" ? "7px" : "14px 0 0"};">${label}</a>`;
+  const link = (href: string, label: string) => `<a href="${esc(c.website)}${en ? "/en" : ""}${href}" style="color:${tone.link};text-decoration:none;margin:0 ${align === "center" ? "7px" : "14px 0 0"};">${label}</a>`;
   return `
   <div style="font-size:12px;line-height:1.6;color:${tone.text};text-align:${align};">
     <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${tone.brand};font-weight:600;">Ooble</div>
     <div style="margin-top:6px;">${contact}</div>
     <div style="margin-top:2px;">${esc(c.legal)}${place ? ` · ${place}` : ""}</div>
     ${c.license ? `<div style="margin-top:2px;">FINTRAC ${esc(c.license)}</div>` : ""}
-    <div style="margin-top:12px;">${link("/faq", "Aide")}${link("/politique-confidentialite", "Confidentialité")}${link("/conditions-utilisation", "Conditions")}</div>
+    <div style="margin-top:12px;">${link("/faq", en ? "Help" : "Aide")}${link("/politique-confidentialite", en ? "Privacy" : "Confidentialité")}${link("/conditions-utilisation", en ? "Terms" : "Conditions")}</div>
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid ${tone.rule};">
-      Vous recevez ce courriel parce que vous avez un compte sur Ooble. Pour une question, répondez simplement à ce message : un membre de l'équipe vous répond.
+      ${en
+        ? "You're receiving this email because you have an Ooble account. Questions? Just reply to this message and a team member will get back to you."
+        : "Vous recevez ce courriel parce que vous avez un compte sur Ooble. Pour une question, répondez simplement à ce message : un membre de l'équipe vous répond."}
       <br />&copy; {{year}} ${esc(c.legal)}.
     </div>
   </div>`;
@@ -305,7 +421,7 @@ function sobre(p: Parts, c: MailCompany): string {
       ${p.notice ? `<div style="margin:0 0 20px;padding:12px 14px;background:#f6f6f4;border-left:3px solid #111;border-radius:6px;font-size:13px;color:#3a3a37;">${p.notice}</div>` : ""}
       ${button(p.url, p.button, "#111", "#ffffff")}
     </div>
-    <div class="pad" style="padding:18px 28px 22px;border-top:1px solid #ececea;">${footer(c, { text: "#8a8a86", link: "#4a4a47", rule: "#ececea", brand: "#111" })}</div>
+    <div class="pad" style="padding:18px 28px 22px;border-top:1px solid #ececea;">${footer(c, { text: "#8a8a86", link: "#4a4a47", rule: "#ececea", brand: "#111" }, p.lang)}</div>
   </div>
 </div>`;
 }
@@ -332,7 +448,7 @@ function recu(p: Parts, c: MailCompany): string {
   ${lines ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:34px 0 0;border-collapse:collapse;border-top:2px solid ${INK};">${lines}</table>` : ""}
   ${p.notice ? `<p style="margin:28px 0 0;padding-left:14px;border-left:3px solid ${SUN};font:400 14px/1.65 ${POP};color:${BODY};">${p.notice}</p>` : ""}
   <div style="margin:36px 0 0;">${button(p.url, p.button, INK, "#ffffff", 12, POP)}</div>
-  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK })}</div>
+  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK }, p.lang)}</div>
 </div>`;
 }
 
@@ -356,7 +472,7 @@ function phrase(p: Parts, c: MailCompany): string {
   ${trs.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:40px 0 0;border-collapse:collapse;">${trs.join("")}</table>` : ""}
   ${p.notice ? `<p style="margin:${trs.length ? "8px" : "32px"} 0 0;padding-left:14px;border-left:3px solid ${SUN};font:400 14px/1.65 ${POP};color:${BODY};">${p.notice}</p>` : ""}
   <p style="margin:36px 0 0;"><a href="${p.url}" style="font:600 16px/1.4 ${POP};color:${INK};text-decoration:none;border-bottom:2px solid ${SUN};padding-bottom:3px;">${p.button}&nbsp;&rarr;</a></p>
-  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK })}</div>
+  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK }, p.lang)}</div>
 </div>`;
 }
 
@@ -367,26 +483,27 @@ const RENDER: Record<MailStyle, (p: Parts, c: MailCompany) => string> = { sobre,
  * Le courriel complet (objet + HTML) pour un style et des textes donnés.
  * Les {{variables}} restent à remplir par l'envoi ou l'aperçu.
  */
-export function composeMail(kind: MailKind, style: MailStyle, text?: MailText | null, company: MailCompany = DEFAULT_COMPANY): { subject: string; html: string } {
+export function composeMail(kind: MailKind, style: MailStyle, text?: MailText | null, company: MailCompany = DEFAULT_COMPANY, lang: MailLang = "fr"): { subject: string; html: string } {
   const spec = MAIL_BY_ID[kind];
-  const t = effective(spec, text);
+  const o = copyOf(spec, lang);
+  const t = effective(spec, text, lang);
   // Seuls les mots que ce courriel sait remplir ; les autres restent du texte.
   const allowed = spec.tokens;
   const parts: Parts = {
-    eyebrow: spec.eyebrow,
+    lang, eyebrow: o.eyebrow,
     heading: textToHtml(t.heading, allowed),
     lead: textToHtml(t.lead, allowed, true),
     button: textToHtml(t.button, allowed),
-    url: spec.url, rows: spec.rows, hero: spec.hero, notice: spec.notice,
+    url: spec.url, rows: o.rows, hero: o.hero, notice: o.notice,
     // Titre modifié dans le studio : il devient la phrase, tout en encre.
-    phrase: t.heading !== spec.heading ? `<span style="color:${INK};">${textToHtml(t.heading, allowed)}</span>` : keywords(spec.phrase),
+    phrase: t.heading !== o.heading ? `<span style="color:${INK};">${textToHtml(t.heading, allowed)}</span>` : keywords(o.phrase),
   };
   const s = isMailStyle(style) ? style : "sobre";
   const preheader = textToHtml(stripBraces(t.lead).replace(/\s+/g, " ").slice(0, 140), allowed);
   return {
     // L'objet reste du texte brut : seuls les {mots} deviennent des variables.
     subject: stripBraces(t.subject).replace(/\{([^{}]{1,30})\}/g, (m, k: string) => (allowed.includes(k) && TOKENS[k] ? `{{${TOKENS[k].v}}}` : m)).replace(/\s*\r?\n\s*/g, " "),
-    html: shell({ bg: BG[s], font: s === "sobre" ? SANS : POP, poppins: s !== "sobre", inner: RENDER[s](parts, company), preheader }),
+    html: shell({ lang, bg: BG[s], font: s === "sobre" ? SANS : POP, poppins: s !== "sobre", inner: RENDER[s](parts, company), preheader }),
   };
 }
 
@@ -397,6 +514,19 @@ export function unknownTokens(kind: MailKind, s: string): string[] {
 }
 
 /** Valeurs d'exemple pour l'aperçu (un faux client, une fausse commande). */
+export const SAMPLE_VARS_EN: Record<string, string> = {
+  firstName: "Emily", ref: "OOB-3F9A21C4", cadAmount: "1,250.00", usdtAmount: "912.40", network: "Tron · TRC20",
+  interacEmail: "emily.walsh@example.ca", businessName: "Walsh Studio Inc.", date: "October 15, 2026",
+  year: String(new Date().getFullYear()),
+  amount: "1,250.00 CAD",
+  summaryLabel: "You received", summaryValue: "912.40 USDT",
+  txLabel: "Transaction",
+  txLinkHtml: `<a href="#" style="color:inherit;text-decoration:underline;">View on Tronscan</a>`,
+  receptionAddress: "TQ5NyrAp2Zb6v1mH8ZcX4kD9uR3tW7eLfP",
+  depositAddress: "TXa9Pq3mLk2Vd8Rf6Hs1Ny4Bc7Ue5Jw0Zt",
+  reason: "The photo of your ID is blurry: all four corners must be visible.",
+  orderUrl: "#", verifyUrl: "#", appUrl: "#", retryUrl: "#",
+};
 export const SAMPLE_VARS: Record<string, string> = {
   ...Object.fromEntries(Object.values(TOKENS).map((t) => [t.v, t.sample])),
   year: String(new Date().getFullYear()),

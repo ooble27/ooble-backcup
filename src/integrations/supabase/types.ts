@@ -1374,6 +1374,39 @@ export type Database = {
           },
         ]
       }
+      mail_texts: {
+        Row: {
+          kind: string
+          lang: string
+          subject: string | null
+          heading: string | null
+          lead: string | null
+          button: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          kind: string
+          lang: string
+          subject?: string | null
+          heading?: string | null
+          lead?: string | null
+          button?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          kind?: string
+          lang?: string
+          subject?: string | null
+          heading?: string | null
+          lead?: string | null
+          button?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       mail_threads: {
         Row: {
           assigned_name: string | null

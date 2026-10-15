@@ -41,7 +41,7 @@ import {
   eyebrow, heading, lead, dataRows, primaryButton,
   COMPANY,
 } from "./layout.ts";
-import { composeMail, isMailKind, styleFromDb, type MailText } from "../_shared/mailStudio.ts";
+import { composeMail, isMailKind, styleFromDb, type MailLang, type MailText } from "../_shared/mailStudio.ts";
 
 
 /**
@@ -94,25 +94,73 @@ async function staffRecipients(): Promise<string[]> {
 }
 
 /**
- * Studio des courriels (Back-office › Réglages) : style choisi et textes modifiés.
- * Toute erreur de lecture → null, et le courriel part avec le modèle d'origine.
+ * Studio des courriels (Back-office › Réglages) : style choisi et textes modifiés, dans la langue
+ * du destinataire. Si les réglages ne peuvent pas être lus, le courriel part dans le style Sobre
+ * avec son texte d'origine (toujours dans la bonne langue).
  */
-async function studioMail(kind: string): Promise<{ subject: string; html: string } | null> {
+async function studioMail(kind: string, lang: MailLang): Promise<{ subject: string; html: string } | null> {
   if (!isMailKind(kind)) return null;
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!url || !key) return null;
+  if (!url || !key) return composeMail(kind, "sobre", null, COMPANY, lang);
   try {
-    const { data, error } = await createClient(url, key).from("mail_designs")
-      .select("kind, style, subject, heading, lead, button").in("kind", ["*", kind]);
-    if (error) return null;
-    const all = data?.find((r) => r.kind === "*");
-    const own = data?.find((r) => r.kind === kind);
+    const db = createClient(url, key);
+    const [{ data: looks }, { data: texts }] = await Promise.all([
+      db.from("mail_designs").select("kind, style").in("kind", ["*", kind]),
+      db.from("mail_texts").select("subject, heading, lead, button").eq("kind", kind).eq("lang", lang).maybeSingle(),
+    ]);
+    const all = looks?.find((r) => r.kind === "*");
+    const own = looks?.find((r) => r.kind === kind);
     const style = styleFromDb(own?.style) ?? styleFromDb(all?.style) ?? "sobre";
-    return composeMail(kind, style, (own ?? null) as MailText | null, COMPANY);
+    return composeMail(kind, style, (texts ?? null) as MailText | null, COMPANY, lang);
   } catch {
-    return null;
+    return composeMail(kind, "sobre", null, COMPANY, lang);
   }
+}
+
+/**
+ * Langue du destinataire : celle demandée par l'appelant, sinon celle de son profil
+ * (choisie dans l'app ou à l'inscription), sinon le français.
+ */
+async function recipientLang(to: string, asked?: string): Promise<MailLang> {
+  if (asked === "fr" || asked === "en") return asked;
+  const url = Deno.env.get("SUPABASE_URL") ?? "";
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!url || !key || !to) return "fr";
+  try {
+    const { data } = await createClient(url, key).from("profiles").select("preferred_lang")
+      .ilike("email", to.trim().replace(/[%_\\]/g, "\\$&")).limit(1).maybeSingle();
+    return data?.preferred_lang === "en" ? "en" : "fr";
+  } catch {
+    return "fr";
+  }
+}
+
+/**
+ * Les valeurs fournies par l'appelant sont écrites en français (montants « 1 250,00 », libellés,
+ * date). Pour un courriel en anglais, on les remet en anglais.
+ */
+function toEnglishVars(v: Record<string, string>): Record<string, string> {
+  const num = (s: string) => s
+    .replace(/\d{1,3}(?:[\u00a0\u202f ]\d{3})+(?:,\d+)?|\d+,\d+/g, (m) => {
+      const [int, dec] = m.replace(/[\u00a0\u202f ]/g, "").split(",");
+      return Number(int).toLocaleString("en-CA") + (dec ? `.${dec}` : "");
+    })
+    .replace(/\s*\$\s*CAD/g, " CAD");
+  const words: [RegExp, string][] = [
+    [/^Vous avez reçu$/, "You received"], [/^Vous avez vendu$/, "You sold"],
+    [/^Virement Interac$/, "Interac transfer"], [/^Transaction$/, "Transaction"],
+    [/^Envoyé à /, "Sent to "], [/^Envoyée$/, "Sent"], [/^Reçus$/, "Received"], [/^N\/D$/, "N/A"],
+  ];
+  const out = { ...v };
+  for (const k of ["cadAmount", "usdtAmount", "amount", "summaryValue"]) if (out[k]) out[k] = num(out[k]);
+  for (const k of ["summaryLabel", "txLabel", "txLinkHtml", "network"]) {
+    if (!out[k]) continue;
+    for (const [re, en] of words) out[k] = out[k].replace(re, en);
+  }
+  if (out.txLinkHtml) out.txLinkHtml = out.txLinkHtml.replace(/>Voir sur /g, ">View on ");
+  if (out.date) out.date = new Date().toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" });
+  return out;
 }
 
 /** Échappe le HTML (données saisies côté client). */
@@ -256,8 +304,11 @@ Deno.serve(async (req) => {
     if (!(template in TEMPLATES)) {
       return json({ error: `Template inconnu : ${template}` }, 400);
     }
+    // Langue du destinataire (courriels du studio) ; les valeurs passent en anglais si besoin.
+    const lang = isMailKind(template) ? await recipientLang(rawTo, (payload as { lang?: string }).lang) : "fr";
+    const langVars = lang === "en" ? toEnglishVars(vars as Record<string, string>) : vars;
     const safeVars = Object.fromEntries(
-      Object.entries(vars).map(([k, v]) => [k, k.endsWith("Html") ? String(v ?? "") : escHtml(String(v ?? "")).replace(/\r?\n/g, "<br>")]),
+      Object.entries(langVars).map(([k, v]) => [k, k.endsWith("Html") ? String(v ?? "") : escHtml(String(v ?? "")).replace(/\r?\n/g, "<br>")]),
     );
     const data: Record<string, string> = {
       assetBase,
@@ -266,7 +317,7 @@ Deno.serve(async (req) => {
       txLabel: "Transaction",
       ...safeVars,
     };
-    const studio = await studioMail(template);
+    const studio = await studioMail(template, lang);
     finalHtml = render(studio?.html ?? TEMPLATES[template], data);
     finalSubject = render(subject ?? studio?.subject ?? SUBJECTS[template] ?? "Ooble", data);
     // Une variable que l'appelant n'a pas fournie ne doit jamais s'afficher « {{…}} » chez le client.

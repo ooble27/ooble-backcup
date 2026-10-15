@@ -18,8 +18,8 @@ import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { SaveBar } from "./settingsUi";
 import {
-  MAILS, MAIL_BY_ID, MAIL_STYLES, TOKENS, composeMail, effective, fillSample, styleFromDb, styleToDb, unknownTokens,
-  type MailKind, type MailStyle,
+  MAILS, MAIL_BY_ID, MAIL_STYLES, SAMPLE_VARS, SAMPLE_VARS_EN, composeMail, copyOf, effective, fillSample, styleFromDb, styleToDb, unknownTokens,
+  DEFAULT_COMPANY, type MailKind, type MailLang, type MailStyle,
 } from "../../../supabase/functions/_shared/mailStudio.ts";
 
 const CSS = `
@@ -89,29 +89,43 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) { .ms-style, .ms-row, .ms-ov, .ms-pv, .ms-thumb-in { animation: none; transition: none; } }
 `;
 
-type Row = { kind: string; style: string | null; subject: string | null; heading: string | null; lead: string | null; button: string | null; updated_at: string };
+type Row = { kind: string; style: string | null };
 type Rows = Record<string, Row>;
+type TextRow = { kind: string; lang: MailLang; subject: string | null; heading: string | null; lead: string | null; button: string | null };
+type Texts = Record<string, TextRow>;
+const LANGS = [{ id: "fr" as const, label: "Français" }, { id: "en" as const, label: "English" }];
+const samples = (lang: MailLang) => (lang === "en" ? SAMPLE_VARS_EN : SAMPLE_VARS);
 const SHOWCASE: MailKind[] = ["order-completed", "order-buy", "order-sell", "welcome", "kyc-rejected"];
 const styleName = (s: MailStyle) => MAIL_STYLES.find((x) => x.id === s)!.name;
 
 /** Les réglages du studio (cache local pour un retour instantané). */
 export function useMailDesigns() {
   const [rows, setRows] = useState<Rows | null>(() => peek<Rows>("st.mails")?.value ?? null);
+  const [texts, setTexts] = useState<Texts>(() => peek<Texts>("st.mailtexts")?.value ?? {});
   const [err, setErr] = useState<string | null>(null);
   const reload = useCallback(async () => {
-    const { data, error } = await supabase.from("mail_designs").select("kind, style, subject, heading, lead, button, updated_at");
+    const [looks, words] = await Promise.all([
+      supabase.from("mail_designs").select("kind, style"),
+      supabase.from("mail_texts").select("kind, lang, subject, heading, lead, button"),
+    ]);
+    const error = looks.error ?? words.error;
     if (error) { setErr(error.message); return; }
-    const next = Object.fromEntries((data ?? []).map((r) => [r.kind, r as Row])) as Rows;
-    setRows(next); put("st.mails", next); setErr(null);
+    const next = Object.fromEntries((looks.data ?? []).map((r) => [r.kind, r as Row])) as Rows;
+    const nextTexts = Object.fromEntries((words.data ?? []).map((r) => [`${r.kind}:${r.lang}`, r as TextRow])) as Texts;
+    setRows(next); put("st.mails", next);
+    setTexts(nextTexts); put("st.mailtexts", nextTexts);
+    setErr(null);
   }, []);
   useEffect(() => { void reload(); }, [reload]);
   const globalStyle: MailStyle = styleFromDb(rows?.["*"]?.style) ?? "sobre";
-  return { rows, err, reload, globalStyle };
+  return { rows, texts, err, reload, globalStyle };
 }
 
 const ownStyle = (r?: Row): MailStyle | null => styleFromDb(r?.style);
-const hasText = (r?: Row) => !!(r && (r.subject || r.heading || r.lead || r.button));
-const html = (kind: MailKind, style: MailStyle, r?: Row | null) => fillSample(composeMail(kind, style, r ?? null).html);
+const filled = (t?: TextRow) => !!(t && (t.subject || t.heading || t.lead || t.button));
+/** Langues dont les textes ont été modifiés pour ce courriel. */
+const textLangs = (texts: Texts, kind: MailKind) => LANGS.filter((l) => filled(texts[`${kind}:${l.id}`]));
+const html = (kind: MailKind, style: MailStyle, lang: MailLang = "fr") => fillSample(composeMail(kind, style, null, DEFAULT_COMPANY, lang).html, samples(lang));
 
 /**
  * Courriel dans une iframe à sa vraie largeur, réduit pour tenir dans la colonne.
@@ -193,6 +207,7 @@ function StyleStudio({ start, current, onClose, onApply }: { start: MailStyle; c
   const [i, setI] = useState(() => Math.max(0, MAIL_STYLES.findIndex((s) => s.id === start)));
   const [kind, setKind] = useState<MailKind>("order-completed");
   const [device, setDevice] = useState<Device>(isPhone() ? "mobile" : "desktop");
+  const [lang, setLang] = useState<MailLang>("fr");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const n = MAIL_STYLES.length;
@@ -241,6 +256,10 @@ function StyleStudio({ start, current, onClose, onApply }: { start: MailStyle; c
             <p className="ms-k">Écran</p>
             <Opts label="Écran" value={device} onPick={setDevice} options={DEVICES} />
           </div>
+          <div className="ms-ov-sec">
+            <p className="ms-k">Langue</p>
+            <Opts label="Langue" value={lang} onPick={setLang} options={LANGS} />
+          </div>
           <div style={{ marginTop: 34, display: "grid", gap: 10, justifyItems: "start" }}>
             {current === st.id
               ? <p style={{ margin: 0, fontSize: 15, color: C.sage }}>Le style de tous vos courriels.</p>
@@ -252,8 +271,8 @@ function StyleStudio({ start, current, onClose, onApply }: { start: MailStyle; c
             <button type="button" className="next" onClick={() => move(1)}>{next.name}<ArrowRight style={{ width: 17, height: 17 }} /></button>
           </div>
         </div>
-        <div key={`${st.id}-${kind}-${device}`} className="ms-pv">
-          <Preview srcDoc={html(kind, st.id)} device={device} title={`${MAIL_BY_ID[kind].name}, style ${st.name}`} />
+        <div key={`${st.id}-${kind}-${device}-${lang}`} className="ms-pv">
+          <Preview srcDoc={html(kind, st.id, lang)} device={device} title={`${MAIL_BY_ID[kind].name}, style ${st.name}`} />
         </div>
       </div>
     </div>
@@ -264,12 +283,15 @@ function StyleStudio({ start, current, onClose, onApply }: { start: MailStyle; c
 type Field = "subject" | "heading" | "lead" | "button";
 const LIMIT: Record<Field, number> = { subject: 160, heading: 160, lead: 1200, button: 40 };
 
-function MailEditor({ kind, rows, globalStyle, onBack, onOpen, reload }: {
-  kind: MailKind; rows: Rows | null; globalStyle: MailStyle; onBack: () => void; onOpen: (k: MailKind) => void; reload: () => Promise<void>;
+function MailEditor({ kind, rows, texts, globalStyle, onBack, onOpen, reload }: {
+  kind: MailKind; rows: Rows | null; texts: Texts; globalStyle: MailStyle; onBack: () => void; onOpen: (k: MailKind) => void; reload: () => Promise<void>;
 }) {
   const spec = MAIL_BY_ID[kind];
   const row = rows?.[kind];
-  const saved = useMemo(() => ({ style: ownStyle(row), ...effective(spec, row) }), [spec, row]);
+  const [lang, setLangState] = useState<MailLang>("fr");
+  const orig = copyOf(spec, lang);
+  const textRow = texts[`${kind}:${lang}`];
+  const saved = useMemo(() => ({ style: ownStyle(row), ...effective(spec, textRow, lang) }), [spec, row, textRow, lang]);
   const [v, setV] = useState(saved);
   useEffect(() => { setV(saved); }, [saved]);
   const [device, setDevice] = useState<Device>(isPhone() ? "mobile" : "desktop");
@@ -287,29 +309,42 @@ function MailEditor({ kind, rows, globalStyle, onBack, onOpen, reload }: {
   }, [v.lead]);
 
   const style = v.style ?? globalStyle;
-  const live = useMemo(() => composeMail(kind, style, v), [kind, style, v]);
+  const live = useMemo(() => composeMail(kind, style, v, DEFAULT_COMPANY, lang), [kind, style, v, lang]);
   const dirty = v.style !== saved.style || (["subject", "heading", "lead", "button"] as Field[]).some((f) => v[f] !== saved[f]);
   const tooLong = (["subject", "heading", "lead", "button"] as Field[]).find((f) => v[f].length > LIMIT[f]);
   const unknown = unknownTokens(kind, `${v.subject} ${v.heading} ${v.lead} ${v.button}`);
-  const customized = !!row && (ownStyle(row) || hasText(row));
+  const customized = !!ownStyle(row) || textLangs(texts, kind).length > 0;
+  const switchLang = (l: MailLang) => {
+    if (l === lang) return;
+    if (dirty && !confirm("Changer de langue sans enregistrer vos changements ?")) return;
+    setLangState(l); setMsg(null);
+  };
 
-  const write = async (patch: { style: MailStyle | null } & Record<Field, string | null>, okText: string) => {
+  /** Enregistre le style (commun aux deux langues) et les textes de chaque langue donnée. */
+  const write = async (style: MailStyle | null, langs: { lang: MailLang; t: Record<Field, string | null> }[], okText: string) => {
     setBusy(true); setMsg(null);
     const { data: auth } = await supabase.auth.getSession();
-    const { error } = await supabase.from("mail_designs").upsert({ kind, ...patch, style: styleToDb(patch.style), updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null });
+    const stamp = { updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null };
+    const results = await Promise.all([
+      supabase.from("mail_designs").upsert({ kind, style: styleToDb(style), ...stamp }),
+      ...langs.map(({ lang: l, t }) => supabase.from("mail_texts").upsert({ kind, lang: l, ...t, ...stamp })),
+    ]);
+    const error = results.find((r) => r.error)?.error;
     if (!error) {
-      void logAdminAction({ action: "settings.mail_design", entityKind: "mail_designs", metadata: { kind, ...patch } });
+      void logAdminAction({ action: "settings.mail_design", entityKind: "mail_designs", metadata: { kind, style, langs } });
       await reload();
     }
     setBusy(false);
     setMsg(error ? { ok: false, text: error.message.includes("check") ? "Un texte dépasse la longueur permise." : error.message } : { ok: true, text: okText });
   };
   // Un texte identique à l'original n'est pas enregistré : l'original pourra évoluer sans lui.
-  const keep = (f: Field) => (v[f].trim() && v[f].trim() !== spec[f] ? v[f].trim() : null);
-  const save = () => void write({ style: v.style, subject: keep("subject"), heading: keep("heading"), lead: keep("lead"), button: keep("button") }, "Enregistré. Les prochains courriels partent ainsi.");
+  const keep = (f: Field) => (v[f].trim() && v[f].trim() !== orig[f] ? v[f].trim() : null);
+  const save = () => void write(v.style, [{ lang, t: { subject: keep("subject"), heading: keep("heading"), lead: keep("lead"), button: keep("button") } }],
+    lang === "en" ? "Enregistré. Les prochains courriels en anglais partent ainsi." : "Enregistré. Les prochains courriels en français partent ainsi.");
   const resetAll = () => {
-    if (!confirm(`Remettre « ${spec.name} » comme à l'origine (style et textes) ?`)) return;
-    void write({ style: null, subject: null, heading: null, lead: null, button: null }, "Revenu à l'origine.");
+    if (!confirm(`Remettre « ${spec.name} » comme à l'origine (style et textes, en français et en anglais) ?`)) return;
+    const none = { subject: null, heading: null, lead: null, button: null };
+    void write(null, [{ lang: "fr", t: none }, { lang: "en", t: none }], "Revenu à l'origine.");
   };
 
   const insert = (token: string) => {
@@ -333,7 +368,7 @@ function MailEditor({ kind, rows, globalStyle, onBack, onOpen, reload }: {
       <div>
         <div className="ms-flab">
           <label className="ms-k" htmlFor={`ms-${f}`}>{label}</label>
-          {v[f] !== spec[f] && <button type="button" className="ms-link" onClick={() => setV({ ...v, [f]: spec[f] })}>Texte d'origine</button>}
+          {v[f] !== orig[f] && <button type="button" className="ms-link" onClick={() => setV({ ...v, [f]: orig[f] })}>Texte d'origine</button>}
         </div>
         {f === "lead"
           ? <textarea ref={lead} rows={3} {...common} />
@@ -345,7 +380,7 @@ function MailEditor({ kind, rows, globalStyle, onBack, onOpen, reload }: {
 
   const i = MAILS.findIndex((m) => m.id === kind);
   const prev = MAILS[i - 1], next = MAILS[i + 1];
-  const sample = (s: string) => s.replace(/\{\{(\w+)\}\}/g, (m, k: string) => Object.values(TOKENS).find((t) => t.v === k)?.sample ?? m);
+  const sample = (s: string) => fillSample(s, samples(lang)).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
 
   return (
     <div className="st-page" key={kind}>
@@ -357,6 +392,11 @@ function MailEditor({ kind, rows, globalStyle, onBack, onOpen, reload }: {
 
       <div className="ms-ed">
         <div className="ms-fields">
+          <div>
+            <p className="ms-k" style={{ marginBottom: 8 }}>Langue des textes</p>
+            <Opts label="Langue des textes" value={lang} onPick={switchLang} options={LANGS} />
+            <p className="st-hint">Chaque client reçoit sa langue : celle de son app, choisie à l'inscription ou dans Mon compte. Le style vaut pour les deux langues.</p>
+          </div>
           <div>
             <p className="ms-k" style={{ marginBottom: 8 }}>Style</p>
             <Opts label="Style de ce courriel" value={(v.style ?? "inherit") as MailStyle | "inherit"}
@@ -399,8 +439,8 @@ function MailEditor({ kind, rows, globalStyle, onBack, onOpen, reload }: {
             <span style={{ fontWeight: 600, color: C.t1 }}>Ooble</span>
             <span style={{ color: C.t1 }}>{sample(live.subject)}</span>
           </div>
-          <div key={`${style}-${device}`} className="ms-pv">
-            <Preview srcDoc={fillSample(live.html)} device={device} title={`Aperçu : ${spec.name}`} />
+          <div key={`${style}-${device}-${lang}`} className="ms-pv">
+            <Preview srcDoc={fillSample(live.html, samples(lang))} device={device} title={`Aperçu : ${spec.name}`} />
           </div>
         </div>
       </div>
@@ -433,7 +473,7 @@ const readMail = (): MailKind | null => {
 };
 
 export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
-  const { rows, err, reload, globalStyle } = useMailDesigns();
+  const { rows, texts, err, reload, globalStyle } = useMailDesigns();
   const [mail, setMailState] = useState<MailKind | null>(readMail);
   const [studio, setStudio] = useState<MailStyle | null>(null);
 
@@ -472,11 +512,11 @@ export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
   if (mail) return (
     <>
       <style>{CSS}</style>
-      <MailEditor kind={mail} rows={rows} globalStyle={globalStyle} onBack={() => openMail(null)} onOpen={openMail} reload={reload} />
+      <MailEditor kind={mail} rows={rows} texts={texts} globalStyle={globalStyle} onBack={() => openMail(null)} onOpen={openMail} reload={reload} />
     </>
   );
 
-  const own = MAILS.filter((m) => rows && (ownStyle(rows[m.id]) || hasText(rows[m.id]))).length;
+  const own = MAILS.filter((m) => rows && (ownStyle(rows[m.id]) || textLangs(texts, m.id).length > 0)).length;
   const groups = (["Commandes", "Vérification", "Compte"] as const).map((g) => ({ g, list: MAILS.filter((m) => m.group === g) }));
   const GROUP_DESC = { Commandes: "Du moment où le client commande jusqu'à la fin.", Vérification: "Les décisions de la conformité.", Compte: "L'arrivée d'un nouveau client." };
 
@@ -530,7 +570,7 @@ export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
                     </span>
                     <span style={{ flexShrink: 0, textAlign: "right", fontSize: 13, lineHeight: 1.5 }}>
                       {os && <span style={{ display: "block", color: C.t2 }}>{styleName(os)}</span>}
-                      {hasText(r) && <span style={{ display: "block", color: C.sun }}>Textes modifiés</span>}
+                      {textLangs(texts, m.id).length > 0 && <span style={{ display: "block", color: C.sun }}>Textes modifiés ({textLangs(texts, m.id).map((l) => l.label).join(", ")})</span>}
                     </span>
                     <ChevronRight className="ms-go" />
                   </button>

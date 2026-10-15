@@ -13,6 +13,8 @@ export interface ClientProfile {
   phone: string | null;
   kycStatus: KycStatus;
   dailyLimitCad: number;
+  /** Langue de l'app et des courriels ; null tant qu'elle n'est pas connue. */
+  preferredLang: "fr" | "en" | null;
   interacQuestion: string | null;
   interacAnswer: string | null;
   accountType: AccountType;
@@ -47,7 +49,7 @@ export { KYC_LABEL };
 export async function fetchClientProfile(userId: string): Promise<ClientProfile | null> {
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, phone, kyc_status, daily_limit_cad, interac_question, interac_answer, account_type, business_name, business_number, business_address, business_phone, business_status, created_at")
+    .select("id, full_name, email, phone, kyc_status, daily_limit_cad, preferred_lang, interac_question, interac_answer, account_type, business_name, business_number, business_address, business_phone, business_status, created_at")
     .eq("id", userId)
     .maybeSingle();
   if (error || !profile) return null;
@@ -72,6 +74,7 @@ export async function fetchClientProfile(userId: string): Promise<ClientProfile 
     phone: profile.phone,
     kycStatus: profile.kyc_status,
     dailyLimitCad: profile.daily_limit_cad,
+    preferredLang: profile.preferred_lang === "fr" || profile.preferred_lang === "en" ? profile.preferred_lang : null,
     interacQuestion: profile.interac_question,
     interacAnswer: profile.interac_answer,
     accountType: profile.account_type,

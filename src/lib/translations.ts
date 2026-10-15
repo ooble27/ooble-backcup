@@ -228,7 +228,7 @@ const dict = {
   "acct.appearance": { fr: "Apparence", en: "Appearance" },
   "acct.light": { fr: "Clair", en: "Light" },
   "acct.dark": { fr: "Sombre", en: "Dark" },
-  "acct.language": { fr: "Langue", en: "Language" },
+  "acct.language": { fr: "Langue (app et courriels)", en: "Language (app and emails)" },
   "acct.kyc": { fr: "Vérification d'identité", en: "Identity verification" },
   "acct.nonCustodial": { fr: "Non-custodial : vos clés, vos USDT", en: "Non-custodial: your keys, your USDT" },
   "acct.backoffice": { fr: "Back-office", en: "Back office" },

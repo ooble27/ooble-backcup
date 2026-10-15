@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { clearCache } from "@/lib/cache";
+import { getLang } from "@/lib/i18n";
 import { forgetPushDevice } from "@/lib/pushNotifications";
 
 export type AppRole = Database["public"]["Enums"]["app_role"];
@@ -154,6 +155,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const meta: Record<string, string> = {
           full_name: name.trim() || nameFromEmail(email),
+          // Langue de la page d'inscription : celle de l'app et des courriels du client.
+          preferred_lang: getLang(),
         };
         if (extra?.accountType) meta.account_type = extra.accountType;
         if (extra?.businessName) meta.business_name = extra.businessName;

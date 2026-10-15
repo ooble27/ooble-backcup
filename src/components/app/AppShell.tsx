@@ -8,7 +8,7 @@ import BottomNav from "./BottomNav";
 import { useAuth } from "@/lib/auth";
 import { warmAppData } from "@/lib/warm";
 import { ensurePush } from "@/lib/pushNotifications";
-import { recordOrigin, recordLang } from "@/lib/origin";
+import { recordOrigin, syncLang } from "@/lib/origin";
 import { useNoZoom } from "@/lib/noZoom";
 
 /**
@@ -76,8 +76,8 @@ const AppShell = ({ children, header, backTo, wide, wider, center, className }: 
   useEffect(() => { warmAppData(user?.id); }, [user?.id]);
   // Lieu et source de l'inscription, enregistrés une fois.
   useEffect(() => { void recordOrigin(user?.id); }, [user?.id]);
-  // Langue de l'app, pour recevoir les courriels d'information dans sa langue.
-  useEffect(() => { void recordLang(user?.id, lang); }, [user?.id, lang]);
+  // Langue du client (profil ↔ app) : c'est aussi la langue de ses courriels.
+  useEffect(() => { void syncLang(user?.id, lang); }, [user?.id, lang]);
   // Notifications actives pour tout le monde, sans bouton à activer.
   useEffect(() => { if (user?.id) ensurePush(lang); }, [user?.id, lang]);
   return (

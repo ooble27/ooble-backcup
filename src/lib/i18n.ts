@@ -30,6 +30,18 @@ const isPublicPath = (path: string) => !/^\/(app|admin)(\/|$)/.test(stripEn(path
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
+/** Le visiteur a-t-il déjà choisi une langue sur cet appareil ? */
+export const hasLangChoice = (): boolean => storedLang() !== null;
+
+/** Langue du téléphone ou de l'ordinateur : anglais si le navigateur est en anglais, sinon français. */
+function browserLang(): Lang {
+  try {
+    const list = navigator.languages?.length ? navigator.languages : [navigator.language];
+    const first = list.find((l) => /^(fr|en)\b/i.test(l ?? ""));
+    return first && /^en/i.test(first) ? "en" : "fr";
+  } catch { return "fr"; }
+}
+
 export function getLang(): Lang {
   return current;
 }
@@ -69,6 +81,9 @@ export function initLang(): { basename?: string; redirect?: string } {
   } else if (isPublicPath(pathname)) {
     if (storedLang() === "en") return { redirect: withEn(pathname) + search + hash };
     current = "fr";
+  } else if (/^\/app(\/|$)/.test(pathname) && !storedLang()) {
+    // App sans choix sur cet appareil : la langue du navigateur (le profil la corrige ensuite).
+    current = browserLang();
   }
   document.documentElement.lang = current;
   return { basename: isEnPath(pathname) ? EN_BASE : undefined };

@@ -150,6 +150,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
         ["Nom", name],
         ["Courriel", copyable(profile?.email, "email")],
         ["Téléphone", copyable(profile?.phone, "phone")],
+        ["Langue", profile?.preferredLang ? (profile.preferredLang === "en" ? "Anglais (app et courriels)" : "Français (app et courriels)") : <span style={{ color: C.t3 }}>Pas encore connue (courriels en français)</span>],
         [origin?.late ? "Lieu (connexion)" : "Lieu d'inscription", placeLabel(origin) ?? <span style={{ color: C.t3 }}>Pas encore connu</span>],
         ["Source", origin?.source ? [origin.source, origin.campaign].filter(Boolean).join(" · ") : <span style={{ color: C.t3 }}>Pas encore connue</span>],
         ["Identifiant", copyable(userId, "uid", true)],

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES } from "@/lib/compliance";
+import { getLang, hasLangChoice, setLang, type Lang } from "@/lib/i18n";
 
 /*
  * Origine des inscriptions.
@@ -78,6 +79,27 @@ export async function recordOrigin(uid: string | null | undefined) {
     _referrer: touch?.referrer ?? null, _landing: touch?.landing ?? null,
   } as never);
   if (!error) try { localStorage.setItem(DONE(uid), "1"); } catch { /* ignore */ }
+}
+
+/**
+ * Langue du client, une fois par session : si son profil a une langue et que cet appareil n'a pas
+ * de choix, l'app prend celle du profil ; sinon la langue de l'app est enregistrée dans le profil.
+ * C'est la langue de ses courriels.
+ */
+let langSynced: string | null = null;
+export async function syncLang(uid: string | null | undefined, lang: Lang) {
+  if (!uid) return;
+  if (langSynced !== uid) {
+    langSynced = uid;
+    const { data } = await supabase.from("profiles").select("preferred_lang" as "id").eq("id", uid).maybeSingle();
+    const saved = (data as unknown as { preferred_lang?: string | null } | null)?.preferred_lang;
+    if ((saved === "fr" || saved === "en") && !hasLangChoice()) {
+      try { localStorage.setItem(`ooble.lang-saved:${uid}`, saved); } catch { /* ignore */ }
+      if (saved !== getLang()) setLang(saved);
+      return;
+    }
+  }
+  await recordLang(uid, lang);
 }
 
 /** Langue préférée du client (une fois par langue et par appareil). */
