@@ -197,7 +197,8 @@ const MobileAccount = ({ profile, kyc, name, email, isStaff, otc, onLogout }: Pr
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-75">Interac e-Transfer</span>
             <span className="text-[11px] font-medium uppercase tracking-[0.14em] opacity-60">Ooble</span>
           </span>
-          <span className="relative mt-6 block text-[12px] opacity-70">{t("acct.question")} · {profile.interacQuestion}</span>
+          <span className="relative mt-5 block truncate text-[12px] opacity-70">{t("acct.interacEmail")} · {email}</span>
+          <span className="relative mt-1 block text-[12px] opacity-70">{t("acct.question")} · {profile.interacQuestion}</span>
           <span className="relative mt-1 flex items-end justify-between gap-3">
             <span className="font-mono text-[30px] font-semibold leading-none tracking-[0.12em]">{profile.interacAnswer}</span>
             <span

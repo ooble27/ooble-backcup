@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { familyOf, useDepositAddresses } from "@/lib/depositAddresses";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, ShieldOff, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, ShieldOff, Wallet, Lock } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
@@ -91,7 +91,9 @@ const AppVendreForm = () => {
   const [step, setStep] = useState<Step>("amount");
   const [unit, setUnit] = useState<Unit>("USDT");
   const [amount, setAmount] = useState("");
-  const [email, setEmail] = useState("");
+  // Le virement Interac part toujours vers le courriel du compte (la base l'impose aussi) :
+  // personne ne peut faire verser l'argent d'une vente sur le compte d'un autre.
+  const email = user?.email ?? "";
   const [net, setNet] = useState<NetId | null>(null);
   const [savedRef, setSavedRef] = useState("");
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -150,7 +152,7 @@ const AppVendreForm = () => {
   const senderOk = !!family && isSenderAddress(family, sender);
 
   const resetAll = () => {
-    setStep("amount"); setAmount(""); setEmail(""); setNet(null); setSavedRef(""); setErr(null);
+    setStep("amount"); setAmount(""); setNet(null); setSavedRef(""); setErr(null);
     setOrderId(null); setSender("");
   };
 
@@ -326,18 +328,11 @@ const AppVendreForm = () => {
           </div>
           <div className="flex items-center gap-2.5 px-4 py-4">
             <Mail className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.9} />
-            <input
-              type="email"
-              spellCheck={false}
-              autoCapitalize="none"
-              placeholder={t("sell.emailPh")}
-              value={email}
-              onChange={(e) => setEmail(e.target.value.trim())}
-              className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
-            />
+            <span className="min-w-0 flex-1 truncate text-base">{email}</span>
+            <Lock className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.9} aria-label={t("sell.interacLocked")} />
           </div>
         </div>
-        <RecipientBook kind="interac" value={email} onPick={setEmail} />
+        <p className="mt-2 px-1 text-[12px] leading-snug text-muted-foreground">{t("sell.interacAccountOnly")}</p>
 
         <p className="mt-3 px-1 text-[13px] text-muted-foreground">
           <span className="font-semibold text-foreground">{nfCad.format(cad)} CAD</span> {t("sell.receiveInfo")}
@@ -358,7 +353,7 @@ const AppVendreForm = () => {
         </p>
 
         <div className="mt-5 flex justify-start">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={!/^\S+@\S+\.\S+$/.test(email)} onClick={() => setStep("network")}>
+          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={!email} onClick={() => setStep("network")}>
             <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
           </Button>
         </div>

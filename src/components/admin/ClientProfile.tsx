@@ -193,6 +193,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
               ["Téléphone", copyable(profile?.phone, "phone")],
               [origin?.late ? "Lieu (connexion)" : "Lieu d'inscription", placeLabel(origin) ?? <span style={{ color: C.t3 }}>Pas encore connu</span>],
               ["Source", origin?.source ? [origin.source, origin.campaign].filter(Boolean).join(" · ") : <span style={{ color: C.t3 }}>Pas encore connue</span>],
+              ["Virements Interac", profile?.email ? <>{copyable(profile.email, "interac")} <span style={{ color: C.t3 }}>· courriel du compte, seul destinataire des ventes</span></> : "—"],
               ...(profile?.interacQuestion ? [["Question Interac", profile.interacQuestion] as [string, React.ReactNode]] : []),
               ...(profile?.interacAnswer ? [["Réponse Interac", copyable(profile.interacAnswer, "ans")] as [string, React.ReactNode]] : []),
               ["Identifiant", copyable(userId, "uid", true)],

@@ -226,6 +226,7 @@ function DesktopAccount({
               <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">{t("acct.interacSub")}</p>
             </div>
             <div className="divide-y divide-border border-t border-border [&>div]:px-6">
+              {email && <CopyRow label={t("acct.interacEmail")} value={email} />}
               <CopyRow label={t("acct.question")} value={profile.interacQuestion} />
               <CopyRow label={t("acct.answer")} value={profile.interacAnswer!} mono />
             </div>
