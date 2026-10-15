@@ -26,6 +26,7 @@ import SettingsRate from "./SettingsRate";
 import SettingsDeposit from "./SettingsDeposit";
 import { ContactsPage, DelaysPage, NetworksPage, RateFallbackPage, SignupsPage, StaffAlertsPage } from "./SettingsOps";
 import { NETWORKS, NET_DB } from "@/components/app/networks";
+import SettingsMailStudio, { MailStudioEntry } from "./SettingsMailStudio";
 import { Presets, Row, SaveBar, SettingsNavContext, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf, type SettingsNav } from "./settingsUi";
 import { scrollAdminTop } from "@/lib/pageMotion";
 
@@ -59,9 +60,9 @@ const INDEX_CSS = `
 `;
 
 type PageId = "ouverture" | "limites" | "taux" | "adresses" | "reseaux" | "inscriptions" | "delais" | "secours" | "coordonnees" | "alertes"
-  | "courriels" | "sante" | "tests" | "demarrage" | "sauvegardes";
+  | "courriels" | "sante" | "tests" | "demarrage" | "sauvegardes" | "studio";
 const PAGES: PageId[] = ["ouverture", "limites", "taux", "adresses", "reseaux", "inscriptions", "delais", "secours", "coordonnees", "alertes",
-  "courriels", "sante", "tests", "demarrage", "sauvegardes"];
+  "courriels", "sante", "tests", "demarrage", "sauvegardes", "studio"];
 const PARAM = "reglage";
 const readPage = (): PageId | null => {
   const v = new URLSearchParams(window.location.search).get(PARAM);
@@ -258,13 +259,14 @@ function Tests({ onBack }: { onBack: () => void }) {
 interface Group { title: string; desc: string; rows: Item[] }
 interface Item { id: string; icon: React.ComponentType<{ className?: string }>; name: string; desc: string; value?: React.ReactNode; onOpen: () => void; external?: boolean }
 
-function Index({ items, hero }: { items: Group[]; hero: React.ReactNode }) {
+function Index({ items, hero, onStudio }: { items: Group[]; hero: React.ReactNode; onStudio: () => void }) {
   const [q, setQ] = useState("");
   const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const needle = norm(q.trim());
   const shown = items
     .map((g) => ({ ...g, rows: needle ? g.rows.filter((r) => norm(`${r.name} ${r.desc} ${g.title}`).includes(needle)) : g.rows }))
     .filter((g) => g.rows.length);
+  const studio = !needle || norm("studio des courriels style modele email message objet texte").includes(needle);
   return (
     <>
       <h1 className="sx-hero">{hero}</h1>
@@ -273,6 +275,7 @@ function Index({ items, hero }: { items: Group[]; hero: React.ReactNode }) {
         <Search style={{ width: 20, height: 20, flexShrink: 0 }} />
         <input type="search" placeholder="Chercher un réglage" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Chercher un réglage" />
       </label>
+      {studio && <MailStudioEntry onOpen={onStudio} />}
       <div className="sx">
         {shown.map((g) => (
           <section key={g.title} className="sx-group">
@@ -292,7 +295,7 @@ function Index({ items, hero }: { items: Group[]; hero: React.ReactNode }) {
             })}
           </section>
         ))}
-        {!shown.length && <p className="sx-lead" style={{ marginTop: 0 }}>Aucun réglage ne correspond à « {q.trim()} ».</p>}
+        {!shown.length && !studio && <p className="sx-lead" style={{ marginTop: 0 }}>Aucun réglage ne correspond à « {q.trim()} ».</p>}
       </div>
     </>
   );
@@ -393,7 +396,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       desc: "Le bon fonctionnement, au quotidien et avant le lancement.",
       rows: [
         { id: "sante", icon: HeartPulse, name: "Santé", desc: "Les tâches automatiques et leur dernier passage.", value: failing == null ? null : <span style={{ color: failing ? C.coral : C.sage }}>{failing ? `${failing} à regarder` : "En ordre"}</span>, onOpen: () => go("sante") },
-        { id: "courriels", icon: Mail, name: "Courriels", desc: "Ce qu'il reste dans le forfait d'envoi.", value: email ? `${nf.format(Math.max(0, email.dayLimit - email.today))} restants aujourd'hui` : null, onOpen: () => go("courriels") },
+        { id: "courriels", icon: Mail, name: "Envois de courriels", desc: "Ce qu'il reste dans le forfait d'envoi.", value: email ? `${nf.format(Math.max(0, email.dayLimit - email.today))} restants aujourd'hui` : null, onOpen: () => go("courriels") },
         { id: "sauvegardes", icon: DatabaseBackup, name: "Sauvegardes", desc: "Chaque nuit, chiffrées, restauration testée.", value: lastOk ? ago(lastOk.finished_at ?? lastOk.started_at) : null, onOpen: () => go("sauvegardes") },
         { id: "tests", icon: FlaskConical, name: "Tests", desc: "Un dossier de vérification fictif, à la demande.", onOpen: () => go("tests") },
         { id: "demarrage", icon: Rocket, name: "Démarrage", desc: "Effacer les commandes de test, puis lancer.", value: p ? (p.launchedAt ? <span style={{ color: C.sage }}>Lancé</span> : <span style={{ color: C.sun }}>Mode test</span>) : null, onOpen: () => go("demarrage") },
@@ -428,7 +431,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
     <div style={{ fontFamily: FONT }}>
       <style>{ST_CSS + INDEX_CSS}</style>
       {err && !page && <div style={{ marginBottom: 16 }}><Notice tone="err">{err}</Notice></div>}
-      {!page && <Index items={items} hero={hero} />}
+      {!page && <Index items={items} hero={hero} onStudio={() => go("studio")} />}
       <SettingsNavContext.Provider value={nav}>
       {page === "ouverture" && <Opening onBack={back} />}
       {page === "limites" && <Limits onBack={back} />}
@@ -441,6 +444,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       {page === "coordonnees" && <ContactsPage onBack={back} />}
       {page === "alertes" && <StaffAlertsPage onBack={back} />}
       {page === "courriels" && <Emails onBack={back} />}
+      {page === "studio" && <SettingsMailStudio onBack={back} />}
       {page === "sante" && <Health onBack={back} />}
       {page === "tests" && <Tests onBack={back} />}
       {page === "demarrage" && (

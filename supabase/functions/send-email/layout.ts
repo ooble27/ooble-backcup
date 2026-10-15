@@ -23,7 +23,7 @@ function env(key: string, fallback: string): string {
   return v && v.trim() ? v : fallback;
 }
 
-const COMPANY = {
+export const COMPANY = {
   legal:    env("COMPANY_LEGAL",    "Ooble Technologies Inc."),
   // Courriels automatiques (commandes, vérification…) : ville seulement.
   address:  env("COMPANY_ADDRESS",  ""),

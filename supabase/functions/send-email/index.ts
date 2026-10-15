@@ -39,7 +39,9 @@ import { TEMPLATES, SUBJECTS } from "./templates.ts";
 import {
   wrapCustomBody, htmlToText,
   eyebrow, heading, lead, dataRows, primaryButton,
+  COMPANY,
 } from "./layout.ts";
+import { composeMail, isMailKind, isMailStyle, type MailStyle, type MailText } from "../_shared/mailStudio.ts";
 
 
 /**
@@ -89,6 +91,29 @@ async function staffRecipients(): Promise<string[]> {
   }
   const secret = Deno.env.get("STAFF_NOTIFICATION_EMAIL")?.trim();
   return secret ? [secret] : [];
+}
+
+/**
+ * Studio des courriels (Back-office › Réglages) : style choisi et textes modifiés.
+ * Toute erreur de lecture → null, et le courriel part avec le modèle d'origine.
+ */
+async function studioMail(kind: string): Promise<{ subject: string; html: string } | null> {
+  if (!isMailKind(kind)) return null;
+  const url = Deno.env.get("SUPABASE_URL") ?? "";
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!url || !key) return null;
+  try {
+    const { data, error } = await createClient(url, key).from("mail_designs")
+      .select("kind, style, subject, heading, lead, button").in("kind", ["*", kind]);
+    if (error) return null;
+    const all = data?.find((r) => r.kind === "*");
+    const own = data?.find((r) => r.kind === kind);
+    const ownStyle = own?.style, allStyle = all?.style;
+    const style: MailStyle = isMailStyle(ownStyle) ? ownStyle : isMailStyle(allStyle) ? allStyle : "sobre";
+    return composeMail(kind, style, (own ?? null) as MailText | null, COMPANY);
+  } catch {
+    return null;
+  }
 }
 
 /** Échappe le HTML (données saisies côté client). */
@@ -242,8 +267,11 @@ Deno.serve(async (req) => {
       txLabel: "Transaction",
       ...safeVars,
     };
-    finalHtml = render(TEMPLATES[template], data);
-    finalSubject = render(subject ?? SUBJECTS[template] ?? "Ooble", data);
+    const studio = await studioMail(template);
+    finalHtml = render(studio?.html ?? TEMPLATES[template], data);
+    finalSubject = render(subject ?? studio?.subject ?? SUBJECTS[template] ?? "Ooble", data);
+    // Une variable que l'appelant n'a pas fournie ne doit jamais s'afficher « {{…}} » chez le client.
+    if (studio) { finalHtml = finalHtml.replace(/\{\{\w+\}\}/g, ""); finalSubject = finalSubject.replace(/\{\{\w+\}\}/g, "").trim(); }
     finalText = text; // laissé optionnel pour les templates
   } else if (html && payload.campaign) {
     // ─── Mode campagne : courriel complet construit par le back-office ─

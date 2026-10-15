@@ -1288,6 +1288,39 @@ export type Database = {
           },
         ]
       }
+      mail_designs: {
+        Row: {
+          kind: string
+          style: string | null
+          subject: string | null
+          heading: string | null
+          lead: string | null
+          button: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          kind: string
+          style?: string | null
+          subject?: string | null
+          heading?: string | null
+          lead?: string | null
+          button?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          kind?: string
+          style?: string | null
+          subject?: string | null
+          heading?: string | null
+          lead?: string | null
+          button?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       mail_messages: {
         Row: {
           body_html: string | null
