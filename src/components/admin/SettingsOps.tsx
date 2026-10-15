@@ -69,10 +69,13 @@ export function NetworksPage({ onBack }: { onBack: () => void }) {
           const noDeposit = sw.sell && deposit && !deposit[familyOf(n.id)];
           return (
             <div key={n.id} style={{ display: "contents" }}>
-              <div>
-                <p style={{ margin: 0, fontSize: 15.5 }}>{n.name} <span style={{ color: C.t3 }}>· {n.tag}</span></p>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <img src={`/coins/${n.id}.svg`} alt="" width={26} height={26} draggable={false} style={{ borderRadius: "50%", flexShrink: 0 }} />
+                <div>
+                <p style={{ margin: "2px 0 0", fontSize: 15.5 }}>{n.name} <span style={{ color: C.t3 }}>· {n.tag}</span></p>
                 {noDeposit && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.coral }}>Ventes ouvertes, mais aucune adresse de dépôt : voir Adresses de dépôt.</p>}
                 {n.id === "sol" && sw.sell && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.t3 }}>Ventes Solana confirmées à la main (pas de lecture automatique).</p>}
+                </div>
               </div>
               <span style={{ display: "flex", justifyContent: "center" }}><Toggle on={sw.buy} disabled={busy} label={`Achats sur ${n.name}`} onChange={flip(id, "buy")} /></span>
               <span style={{ display: "flex", justifyContent: "center" }}><Toggle on={sw.sell} disabled={busy} label={`Ventes sur ${n.name}`} onChange={flip(id, "sell")} /></span>

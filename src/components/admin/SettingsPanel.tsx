@@ -7,8 +7,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowUpRight, AtSign, BellRing, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, LifeBuoy, Mail, Network, Percent, Power, Rocket,
-  Send, SlidersHorizontal, Timer, UserPlus, Users, Wallet,
+  ArrowUpRight, AtSign, Banknote, Bell, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, LifeBuoy, Mail, Megaphone, Network, Percent,
+  Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Users, Wallet,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { peek, put } from "@/lib/adminCache";
@@ -20,22 +20,30 @@ import { logAdminAction } from "@/lib/audit";
 import { versionLabel } from "@/lib/freshness";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
-import { PlatformHero } from "./heroes";
 import BackupsCard from "./BackupsCard";
 import { LaunchSections, type PlatformPreview } from "./PlatformPanel";
 import SettingsRate from "./SettingsRate";
 import SettingsDeposit from "./SettingsDeposit";
 import { ContactsPage, DelaysPage, NetworksPage, RateFallbackPage, SignupsPage, StaffAlertsPage } from "./SettingsOps";
 import { NETWORKS, NET_DB } from "@/components/app/networks";
-import { Presets, Row, SaveBar, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf } from "./settingsUi";
+import { Presets, Row, SaveBar, SettingsNavContext, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf, type SettingsNav } from "./settingsUi";
 import { scrollAdminTop } from "@/lib/pageMotion";
 
 const INDEX_CSS = `
-.sx { display: grid; gap: 44px 64px; margin-top: 16px; }
+.sx-hero { margin: 0; font-size: clamp(32px, 4.2vw, 52px); line-height: 1.06; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; max-width: 980px; }
+.sx-hero .mute { color: var(--a-t3); }
+.sx-lead { margin: 14px 0 0; font-size: 15px; line-height: 1.6; color: var(--a-t2); max-width: 640px; }
+.sx-search { display: flex; align-items: center; gap: 12px; margin-top: 36px; max-width: 520px; color: var(--a-t3); }
+.sx-search input { flex: 1; min-width: 0; border: none; background: none; padding: 8px 0; font: inherit; font-size: 18px; color: var(--a-t1); outline: none; caret-color: var(--a-sun); }
+.sx-search input::placeholder { color: var(--a-t3); }
+.sx-search:focus-within { color: var(--a-t1); }
+.sx { display: grid; gap: 52px 72px; margin-top: 40px; }
 @media (min-width: 1100px) { .sx { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .sx-group { animation: st-in .5s cubic-bezier(.22,1,.36,1) both; }
 .sx-group:nth-child(2) { animation-delay: .06s } .sx-group:nth-child(3) { animation-delay: .12s } .sx-group:nth-child(4) { animation-delay: .18s }
-.sx-eyebrow { margin: 0 0 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-t3); }
+.sx-group:nth-child(5) { animation-delay: .22s } .sx-group:nth-child(6) { animation-delay: .26s }
+.sx-eyebrow { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.03em; color: var(--a-t1); }
+.sx-gdesc { margin: 4px 0 10px; font-size: 13.5px; line-height: 1.5; color: var(--a-t3); }
 .sx-row { display: flex; align-items: center; gap: 16px; width: 100%; padding: 14px 0; border: none; background: none; cursor: pointer; font: inherit; text-align: left; color: inherit; transition: transform .35s cubic-bezier(.22,1,.36,1); }
 .sx-row:hover { transform: translateX(6px); }
 .sx-row:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 4px; border-radius: 6px; }
@@ -248,17 +256,29 @@ function Tests({ onBack }: { onBack: () => void }) {
 }
 
 /* ─── Liste des réglages ─── */
+interface Group { title: string; desc: string; rows: Item[] }
 interface Item { id: string; icon: React.ComponentType<{ className?: string }>; name: string; desc: string; value?: React.ReactNode; onOpen: () => void; external?: boolean }
 
-function Index({ items, p, runs }: { items: { title: string; rows: Item[] }[]; p: PlatformPreview | null; runs: BackupRun[] | null }) {
-  const orders = p?.core.find((c) => c.table === "orders")?.n ?? 0;
+function Index({ items, hero }: { items: Group[]; hero: React.ReactNode }) {
+  const [q, setQ] = useState("");
+  const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const needle = norm(q.trim());
+  const shown = items
+    .map((g) => ({ ...g, rows: needle ? g.rows.filter((r) => norm(`${r.name} ${r.desc} ${g.title}`).includes(needle)) : g.rows }))
+    .filter((g) => g.rows.length);
   return (
     <>
-      <PlatformHero loading={!p} launchedAt={p?.launchedAt ?? null} testOrders={orders} runs={runs} />
+      <h1 className="sx-hero">{hero}</h1>
+      <p className="sx-lead">Tout ce que vous changez vous-même, rangé par thème. Chaque changement s'applique tout de suite, et la base le fait respecter.</p>
+      <label className="sx-search">
+        <Search style={{ width: 20, height: 20, flexShrink: 0 }} />
+        <input type="search" placeholder="Chercher un réglage" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Chercher un réglage" />
+      </label>
       <div className="sx">
-        {items.filter((g) => g.rows.length).map((g) => (
+        {shown.map((g) => (
           <section key={g.title} className="sx-group">
-            <h3 className="sx-eyebrow">{g.title}</h3>
+            <h2 className="sx-eyebrow">{g.title}</h2>
+            <p className="sx-gdesc">{g.desc}</p>
             {g.rows.map((it) => {
               const Icon = it.icon;
               const Go = it.external ? ArrowUpRight : ChevronRight;
@@ -273,6 +293,7 @@ function Index({ items, p, runs }: { items: { title: string; rows: Item[] }[]; p
             })}
           </section>
         ))}
+        {!shown.length && <p className="sx-lead" style={{ marginTop: 0 }}>Aucun réglage ne correspond à « {q.trim()} ».</p>}
       </div>
     </>
   );
@@ -322,54 +343,94 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
   const open = s.tradingEnabled;
 
   const netOpen = (side: "buy" | "sell") => NETWORKS.filter((n) => s.networks[NET_DB[n.id]]?.[side]).length;
-  const items: { title: string; rows: Item[] }[] = [
+  const ext = (id: "team" | "announcements" | "settlement", row: Omit<Item, "onOpen" | "external" | "id">): Item[] =>
+    onTab ? [{ ...row, id, onOpen: () => onTab(id), external: true }] : [];
+  const items: Group[] = [
     {
-      title: "Ce que voient les clients",
+      title: "Commandes",
+      desc: "Qui peut commander, combien, et en combien de temps.",
       rows: [
         { id: "ouverture", icon: Power, name: "Ouverture", desc: "Achats et ventes, vérification, bureau OTC.", value: <span style={{ color: open ? C.sage : C.coral }}>{open ? "Ouverts" : "Fermés aux clients"}</span>, onOpen: () => go("ouverture") },
-        { id: "limites", icon: SlidersHorizontal, name: "Limites", desc: "Montant minimum par commande, maximum sur 24 heures.", value: `${$(s.tradeMinCad)} à ${$(s.tradeDailyMaxCad)}`, onOpen: () => go("limites") },
-        { id: "taux", icon: Percent, name: "Taux et marge", desc: "Le pourcentage ajouté au cours à l'achat, retiré à la vente.", value: `+${pct.format(s.buyMarginPct)} % · −${pct.format(s.sellMarginPct)} %`, onOpen: () => go("taux") },
-        { id: "adresses", icon: Wallet, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
-        { id: "reseaux", icon: Network, name: "Réseaux", desc: "Ouverts ou fermés, à l'achat et à la vente.", value: `${netOpen("buy")} à l'achat · ${netOpen("sell")} à la vente`, onOpen: () => go("reseaux") },
-        { id: "inscriptions", icon: UserPlus, name: "Inscriptions", desc: "Nouveaux comptes, particuliers et entreprises.", value: s.signupsIndividual && s.signupsBusiness ? "Ouvertes" : <span style={{ color: C.coral }}>{!s.signupsIndividual && !s.signupsBusiness ? "Fermées" : "En partie fermées"}</span>, onOpen: () => go("inscriptions") },
+        { id: "limites", icon: SlidersHorizontal, name: "Limites", desc: "Minimum par commande, maximum sur 24 heures.", value: `${$(s.tradeMinCad)} à ${$(s.tradeDailyMaxCad)}`, onOpen: () => go("limites") },
         { id: "delais", icon: Timer, name: "Délais", desc: "Taux garanti, expiration d'une vente non envoyée.", value: `${s.rateLockMinutes} min · ${s.sellExpiryHours} h`, onOpen: () => go("delais") },
+      ],
+    },
+    {
+      title: "Prix",
+      desc: "Le taux que voient les clients, et quoi faire si la source se tait.",
+      rows: [
+        { id: "taux", icon: Percent, name: "Taux et marge", desc: "Le pourcentage ajouté au cours à l'achat, retiré à la vente.", value: `+${pct.format(s.buyMarginPct)} % · −${pct.format(s.sellMarginPct)} %`, onOpen: () => go("taux") },
+        { id: "secours", icon: LifeBuoy, name: "Taux de secours", desc: "Figer le cours quand la source ne répond plus.", value: s.manualMarketRate != null ? <span style={{ color: C.sun }}>Cours figé</span> : "Automatique", onOpen: () => go("secours") },
+      ],
+    },
+    {
+      title: "Réseaux et USDT",
+      desc: "Où circulent les USDT, à l'achat comme à la vente.",
+      rows: [
+        { id: "reseaux", icon: Network, name: "Réseaux", desc: "Ouverts ou fermés, à l'achat et à la vente.", value: `${netOpen("buy")} à l'achat · ${netOpen("sell")} à la vente`, onOpen: () => go("reseaux") },
+        { id: "adresses", icon: Wallet, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
+        ...ext("settlement", { icon: Banknote, name: "Règlement automatique", desc: "Envoi automatique des USDT, plafonds, portefeuille d'envoi." }),
+      ],
+    },
+    {
+      title: "Clients",
+      desc: "L'arrivée des nouveaux clients, et comment ils vous joignent.",
+      rows: [
+        { id: "inscriptions", icon: UserPlus, name: "Inscriptions", desc: "Nouveaux comptes, particuliers et entreprises.", value: s.signupsIndividual && s.signupsBusiness ? "Ouvertes" : <span style={{ color: C.coral }}>{!s.signupsIndividual && !s.signupsBusiness ? "Fermées" : "En partie fermées"}</span>, onOpen: () => go("inscriptions") },
         { id: "coordonnees", icon: AtSign, name: "Coordonnées", desc: "Adresses support, Interac et OTC affichées aux clients.", value: s.supportEmail, onOpen: () => go("coordonnees") },
       ],
     },
     {
-      title: "L'équipe",
+      title: "Équipe",
+      desc: "Qui travaille dans le back-office, et qui est prévenu.",
       rows: [
-        ...(onTab ? [
-          { id: "team", icon: Users, name: "Équipe et rôles", desc: "Membres, rôles, permissions et journal d'audit.", onOpen: () => onTab("team"), external: true },
-          { id: "announcements", icon: BellRing, name: "Bannière et maintenance", desc: "Message à tous les clients, mode maintenance.", onOpen: () => onTab("announcements"), external: true },
-        ] : []),
-        { id: "alertes", icon: Send, name: "Alertes de l'équipe", desc: "Qui reçoit un courriel à chaque nouvelle commande.", onOpen: () => go("alertes") },
+        ...ext("team", { icon: Users, name: "Équipe et rôles", desc: "Membres, rôles, permissions et journal d'audit." }),
+        { id: "alertes", icon: Bell, name: "Alertes de l'équipe", desc: "Qui reçoit un courriel à chaque nouvelle commande.", onOpen: () => go("alertes") },
+        ...ext("announcements", { icon: Megaphone, name: "Bannière et maintenance", desc: "Message à tous les clients, mode maintenance." }),
       ],
     },
     {
-      title: "La plateforme",
+      title: "Plateforme",
+      desc: "Le bon fonctionnement, au quotidien et avant le lancement.",
       rows: [
-        { id: "secours", icon: LifeBuoy, name: "Taux de secours", desc: "Figer le cours quand la source ne répond plus.", value: s.manualMarketRate != null ? <span style={{ color: C.sun }}>Cours figé</span> : "Automatique", onOpen: () => go("secours") },
-        ...(onTab ? [{ id: "settlement", icon: Send, name: "Règlement automatique", desc: "Envoi automatique des USDT, plafonds, portefeuille d'envoi.", onOpen: () => onTab("settlement"), external: true }] : []),
         { id: "sante", icon: HeartPulse, name: "Santé", desc: "Les tâches automatiques et leur dernier passage.", value: failing == null ? null : <span style={{ color: failing ? C.coral : C.sage }}>{failing ? `${failing} à regarder` : "En ordre"}</span>, onOpen: () => go("sante") },
         { id: "courriels", icon: Mail, name: "Courriels", desc: "Ce qu'il reste dans le forfait d'envoi.", value: email ? `${nf.format(Math.max(0, email.dayLimit - email.today))} restants aujourd'hui` : null, onOpen: () => go("courriels") },
         { id: "sauvegardes", icon: DatabaseBackup, name: "Sauvegardes", desc: "Chaque nuit, chiffrées, restauration testée.", value: lastOk ? ago(lastOk.finished_at ?? lastOk.started_at) : null, onOpen: () => go("sauvegardes") },
-      ],
-    },
-    {
-      title: "Avant le lancement",
-      rows: [
         { id: "tests", icon: FlaskConical, name: "Tests", desc: "Un dossier de vérification fictif, à la demande.", onOpen: () => go("tests") },
         { id: "demarrage", icon: Rocket, name: "Démarrage", desc: "Effacer les commandes de test, puis lancer.", value: p ? (p.launchedAt ? <span style={{ color: C.sage }}>Lancé</span> : <span style={{ color: C.sun }}>Mode test</span>) : null, onOpen: () => go("demarrage") },
       ],
     },
   ];
 
+  // Où se trouve la page ouverte : son thème, la précédente et la suivante dans ce thème.
+  let nav: SettingsNav | null = null;
+  if (page) {
+    const g = items.find((x) => x.rows.some((r) => r.id === page));
+    if (g) {
+      const inner = g.rows.filter((r) => !r.external);
+      const k = inner.findIndex((r) => r.id === page);
+      const near = (r?: Item) => (r ? { name: r.name, go: r.onOpen } : undefined);
+      nav = { group: g.title, prev: near(inner[k - 1]), next: near(inner[k + 1]) };
+    }
+  }
+
+  // Une phrase d'état, comme dans le reste du back-office.
+  const launched = !!p?.launchedAt;
+  const hero = (
+    <>
+      Ooble est {launched ? <span style={{ color: C.sage }}>en activité</span> : <span style={{ color: C.sun }}>en test</span>}
+      <span className="mute">. Achats et ventes</span> {open ? <span style={{ color: C.sage }}>ouverts</span> : <span style={{ color: C.coral }}>fermés</span>}
+      <span className="mute">, cours</span> {s.manualMarketRate != null ? <span style={{ color: C.sun }}>figé</span> : <span style={{ color: C.sage }}>automatique</span>}
+      <span className="mute">,</span> {netOpen("buy")} <span className="mute">réseaux ouverts.</span>
+    </>
+  );
+
   return (
     <div style={{ fontFamily: FONT }}>
       <style>{ST_CSS + INDEX_CSS}</style>
       {err && !page && <div style={{ marginBottom: 16 }}><Notice tone="err">{err}</Notice></div>}
-      {!page && <Index items={items} p={p} runs={runs} />}
+      {!page && <Index items={items} hero={hero} />}
+      <SettingsNavContext.Provider value={nav}>
       {page === "ouverture" && <Opening onBack={back} />}
       {page === "limites" && <Limits onBack={back} />}
       {page === "taux" && <SettingsRate onBack={back} />}
@@ -397,6 +458,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
           <BackupsCard bare />
         </SettingsPage>
       )}
+      </SettingsNavContext.Provider>
     </div>
   );
 }

@@ -3,8 +3,8 @@
  * interrupteur, ligne « ce que c'est · le réglage », grand nombre à − / +, choix rapides
  * soulignés et barre d'enregistrement. Rien n'est encadré : la typographie fait la structure.
  */
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
 
@@ -16,6 +16,16 @@ export const ST_CSS = `
 .st-back:hover { color: var(--a-t1); }
 .st-back:hover svg { transform: translateX(-4px); }
 .st-back:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; border-radius: 4px; }
+.st-back .crumb { color: var(--a-t3); }
+.st-back:hover .crumb { color: var(--a-t2); }
+.st-pn { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; margin-top: 88px; max-width: 780px; animation: st-in .5s cubic-bezier(.22,1,.36,1) .2s both; }
+.st-pn button { display: grid; gap: 4px; border: none; background: none; padding: 6px 0; font: inherit; color: inherit; cursor: pointer; text-align: left; transition: transform .35s cubic-bezier(.22,1,.36,1); }
+.st-pn button.next { text-align: right; margin-left: auto; }
+.st-pn button.prev:hover { transform: translateX(-6px); }
+.st-pn button.next:hover { transform: translateX(6px); }
+.st-pn .lbl { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--a-t3); }
+.st-pn .nm { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; color: var(--a-t1); }
+.st-pn button.next .nm { justify-content: flex-end; }
 .st-title { margin: 0; font-size: clamp(30px, 3.8vw, 46px); line-height: 1.08; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; max-width: 900px; }
 .st-title .mute { color: var(--a-t3); }
 .st-desc { margin: 12px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--a-t2); max-width: 640px; }
@@ -52,7 +62,7 @@ export const ST_CSS = `
 .st-link { border: none; background: none; padding: 4px 0; font: inherit; font-size: 13.5px; color: var(--a-t3); cursor: pointer; transition: color .15s; }
 .st-link:hover { color: var(--a-t1); }
 .st-big { font-size: clamp(38px, 5vw, 54px); font-weight: 600; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
-@media (prefers-reduced-motion: reduce) { .st-page, .st-body > *, .st-save, .st-sw::after { animation: none; transition: none; } }
+@media (prefers-reduced-motion: reduce) { .st-page, .st-body > *, .st-save, .st-pn, .st-sw::after { animation: none; transition: none; } }
 `;
 
 export const nf = new Intl.NumberFormat("fr-CA");
@@ -63,14 +73,40 @@ export const ago = (iso: string | null) => {
   return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`;
 };
 
-/** Une page de réglage : retour vers la liste, phrase-titre vivante, aide, contenu. */
+/** Où se trouve la page : son thème, et les pages voisines du même thème (fournis par la liste des Réglages). */
+export interface SettingsNav { group: string; prev?: { name: string; go: () => void }; next?: { name: string; go: () => void } }
+export const SettingsNavContext = createContext<SettingsNav | null>(null);
+
+/**
+ * Une page de réglage : « Réglages · thème » pour revenir, phrase-titre vivante, aide, contenu,
+ * puis la page précédente et la suivante du même thème, pour tout parcourir sans repasser par la liste.
+ */
 export function SettingsPage({ title, desc, onBack, children }: { title: React.ReactNode; desc?: React.ReactNode; onBack: () => void; children: React.ReactNode }) {
+  const nav = useContext(SettingsNavContext);
   return (
     <div className="st-page">
-      <button type="button" className="st-back" onClick={onBack}><ArrowLeft style={{ width: 15, height: 15 }} />Réglages</button>
+      <button type="button" className="st-back" onClick={onBack}>
+        <ArrowLeft style={{ width: 15, height: 15 }} />Réglages{nav && <span className="crumb">· {nav.group}</span>}
+      </button>
       <h2 className="st-title">{title}</h2>
       {desc && <p className="st-desc">{desc}</p>}
       <div className="st-body">{children}</div>
+      {nav && (nav.prev || nav.next) && (
+        <nav className="st-pn" aria-label={`Autres réglages : ${nav.group}`}>
+          {nav.prev && (
+            <button type="button" className="prev" onClick={nav.prev.go}>
+              <span className="lbl">Précédent</span>
+              <span className="nm"><ArrowLeft style={{ width: 20, height: 20 }} />{nav.prev.name}</span>
+            </button>
+          )}
+          {nav.next && (
+            <button type="button" className="next" onClick={nav.next.go}>
+              <span className="lbl">Suivant</span>
+              <span className="nm">{nav.next.name}<ArrowRight style={{ width: 20, height: 20 }} /></span>
+            </button>
+          )}
+        </nav>
+      )}
     </div>
   );
 }
