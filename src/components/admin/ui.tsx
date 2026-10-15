@@ -14,19 +14,17 @@ import { C, FONT } from "./adminTheme";
 export const UI_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export const UI_CSS = `
-/* Volet posé sur le fond qui défile : le texte s'efface en douceur aux bords au lieu d'être coupé net. */
-.ws-flat { --ft: 0px; --fb: 0px; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); }
-.ws-flat[data-top="1"] { --ft: 36px; }
-.ws-flat[data-bottom="1"] { --fb: 36px; }
+/* Espace de travail d'une seule couleur, partout : les volets (photos à gauche, dossier à droite) sont posés
+   sur le même fond, sans écrin ni anneau, et rien ne s'efface ni ne recouvre le texte aux bords. */
+.ws-root, .ws-head { background: var(--a-bg) !important; }
+.ws-card { background: transparent !important; box-shadow: none !important; }
 /* Téléphone : l'espace de travail occupe tout l'écran, d'une seule couleur (celle de la barre d'état),
    sans écrin arrondi, sans ombre ni fondu sur les bords : rien ne se superpose, rien ne coupe le texte. */
 @media (max-width: 767px) {
-  .ws-root, .ws-head { background: var(--a-bg) !important; }
   .ws-body { padding: 0 !important; }
   /* Le contenu défile jusqu'en bas de l'écran (sous la barre d'accueil) : aucune bande ne le cache en bas. */
   .ws-card::after, .ws-flat::after, .ws-scroll::after { content: ""; display: block; flex-shrink: 0; height: env(safe-area-inset-bottom, 0px); }
   .ws-card { border-radius: 0 !important; box-shadow: none !important; }
-  .ws-flat { -webkit-mask-image: none; mask-image: none; }
   .ui-side { background: var(--a-bg) !important; box-shadow: none !important; }
 
   /* Aucun voile sombre : iOS n'assombrit pas la zone de l'heure, le haut paraîtrait coupé en deux. */
@@ -35,7 +33,7 @@ export const UI_CSS = `
 /* Examen en deux volets (documents à gauche, dossier à droite) : côte à côte dès la tablette (iPad en portrait compris),
    l'un sous l'autre sur téléphone, dans un seul défilement. La barre de décision a la couleur du fond, partout. */
 /* Téléphone : un simple empilement (pas de grille, qui écrasait la hauteur des volets sur iPhone) ; les volets ne défilent pas
-   eux-mêmes, toute la page défile d'un bloc et la barre de décision reste collée en bas de l'écran. */
+   eux-mêmes, toute la page défile d'un bloc, et les boutons de décision viennent à la fin, après le texte. */
 .ws-split { flex: 1; min-height: 0; display: block; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
 .ws-split > * { overflow: visible !important; height: auto; }
 .ws-split > .ws-media { height: 68vh !important; overflow: hidden !important; display: flex; flex-direction: column; }
@@ -45,8 +43,9 @@ export const UI_CSS = `
   .ws-split > .ws-media { height: auto !important; overflow: hidden !important; }
 }
 @media (min-width: 1100px) { .ws-split { grid-template-columns: minmax(0, 1fr) 400px; gap: 44px; } }
-.ws-foot { position: sticky; bottom: 0; background: var(--a-ground); padding: 14px 20px calc(18px + env(safe-area-inset-bottom, 0px)) 16px; }
-@media (max-width: 767px) { .ws-foot { background: var(--a-bg); padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); } }
+/* Boutons de décision : à la suite du dossier, dans le même défilement (on descend pour les voir), jamais collés par-dessus le texte. */
+.ws-foot { position: static; background: transparent; padding: 28px 20px calc(28px + env(safe-area-inset-bottom, 0px)) 16px; }
+@media (max-width: 767px) { .ws-foot { padding: 28px 16px calc(28px + env(safe-area-inset-bottom, 0px)); } }
 /* Espaces de travail (toutes tailles) : rien ne pousse le volet sur le côté ; chaque bloc peut rétrécir, les textes longs vont à la ligne. */
 .ws-root :is(div, section, label, form, article, aside, nav, ul, ol, li, p) { min-width: 0; }
 .ws-root .cmp-ghost { min-width: 0; max-width: calc(100% + 20px); }
@@ -223,30 +222,10 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "ok" | "wa
 
 export interface WorkspaceStep { id: string; label: string; badge?: number | string; done?: boolean }
 
-/** Volet arrondi posé sur le fond de l'espace de travail (même écrin que le back-office). */
+/** Volet d'un espace de travail : posé sur le fond, sans écrin ni anneau ; il défile s'il le faut. */
 export function WsPane({ children, style, className, flat }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; flat?: boolean }) {
-  // `flat` : posé directement sur le fond, sans écrin (comme la barre latérale à côté de l'écrin du back-office).
-  const ref = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!flat || !el) return;
-    const sync = () => {
-      el.dataset.top = el.scrollTop > 2 ? "1" : "0";
-      el.dataset.bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 2 ? "1" : "0";
-    };
-    sync();
-    el.addEventListener("scroll", sync, { passive: true });
-    const ro = new ResizeObserver(sync);
-    ro.observe(el);
-    if (el.firstElementChild) ro.observe(el.firstElementChild);
-    return () => { el.removeEventListener("scroll", sync); ro.disconnect(); };
-  }, [flat]);
   return (
-    <div ref={ref} className={[className, flat ? "ws-flat" : "ws-card"].filter(Boolean).join(" ")} style={{
-      minWidth: 0, minHeight: 0, overflowY: "auto",
-      ...(flat ? { background: "transparent" } : { borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)` }),
-      ...style,
-    }}>
+    <div className={[className, flat ? "ws-flat" : "ws-card"].filter(Boolean).join(" ")} style={{ minWidth: 0, minHeight: 0, overflowY: "auto", background: "transparent", ...style }}>
       {children}
     </div>
   );
@@ -299,9 +278,9 @@ export function Workspace({ title, subtitle, onClose, steps, step, onStep, actio
 
   return createPortal(
     <div className="admin-scope ws-root" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Espace de travail"}
-      style={{ position: "fixed", inset: 0, zIndex: 2147482000, background: C.ground, color: C.t1, fontFamily: FONT, display: "flex", flexDirection: "column", animation: `ui-fade .2s ${UI_EASE}` }}>
+      style={{ position: "fixed", inset: 0, zIndex: 2147482000, background: C.bg, color: C.t1, fontFamily: FONT, display: "flex", flexDirection: "column", animation: `ui-fade .2s ${UI_EASE}` }}>
       <UIStyles />
-      <header className="ws-head" style={{ flexShrink: 0, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.ground }}>
+      <header className="ws-head" style={{ flexShrink: 0, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))", background: C.bg }}>
         <div style={{ height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 12px 0 10px" }}>
           <Button variant="ghost" aria-label={closeLabel} title={closeLabel} onClick={onClose} icon={<X style={{ width: 18, height: 18 }} />} />
           <div style={{ minWidth: 0, flex: "1 1 auto" }}>
@@ -355,8 +334,11 @@ export function SidePanel({ title, subtitle, onClose, width = 480, footer, child
           </div>
           <Button variant="ghost" aria-label="Fermer" onClick={onClose} icon={<X style={{ width: 17, height: 17 }} />} />
         </div>
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "20px", minWidth: 0 }}>{children}</div>
-        {footer && <div style={{ padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", minWidth: 0 }}>
+          {children}
+          {/* Les boutons viennent à la fin du formulaire, dans le même défilement. */}
+          {footer && <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 28 }}>{footer}</div>}
+        </div>
       </aside>
     </div>,
     document.body,
