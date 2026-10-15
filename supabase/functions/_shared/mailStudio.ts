@@ -1,5 +1,5 @@
 // Studio des courriels Ooble : les courriels automatiques, leurs textes d'origine
-// et les quatre styles au choix (Sobre, Reçu, Lettre, Marque).
+// et les trois styles au choix (Sobre, Reçu, Phrase), tous dans la palette Ooble.
 //
 // Module pur (aucun appel à Deno ni au navigateur) : la fonction `send-email` s'en
 // sert pour envoyer, et le back-office pour l'aperçu en direct. Un même texte donne
@@ -8,13 +8,12 @@
 // `composeMail` rend un HTML qui garde ses {{variables}} ; elles sont remplies
 // ensuite par l'envoi (vraies valeurs) ou par `fillSample` (valeurs d'exemple).
 
-export type MailStyle = "sobre" | "recu" | "lettre" | "marque";
+export type MailStyle = "sobre" | "recu" | "phrase";
 
 export const MAIL_STYLES: { id: MailStyle; name: string; line: string }[] = [
   { id: "sobre",  name: "Sobre",  line: "Noir et blanc, un récapitulatif en lignes. Le style d'origine." },
-  { id: "recu",   name: "Reçu",   line: "Comme un ticket : le montant en très grand, les détails en dessous." },
-  { id: "lettre", name: "Lettre", line: "Un message personnel, signé par l'équipe, sans tableau." },
-  { id: "marque", name: "Marque", line: "Le bandeau Ooble en tête, le vert de la marque sur les montants." },
+  { id: "recu",   name: "Reçu",   line: "Comme un reçu Lyft : le montant en très grand, le détail en lignes fines." },
+  { id: "phrase", name: "Phrase", line: "Comme le back-office : une grande phrase, les mots clés en noir." },
 ];
 
 export type MailKind =
@@ -48,8 +47,10 @@ export interface MailSpec {
   button: string;
   url: string;
   rows: Row[];
-  /** Le chiffre ou l'état mis en avant par les styles Reçu et Marque. */
+  /** Le chiffre ou l'état mis en avant par le style Reçu. */
   hero?: [label: string, value: string];
+  /** La grande phrase du style Phrase : *mot* en encre, ~mot~ en alerte. */
+  phrase: string;
   notice?: string;
   /** Mots proposés à l'insertion pour ce courriel. */
   tokens: string[];
@@ -60,6 +61,7 @@ const ORDER_TOKENS = ["référence", "montant CAD", "montant USDT", "réseau"];
 export const MAILS: MailSpec[] = [
   {
     id: "welcome", name: "Bienvenue", when: "Dès qu'un client crée son compte.", group: "Compte",
+    phrase: "Bienvenue sur Ooble, *{{firstName}}*.",
     eyebrow: "Bienvenue", subject: "Bienvenue sur Ooble",
     heading: "Bienvenue sur Ooble, {prénom}",
     lead: "Votre compte est créé. Vous pouvez acheter et vendre de l'USDT en dollars canadiens, réglé par Interac e-Transfer, de façon simple, rapide et non-custodial.",
@@ -69,6 +71,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "order-buy", name: "Ordre d'achat", when: "Quand un client crée un achat : comment payer.", group: "Commandes",
+    phrase: "Payez *{{cadAmount}} CAD* par Interac, recevez *{{usdtAmount}} USDT*.",
     eyebrow: "Ordre d'achat", subject: "Votre ordre d'achat Ooble ({référence})",
     heading: "Payez par Interac pour recevoir vos USDT",
     lead: "Envoyez un virement Interac e-Transfer avec les informations ci-dessous. Dès réception, nous envoyons vos USDT à l'adresse que vous nous avez indiquée.",
@@ -79,6 +82,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "order-sell", name: "Ordre de vente", when: "Quand un client crée une vente : où envoyer ses USDT.", group: "Commandes",
+    phrase: "Envoyez *{{usdtAmount}} USDT*, recevez *{{cadAmount}} CAD*.",
     eyebrow: "Ordre de vente", subject: "Votre ordre de vente Ooble ({référence})",
     heading: "Envoyez vos USDT pour recevoir vos dollars",
     lead: "Transférez vos USDT à l'adresse ci-dessous. Dès confirmation sur la blockchain, vous recevez vos CAD par Interac e-Transfer.",
@@ -90,6 +94,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "payment-received", name: "Paiement reçu", when: "Quand le virement Interac d'un achat est reconnu.", group: "Commandes",
+    phrase: "Votre paiement de *{{amount}}* est bien reçu.",
     eyebrow: "Paiement reçu", subject: "Paiement reçu, on traite votre commande ({référence})",
     heading: "Nous avons bien reçu votre paiement",
     lead: "Votre paiement est confirmé. Notre équipe traite votre commande. Vous recevrez vos USDT très bientôt.",
@@ -100,6 +105,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "usdt-received", name: "USDT reçus", when: "Quand les USDT d'une vente arrivent sur l'adresse de dépôt.", group: "Commandes",
+    phrase: "Vos *{{usdtAmount}} USDT* sont arrivés.",
     eyebrow: "USDT reçus", subject: "USDT reçus, votre virement est en préparation ({référence})",
     heading: "Vos USDT sont bien arrivés",
     lead: "Nous avons reçu vos USDT sur la blockchain. Votre virement Interac est en préparation : vous le recevrez à l'adresse indiquée dans votre ordre.",
@@ -110,6 +116,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "order-completed", name: "Transaction terminée", when: "À la fin : USDT envoyés (achat) ou virement Interac parti (vente).", group: "Commandes",
+    phrase: "{{summaryLabel}} *{{summaryValue}}*. C'est terminé.",
     eyebrow: "Terminé", subject: "Transaction terminée ({référence})",
     heading: "Votre transaction est terminée",
     lead: "C'est réglé. Voici le récapitulatif de votre transaction.",
@@ -120,6 +127,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "kyc-approved", name: "Identité vérifiée", when: "Quand la conformité approuve une vérification d'identité.", group: "Vérification",
+    phrase: "Votre identité est *vérifiée*, {{firstName}}.",
     eyebrow: "Identité vérifiée", subject: "Votre identité est vérifiée",
     heading: "Votre identité est vérifiée, {prénom}",
     lead: "Bonne nouvelle : notre équipe conformité a validé votre pièce d'identité. Votre compte Ooble est vérifié, vous n'aurez pas à refaire cette étape.",
@@ -130,6 +138,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "kyc-rejected", name: "Identité à reprendre", when: "Quand une vérification d'identité est refusée, avec la raison.", group: "Vérification",
+    phrase: "Votre vérification est ~à reprendre~.",
     eyebrow: "Vérification d'identité", subject: "Votre vérification d'identité est à reprendre",
     heading: "Il manque quelque chose pour vérifier votre identité",
     lead: "Bonjour {prénom}, nous n'avons pas pu valider votre vérification. Ce n'est pas définitif : corrigez le point ci-dessous puis recommencez, cela prend quelques minutes.",
@@ -140,6 +149,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "kyb-approved", name: "Entreprise vérifiée", when: "Quand la conformité approuve un dossier entreprise.", group: "Vérification",
+    phrase: "*{{businessName}}* est vérifiée.",
     eyebrow: "Entreprise vérifiée", subject: "{entreprise} est vérifiée sur Ooble",
     heading: "{entreprise} est vérifiée",
     lead: "Bonjour {prénom}, notre équipe conformité a validé le dossier de votre entreprise. Votre compte entreprise peut maintenant acheter et vendre sur Ooble.",
@@ -150,6 +160,7 @@ export const MAILS: MailSpec[] = [
   },
   {
     id: "kyb-rejected", name: "Dossier entreprise à corriger", when: "Quand un dossier entreprise est refusé, avec la raison.", group: "Vérification",
+    phrase: "Le dossier de *{{businessName}}* est ~à corriger~.",
     eyebrow: "Vérification d'entreprise", subject: "Votre dossier entreprise est à corriger",
     heading: "Le dossier de {entreprise} est à corriger",
     lead: "Bonjour {prénom}, nous n'avons pas pu valider le dossier de votre entreprise. Corrigez le point ci-dessous puis renvoyez-le depuis votre espace : vos informations sont conservées.",
@@ -202,13 +213,20 @@ export function effective(spec: MailSpec, text: MailText | null | undefined) {
 // ─── Styles ───────────────────────────────────────────────────
 
 const SANS = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
-const SERIF = `Georgia, "Times New Roman", serif`;
 const MONO = `"SFMono-Regular", Consolas, Menlo, monospace`;
-const GREEN = "#0B8A5F";
+// Palette des pages publiques et des courriels Ooble (comme les modèles de Campagnes).
+const POP = `Poppins, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
+const INK = "#14110f", BODY = "#4a4540", MUTE = "#9a948b", LINE = "#ece7dc", SUN = "#ffc94d", ALERT = "#c2462a";
+const LOGO = "https://ooble.ca/email-assets/logo.png";
 
-interface Parts { eyebrow: string; heading: string; lead: string; button: string; url: string; rows: Row[]; hero?: [string, string]; notice?: string }
+const brandMark = () => `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td style="vertical-align:middle;padding-right:10px;"><img src="${LOGO}" width="30" height="30" alt="" style="display:block;border:0;border-radius:8px;"></td>
+    <td style="vertical-align:middle;font:600 17px/1 ${POP};letter-spacing:-0.02em;color:${INK};">Ooble</td>
+  </tr></table>`;
 
-function shell(opts: { bg: string; font: string; inner: string; preheader: string }): string {
+interface Parts { eyebrow: string; heading: string; lead: string; button: string; url: string; rows: Row[]; hero?: [string, string]; notice?: string; phrase: string }
+
+function shell(opts: { bg: string; font: string; inner: string; preheader: string; poppins?: boolean }): string {
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -216,13 +234,17 @@ function shell(opts: { bg: string; font: string; inner: string; preheader: strin
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light" />
 <title>Ooble</title>
+${opts.poppins ? `<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">` : ""}
 <style>
   body { margin: 0; padding: 0; background: ${opts.bg}; -webkit-text-size-adjust: 100%; }
   a { color: inherit; }
   @media (max-width: 600px) {
     .wrap { padding: 20px 12px 28px !important; }
     .pad { padding-left: 22px !important; padding-right: 22px !important; }
-    .hero-v { font-size: 34px !important; }
+    .hero-v { font-size: 46px !important; }
+    .hero-h { font-size: 32px !important; }
+    .hero-p { font-size: 31px !important; }
+    .fact { display: block !important; width: 100% !important; }
     .foot-col { display: block !important; width: 100% !important; text-align: left !important; padding: 0 0 10px !important; }
   }
 </style>
@@ -265,9 +287,9 @@ function rowsTable(rows: Row[], o: { label: string; value: string; rule: string;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-top:${line};">${tr}</table>`;
 }
 
-const button = (url: string, label: string, bg: string, fg: string, radius = 8) =>
+const button = (url: string, label: string, bg: string, fg: string, radius = 8, font = SANS) =>
   `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:${radius}px;background:${bg};">
-    <a href="${url}" style="display:inline-block;padding:13px 24px;font-size:14px;font-weight:600;color:${fg};text-decoration:none;border-radius:${radius}px;">${label}</a>
+    <a href="${url}" style="display:inline-block;padding:13px 24px;font:600 14px/1.2 ${font};color:${fg};text-decoration:none;border-radius:${radius}px;">${label}</a>
   </td></tr></table>`;
 
 /** Sobre : la carte blanche d'origine, noir et blanc. */
@@ -288,75 +310,58 @@ function sobre(p: Parts, c: MailCompany): string {
 </div>`;
 }
 
-/** Reçu : ticket centré, le montant en très grand, filets pointillés. */
+/** Reçu : à la manière des reçus Lyft. Le montant en très grand, tout à plat, Poppins. */
 function recu(p: Parts, c: MailCompany): string {
-  const [hl, hv] = p.hero ?? [p.eyebrow, ""];
-  return `<div class="wrap" style="max-width:460px;margin:0 auto;padding:36px 20px 40px;">
-  <div style="background:#ffffff;border-radius:4px;">
-    <div class="pad" style="padding:30px 30px 0;text-align:center;">
-      <div style="font-size:12px;letter-spacing:0.32em;text-transform:uppercase;font-weight:600;">Ooble</div>
-      <div style="margin-top:4px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#9a9a95;">${p.eyebrow}</div>
-    </div>
-    <div class="pad" style="padding:26px 30px 6px;text-align:center;border-bottom:1px dashed #d6d6d1;">
-      <div style="font-size:12.5px;color:#8a8a86;">${hl}</div>
-      ${hv ? `<div class="hero-v" style="margin:6px 0 22px;font-size:42px;line-height:1.1;font-weight:600;letter-spacing:-0.03em;color:#111;font-variant-numeric:tabular-nums;">${hv}</div>` : `<div style="height:16px"></div>`}
-    </div>
-    <div class="pad" style="padding:22px 30px 6px;text-align:center;">
-      <h1 style="margin:0 0 8px;font-size:18px;line-height:1.35;font-weight:600;color:#111;">${p.heading}</h1>
-      <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#55554f;">${p.lead}</p>
-    </div>
-    ${p.rows.length ? `<div class="pad" style="padding:0 30px 20px;">${rowsTable(p.rows, { label: "#8a8a86", value: "#111", rule: "#d6d6d1", dashed: true, font: MONO })}</div>` : ""}
-    ${p.notice ? `<div class="pad" style="padding:0 30px 20px;font-size:13px;line-height:1.6;color:#3a3a37;text-align:center;">${p.notice}</div>` : ""}
-    <div class="pad" style="padding:4px 30px 30px;text-align:center;">
-      <div style="display:inline-block;">${button(p.url, p.button, "#111", "#ffffff", 999)}</div>
-      <div style="margin-top:18px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#b3b3ae;">Merci</div>
-    </div>
-  </div>
-  <div style="padding:22px 10px 0;">${footer(c, { text: "#9a9a95", link: "#55554f", rule: "#e2e2dd", brand: "#55554f" }, "center")}</div>
-</div>`;
-}
-
-/** Lettre : un message écrit, en serif, signé ; le récapitulatif en phrases courtes. */
-function lettre(p: Parts, c: MailCompany): string {
-  const recap = p.rows.map(([l, v, mono]) => `<div style="margin:0 0 4px;"><span style="color:#8a8378;">${l} :</span> <span style="color:#1c1a17;${mono ? `font-family:${MONO};font-size:13px;word-break:break-all;` : ""}">${v}</span></div>`).join("");
-  return `<div class="wrap" style="max-width:580px;margin:0 auto;padding:44px 24px 44px;">
-  <div class="pad" style="background:#ffffff;padding:40px 44px 36px;font-family:${SERIF};color:#1c1a17;">
-    <div style="font-family:${SANS};font-size:13px;letter-spacing:0.14em;text-transform:uppercase;font-weight:600;">Ooble</div>
-    <h1 style="margin:30px 0 18px;font-size:26px;line-height:1.3;font-weight:400;letter-spacing:-0.01em;">${p.heading}</h1>
-    <p style="margin:0 0 22px;font-size:16.5px;line-height:1.75;">${p.lead}</p>
-    ${recap ? `<div style="margin:0 0 22px;font-size:15px;line-height:1.7;">${recap}</div>` : ""}
-    ${p.notice ? `<p style="margin:0 0 22px;font-size:15.5px;line-height:1.7;font-style:italic;">${p.notice}</p>` : ""}
-    <p style="margin:0 0 30px;font-size:16px;"><a href="${p.url}" style="color:#1c1a17;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px;">${p.button}&nbsp;→</a></p>
-    <p style="margin:0;font-size:16px;line-height:1.6;">Bien à vous,<br><span style="font-style:italic;">L'équipe Ooble</span></p>
-  </div>
-  <div class="pad" style="padding:24px 44px 0;">${footer(c, { text: "#9a948a", link: "#5f5a52", rule: "#e6e2da", brand: "#5f5a52" })}</div>
-</div>`;
-}
-
-/** Marque : bandeau sombre Ooble, montant et bouton au vert de la marque. */
-function marque(p: Parts, c: MailCompany): string {
+  const ref = p.rows.find(([, v]) => v === "{{ref}}");
+  const rows = p.rows.filter((r) => r !== ref);
   const [hl, hv] = p.hero ?? ["", ""];
-  return `<div class="wrap" style="max-width:580px;margin:0 auto;padding:32px 20px 40px;">
-  <div style="background:#ffffff;border-radius:16px;overflow:hidden;">
-    <div class="pad" style="background:#0f1513;padding:26px 32px 30px;color:#ffffff;">
-      <div style="font-size:14px;letter-spacing:0.18em;text-transform:uppercase;font-weight:700;">Oo<span style="color:#3FD49A;">ble</span></div>
-      <div style="margin-top:22px;font-size:11.5px;letter-spacing:0.14em;text-transform:uppercase;color:#3FD49A;">${p.eyebrow}</div>
-      <h1 style="margin:8px 0 0;font-size:25px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;color:#ffffff;">${p.heading}</h1>
-    </div>
-    <div class="pad" style="padding:28px 32px 30px;">
-      ${hv ? `<div style="margin:0 0 20px;"><div style="font-size:12.5px;color:#7c8784;">${hl}</div><div class="hero-v" style="margin-top:2px;font-size:38px;line-height:1.15;font-weight:700;letter-spacing:-0.03em;color:${GREEN};">${hv}</div></div>` : ""}
-      <p style="margin:0 0 22px;font-size:15px;line-height:1.65;color:#2d3331;">${p.lead}</p>
-      ${p.rows.length ? `<div style="margin:0 0 22px;">${rowsTable(p.rows, { label: "#7c8784", value: "#0f1513", rule: "#e6ecea" })}</div>` : ""}
-      ${p.notice ? `<div style="margin:0 0 22px;padding:12px 14px;background:#eef8f3;border-radius:10px;font-size:13px;line-height:1.6;color:#1f3a30;">${p.notice}</div>` : ""}
-      ${button(p.url, p.button, GREEN, "#ffffff", 10)}
-    </div>
-    <div class="pad" style="padding:20px 32px 24px;background:#f4f7f6;">${footer(c, { text: "#7c8784", link: "#3d4744", rule: "#e2e8e6", brand: "#0f1513" })}</div>
-  </div>
+  const lines = rows.map(([l, v, mono]) => `
+      <tr>
+        <td style="padding:15px 16px 15px 0;border-bottom:1px solid ${LINE};font:400 15px/1.45 ${POP};color:${BODY};vertical-align:top;">${l}</td>
+        <td style="padding:15px 0;border-bottom:1px solid ${LINE};font:500 ${mono ? "13px" : "15px"}/1.45 ${POP};color:${INK};text-align:right;vertical-align:top;word-break:break-all;">${v}</td>
+      </tr>`).join("");
+  return `<div class="wrap" style="max-width:560px;margin:0 auto;padding:48px 28px 52px;">
+  ${brandMark()}
+  <p style="margin:52px 0 0;font:500 13px/1.4 ${POP};color:${MUTE};">${p.eyebrow}${ref ? ` · {{ref}}` : ""}</p>
+  ${hv
+    ? `<p style="margin:18px 0 0;font:400 16px/1.4 ${POP};color:${BODY};">${hl}</p>
+  <div class="hero-v" style="margin:4px 0 0;font:700 60px/1.04 ${POP};letter-spacing:-0.045em;color:${INK};">${hv}</div>
+  <h1 style="margin:34px 0 0;font:600 21px/1.35 ${POP};letter-spacing:-0.02em;color:${INK};">${p.heading}</h1>`
+    : `<h1 class="hero-h" style="margin:14px 0 0;font:700 40px/1.12 ${POP};letter-spacing:-0.04em;color:${INK};">${p.heading}</h1>`}
+  <p style="margin:12px 0 0;font:400 15.5px/1.7 ${POP};color:${BODY};">${p.lead}</p>
+  ${lines ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:34px 0 0;border-collapse:collapse;border-top:2px solid ${INK};">${lines}</table>` : ""}
+  ${p.notice ? `<p style="margin:28px 0 0;padding-left:14px;border-left:3px solid ${SUN};font:400 14px/1.65 ${POP};color:${BODY};">${p.notice}</p>` : ""}
+  <div style="margin:36px 0 0;">${button(p.url, p.button, INK, "#ffffff", 12, POP)}</div>
+  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK })}</div>
 </div>`;
 }
 
-const BG: Record<MailStyle, string> = { sobre: "#f6f6f4", recu: "#ecebe6", lettre: "#f3f0ea", marque: "#eef2f1" };
-const RENDER: Record<MailStyle, (p: Parts, c: MailCompany) => string> = { sobre, recu, lettre, marque };
+/** Les mots clés de la phrase : *mot* en encre, ~mot~ en alerte. Le reste en gris, comme le back-office. */
+const keywords = (s: string) => s
+  .replace(/\*([^*]+)\*/g, `<span style="color:${INK};">$1</span>`)
+  .replace(/~([^~]+)~/g, `<span style="color:${ALERT};">$1</span>`);
+
+/** Phrase : comme le back-office. Une grande phrase vivante, les détails en petites étiquettes, à plat. */
+function phrase(p: Parts, c: MailCompany): string {
+  const cells = p.rows.map(([l, v, mono]) => `<td class="fact" width="50%" style="width:50%;padding:0 18px 24px 0;vertical-align:top;">
+        <div style="font:500 11.5px/1.3 ${POP};letter-spacing:0.08em;text-transform:uppercase;color:${MUTE};">${l}</div>
+        <div style="margin-top:6px;font:500 ${mono ? "13px" : "16px"}/1.45 ${POP};color:${INK};word-break:break-all;">${v}</div>
+      </td>`);
+  const trs: string[] = [];
+  for (let i = 0; i < cells.length; i += 2) trs.push(`<tr>${cells[i]}${cells[i + 1] ?? `<td class="fact" width="50%" style="width:50%;"></td>`}</tr>`);
+  return `<div class="wrap" style="max-width:600px;margin:0 auto;padding:48px 28px 52px;">
+  ${brandMark()}
+  <h1 class="hero-p" style="margin:56px 0 0;font:600 40px/1.12 ${POP};letter-spacing:-0.045em;color:${MUTE};">${p.phrase}</h1>
+  <p style="margin:22px 0 0;max-width:500px;font:400 16px/1.7 ${POP};color:${BODY};">${p.lead}</p>
+  ${trs.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:40px 0 0;border-collapse:collapse;">${trs.join("")}</table>` : ""}
+  ${p.notice ? `<p style="margin:${trs.length ? "8px" : "32px"} 0 0;padding-left:14px;border-left:3px solid ${SUN};font:400 14px/1.65 ${POP};color:${BODY};">${p.notice}</p>` : ""}
+  <p style="margin:36px 0 0;"><a href="${p.url}" style="font:600 16px/1.4 ${POP};color:${INK};text-decoration:none;border-bottom:2px solid ${SUN};padding-bottom:3px;">${p.button}&nbsp;&rarr;</a></p>
+  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK })}</div>
+</div>`;
+}
+
+const BG: Record<MailStyle, string> = { sobre: "#f6f6f4", recu: "#ffffff", phrase: "#f5f5f3" };
+const RENDER: Record<MailStyle, (p: Parts, c: MailCompany) => string> = { sobre, recu, phrase };
 
 /**
  * Le courriel complet (objet + HTML) pour un style et des textes donnés.
@@ -373,13 +378,15 @@ export function composeMail(kind: MailKind, style: MailStyle, text?: MailText | 
     lead: textToHtml(t.lead, allowed, true),
     button: textToHtml(t.button, allowed),
     url: spec.url, rows: spec.rows, hero: spec.hero, notice: spec.notice,
+    // Titre modifié dans le studio : il devient la phrase, tout en encre.
+    phrase: t.heading !== spec.heading ? `<span style="color:${INK};">${textToHtml(t.heading, allowed)}</span>` : keywords(spec.phrase),
   };
   const s = isMailStyle(style) ? style : "sobre";
   const preheader = textToHtml(stripBraces(t.lead).replace(/\s+/g, " ").slice(0, 140), allowed);
   return {
     // L'objet reste du texte brut : seuls les {mots} deviennent des variables.
     subject: stripBraces(t.subject).replace(/\{([^{}]{1,30})\}/g, (m, k: string) => (allowed.includes(k) && TOKENS[k] ? `{{${TOKENS[k].v}}}` : m)).replace(/\s*\r?\n\s*/g, " "),
-    html: shell({ bg: BG[s], font: s === "lettre" ? SERIF : SANS, inner: RENDER[s](parts, company), preheader }),
+    html: shell({ bg: BG[s], font: s === "sobre" ? SANS : POP, poppins: s !== "sobre", inner: RENDER[s](parts, company), preheader }),
   };
 }
 
@@ -407,3 +414,13 @@ export const SAMPLE_VARS: Record<string, string> = {
 export function fillSample(str: string, vars: Record<string, string> = SAMPLE_VARS): string {
   return str.replace(/\{\{(\w+)\}\}/g, (m, k: string) => (k in vars ? (k.endsWith("Html") ? vars[k] : esc(vars[k])) : m));
 }
+
+/**
+ * Valeur enregistrée en base (mail_designs.style) ↔ style. La contrainte de la colonne date de la
+ * première version (sobre, recu, lettre, marque) : « Phrase » y est rangé sous « lettre ».
+ * « marque », retiré, se lit comme « pas de style propre ».
+ */
+const DB_OF: Record<MailStyle, string> = { sobre: "sobre", recu: "recu", phrase: "lettre" };
+export const styleToDb = (s: MailStyle | null): string | null => (s ? DB_OF[s] : null);
+export const styleFromDb = (v: unknown): MailStyle | null =>
+  (Object.keys(DB_OF) as MailStyle[]).find((k) => DB_OF[k] === v) ?? null;

@@ -41,7 +41,7 @@ import {
   eyebrow, heading, lead, dataRows, primaryButton,
   COMPANY,
 } from "./layout.ts";
-import { composeMail, isMailKind, isMailStyle, type MailStyle, type MailText } from "../_shared/mailStudio.ts";
+import { composeMail, isMailKind, styleFromDb, type MailText } from "../_shared/mailStudio.ts";
 
 
 /**
@@ -108,8 +108,7 @@ async function studioMail(kind: string): Promise<{ subject: string; html: string
     if (error) return null;
     const all = data?.find((r) => r.kind === "*");
     const own = data?.find((r) => r.kind === kind);
-    const ownStyle = own?.style, allStyle = all?.style;
-    const style: MailStyle = isMailStyle(ownStyle) ? ownStyle : isMailStyle(allStyle) ? allStyle : "sobre";
+    const style = styleFromDb(own?.style) ?? styleFromDb(all?.style) ?? "sobre";
     return composeMail(kind, style, (own ?? null) as MailText | null, COMPANY);
   } catch {
     return null;

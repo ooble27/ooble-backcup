@@ -1,7 +1,7 @@
 /**
  * Studio des courriels (Réglages) : le style et les textes des courriels automatiques.
  *
- * 1. Galerie des quatre styles, ouverte en grand comme dans un studio : on parcourt les styles
+ * 1. Galerie des trois styles, ouverte en grand comme dans un studio : on parcourt les styles
  *    et les courriels, en vue ordinateur ou téléphone, puis on choisit le style de tous les courriels.
  * 2. Les dix courriels, rangés par moment ; chacun s'ouvre dans un éditeur avec aperçu en direct :
  *    style propre (facultatif), objet, titre, message, bouton, mots à glisser ({prénom}…).
@@ -18,7 +18,7 @@ import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { SaveBar } from "./settingsUi";
 import {
-  MAILS, MAIL_BY_ID, MAIL_STYLES, TOKENS, composeMail, effective, fillSample, isMailStyle, unknownTokens,
+  MAILS, MAIL_BY_ID, MAIL_STYLES, TOKENS, composeMail, effective, fillSample, styleFromDb, styleToDb, unknownTokens,
   type MailKind, type MailStyle,
 } from "../../../supabase/functions/_shared/mailStudio.ts";
 
@@ -32,8 +32,9 @@ const CSS = `
 .ms-thumb-in.ok { opacity: 1; }
 @media (hover: hover) { .ms-style:hover .ms-thumb-in.ok { transform: translateY(var(--travel, 0px)); } }
 
-.ms-gal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 22px; margin-top: 22px; }
-@media (min-width: 1100px) { .ms-gal { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 28px; } }
+.ms-gal { display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; margin-top: 22px; max-width: 420px; }
+@media (min-width: 640px) { .ms-gal { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 20px; max-width: none; } }
+@media (min-width: 1100px) { .ms-gal { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 36px; } }
 .ms-style { display: grid; gap: 14px; align-content: start; border: none; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1); animation: st-in .55s cubic-bezier(.22,1,.36,1) both; }
 .ms-style:nth-child(2) { animation-delay: .06s } .ms-style:nth-child(3) { animation-delay: .12s } .ms-style:nth-child(4) { animation-delay: .18s }
 @media (hover: hover) { .ms-style:hover { transform: translateY(-6px); } }
@@ -104,11 +105,11 @@ export function useMailDesigns() {
     setRows(next); put("st.mails", next); setErr(null);
   }, []);
   useEffect(() => { void reload(); }, [reload]);
-  const globalStyle: MailStyle = isMailStyle(rows?.["*"]?.style) ? (rows!["*"].style as MailStyle) : "sobre";
+  const globalStyle: MailStyle = styleFromDb(rows?.["*"]?.style) ?? "sobre";
   return { rows, err, reload, globalStyle };
 }
 
-const ownStyle = (r?: Row): MailStyle | null => (r && isMailStyle(r.style) ? r.style : null);
+const ownStyle = (r?: Row): MailStyle | null => styleFromDb(r?.style);
 const hasText = (r?: Row) => !!(r && (r.subject || r.heading || r.lead || r.button));
 const html = (kind: MailKind, style: MailStyle, r?: Row | null) => fillSample(composeMail(kind, style, r ?? null).html);
 
@@ -295,7 +296,7 @@ function MailEditor({ kind, rows, globalStyle, onBack, onOpen, reload }: {
   const write = async (patch: { style: MailStyle | null } & Record<Field, string | null>, okText: string) => {
     setBusy(true); setMsg(null);
     const { data: auth } = await supabase.auth.getSession();
-    const { error } = await supabase.from("mail_designs").upsert({ kind, ...patch, updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null });
+    const { error } = await supabase.from("mail_designs").upsert({ kind, ...patch, style: styleToDb(patch.style), updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null });
     if (!error) {
       void logAdminAction({ action: "settings.mail_design", entityKind: "mail_designs", metadata: { kind, ...patch } });
       await reload();
@@ -458,7 +459,7 @@ export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
 
   const applyAll = async (s: MailStyle): Promise<string | null> => {
     const { data: auth } = await supabase.auth.getSession();
-    const { error } = await supabase.from("mail_designs").upsert({ kind: "*", style: s, updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null });
+    const { error } = await supabase.from("mail_designs").upsert({ kind: "*", style: styleToDb(s), updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null });
     if (error) return error.message;
     void logAdminAction({ action: "settings.mail_design", entityKind: "mail_designs", metadata: { kind: "*", style: s } });
     await reload();
@@ -545,7 +546,7 @@ export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
   );
 }
 
-/** Entrée du studio sur la liste des Réglages : les quatre styles en miniature, mis à part. */
+/** Entrée du studio sur la liste des Réglages : les trois styles en miniature, mis à part. */
 export function MailStudioEntry({ onOpen }: { onOpen: () => void }) {
   const { rows, globalStyle } = useMailDesigns();
   const thumbs = useMemo(() => MAIL_STYLES.map((s) => ({ id: s.id, name: s.name, html: html("order-completed", s.id) })), []);
@@ -555,7 +556,7 @@ export function MailStudioEntry({ onOpen }: { onOpen: () => void }) {
 .ms-entry { display: grid; gap: 26px; width: 100%; margin-top: 56px; padding: 0; border: none; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; animation: st-in .55s cubic-bezier(.22,1,.36,1) .04s both; }
 @media (min-width: 900px) { .ms-entry { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; gap: 56px; } }
 .ms-entry:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 8px; border-radius: 12px; }
-.ms-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ms-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .ms-strip > div { transition: transform .5s cubic-bezier(.22,1,.36,1); }
 @media (hover: hover) {
   .ms-entry:hover .ms-strip > div:nth-child(1) { transform: translateY(-8px); }
@@ -574,7 +575,7 @@ export function MailStudioEntry({ onOpen }: { onOpen: () => void }) {
             Les courriels aux clients, <span style={{ color: C.t3 }}>dans le style de votre choix.</span>
           </span>
           <span style={{ display: "block", marginTop: 10, fontSize: 14, lineHeight: 1.6, color: C.t2, maxWidth: 440 }}>
-            Quatre styles à essayer en grand, et les textes de chacun des dix courriels.{rows ? <> Aujourd'hui : <span style={{ color: C.sun }}>{styleName(globalStyle)}</span>.</> : null}
+            Trois styles à essayer en grand, et les textes de chacun des dix courriels.{rows ? <> Aujourd'hui : <span style={{ color: C.sun }}>{styleName(globalStyle)}</span>.</> : null}
           </span>
           <span className="ms-open">Ouvrir le studio<ArrowRight style={{ width: 17, height: 17 }} /></span>
         </span>
