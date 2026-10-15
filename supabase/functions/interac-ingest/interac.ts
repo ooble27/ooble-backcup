@@ -6,8 +6,10 @@
 // réunies :
 //   • la référence OOB-XXXXXXXX de l'ordre figure dans le message ;
 //   • le montant reçu est exactement celui de l'ordre ;
-//   • le nom de l'expéditeur correspond au client (raison sociale pour un
-//     compte entreprise).
+//   • le nom de l'expéditeur est celui du client (raison sociale pour un
+//     compte entreprise), jamais un compte conjoint : voir namesMatch.
+// Sinon (paiement d'un tiers ?), l'ordre ne bouge pas, aucun USDT ne part
+// automatiquement et une alerte s'ouvre en Conformité.
 // L'ordre passe alors à « paiement reçu », le client est prévenu, et l'envoi
 // automatique des USDT est demandé à `usdt-payout` si les réglages le
 // permettent. Dans tous les autres cas, rien ne bouge : l'avis attend
@@ -67,17 +69,26 @@ const norm = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ")
     .split(" ").filter((w) => w.length >= 2 && !STOP.has(w));
 
+/** Compte conjoint : deux titulaires dans le nom de l'expéditeur (« X ET Y », « X AND Y », « X & Y »). */
+export const isJointAccount = (sender: string) =>
+  /(^|\s)(AND|ET|&)(\s|$)/i.test(sender.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+
 /**
- * Correspondance approximative : casse, accents, ordre des mots, traits
- * d'union, civilités et comptes conjoints sont ignorés. Les noms
- * correspondent si au moins deux mots se recoupent (ou tous, quand l'un des
- * deux noms n'a qu'un mot).
+ * Le virement vient-il bien du client lui-même ? Casse, accents, ordre des mots, traits d'union
+ * et civilités sont ignorés, mais rien d'autre :
+ *  - tous les mots du nom le plus court figurent dans l'autre (un deuxième prénom présent d'un seul
+ *    côté est accepté) : « TREMBLAY JEAN » = « Jean Tremblay », mais « MARIE TREMBLAY » ≠ « Jean Tremblay » ;
+ *  - au moins deux mots de chaque côté pour une personne (prénom et nom) ;
+ *  - un compte conjoint n'est jamais accepté : l'argent peut venir de l'autre titulaire.
+ * Dans le doute, l'avis attend l'équipe et une alerte « paiement d'un tiers ? » s'ouvre en Conformité.
  */
-export function namesMatch(a: string, b: string): boolean {
-  const A = new Set(norm(a)), B = new Set(norm(b));
-  if (!A.size || !B.size) return false;
-  const common = [...A].filter((w) => B.has(w)).length;
-  return common >= Math.min(2, A.size, B.size);
+export function namesMatch(sender: string, client: string, opts: { business?: boolean } = {}): boolean {
+  if (isJointAccount(sender)) return false;
+  const A = new Set(norm(sender)), B = new Set(norm(client));
+  const min = opts.business ? 1 : 2;
+  if (A.size < min || B.size < min) return false;
+  const [small, big] = A.size <= B.size ? [A, B] : [B, A];
+  return [...small].every((w) => big.has(w));
 }
 
 export interface InteracMail {
@@ -142,11 +153,14 @@ export async function handleInterac(db: SupabaseClient, m: InteracMail, supabase
   const { data: prof } = await db.from("profiles").select("email, full_name, business_name, account_type").eq("id", order.user_id).maybeSingle();
   // Compte entreprise : le virement doit venir du compte de l'entreprise (raison
   // sociale). Compte personnel : du compte bancaire du client (nom vérifié).
-  const okName = !!sender && (prof?.account_type === "business"
-    ? namesMatch(sender, prof?.business_name ?? "")
-    : namesMatch(sender, prof?.full_name ?? ""));
+  const business = prof?.account_type === "business";
+  const clientName = (business ? prof?.business_name : prof?.full_name) ?? "";
+  const okName = !!sender && namesMatch(sender, clientName, { business });
   if (!okName) {
-    return { status: await save("mismatch", `Expéditeur « ${sender || "?"} » différent du client « ${prof?.business_name || prof?.full_name || "?"} » (paiement d'un tiers ?).`, order.id) };
+    const why = sender && isJointAccount(sender)
+      ? `Expéditeur « ${sender} » : compte conjoint, l'argent peut venir d'un autre titulaire que le client « ${clientName || "?"} » (paiement d'un tiers ?).`
+      : `Expéditeur « ${sender || "?"} » différent du client « ${clientName || "?"} » (paiement d'un tiers ?).`;
+    return { status: await save("mismatch", why, order.id) };
   }
 
   // Rapproché : l'avis est enregistré d'abord (un avis = un seul rapprochement).

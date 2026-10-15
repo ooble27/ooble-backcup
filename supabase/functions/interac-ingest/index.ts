@@ -101,7 +101,11 @@ async function selftest() {
   try { await dohTxt("interac.ca", "TXT"); } catch (e) { dns = (e as Error).message; }
   return {
     authentic: ok, tampered: bad, parsedSubject: parsed.subject, dns,
-    names: { joint: namesMatch("JOHN DOE AND JANE DOE", "Jane Doe"), reversed: namesMatch("LO MOHAMED", "Mohamed Lo"), stranger: namesMatch("JEAN TREMBLAY", "Mohamed Lo") },
+    names: {
+      joint: namesMatch("JOHN DOE AND JANE DOE", "Jane Doe"), reversed: namesMatch("LO MOHAMED", "Mohamed Lo"),
+      stranger: namesMatch("JEAN TREMBLAY", "Mohamed Lo"), family: namesMatch("MARIE TREMBLAY", "Jean Tremblay"),
+      middle: namesMatch("JEAN PAUL TREMBLAY", "Jean Tremblay"), accents: namesMatch("HELENE COTE", "Hélène Côté"),
+    },
   };
 }
 
