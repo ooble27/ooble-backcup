@@ -7,8 +7,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowUpRight, AtSign, Banknote, Bell, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, LifeBuoy, Mail, Megaphone, Network, Percent,
-  Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Users, Wallet,
+  ArrowUpRight, AtSign, Bell, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, LifeBuoy, Mail, Megaphone, Network, Percent,
+  Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Send, QrCode, Users,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { peek, put } from "@/lib/adminCache";
@@ -45,16 +45,15 @@ const INDEX_CSS = `
 .sx-eyebrow { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.03em; color: var(--a-t1); }
 .sx-gdesc { margin: 4px 0 10px; font-size: 13.5px; line-height: 1.5; color: var(--a-t3); }
 .sx-row { display: flex; align-items: center; gap: 16px; width: 100%; padding: 14px 0; border: none; background: none; cursor: pointer; font: inherit; text-align: left; color: inherit; transition: transform .35s cubic-bezier(.22,1,.36,1); }
-.sx-row:hover { transform: translateX(6px); }
+.sx-row:active { transform: translateX(6px); }
+@media (hover: hover) { .sx-row:hover { transform: translateX(6px); } .sx-row:hover .sx-ico { color: var(--a-t1); } .sx-row:hover .sx-go { transform: translateX(3px); color: var(--a-t1); } }
 .sx-row:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 4px; border-radius: 6px; }
 .sx-ico { width: 22px; height: 22px; flex-shrink: 0; color: var(--a-t3); transition: color .2s; }
-.sx-row:hover .sx-ico { color: var(--a-t1); }
 .sx-txt { flex: 1; min-width: 0; }
 .sx-name { display: block; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--a-t1); }
 .sx-desc { display: block; margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--a-t3); }
 .sx-val { flex-shrink: 0; max-width: 42%; text-align: right; font-size: 13.5px; color: var(--a-t2); font-variant-numeric: tabular-nums; }
 .sx-go { width: 18px; height: 18px; flex-shrink: 0; color: var(--a-t3); transition: transform .35s cubic-bezier(.22,1,.36,1), color .2s; }
-.sx-row:hover .sx-go { transform: translateX(3px); color: var(--a-t1); }
 @media (max-width: 640px) { .sx-val { display: none; } }
 @media (prefers-reduced-motion: reduce) { .sx-group { animation: none; } .sx-row, .sx-go { transition: none; } }
 `;
@@ -368,8 +367,8 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       desc: "Où circulent les USDT, à l'achat comme à la vente.",
       rows: [
         { id: "reseaux", icon: Network, name: "Réseaux", desc: "Ouverts ou fermés, à l'achat et à la vente.", value: `${netOpen("buy")} à l'achat · ${netOpen("sell")} à la vente`, onOpen: () => go("reseaux") },
-        { id: "adresses", icon: Wallet, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
-        ...ext("settlement", { icon: Banknote, name: "Règlement automatique", desc: "Envoi automatique des USDT, plafonds, portefeuille d'envoi." }),
+        { id: "adresses", icon: QrCode, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
+        ...ext("settlement", { icon: Send, name: "Règlement automatique", desc: "Envoi automatique des USDT, plafonds, portefeuille d'envoi." }),
       ],
     },
     {
