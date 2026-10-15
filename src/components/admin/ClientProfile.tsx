@@ -181,15 +181,8 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
                 </div>
               ); }} />
           </Block>
-          {/* À gauche, ce qu'on consulte et complète en travaillant : notes, portefeuilles, chronologie.
-              À droite, qui est le client : coordonnées, Interac, accès, entreprise, risque. */}
-          <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
-          <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>
-          {profile && <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block>}
-          {history && <ClientOrdersHistory clientName={name} orders={orders} onClose={() => setHistory(false)} onOpenOrder={onOpenOrder} />}
-        </div>
-
-        <aside style={{ minWidth: 0 }}>
+          {/* Sous les commandes : qui est le client (coordonnées, Interac, portefeuilles), puis la chronologie.
+              À droite : notes internes, accès, entreprise, risque. */}
           <Block title="Coordonnées">
             <KeyValues items={[
               ["Nom", name],
@@ -200,7 +193,6 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
               ["Identifiant", copyable(userId, "uid", true)],
             ]} />
           </Block>
-
           <Block title="Virements Interac">
             <KeyValues items={[
               ["Destinataire", profile?.email ? copyable(profile.email, "interac") : "—"],
@@ -209,6 +201,13 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
             ]} />
             <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>Le courriel du compte est le seul destinataire des ventes.</p>
           </Block>
+          <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>
+          {profile && <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block>}
+          {history && <ClientOrdersHistory clientName={name} orders={orders} onClose={() => setHistory(false)} onOpenOrder={onOpenOrder} />}
+        </div>
+
+        <aside style={{ minWidth: 0 }}>
+          <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
 
           {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
 
