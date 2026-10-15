@@ -7,7 +7,7 @@ import { type OrderEvent } from "@/lib/adminOrderEvents";
 import { loadOrderPart, peekOrderPart } from "@/lib/orderDetailCache";
 import { sendRefundEmail } from "@/lib/email";
 import { NETWORKS } from "@/components/app/networks";
-import { sendPayout, txUrl, type ChainDeposit, type UsdtPayout } from "@/lib/settlement";
+import { sendPayout, txUrl, type ChainDeposit, type SellProof, type UsdtPayout } from "@/lib/settlement";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { KeyValues, Pill } from "./layout";
@@ -119,15 +119,61 @@ function PayoutStep({ order, list, onChanged, readOnly }: { order: AdminOrder; l
   );
 }
 
+/** Comment un dépôt a été rattaché à la vente, du plus sûr au moins sûr. */
+const METHOD: Record<NonNullable<ChainDeposit["match_method"]>, { text: string; color: string }> = {
+  tx_hash: { text: "Par l'identifiant de transaction donné par le client : certain.", color: C.sage },
+  known_wallet: { text: "Envoyé depuis une adresse déjà connue de ce client.", color: C.sage },
+  amount_time: { text: "Seule vente de ce montant ouverte avant l'arrivée des USDT.", color: C.t1 },
+  manual: { text: "Rattaché à la main par l'équipe.", color: C.t1 },
+};
+const shortAddr = (a: string) => (a.length > 18 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
+const fmtWhen = (iso: string) => new Date(iso).toLocaleString("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+/**
+ * Qui a envoyé quoi : ce que le client a déclaré (adresse ou plateforme, identifiant de transaction),
+ * d'où les USDT sont réellement venus, et comment le dépôt a été rattaché.
+ */
+function SellChain({ proof, dep }: { proof: SellProof | null; dep: ChainDeposit | undefined }) {
+  if (!proof) return null;
+  const from = dep?.from_address ?? null;
+  const sameAsDeclared = !!(from && proof.senderAddress && from.toLowerCase() === proof.senderAddress.toLowerCase());
+  const txMatches = !!(dep && proof.clientTxHash && dep.tx_hash.toLowerCase().replace(/^0x/, "") === proof.clientTxHash.toLowerCase().replace(/^0x/, ""));
+  const mono: React.CSSProperties = { fontVariantNumeric: "tabular-nums", wordBreak: "break-all" };
+  const items: [string, React.ReactNode][] = [
+    ["Envoi déclaré", proof.senderAddress
+      ? <span style={mono} title={proof.senderAddress}>depuis {shortAddr(proof.senderAddress)}</span>
+      : proof.senderPlatform ? <>depuis la plateforme {proof.senderPlatform}</> : <span style={{ color: C.t3 }}>Rien de déclaré (vente passée avant ce contrôle)</span>],
+    ["Confirmé par le client", proof.clientSentAt ? fmtWhen(proof.clientSentAt) : <span style={{ color: C.t3 }}>Pas encore</span>],
+    ["Identifiant donné", proof.clientTxHash
+      ? <span style={{ ...mono, color: dep ? (txMatches ? C.sage : C.coral) : C.t1 }} title={proof.clientTxHash}>{shortAddr(proof.clientTxHash)}{dep && (txMatches ? " · c'est bien ce dépôt" : " · ne correspond pas à ce dépôt")}</span>
+      : <span style={{ color: C.t3 }}>Aucun</span>],
+  ];
+  if (dep) {
+    items.push(["Reçu de", from
+      ? <span style={{ ...mono, color: proof.senderAddress ? (sameAsDeclared ? C.sage : C.coral) : C.t1 }} title={from}>
+          {shortAddr(from)}{proof.senderAddress && (sameAsDeclared ? " · l'adresse déclarée" : " · pas l'adresse déclarée")}
+        </span>
+      : <span style={{ color: C.t3 }}>Inconnu</span>]);
+    if (dep.status === "matched") {
+      const m = dep.match_method ? METHOD[dep.match_method] : null;
+      items.push(["Rattachement", m ? <span style={{ color: m.color }}>{m.text}</span> : (dep.reason ?? "N/D")]);
+    }
+  }
+  return <div style={{ marginTop: 14 }}><KeyValues items={items} /></div>;
+}
+
 /* ─── Vente : USDT reçus et virement Interac à envoyer ─── */
 function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string, k: string) => void; copied: string | null }) {
   // Déjà en mémoire (préchargé au survol) : affiché tout de suite, puis mis à jour en arrière-plan.
   const [deps, setDeps] = useState<ChainDeposit[] | null>(() => peekOrderPart("deposits", order.id));
   const [qa, setQa] = useState<{ q: string | null; a: string | null } | null>(() => (order.userId ? peekOrderPart("qa", order.userId) : null));
+  const [proof, setProof] = useState<SellProof | null>(() => peekOrderPart("proof", order.id));
   useEffect(() => {
     let on = true;
     setDeps(peekOrderPart("deposits", order.id));
     loadOrderPart("deposits", order.id).then((v) => { if (on) setDeps(v); });
+    setProof(peekOrderPart("proof", order.id));
+    loadOrderPart("proof", order.id).then((v) => { if (on) setProof(v); });
     if (order.userId) {
       setQa(peekOrderPart("qa", order.userId));
       loadOrderPart("qa", order.userId).then((v) => { if (on) setQa(v); });
@@ -158,6 +204,7 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
               ? `En attente de ${nfUsdt.format(order.usdt)} USDT sur l'adresse de dépôt. Lecture automatique toutes les 2 minutes : la commande passe seule à « À traiter » dès leur arrivée.`
               : "Aucun dépôt lu automatiquement pour cette vente."}
         </p>
+        <SellChain proof={proof} dep={dep} />
       </Block>
       {order.status === "recu" && (
         <Block title="Virement Interac à envoyer">

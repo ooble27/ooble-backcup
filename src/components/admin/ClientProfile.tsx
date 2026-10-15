@@ -17,6 +17,7 @@ import ClientNotes from "./ClientNotes";
 import ClientTimeline from "./ClientTimeline";
 import RiskScoreCard from "./RiskScoreCard";
 import ClientAccess from "./ClientAccess";
+import ClientWallets from "./ClientWallets";
 
 interface Props {
   userId: string;
@@ -213,6 +214,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
           )}
 
           {profile && <Block title="Score de risque"><RiskScoreCard profile={profile} /></Block>}
+          <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>
           <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
         </aside>
       </div>

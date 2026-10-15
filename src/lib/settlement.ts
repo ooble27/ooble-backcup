@@ -118,15 +118,44 @@ export interface ChainDeposit {
   order_id: string | null;
   status: "new" | "matched" | "review" | "unmatched" | "ignored";
   reason: string | null;
+  /** Comment le dépôt a été rattaché : identifiant donné par le client, adresse connue, montant et horaire, ou à la main. */
+  match_method: "tx_hash" | "known_wallet" | "amount_time" | "manual" | null;
 }
 
 /** Dépôts lus sur la blockchain (fonction edge `sell-watch`, toutes les 2 minutes). */
 export async function fetchDeposits(opts: { orderId?: string; limit?: number } = {}): Promise<ChainDeposit[]> {
-  let q = supabase.from("chain_deposits").select("id, network, tx_hash, from_address, usdt_amount, block_time, order_id, status, reason")
+  let q = supabase.from("chain_deposits").select("id, network, tx_hash, from_address, usdt_amount, block_time, order_id, status, reason, match_method")
     .order("block_time", { ascending: false }).limit(opts.limit ?? 50);
   if (opts.orderId) q = q.eq("order_id", opts.orderId);
   const { data } = await q;
   return (data ?? []) as ChainDeposit[];
+}
+
+export interface SellProof { senderAddress: string | null; senderPlatform: string | null; clientTxHash: string | null; clientSentAt: string | null }
+
+/** Ce que le client a déclaré pour sa vente : d'où il envoie, et l'identifiant de transaction. */
+export async function fetchSellProof(orderId: string): Promise<SellProof> {
+  const { data } = await supabase.from("orders").select("sender_address, sender_platform, client_tx_hash, client_sent_at").eq("id", orderId).maybeSingle();
+  return { senderAddress: data?.sender_address ?? null, senderPlatform: data?.sender_platform ?? null, clientTxHash: data?.client_tx_hash ?? null, clientSentAt: data?.client_sent_at ?? null };
+}
+
+export interface KnownWallet { family: string; address: string; declared: number; deposits: number; payouts: number; lastSeen: string; sharedWith: number }
+
+/** Portefeuilles connus d'un client, et combien d'autres clients utilisent la même adresse. */
+export async function fetchClientWallets(userId: string): Promise<KnownWallet[]> {
+  const { data } = await supabase.from("client_wallets").select("family, address, address_key, declared_count, deposit_count, payout_count, last_seen")
+    .eq("user_id", userId).order("last_seen", { ascending: false }).limit(30);
+  const rows = data ?? [];
+  const keys = rows.map((r) => r.address_key).filter((k): k is string => !!k);
+  const shared = new Map<string, number>();
+  if (keys.length) {
+    const { data: others } = await supabase.from("client_wallets").select("address_key, user_id").in("address_key", keys).neq("user_id", userId);
+    for (const o of others ?? []) if (o.address_key) shared.set(o.address_key, (shared.get(o.address_key) ?? 0) + 1);
+  }
+  return rows.map((r) => ({
+    family: r.family, address: r.address, declared: r.declared_count, deposits: r.deposit_count, payouts: r.payout_count,
+    lastSeen: r.last_seen, sharedWith: shared.get(r.address_key ?? "") ?? 0,
+  }));
 }
 
 /** Dernière lecture réussie, par réseau. */

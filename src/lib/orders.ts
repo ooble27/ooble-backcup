@@ -50,6 +50,8 @@ export interface CreateOrderInput {
   network?: NetId;        // achat : réseau de réception
   address?: string;       // achat : adresse wallet du client
   interacEmail?: string;  // vente : e-mail Interac du client
+  senderAddress?: string;  // vente : adresse d'où le client envoie ses USDT
+  senderPlatform?: string; // vente : plateforme d'échange utilisée à la place
 }
 
 export interface TradeAllowance {
@@ -139,6 +141,8 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
       network: input.network ? NET_TO_DB[input.network] : "trc20",
       wallet_address: walletAddress,
       interac_email: input.side === "sell" ? (input.interacEmail ?? null) : null,
+      sender_address: input.side === "sell" ? (input.senderAddress?.trim() || null) : null,
+      sender_platform: input.side === "sell" ? (input.senderPlatform?.trim() || null) : null,
       status: "created",
       rate_locked_until: rateLockedUntil,
     })

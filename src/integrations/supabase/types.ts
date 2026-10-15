@@ -503,6 +503,7 @@ export type Database = {
           handled_by: string | null
           id: string
           log_index: number
+          match_method: string | null
           network: Database["public"]["Enums"]["usdt_network"]
           order_id: string | null
           reason: string | null
@@ -519,6 +520,7 @@ export type Database = {
           handled_by?: string | null
           id?: string
           log_index?: number
+          match_method?: string | null
           network: Database["public"]["Enums"]["usdt_network"]
           order_id?: string | null
           reason?: string | null
@@ -535,6 +537,7 @@ export type Database = {
           handled_by?: string | null
           id?: string
           log_index?: number
+          match_method?: string | null
           network?: Database["public"]["Enums"]["usdt_network"]
           order_id?: string | null
           reason?: string | null
@@ -606,6 +609,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_wallets: {
+        Row: {
+          address: string
+          address_key: string | null
+          declared_count: number
+          deposit_count: number
+          family: string
+          first_seen: string
+          id: number
+          last_seen: string
+          payout_count: number
+          user_id: string
+        }
+        Insert: {
+          address: string
+          address_key?: string | null
+          declared_count?: number
+          deposit_count?: number
+          family: string
+          first_seen?: string
+          id?: never
+          last_seen?: string
+          payout_count?: number
+          user_id: string
+        }
+        Update: {
+          address?: string
+          address_key?: string | null
+          declared_count?: number
+          deposit_count?: number
+          family?: string
+          first_seen?: string
+          id?: never
+          last_seen?: string
+          payout_count?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       compliance_alerts: {
         Row: {
@@ -1428,6 +1470,8 @@ export type Database = {
           assigned_at: string | null
           assigned_to: string | null
           cad_amount: number
+          client_sent_at: string | null
+          client_tx_hash: string | null
           created_at: string
           fee_cad: number
           id: string
@@ -1435,6 +1479,8 @@ export type Database = {
           locked_rate: number
           network: Database["public"]["Enums"]["usdt_network"]
           rate_locked_until: string
+          sender_address: string | null
+          sender_platform: string | null
           side: Database["public"]["Enums"]["order_side"]
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
@@ -1446,6 +1492,8 @@ export type Database = {
           assigned_at?: string | null
           assigned_to?: string | null
           cad_amount: number
+          client_sent_at?: string | null
+          client_tx_hash?: string | null
           created_at?: string
           fee_cad?: number
           id?: string
@@ -1453,6 +1501,8 @@ export type Database = {
           locked_rate: number
           network?: Database["public"]["Enums"]["usdt_network"]
           rate_locked_until: string
+          sender_address?: string | null
+          sender_platform?: string | null
           side: Database["public"]["Enums"]["order_side"]
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
@@ -1464,6 +1514,8 @@ export type Database = {
           assigned_at?: string | null
           assigned_to?: string | null
           cad_amount?: number
+          client_sent_at?: string | null
+          client_tx_hash?: string | null
           created_at?: string
           fee_cad?: number
           id?: string
@@ -1471,6 +1523,8 @@ export type Database = {
           locked_rate?: number
           network?: Database["public"]["Enums"]["usdt_network"]
           rate_locked_until?: string
+          sender_address?: string | null
+          sender_platform?: string | null
           side?: Database["public"]["Enums"]["order_side"]
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
@@ -2155,6 +2209,7 @@ export type Database = {
           unsubscribed: boolean
         }[]
       }
+      cancel_unsent_sell: { Args: { _order: string }; Returns: undefined }
       claim_payout_lock: {
         Args: {
           _holder: string
@@ -2189,6 +2244,10 @@ export type Database = {
       compliance_scan: { Args: never; Returns: number }
       compliance_scan_all: { Args: never; Returns: number }
       compliance_scan_behavior: { Args: never; Returns: number }
+      declare_sell_sent: {
+        Args: { _order: string; _tx?: string }
+        Returns: undefined
+      }
       email_domain_allowed: { Args: { _email: string }; Returns: boolean }
       fr_money: { Args: { _v: number }; Returns: string }
       has_any_role: {
@@ -2223,6 +2282,16 @@ export type Database = {
         }[]
       }
       name_tokens: { Args: { t: string }; Returns: string[] }
+      note_client_wallet: {
+        Args: {
+          _address: string
+          _at?: string
+          _family: string
+          _kind: string
+          _user: string
+        }
+        Returns: undefined
+      }
       platform_launched: { Args: never; Returns: boolean }
       record_signup_origin: {
         Args: {
@@ -2258,6 +2327,17 @@ export type Database = {
         Returns: undefined
       }
       set_my_lang: { Args: { p_lang: string }; Returns: undefined }
+      tx_key: { Args: { _tx: string }; Returns: string }
+      wallet_family: {
+        Args: { _net: Database["public"]["Enums"]["usdt_network"] }
+        Returns: string
+      }
+      wallet_format_ok: {
+        Args: { _address: string; _family: string }
+        Returns: boolean
+      }
+      wallet_owner: { Args: { _address: string }; Returns: string }
+      wallet_sanctioned: { Args: { _address: string }; Returns: boolean }
     }
     Enums: {
       account_type: "individual" | "business"

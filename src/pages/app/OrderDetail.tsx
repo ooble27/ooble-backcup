@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { OrderDetailContent } from "@/components/app/ActivityList";
+import SellPending from "@/components/app/SellPending";
 import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
 import { peekMyOrders, type OrderRow } from "@/lib/orders";
@@ -67,6 +68,7 @@ const OrderDetail = () => {
       }
     >
       <OrderDetailContent o={order} />
+      <SellPending order={order} onChange={(patch) => setOrder((o) => (o ? { ...o, ...patch } : o))} />
     </AppShell>
   );
 };

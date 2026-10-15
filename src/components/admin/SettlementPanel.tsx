@@ -425,7 +425,7 @@ const SettlementPanel = () => {
             ["Réseau", <span key="n" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={deposit.network} size={18} />{netName(deposit.network)}</span>],
             ["Expéditeur", deposit.from_address ? <span style={mono}>{deposit.from_address}</span> : "N/D"],
             ["Vente", deposit.order_id ? ref(deposit.order_id) : "Aucune"],
-            ["Détail", deposit.reason ?? "En attente d'une vente du même montant (le client clique « J'ai envoyé mes USDT » après l'envoi)."],
+            ["Détail", deposit.reason ?? "En attente d'une vente du même montant, ouverte avant l'arrivée des USDT."],
             ["Transaction", <TxLink key="tx" network={deposit.network} hash={deposit.tx_hash} />],
           ]} />
           {deposit.status !== "matched" && deposit.status !== "ignored" && (
