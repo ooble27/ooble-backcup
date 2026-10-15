@@ -144,6 +144,53 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   const chrono = profile ? <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block> : null;
   const risk = profile ? <Block title="Score de risque"><RiskScoreCard profile={profile} /></Block> : null;
 
+  const coord_ = (
+    <Block title="Coordonnées">
+      <KeyValues items={[
+        ["Nom", name],
+        ["Courriel", copyable(profile?.email, "email")],
+        ["Téléphone", copyable(profile?.phone, "phone")],
+        [origin?.late ? "Lieu (connexion)" : "Lieu d'inscription", placeLabel(origin) ?? <span style={{ color: C.t3 }}>Pas encore connu</span>],
+        ["Source", origin?.source ? [origin.source, origin.campaign].filter(Boolean).join(" · ") : <span style={{ color: C.t3 }}>Pas encore connue</span>],
+        ["Identifiant", copyable(userId, "uid", true)],
+      ]} />
+    </Block>
+  );
+  const interac_ = (
+    <Block title="Virements Interac">
+      <KeyValues items={[
+        ["Destinataire", profile?.email ? copyable(profile.email, "interac") : "—"],
+        ...(profile?.interacQuestion ? [["Question", profile.interacQuestion] as [string, React.ReactNode]] : []),
+        ...(profile?.interacAnswer ? [["Réponse", copyable(profile.interacAnswer, "ans")] as [string, React.ReactNode]] : []),
+      ]} />
+      <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>Le courriel du compte est le seul destinataire des ventes.</p>
+    </Block>
+  );
+  const wallets_ = <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>;
+  const notes_ = <Block title="Notes internes"><ClientNotes userId={userId} /></Block>;
+  const access_ = (
+    <>
+      {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
+      {profile && can("clients.limit") && (
+        <Block title="Limite quotidienne">
+          <ClientLimit userId={userId} limit={profile.dailyLimitCad} onChange={(v) => setProfile({ ...profile, dailyLimitCad: v })} />
+        </Block>
+      )}
+
+      {profile?.accountType === "business" && (
+        <Block title="Entreprise">
+          <KeyValues items={[
+            ["Raison sociale", profile.businessName ?? "—"],
+            ["Vérification", { not_started: "Non commencée", pending: "En attente", approved: "Vérifiée", rejected: "Refusée" }[profile.businessStatus] ?? profile.businessStatus],
+            ...(profile.businessNumber ? [["NEQ / BN", copyable(profile.businessNumber, "neq")] as [string, React.ReactNode]] : []),
+            ...(profile.businessAddress ? [["Adresse", profile.businessAddress] as [string, React.ReactNode]] : []),
+            ...(profile.businessPhone ? [["Téléphone", profile.businessPhone] as [string, React.ReactNode]] : []),
+          ]} />
+        </Block>
+      )}
+    </>
+  );
+
   return (
     <div>
       <header style={{ marginBottom: 26 }}>
@@ -201,56 +248,17 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
                 </div>
               ); }} />
           </Block>
-          {/* Sous les commandes : qui est le client (coordonnées, Interac, portefeuilles), puis la chronologie.
-              À droite : notes internes, accès, entreprise, risque. Une seule colonne : chronologie en dernier. */}
-          <Block title="Coordonnées">
-            <KeyValues items={[
-              ["Nom", name],
-              ["Courriel", copyable(profile?.email, "email")],
-              ["Téléphone", copyable(profile?.phone, "phone")],
-              [origin?.late ? "Lieu (connexion)" : "Lieu d'inscription", placeLabel(origin) ?? <span style={{ color: C.t3 }}>Pas encore connu</span>],
-              ["Source", origin?.source ? [origin.source, origin.campaign].filter(Boolean).join(" · ") : <span style={{ color: C.t3 }}>Pas encore connue</span>],
-              ["Identifiant", copyable(userId, "uid", true)],
-            ]} />
-          </Block>
-          <Block title="Virements Interac">
-            <KeyValues items={[
-              ["Destinataire", profile?.email ? copyable(profile.email, "interac") : "—"],
-              ...(profile?.interacQuestion ? [["Question", profile.interacQuestion] as [string, React.ReactNode]] : []),
-              ...(profile?.interacAnswer ? [["Réponse", copyable(profile.interacAnswer, "ans")] as [string, React.ReactNode]] : []),
-            ]} />
-            <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>Le courriel du compte est le seul destinataire des ventes.</p>
-          </Block>
-          <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>
-          {wide && chrono}
+          {/* Ordinateur (deux colonnes) : à gauche les notes, les portefeuilles et la chronologie ;
+              à droite les coordonnées, Interac, l'accès, la limite, l'entreprise et le risque.
+              Téléphone et tablette (une colonne) : coordonnées, Interac et portefeuilles sous les
+              commandes, puis notes et accès ; chronologie et score de risque tout en bas. */}
+          {wide ? <>{notes_}{wallets_}{chrono}</> : <>{coord_}{interac_}{wallets_}</>}
           {history && <ClientOrdersHistory clientName={name} orders={orders} onClose={() => setHistory(false)} onOpenOrder={onOpenOrder} />}
         </div>
 
         <aside className="rise" style={{ minWidth: 0 }}>
-          <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
-
-          {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
-          {profile && can("clients.limit") && (
-            <Block title="Limite quotidienne">
-              <ClientLimit userId={userId} limit={profile.dailyLimitCad} onChange={(v) => setProfile({ ...profile, dailyLimitCad: v })} />
-            </Block>
-          )}
-
-          {profile?.accountType === "business" && (
-            <Block title="Entreprise">
-              <KeyValues items={[
-                ["Raison sociale", profile.businessName ?? "—"],
-                ["Vérification", { not_started: "Non commencée", pending: "En attente", approved: "Vérifiée", rejected: "Refusée" }[profile.businessStatus] ?? profile.businessStatus],
-                ...(profile.businessNumber ? [["NEQ / BN", copyable(profile.businessNumber, "neq")] as [string, React.ReactNode]] : []),
-                ...(profile.businessAddress ? [["Adresse", profile.businessAddress] as [string, React.ReactNode]] : []),
-                ...(profile.businessPhone ? [["Téléphone", profile.businessPhone] as [string, React.ReactNode]] : []),
-              ]} />
-            </Block>
-          )}
-
-          {wide && risk}
+          {wide ? <>{coord_}{interac_}{access_}{risk}</> : <>{notes_}{access_}</>}
         </aside>
-        {/* Sur téléphone et tablette (une seule colonne) : la chronologie, puis le score de risque, tout en bas. */}
         {!wide && <div className="rise" style={{ minWidth: 0 }}>{chrono}{risk}</div>}
       </div>
     </div>
