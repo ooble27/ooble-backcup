@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowUpRight, AtSign, Bell, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, LifeBuoy, Mail, Megaphone, Network, Percent,
+  ArrowUpRight, AtSign, Bell, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, Anchor, Mail, Megaphone, Network, Percent,
   Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Send, QrCode, Users,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
@@ -359,7 +359,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       desc: "Le taux que voient les clients, et quoi faire si la source se tait.",
       rows: [
         { id: "taux", icon: Percent, name: "Taux et marge", desc: "Le pourcentage ajouté au cours à l'achat, retiré à la vente.", value: `+${pct.format(s.buyMarginPct)} % · −${pct.format(s.sellMarginPct)} %`, onOpen: () => go("taux") },
-        { id: "secours", icon: LifeBuoy, name: "Taux de secours", desc: "Figer le cours quand la source ne répond plus.", value: s.manualMarketRate != null ? <span style={{ color: C.sun }}>Cours figé</span> : "Automatique", onOpen: () => go("secours") },
+        { id: "secours", icon: Anchor, name: "Taux de secours", desc: "Figer le cours quand la source ne répond plus.", value: s.manualMarketRate != null ? <span style={{ color: C.sun }}>Cours figé</span> : "Automatique", onOpen: () => go("secours") },
       ],
     },
     {
