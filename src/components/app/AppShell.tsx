@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, User } from "lucide-react";
+import { ArrowLeft, LayoutGrid, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
 import ThemeToggle from "./ThemeToggle";
@@ -71,7 +71,7 @@ const AppShell = ({ children, header, backTo, wide, wider, center, className }: 
   useAppScope();
   // Pas de zoom dans l'app, comme dans le back-office (ordinateur et téléphone).
   useNoZoom();
-  const { user } = useAuth();
+  const { user, isStaff } = useAuth();
   const [lang] = useLang();
   useEffect(() => { warmAppData(user?.id); }, [user?.id]);
   // Lieu et source de l'inscription, enregistrés une fois.
@@ -99,6 +99,18 @@ const AppShell = ({ children, header, backTo, wide, wider, center, className }: 
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <ThemeToggle />
+          {/* Membres de l'équipe seulement (un rôle dans user_roles) : accès direct au back-office.
+              Le back-office vérifie lui-même les rôles ; ce bouton n'est qu'un raccourci. */}
+          {isStaff && (
+            <Link
+              to="/admin"
+              aria-label="Back-office"
+              title="Back-office"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground/55 transition-all hover:text-foreground active:scale-95"
+            >
+              <LayoutGrid className="h-5 w-5" strokeWidth={1.8} />
+            </Link>
+          )}
           <Link
             to="/app/compte"
             aria-label={lang === "en" ? "My account" : "Mon compte"}
