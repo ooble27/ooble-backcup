@@ -212,10 +212,10 @@ export function effective(spec: MailSpec, text: MailText | null | undefined) {
 
 // ─── Styles ───────────────────────────────────────────────────
 
-const SANS = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
-const MONO = `"SFMono-Regular", Consolas, Menlo, monospace`;
+const SANS = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+const MONO = `'SFMono-Regular', Consolas, Menlo, monospace`;
 // Palette des pages publiques et des courriels Ooble (comme les modèles de Campagnes).
-const POP = `Poppins, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
+const POP = `Poppins, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
 const INK = "#14110f", BODY = "#4a4540", MUTE = "#9a948b", LINE = "#ece7dc", SUN = "#ffc94d", ALERT = "#c2462a";
 const LOGO = "https://ooble.ca/email-assets/logo.png";
 
