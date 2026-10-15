@@ -1,28 +1,12 @@
 /**
- * Vente : prouver que les USDT reçus viennent bien du client.
- *  - l'adresse d'où il envoie (ou la plateforme utilisée), donnée avant de voir l'adresse de dépôt ;
- *  - l'identifiant de la transaction (TxID), collé après l'envoi : Ooble le retrouve sur la blockchain
- *    et rattache le dépôt sans doute possible.
- * La base vérifie tout de nouveau (format, transaction déjà utilisée, vente au client).
+ * Vente : l'adresse du portefeuille d'où le client envoie ses USDT, demandée avant l'adresse de dépôt.
+ * Un dépôt qui ne vient pas de cette adresse part « à vérifier » au lieu d'être rattaché tout seul.
+ * La base vérifie de nouveau le format.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { ADDRESS_FORMAT, type AddressFamily } from "@/lib/depositAddresses";
 
 export const isSenderAddress = (family: AddressFamily, a: string) => ADDRESS_FORMAT[family].test(a.trim());
-
-/**
- * Trouve l'identifiant de transaction dans ce que le client colle : l'identifiant seul,
- * ou un lien d'explorateur (BscScan, Tronscan, Etherscan, Solscan…) qui le contient.
- */
-export function extractTxHash(family: AddressFamily, text: string): string | null {
-  const s = text.trim();
-  if (!s) return null;
-  if (family === "solana") return s.match(/[1-9A-HJ-NP-Za-km-z]{80,90}/)?.[0] ?? null;
-  const hex = s.match(/(?:0x)?[0-9a-fA-F]{64}/)?.[0];
-  if (!hex) return null;
-  const bare = hex.replace(/^0x/i, "").toLowerCase();
-  return family === "evm" ? `0x${bare}` : bare;
-}
 
 export interface KnownWallet { address: string; uses: number; lastSeen: string }
 
@@ -39,9 +23,9 @@ export async function fetchMyWallets(family: AddressFamily): Promise<KnownWallet
   return (data ?? []).map((r) => ({ address: r.address, uses: r.declared_count + r.deposit_count, lastSeen: r.last_seen }));
 }
 
-/** « J'ai envoyé mes USDT », avec l'identifiant de transaction si le client l'a. */
-export async function declareSellSent(orderId: string, txHash: string | null): Promise<{ error?: string }> {
-  const { error } = await supabase.rpc("declare_sell_sent", { _order: orderId, ...(txHash ? { _tx: txHash } : {}) });
+/** « J'ai envoyé mes USDT ». */
+export async function declareSellSent(orderId: string): Promise<{ error?: string }> {
+  const { error } = await supabase.rpc("declare_sell_sent", { _order: orderId });
   return error ? { error: error.message } : {};
 }
 

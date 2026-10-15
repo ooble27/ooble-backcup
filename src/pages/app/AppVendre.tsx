@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { familyOf, useDepositAddresses } from "@/lib/depositAddresses";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, ShieldOff, Wallet, Landmark } from "lucide-react";
+import { ArrowLeft, ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, ShieldOff, Wallet } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
-import TxField from "@/components/app/TxField";
 import RecipientBook from "@/components/app/RecipientBook";
 import { Button } from "@/components/ui/button";
 import { NETWORKS, ORDER_NETWORKS, type NetId } from "@/components/app/networks";
@@ -19,11 +18,9 @@ import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useOtcVisible } from "@/lib/otc";
-import { cancelUnsentSell, declareSellSent, extractTxHash, fetchMyWallets, isSenderAddress, type KnownWallet } from "@/lib/sellProof";
+import { cancelUnsentSell, declareSellSent, fetchMyWallets, isSenderAddress, type KnownWallet } from "@/lib/sellProof";
 
 type Step = "amount" | "reception" | "network" | "from" | "deposit" | "done";
-type FromMode = "wallet" | "platform";
-const PLATFORMS = ["Binance", "Kraken", "Coinbase", "Bybit", "OKX"];
 const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
 
 
@@ -98,13 +95,8 @@ const AppVendreForm = () => {
   const [net, setNet] = useState<NetId | null>(null);
   const [savedRef, setSavedRef] = useState("");
   const [orderId, setOrderId] = useState<string | null>(null);
-  const [fromMode, setFromMode] = useState<FromMode | null>(null);
   const [sender, setSender] = useState("");
-  const [platform, setPlatform] = useState("");
-  const [otherPlatform, setOtherPlatform] = useState(false);
   const [known, setKnown] = useState<KnownWallet[]>([]);
-  const [txInput, setTxInput] = useState("");
-  const [txSaved, setTxSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [interacQA, setInteracQA] = useState<{ q: string; a: string } | null>(() => {
@@ -157,8 +149,6 @@ const AppVendreForm = () => {
   const depositAddr = net && deposit ? deposit[familyOf(net)] ?? "" : "";
   const family = net ? familyOf(net) : null;
   const senderOk = !!family && isSenderAddress(family, sender);
-  const fromReady = fromMode === "wallet" ? senderOk : fromMode === "platform" ? platform.trim().length > 1 : false;
-  const txHash = family ? extractTxHash(family, txInput) : null;
 
   // Les adresses déjà utilisées par le client sur ce réseau, à reprendre d'un geste.
   useEffect(() => {
@@ -167,7 +157,7 @@ const AppVendreForm = () => {
     void fetchMyWallets(family).then((w) => {
       if (!on) return;
       setKnown(w);
-      if (w[0] && !sender) { setFromMode((m) => m ?? "wallet"); setSender(w[0].address); }
+      if (w[0] && !sender) setSender(w[0].address);
     });
     return () => { on = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -175,13 +165,13 @@ const AppVendreForm = () => {
 
   const resetAll = () => {
     setStep("amount"); setAmount(""); setEmail(""); setNet(null); setSavedRef(""); setErr(null);
-    setOrderId(null); setFromMode(null); setSender(""); setPlatform(""); setOtherPlatform(false); setTxInput(""); setTxSaved(false);
+    setOrderId(null); setSender("");
   };
 
   // La vente est créée avant l'envoi : l'adresse de dépôt ne s'affiche qu'ensuite. Un dépôt n'est
   // rattaché automatiquement qu'à une vente qui existait déjà à son arrivée.
   const openSale = async () => {
-    if (saving || !fromReady) return;
+    if (saving || !senderOk) return;
     if (orderId) { setStep("deposit"); return; }
     setSaving(true);
     setErr(null);
@@ -193,7 +183,7 @@ const AppVendreForm = () => {
       network: net ?? undefined,
       address: depositAddr,
       interacEmail: email,
-      ...(fromMode === "wallet" ? { senderAddress: sender.trim() } : { senderPlatform: platform.trim() }),
+      senderAddress: sender.trim(),
     });
     setSaving(false);
     if ("error" in res) {
@@ -215,19 +205,17 @@ const AppVendreForm = () => {
     resetAll();
   };
 
-  // « J'ai envoyé mes USDT » : avec l'identifiant de transaction s'il est collé.
+  // « J'ai envoyé mes USDT ».
   const submit = async () => {
     if (saving || !orderId) return;
-    if (txInput.trim() && !txHash) { setErr(t("sell.txBad")); return; }
     setSaving(true);
     setErr(null);
-    const res = await declareSellSent(orderId, txHash);
+    const res = await declareSellSent(orderId);
     setSaving(false);
     if (res.error) {
       setErr(res.error);
       return;
     }
-    setTxSaved(!!txHash);
     const ref = savedRef;
     setStep("done");
 
@@ -426,102 +414,54 @@ const AppVendreForm = () => {
   }
 
   if (step === "from") {
-    const choice = (mode: FromMode, Icon: typeof Wallet, title: string, hint: string) => (
-      <button
-        type="button"
-        onClick={() => setFromMode(mode)}
-        className={cn(
-          "flex w-full items-center gap-3 rounded-[14px] border px-4 py-3.5 text-left transition-colors active:scale-[0.99]",
-          fromMode === mode ? "border-foreground bg-secondary" : "border-border bg-card",
-        )}
-      >
-        <Icon className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.9} />
-        <span className="min-w-0">
-          <span className="block text-sm font-medium">{title}</span>
-          <span className="block text-[12px] text-muted-foreground">{hint}</span>
-        </span>
-      </button>
-    );
     return (
       <AppShell center>
-        <StepHeader title={t("sell.fromTitle")} sub={t("sell.fromSub")} onBack={() => setStep("network")} backLabel={t("misc.back")} />
-        <div className="grid gap-2">
-          {choice("wallet", Wallet, t("sell.fromWallet"), t("sell.fromWalletHint"))}
-          {choice("platform", Landmark, t("sell.fromPlatform"), t("sell.fromPlatformHint"))}
-        </div>
-
-        {fromMode === "wallet" && (
-          <div className="mt-4">
-            <div className="overflow-hidden rounded-[14px] border border-border bg-card">
-              <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-                <img src={`/coins/${network?.id}.svg`} alt="" className="h-[18px] w-[18px] rounded-full" draggable={false} />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.senderAddr")}</span>
-              </div>
-              <div className="px-4 py-3.5">
-                <input
-                  spellCheck={false}
-                  autoCapitalize="none"
-                  autoComplete="off"
-                  placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
-                  value={sender}
-                  onChange={(e) => setSender(e.target.value.trim())}
-                  className="w-full bg-transparent font-mono text-[13px] outline-none placeholder:text-muted-foreground/60"
-                />
-              </div>
-            </div>
-            {sender && (
-              <p className={cn("mt-2 px-1 text-[12px]", senderOk ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
-                {senderOk ? t("sell.senderOk") : `${t("sell.senderBad")} ${network?.tag ?? ""}.`}
-              </p>
-            )}
-            {known.length > 0 && (
-              <div className="mt-3">
-                <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.recentWallets")}</p>
-                <div className="flex flex-wrap gap-2">
-                  {known.map((w) => (
-                    <button key={w.address} type="button" onClick={() => setSender(w.address)}
-                      className={cn("rounded-[10px] border px-3 py-2 font-mono text-[12px] transition-colors active:scale-[0.98]",
-                        sender === w.address ? "border-foreground bg-secondary" : "border-border bg-card")}>
-                      {short(w.address)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+        <StepHeader title={t("sell.walletTitle")} sub={`${t("sell.walletSub")} ${network?.tag ?? ""}.`} onBack={() => setStep("network")} backLabel={t("misc.back")} />
+        <div className="overflow-hidden rounded-[14px] border border-border bg-card">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+            <Wallet className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
+            <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.senderAddr")}</span>
+            {network && <img src={`/coins/${network.id}.svg`} alt="" className="h-[18px] w-[18px] shrink-0 rounded-full" draggable={false} />}
           </div>
+          <div className="px-4 py-3.5">
+            <input
+              autoFocus
+              spellCheck={false}
+              autoCapitalize="none"
+              autoComplete="off"
+              aria-label={t("sell.senderAddr")}
+              placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
+              value={sender}
+              onChange={(e) => setSender(e.target.value.trim())}
+              className="w-full min-w-0 bg-transparent font-mono text-[13px] outline-none placeholder:text-muted-foreground/60"
+            />
+          </div>
+        </div>
+        {sender && (
+          <p className={cn("mt-2 px-1 text-[12px]", senderOk ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
+            {senderOk ? t("sell.senderOk") : `${t("sell.senderBad")} ${network?.tag ?? ""}.`}
+          </p>
         )}
-
-        {fromMode === "platform" && (
+        {known.length > 0 && (
           <div className="mt-4">
+            <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.recentWallets")}</p>
             <div className="flex flex-wrap gap-2">
-              {PLATFORMS.map((p) => (
-                <button key={p} type="button" onClick={() => { setPlatform(p); setOtherPlatform(false); }}
-                  className={cn("rounded-[10px] border px-3.5 py-2 text-sm transition-colors active:scale-[0.98]",
-                    !otherPlatform && platform === p ? "border-foreground bg-secondary" : "border-border bg-card")}>
-                  {p}
+              {known.map((w) => (
+                <button key={w.address} type="button" onClick={() => setSender(w.address)}
+                  className={cn("max-w-full truncate rounded-[10px] border px-3 py-2 font-mono text-[12px] transition-colors active:scale-[0.98]",
+                    sender === w.address ? "border-foreground bg-secondary" : "border-border bg-card")}>
+                  {short(w.address)}
                 </button>
               ))}
-              <button type="button" onClick={() => { setOtherPlatform(true); setPlatform(""); }}
-                className={cn("rounded-[10px] border px-3.5 py-2 text-sm transition-colors active:scale-[0.98]",
-                  otherPlatform ? "border-foreground bg-secondary" : "border-border bg-card")}>
-                {t("sell.platformOther")}
-              </button>
             </div>
-            {otherPlatform && (
-              <div className="mt-3 overflow-hidden rounded-[14px] border border-border bg-card px-4 py-3.5">
-                <input autoFocus maxLength={60} placeholder={t("sell.platformName")} value={platform} onChange={(e) => setPlatform(e.target.value)}
-                  className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground/60" />
-              </div>
-            )}
-            <p className="mt-3 px-1 text-[12.5px] leading-snug text-muted-foreground">{t("sell.platformKeepTx")}</p>
           </div>
         )}
 
         {err && <p className="mt-3 text-[13px] text-destructive">{err}</p>}
 
         <div className="mt-6 flex justify-start">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={!fromReady || saving} onClick={openSale}>
-            <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.showDeposit")}
+          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={!senderOk || saving} onClick={openSale}>
+            <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
           </Button>
         </div>
       </AppShell>
@@ -554,10 +494,7 @@ const AppVendreForm = () => {
           </p>
         </div>
 
-        <TxField label={fromMode === "platform" ? t("sell.txTitleRec") : t("sell.txTitle")} value={txInput} onChange={setTxInput} valid={!!txHash} />
-        <p className="mt-2 px-1 text-[12px] leading-snug text-muted-foreground">{t("sell.txHelp")}</p>
-
-        <p className="mt-4 px-1 text-[13px] text-muted-foreground">
+        <p className="mt-3 px-1 text-[13px] text-muted-foreground">
           {t("sell.afterSend")}{" "}
           <span className="font-semibold text-foreground">{nfCad.format(cad)} CAD</span> {t("sell.afterSend2")}
         </p>
@@ -595,35 +532,14 @@ const AppVendreForm = () => {
           { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
           { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
           { label: t("sell.receivedByInterac"), value: email, mono: true },
-          { label: t("sell.sentFrom"), value: fromMode === "platform" ? platform : short(sender), mono: fromMode !== "platform" },
+          { label: t("sell.sentFrom"), value: short(sender), mono: true },
         ].map((r, i, arr) => (
-          <div key={r.label} className={cn("flex items-center justify-between px-4 py-[14px]", i < arr.length - 1 && "border-b border-border")}>
-            <span className="text-[13px] text-muted-foreground">{r.label}</span>
+          <div key={r.label} className={cn("flex items-center justify-between gap-4 px-4 py-[14px]", i < arr.length - 1 && "border-b border-border")}>
+            <span className="shrink-0 text-[13px] text-muted-foreground">{r.label}</span>
             <span className={cn("max-w-[60%] break-all text-right text-[13px] font-medium", r.mono && "font-mono text-[11px]")}>{r.value}</span>
           </div>
         ))}
       </div>
-
-      {!txSaved && (
-        <div className="mt-4">
-          <TxField label={t("sell.addTx")} value={txInput} onChange={setTxInput} valid={!!txHash} />
-          <p className="mt-2 px-1 text-[12px] leading-snug text-muted-foreground">{t("sell.txHelp")}</p>
-          {err && <p className="mt-2 px-1 text-[13px] text-destructive">{err}</p>}
-          {txHash && (
-            <Button variant="appPrimary" shape="soft" className="mt-3 h-auto gap-2 px-[18px] py-[11px] text-sm" disabled={saving}
-              onClick={async () => {
-                if (!orderId) return;
-                setSaving(true); setErr(null);
-                const r = await declareSellSent(orderId, txHash);
-                setSaving(false);
-                if (r.error) setErr(r.error); else setTxSaved(true);
-              }}>
-              <Check className="h-[16px] w-[16px]" strokeWidth={2} /> {t("sell.addTxSend")}
-            </Button>
-          )}
-        </div>
-      )}
-      {txSaved && <p className="mt-3 px-1 text-[12.5px] text-emerald-700 dark:text-emerald-400">{t("sell.txThanks")}</p>}
 
       <p className="mb-2 mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.orderDetail")}</p>
       <div className="divide-y divide-border overflow-hidden rounded-[16px] border border-border bg-card">

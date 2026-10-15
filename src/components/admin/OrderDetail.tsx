@@ -130,23 +130,19 @@ const shortAddr = (a: string) => (a.length > 18 ? `${a.slice(0, 8)}…${a.slice(
 const fmtWhen = (iso: string) => new Date(iso).toLocaleString("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /**
- * Qui a envoyé quoi : ce que le client a déclaré (adresse ou plateforme, identifiant de transaction),
- * d'où les USDT sont réellement venus, et comment le dépôt a été rattaché.
+ * Qui a envoyé quoi : l'adresse de portefeuille déclarée par le client, d'où les USDT sont
+ * réellement venus, et comment le dépôt a été rattaché.
  */
 function SellChain({ proof, dep }: { proof: SellProof | null; dep: ChainDeposit | undefined }) {
   if (!proof) return null;
   const from = dep?.from_address ?? null;
   const sameAsDeclared = !!(from && proof.senderAddress && from.toLowerCase() === proof.senderAddress.toLowerCase());
-  const txMatches = !!(dep && proof.clientTxHash && dep.tx_hash.toLowerCase().replace(/^0x/, "") === proof.clientTxHash.toLowerCase().replace(/^0x/, ""));
   const mono: React.CSSProperties = { fontVariantNumeric: "tabular-nums", wordBreak: "break-all" };
   const items: [string, React.ReactNode][] = [
-    ["Envoi déclaré", proof.senderAddress
-      ? <span style={mono} title={proof.senderAddress}>depuis {shortAddr(proof.senderAddress)}</span>
-      : proof.senderPlatform ? <>depuis la plateforme {proof.senderPlatform}</> : <span style={{ color: C.t3 }}>Rien de déclaré (vente passée avant ce contrôle)</span>],
+    ["Portefeuille déclaré", proof.senderAddress
+      ? <span style={mono} title={proof.senderAddress}>{shortAddr(proof.senderAddress)}</span>
+      : <span style={{ color: C.t3 }}>Aucun (vente passée avant ce contrôle)</span>],
     ["Confirmé par le client", proof.clientSentAt ? fmtWhen(proof.clientSentAt) : <span style={{ color: C.t3 }}>Pas encore</span>],
-    ["Identifiant donné", proof.clientTxHash
-      ? <span style={{ ...mono, color: dep ? (txMatches ? C.sage : C.coral) : C.t1 }} title={proof.clientTxHash}>{shortAddr(proof.clientTxHash)}{dep && (txMatches ? " · c'est bien ce dépôt" : " · ne correspond pas à ce dépôt")}</span>
-      : <span style={{ color: C.t3 }}>Aucun</span>],
   ];
   if (dep) {
     items.push(["Reçu de", from
