@@ -53,6 +53,14 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   const can = useCan();
   const canRegister = can("register.export");
   const [regBusy, setRegBusy] = useState(false);
+  // Deux colonnes à partir de 1280 px (comme la grille xl) ; en dessous, une seule.
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
   const downloadRegister = async () => {
     setRegBusy(true);
     try {
@@ -124,6 +132,8 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
     { key: "date", header: "Date", align: "right", sort: (o) => o.createdAt, hideBelow: 700, render: (o) => <span style={{ color: C.t2 }}>{dateShort.format(new Date(o.createdAt))}</span> },
   ];
 
+  const chrono = profile ? <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block> : null;
+
   return (
     <div>
       <header style={{ marginBottom: 26 }}>
@@ -182,7 +192,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
               ); }} />
           </Block>
           {/* Sous les commandes : qui est le client (coordonnées, Interac, portefeuilles), puis la chronologie.
-              À droite : notes internes, accès, entreprise, risque. */}
+              À droite : notes internes, accès, entreprise, risque. Une seule colonne : chronologie en dernier. */}
           <Block title="Coordonnées">
             <KeyValues items={[
               ["Nom", name],
@@ -202,7 +212,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
             <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>Le courriel du compte est le seul destinataire des ventes.</p>
           </Block>
           <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>
-          {profile && <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block>}
+          {wide && chrono}
           {history && <ClientOrdersHistory clientName={name} orders={orders} onClose={() => setHistory(false)} onOpenOrder={onOpenOrder} />}
         </div>
 
@@ -225,6 +235,8 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
 
           {profile && <Block title="Score de risque"><RiskScoreCard profile={profile} /></Block>}
         </aside>
+        {/* Sur téléphone et tablette (une seule colonne), la chronologie passe tout en bas. */}
+        {!wide && <div style={{ minWidth: 0 }}>{chrono}</div>}
       </div>
     </div>
   );
