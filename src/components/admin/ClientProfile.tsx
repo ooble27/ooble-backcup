@@ -181,6 +181,10 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
                 </div>
               ); }} />
           </Block>
+          {/* À gauche, ce qu'on consulte et complète en travaillant : notes, portefeuilles, chronologie.
+              À droite, qui est le client : coordonnées, Interac, accès, entreprise, risque. */}
+          <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
+          <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>
           {profile && <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block>}
           {history && <ClientOrdersHistory clientName={name} orders={orders} onClose={() => setHistory(false)} onOpenOrder={onOpenOrder} />}
         </div>
@@ -193,11 +197,17 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
               ["Téléphone", copyable(profile?.phone, "phone")],
               [origin?.late ? "Lieu (connexion)" : "Lieu d'inscription", placeLabel(origin) ?? <span style={{ color: C.t3 }}>Pas encore connu</span>],
               ["Source", origin?.source ? [origin.source, origin.campaign].filter(Boolean).join(" · ") : <span style={{ color: C.t3 }}>Pas encore connue</span>],
-              ["Virements Interac", profile?.email ? <>{copyable(profile.email, "interac")} <span style={{ color: C.t3 }}>· courriel du compte, seul destinataire des ventes</span></> : "—"],
-              ...(profile?.interacQuestion ? [["Question Interac", profile.interacQuestion] as [string, React.ReactNode]] : []),
-              ...(profile?.interacAnswer ? [["Réponse Interac", copyable(profile.interacAnswer, "ans")] as [string, React.ReactNode]] : []),
               ["Identifiant", copyable(userId, "uid", true)],
             ]} />
+          </Block>
+
+          <Block title="Virements Interac">
+            <KeyValues items={[
+              ["Destinataire", profile?.email ? copyable(profile.email, "interac") : "—"],
+              ...(profile?.interacQuestion ? [["Question", profile.interacQuestion] as [string, React.ReactNode]] : []),
+              ...(profile?.interacAnswer ? [["Réponse", copyable(profile.interacAnswer, "ans")] as [string, React.ReactNode]] : []),
+            ]} />
+            <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.t3 }}>Le courriel du compte est le seul destinataire des ventes.</p>
           </Block>
 
           {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
@@ -215,8 +225,6 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
           )}
 
           {profile && <Block title="Score de risque"><RiskScoreCard profile={profile} /></Block>}
-          <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>
-          <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
         </aside>
       </div>
     </div>
