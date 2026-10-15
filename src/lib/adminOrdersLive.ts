@@ -14,6 +14,7 @@ import { CURRENT_OPERATOR, nfCad, nfUsdt, type AdminOrder, type OrderStatus } fr
 import { sendEmail } from "@/lib/email";
 import { NETWORKS } from "@/components/app/networks";
 import { logAdminAction } from "@/lib/audit";
+import { EXPLORER_NAME, fetchOutboundTx, txUrl } from "@/lib/settlement";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
@@ -205,6 +206,18 @@ async function notifyClient(orderId: string, newStatus: "recu" | "termine") {
   const net = NETWORKS.find((n) => n.id === DB_TO_NET[row.network]);
   const networkLabel = net ? `${net.name} · ${net.tag}` : "N/D";
   const orderUrl = `${window.location.origin}/app`;
+  const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  /** Lien vers la transaction sur l'explorateur, ou le texte de repli. */
+  const txLink = (hash: string | null | undefined, fallback: string) => {
+    const url = hash ? txUrl(row.network, hash) : "";
+    if (url) return `<a href="${url}" style="color:#111;text-decoration:underline;">Voir sur ${EXPLORER_NAME[row.network] ?? "l'explorateur"}</a>`;
+    return esc(hash || fallback);
+  };
+  /** Hash des USDT reçus d'une vente : le dépôt rattaché, sinon celui déclaré par le client. */
+  const sellHash = async () => {
+    const { data: d } = await supabase.from("chain_deposits").select("tx_hash").eq("order_id", row.id).limit(1);
+    return d?.[0]?.tx_hash ?? row.client_tx_hash ?? null;
+  };
 
   if (newStatus === "recu" && row.side === "sell") {
     // Vente : USDT reçus (marqués à la main, ex. Solana), virement en préparation.
@@ -217,7 +230,7 @@ async function notifyClient(orderId: string, newStatus: "recu" | "termine") {
         cadAmount: nfCad.format(Number(row.cad_amount)),
         network: networkLabel,
         interacEmail: row.interac_email ?? to,
-        txLinkHtml: "En attente",
+        txLinkHtml: txLink(await sellHash(), "Reçus"),
         orderUrl,
       },
     });
@@ -236,19 +249,22 @@ async function notifyClient(orderId: string, newStatus: "recu" | "termine") {
       },
     });
   } else {
+    // Achat : lien vers l'envoi des USDT. Vente : le virement Interac est parti, c'est terminé.
     const isBuy = row.side === "buy";
+    const outHash = isBuy ? (await fetchOutboundTx(row.id))?.tx_hash ?? null : null;
     void sendEmail({
       to,
       template: "order-completed",
       vars: {
         ref,
-        summaryLabel: isBuy ? "Vous avez reçu" : "Vous avez vendu",
+        summaryLabel: "Vous avez reçu",
         summaryValue: isBuy
           ? `${nfUsdt.format(Number(row.usdt_amount))} USDT`
           : `${nfCad.format(Number(row.cad_amount))} CAD`,
         network: networkLabel,
-        txHash: "En attente",
-        txLinkHtml: "En attente",
+        txLabel: isBuy ? "Transaction" : "Virement Interac",
+        txHash: outHash ?? "",
+        txLinkHtml: isBuy ? txLink(outHash, "Envoyée") : esc(`Envoyé à ${row.interac_email ?? to}`),
         orderUrl,
       },
     });

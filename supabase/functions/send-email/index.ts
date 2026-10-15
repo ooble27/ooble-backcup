@@ -239,6 +239,7 @@ Deno.serve(async (req) => {
       assetBase,
       year: String(new Date().getFullYear()),
       unsubscribeUrl: vars.unsubscribeUrl ?? "#",
+      txLabel: "Transaction",
       ...safeVars,
     };
     finalHtml = render(TEMPLATES[template], data);
