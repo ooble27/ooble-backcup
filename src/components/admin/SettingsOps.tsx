@@ -16,8 +16,9 @@ import { Button } from "./ui";
 import { Presets, Row, SaveBar, SettingsPage, Stepper, Toggle, ago, fmtDay } from "./settingsUi";
 
 const CSS = `
-.so-in { width: 100%; box-sizing: border-box; border: none; border-radius: 12px; background: var(--a-l2); color: var(--a-t1); font: inherit; font-size: 16px; padding: 14px 16px; }
-.so-in:focus { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+.so-in { width: 100%; box-sizing: border-box; border: none; border-radius: 0; background: linear-gradient(var(--a-sun), var(--a-sun)) no-repeat left bottom / 0 1.5px, linear-gradient(color-mix(in srgb, var(--a-t3) 35%, transparent), color-mix(in srgb, var(--a-t3) 35%, transparent)) no-repeat left bottom / 100% 1px; color: var(--a-t1); font: inherit; font-size: clamp(20px, 2.4vw, 24px); font-weight: 500; letter-spacing: -0.01em; padding: 6px 0 10px; caret-color: var(--a-sun); transition: background-size .35s cubic-bezier(.2,.7,.2,1); }
+.so-in::placeholder { color: var(--a-t3); }
+.so-in:focus { outline: none; background-size: 100% 1.5px, 100% 1px; }
 .so-grid { display: grid; grid-template-columns: minmax(0, 1fr) 64px 64px; align-items: center; gap: 18px 16px; }
 .so-head { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--a-t3); text-align: center; }
 .so-link { border: none; background: none; padding: 4px 0; font: inherit; font-size: 14px; color: var(--a-t2); cursor: pointer; transition: color .15s; }

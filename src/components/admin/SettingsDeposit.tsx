@@ -29,9 +29,10 @@ const CSS = `
 .dp-addr { margin: 14px 0 0; font-size: 18px; line-height: 1.5; letter-spacing: 0.01em; word-break: break-all; color: var(--a-t2); font-variant-numeric: tabular-nums; }
 .dp-addr b { color: var(--a-t1); font-weight: 600; }
 .dp-acts { display: flex; gap: 20px; margin-top: 10px; }
-.dp-in { width: 100%; box-sizing: border-box; border: none; border-radius: 12px; background: var(--a-l2); color: var(--a-t1); font: inherit; font-size: 16px; padding: 14px 16px; letter-spacing: 0.01em; }
-.dp-in:focus { outline: 2px solid var(--a-accent); outline-offset: 2px; }
-.dp-in.short { width: 11ch; text-align: center; font-size: 20px; letter-spacing: 0.12em; }
+.dp-in { width: 100%; box-sizing: border-box; border: none; border-radius: 0; background: linear-gradient(var(--a-sun), var(--a-sun)) no-repeat left bottom / 0 1.5px, linear-gradient(color-mix(in srgb, var(--a-t3) 35%, transparent), color-mix(in srgb, var(--a-t3) 35%, transparent)) no-repeat left bottom / 100% 1px; color: var(--a-t1); font: inherit; font-size: 18px; letter-spacing: 0.01em; padding: 6px 0 10px; caret-color: var(--a-sun); overflow-wrap: anywhere; transition: background-size .35s cubic-bezier(.2,.7,.2,1); }
+.dp-in::placeholder { color: var(--a-t3); }
+.dp-in:focus { outline: none; background-size: 100% 1.5px, 100% 1px; }
+.dp-in.short { width: 9ch; text-align: center; font-size: 24px; letter-spacing: 0.12em; }
 .dp-flow { display: grid; gap: 14px; margin-top: 18px; animation: st-in .35s cubic-bezier(.22,1,.36,1) both; }
 .dp-old { display: grid; gap: 10px; margin-top: 20px; }
 .dp-old p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--a-t3); transition: transform .3s cubic-bezier(.22,1,.36,1); }
