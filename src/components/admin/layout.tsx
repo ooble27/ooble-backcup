@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Search } from "lucide-react";
 import { C, FONT } from "./adminTheme";
+import { replayRise } from "@/lib/pageMotion";
 
 /* ─── En-tête de page ─────────────────────────────────────── */
 
@@ -181,9 +182,15 @@ export function FilterChips<T extends string>({ value, options, onChange }: {
   value: T; options: { id: T; label: React.ReactNode; count?: number; /** Le nombre demande une action (corail). */ alert?: boolean }[]; onChange: (v: T) => void;
 }) {
   return (
-    <div className="ly-chips" style={{ display: "inline-flex", gap: 18, flexWrap: "wrap" }}>
+    <div className="ly-chips" data-still style={{ display: "inline-flex", gap: 18, flexWrap: "wrap" }}>
       {options.map((o) => (
-        <button key={o.id} type="button" className="ly-f" onClick={() => onChange(o.id)} aria-pressed={o.id === value}>
+        <button key={o.id} type="button" className="ly-f" aria-pressed={o.id === value}
+          onClick={(e) => {
+            const el = e.currentTarget;
+            onChange(o.id);
+            // Le contenu change : il arrive comme à l'ouverture de la page.
+            if (o.id !== value) requestAnimationFrame(() => replayRise(el));
+          }}>
           <span>{o.label}</span>
           {o.count !== undefined && <small style={{ color: o.alert && o.count ? C.coral : C.t3 }}>{o.count}</small>}
         </button>

@@ -25,6 +25,7 @@ import { LaunchSections, type PlatformPreview } from "./PlatformPanel";
 import SettingsRate from "./SettingsRate";
 import SettingsDeposit from "./SettingsDeposit";
 import { Presets, Row, SaveBar, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf } from "./settingsUi";
+import { scrollAdminTop } from "@/lib/pageMotion";
 
 const INDEX_CSS = `
 .sx { display: grid; gap: 44px 64px; margin-top: 16px; }
@@ -305,8 +306,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
     if (id) url.searchParams.set(PARAM, id); else url.searchParams.delete(PARAM);
     window.history.pushState(window.history.state, "", url);
     setPageState(id);
-    window.scrollTo({ top: 0 });
-    document.querySelector("main")?.scrollTo?.({ top: 0 });
+    scrollAdminTop();
   };
   const back = () => go(null);
 

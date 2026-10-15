@@ -6,6 +6,7 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
 import AccountingMonth from "./AccountingMonth";
+import { replayRise } from "@/lib/pageMotion";
 
 /**
  * Comptabilité réelle : marge calculée commande par commande à partir du taux du marché au moment
@@ -87,9 +88,10 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       <style>{CSS}</style>
 
       {/* Période : du texte, souligné quand il est choisi (pas de pilules). */}
-      <nav aria-label="Période" style={{ display: "flex", gap: 22, flexWrap: "wrap", alignItems: "center" }}>
+      <nav aria-label="Période" data-still style={{ display: "flex", gap: 22, flexWrap: "wrap", alignItems: "center" }}>
         {PERIODS.map((p) => (
-          <button key={p.id} type="button" className="ac-per" aria-pressed={period === p.id} onClick={() => setPeriod(p.id)}><span>{p.label}</span></button>
+          <button key={p.id} type="button" className="ac-per" aria-pressed={period === p.id}
+            onClick={(e) => { const el = e.currentTarget; setPeriod(p.id); if (p.id !== period) requestAnimationFrame(() => replayRise(el)); }}><span>{p.label}</span></button>
         ))}
         <span style={{ flex: 1 }} />
         <Button size="sm" onClick={exportAll} disabled={exporting || !t?.n}

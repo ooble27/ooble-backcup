@@ -133,11 +133,17 @@ const SHELL_CSS = `
 .sh-page > * > *:nth-child(5) { animation-delay: 210ms }
 .sh-page > * > *:nth-child(n+6) { animation-delay: 240ms }
 .sh-page :is(.vz-head, .hz-title) { animation: sh-rise .6s cubic-bezier(.22,1,.36,1) 80ms both }
+/* Colonnes d'une fiche (client, commande) : leurs blocs arrivent aussi l'un après l'autre. */
+.sh-page .rise > * { animation: sh-rise .55s cubic-bezier(.22,1,.36,1) both }
+.sh-page .rise > *:nth-child(2) { animation-delay: 70ms }
+.sh-page .rise > *:nth-child(3) { animation-delay: 130ms }
+.sh-page .rise > *:nth-child(4) { animation-delay: 180ms }
+.sh-page .rise > *:nth-child(n+5) { animation-delay: 220ms }
 .sh-page svg:not(.lucide) { animation: sh-draw 1s cubic-bezier(.65,0,.35,1) 200ms both }
 /* Espaces de travail plein écran : les volets arrivent l'un après l'autre. */
 .ws-root :is(.ws-card, .ws-flat) { animation: sh-rise .5s cubic-bezier(.22,1,.36,1) both }
 .ws-root :is(.ws-card, .ws-flat) + :is(.ws-card, .ws-flat) { animation-delay: 90ms }
-@media (prefers-reduced-motion: reduce) { .sh-page > * > *, .sh-page :is(.vz-head, .hz-title), .sh-page svg:not(.lucide), .ws-root :is(.ws-card, .ws-flat) { animation: none } }
+@media (prefers-reduced-motion: reduce) { .sh-page > * > *, .sh-page .rise > *, .sh-page :is(.vz-head, .hz-title), .sh-page svg:not(.lucide), .ws-root :is(.ws-card, .ws-flat) { animation: none } }
 /* Haut de l'écran. Dans l'app installée sur iPhone et iPad (iOS 26), le système floute la barre d'état et
    un peu en dessous ; aucun réglage ne l'enlève. On laisse une petite bande au fond uni (le flou
    d'une couleur unie ne se voit pas) et tout le contenu commence en dessous. */
@@ -353,7 +359,7 @@ const AdminPortal = () => {
   const crumbs: { label: string; onClick?: () => void }[] = [];
   const group = GROUP_OF.get(active.id);
   if (group && group !== active.label) crumbs.push({ label: group });
-  crumbs.push({ label: active.label, onClick: selected || clientView ? () => { setSelected(null); setClientView(null); } : undefined });
+  crumbs.push({ label: active.label, onClick: selected || clientView ? () => { setSelected(null); setClientView(null); toTop(); } : undefined });
   if (selected) crumbs.push({ label: `Commande ${selected.ref}` });
   if (clientView) crumbs.push({ label: clientView.name });
 
@@ -562,7 +568,7 @@ const AdminPortal = () => {
         <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: sideWidth, padding: "calc(8px + var(--a-top, env(safe-area-inset-top, 0px))) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 1px" }}>
           <div className="sh-panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}, 0 1px 3px rgba(0,0,0,.06)`, overflow: "hidden" }}>
             {/* L'en-tête (fil d'Ariane, recherche) défile avec la page : aucun bandeau ne cache le haut de l'écrin. */}
-            <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <div ref={scrollRef} data-admin-scroll style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
             <header style={panel
               ? { flexShrink: 0, background: C.bg }
               : { position: "sticky", top: 0, zIndex: 20, background: C.bg, paddingTop: "var(--a-top, env(safe-area-inset-top, 0px))" }}>

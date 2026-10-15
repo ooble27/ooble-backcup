@@ -346,7 +346,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
       )}
 
       <div className="grid grid-cols-1 gap-x-12 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div style={{ minWidth: 0 }}>
+        <div className="rise" style={{ minWidth: 0 }}>
           {/* Montants */}
           <style>{`@media (max-width: 480px) { .od-amt { grid-template-columns: minmax(0,1fr) !important; gap: 10px !important; } .od-amt > svg { transform: rotate(90deg); } .od-amt > div:last-child { text-align: left !important; } }`}</style>
           {/* Téléphone : « envoie » au-dessus de « reçoit », les montants ne sont jamais coupés. */}
@@ -388,7 +388,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
         </div>
 
         {/* Colonne de droite */}
-        <aside style={{ minWidth: 0 }}>
+        <aside className="rise" style={{ minWidth: 0 }}>
           <Block title="Client">
             <ClientCard clientId={order.userId ?? null} name={order.clientName} email={order.clientEmail} onShowClient={onShowClient} onWrite={onWriteClient ? () => onWriteClient(order) : undefined} />
           </Block>

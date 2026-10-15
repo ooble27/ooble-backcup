@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { replayRise } from "@/lib/pageMotion";
 import { useCan } from "@/lib/roles";
 import { prefetchOrder } from "@/lib/orderDetailCache";
 import { Check, Copy, FileText, History, Loader2, ShoppingCart, Wand2 } from "lucide-react";
@@ -72,6 +73,13 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   // Déjà en mémoire (préchargée au survol de la ligne) : la fiche s'affiche sans attente.
   const cached = peekClient(userId);
   const [profile, setProfile] = useState<ClientProfileData | null>(cached?.profile ?? null);
+  // Fiche ouverte avant que ses données soient là : quand elles arrivent, les blocs se relèvent comme à l'arrivée.
+  const ready = !!profile;
+  const wasReady = useRef(ready);
+  useEffect(() => {
+    if (ready && !wasReady.current) requestAnimationFrame(() => replayRise());
+    wasReady.current = ready;
+  }, [ready]);
   const [origin, setOrigin] = useState<SignupOrigin | null>(cached?.origin ?? null);
   const [orders, setOrders] = useState<ClientOrder[]>(cached?.orders ?? []);
   const [loading, setLoading] = useState(!cached);
@@ -133,6 +141,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   ];
 
   const chrono = profile ? <Block title="Chronologie"><ClientTimeline profile={profile} orders={orders} userId={userId} /></Block> : null;
+  const risk = profile ? <Block title="Score de risque"><RiskScoreCard profile={profile} /></Block> : null;
 
   return (
     <div>
@@ -178,7 +187,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
       )}
 
       <div className="grid grid-cols-1 gap-x-12 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div style={{ minWidth: 0 }}>
+        <div className="rise" style={{ minWidth: 0 }}>
           <Block title={orders.length > 6 ? `6 dernières commandes sur ${orders.length}` : `Commandes (${orders.length})`} right={orders.length > 0 ? (
             <Button size="sm" onClick={() => setHistory(true)} icon={<History style={{ width: 14, height: 14 }} />}>Historique complet</Button>
           ) : undefined}>
@@ -216,7 +225,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
           {history && <ClientOrdersHistory clientName={name} orders={orders} onClose={() => setHistory(false)} onOpenOrder={onOpenOrder} />}
         </div>
 
-        <aside style={{ minWidth: 0 }}>
+        <aside className="rise" style={{ minWidth: 0 }}>
           <Block title="Notes internes"><ClientNotes userId={userId} /></Block>
 
           {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
@@ -233,10 +242,10 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
             </Block>
           )}
 
-          {profile && <Block title="Score de risque"><RiskScoreCard profile={profile} /></Block>}
+          {wide && risk}
         </aside>
-        {/* Sur téléphone et tablette (une seule colonne), la chronologie passe tout en bas. */}
-        {!wide && <div style={{ minWidth: 0 }}>{chrono}</div>}
+        {/* Sur téléphone et tablette (une seule colonne) : la chronologie, puis le score de risque, tout en bas. */}
+        {!wide && <div className="rise" style={{ minWidth: 0 }}>{chrono}{risk}</div>}
       </div>
     </div>
   );
