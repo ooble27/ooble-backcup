@@ -32,7 +32,6 @@ import {
   DataTable, EmptyState, FilterChips, KeyValues, Pill, Section, Tabs, Toolbar, TwoLine,
   type Column, type Tone,
 } from "./layout";
-import { CountText } from "./CountUp";
 
 /*
  * Conformité CANAFE : alertes (analyse automatique toutes les 10 minutes et
@@ -696,8 +695,8 @@ function RegistreView({ stats, onExport, busyKind }: {
     <>
       {/* Le registre en une phrase : chiffres en couleur, pas de cases. */}
       <p style={{ margin: "22px 0 0", fontSize: "clamp(18px, 1.8vw, 22px)", lineHeight: 1.4, letterSpacing: "-0.02em", color: C.t2, maxWidth: 860 }}>
-        <b style={{ color: C.coral, fontWeight: 600 }}><CountText text={String(stats?.operations ?? "…")} /></b> opérations payées au registre et{" "}
-        <b style={{ color: C.sun, fontWeight: 600 }}><CountText text={String(stats?.journal ?? "…")} /></b> actions de l'équipe au journal, conservées{" "}
+        <b style={{ color: C.coral, fontWeight: 600 }}>{stats?.operations ?? "…"}</b> opérations payées au registre et{" "}
+        <b style={{ color: C.sun, fontWeight: 600 }}>{stats?.journal ?? "…"}</b> actions de l'équipe au journal, conservées{" "}
         <b style={{ color: C.t1, fontWeight: 600 }}>{RECORD_RETENTION_YEARS} ans</b> (LRPCFAT).{" "}
         <span style={{ color: C.t3 }}>{oldest ? `La plus ancienne date de ${monthFr(oldest)}${purge ? `, conservée jusqu'en ${monthFr(purge)}` : ""}.` : ""}</span>
       </p>

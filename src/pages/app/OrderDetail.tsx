@@ -40,17 +40,6 @@ const OrderDetail = () => {
     return () => { on = false; };
   }, [id]);
 
-  // En direct : quand l'équipe ou le système fait avancer la commande, le suivi se remplit
-  // sous les yeux du client, sans recharger.
-  useEffect(() => {
-    if (!id) return;
-    const ch = supabase.channel(`order-${id}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${id}` },
-        (p) => setOrder((o) => (o ? { ...o, ...(p.new as OrderRow) } : (p.new as OrderRow))))
-      .subscribe();
-    return () => { void supabase.removeChannel(ch); };
-  }, [id]);
-
   useEffect(() => {
     if (missing || (!id && !order)) navigate("/app/activite", { replace: true });
   }, [missing, id, order, navigate]);
