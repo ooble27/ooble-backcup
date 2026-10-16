@@ -65,7 +65,7 @@ const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const when = (iso: string) => new Date(iso).toLocaleString("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** Le parcours des courriels : envoyés → délivrés → ouverts → cliqués → commandes. */
-function Funnel({ steps }: { steps: { label: string; n: number; of?: number; color: string }[] }) {
+export function Funnel({ steps }: { steps: { label: string; n: number; of?: number; color: string }[] }) {
   const max = Math.max(1, steps[0]?.n ?? 1);
   return (
     <div className="mk-fun">
@@ -83,7 +83,7 @@ function Funnel({ steps }: { steps: { label: string; n: number; of?: number; col
 }
 
 /** Réglages du centre de contrôle, partagés par les pages (cache pour un affichage immédiat). */
-function useMarketingSettings() {
+export function useMarketingSettings() {
   const [s, setS] = useState<MarketingSettings | null>(() => peek<MarketingSettings>("mk.settings")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
   const reload = useCallback(() => {
@@ -94,7 +94,7 @@ function useMarketingSettings() {
 }
 
 /** Une phrase d'état : où en sont les interrupteurs. */
-function ControlLine({ s, onOpen }: { s: MarketingSettings | null; onOpen?: () => void }) {
+export function ControlLine({ s, onOpen }: { s: MarketingSettings | null; onOpen?: () => void }) {
   if (!s) return null;
   return (
     <div className="mk-state mk-in d2">
@@ -297,7 +297,7 @@ export function ControlCenter() {
             <p className="mk-ctl-t">Envois automatiques</p>
             <p className="mk-ctl-h">
               Coupé : une campagne programmée pour plus tard attend sans rien envoyer, même à son heure. Allumé : elle part seule, à l'heure choisie.
-              Les parcours automatiques (relances, premier achat…) suivront le même interrupteur.
+              Les parcours automatiques (Marketing › Parcours) suivent le même interrupteur.
             </p>
           </div>
           <Toggle on={!!s?.automaticSends} disabled={!admin || busy || !s} label="Envois automatiques" onChange={flipAuto} />

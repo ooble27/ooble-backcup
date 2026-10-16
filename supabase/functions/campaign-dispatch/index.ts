@@ -12,6 +12,9 @@
 //   • Forfait du jour : on n'envoie jamais plus que la limite quotidienne moins la réserve gardée pour
 //     les courriels de commande ; le reste attend le lendemain.
 //   • Désabonnés : jamais d'envoi (statut « ignoré »).
+//   • Parcours (Marketing › Parcours) : leur campagne permanente n'envoie que si le parcours est
+//     allumé et les envois automatiques aussi. Parcours éteint, ou courriel en attente depuis plus de
+//     24 heures : il est « ignoré », pour ne jamais écrire à quelqu'un hors de propos.
 //
 // Secrets : RESEND_API_KEY, EMAIL_FROM (+ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY automatiques).
 
@@ -37,10 +40,25 @@ Deno.serve(async (req) => {
   const { data: s } = await db.from("marketing_settings").select("*").eq("id", 1).maybeSingle();
   const settings = { clientSends: !!s?.client_sends, automatic: !!s?.automatic_sends, limit: Number(s?.daily_limit ?? 100), reserve: Number(s?.daily_reserve ?? 30) };
 
-  // Campagnes dues.
-  const { data: due } = await db.from("campaigns").select("id, status, scheduled_at, created_at, is_test")
-    .in("status", ["scheduled", "sending"]).lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(5);
-  if (!due?.length) return json({ ok: true, idle: true });
+  // Campagnes dues, puis les parcours qui ont des courriels en attente.
+  const { data: dueRows } = await db.from("campaigns").select("id, status, scheduled_at, created_at, is_test, journey_id")
+    .is("journey_id", null).in("status", ["scheduled", "sending"]).lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(5);
+  const due: { id: string; status: string; scheduled_at: string; created_at: string; is_test: boolean; journey_id: string | null }[] = [...(dueRows ?? [])];
+  const { data: journeys } = await db.from("journeys").select("id, enabled, campaign_id");
+  for (const j of journeys ?? []) {
+    if (!j.campaign_id) continue;
+    const stale = new Date(Date.now() - 24 * 3600_000).toISOString();
+    // Parcours éteint, ou courriel trop ancien : il ne part plus.
+    if (!j.enabled) {
+      await db.from("campaign_sends").update({ status: "skipped", error: "Parcours éteint." }).eq("campaign_id", j.campaign_id).eq("status", "queued");
+      continue;
+    }
+    await db.from("campaign_sends").update({ status: "skipped", error: "En attente depuis plus de 24 heures : plus d'actualité." })
+      .eq("campaign_id", j.campaign_id).eq("status", "queued").lt("created_at", stale);
+    const { count } = await db.from("campaign_sends").select("id", { count: "exact", head: true }).eq("campaign_id", j.campaign_id).eq("status", "queued");
+    if (count) due.push({ id: j.campaign_id, status: "paused", scheduled_at: "", created_at: "", is_test: false, journey_id: j.id });
+  }
+  if (!due.length) return json({ ok: true, idle: true });
 
   // Forfait du jour : limite moins la réserve des commandes, moins ce qui est déjà parti aujourd'hui.
   const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
@@ -59,7 +77,7 @@ Deno.serve(async (req) => {
 
   const report: Record<string, unknown>[] = [];
   for (const c of due) {
-    const automatic = new Date(c.scheduled_at).getTime() - new Date(c.created_at).getTime() > AUTOMATIC_AFTER_MS;
+    const automatic = !!c.journey_id || new Date(c.scheduled_at).getTime() - new Date(c.created_at).getTime() > AUTOMATIC_AFTER_MS;
     if (automatic && !settings.automatic) { report.push({ id: c.id, waiting: "envois automatiques coupés" }); continue; }
     if (c.status === "scheduled") {
       await db.from("campaigns").update({ status: "sending", started_at: new Date().toISOString() }).eq("id", c.id).eq("status", "scheduled");
@@ -121,9 +139,9 @@ Deno.serve(async (req) => {
       await new Promise((r) => setTimeout(r, 550)); // Resend : 2 envois par seconde au plus
     }
 
-    // Terminée quand plus rien n'attend.
+    // Terminée quand plus rien n'attend (un parcours, lui, ne se termine jamais).
     const { count: left } = await db.from("campaign_sends").select("id", { count: "exact", head: true }).eq("campaign_id", c.id).eq("status", "queued");
-    if (!left) await db.from("campaigns").update({ status: "sent", finished_at: new Date().toISOString() }).eq("id", c.id).in("status", ["sending", "scheduled"]);
+    if (!left && !c.journey_id) await db.from("campaigns").update({ status: "sent", finished_at: new Date().toISOString() }).eq("id", c.id).in("status", ["sending", "scheduled"]);
     report.push({ id: c.id, sent, blocked, skipped, failed, left: left ?? 0 });
     if (budget <= 0) break;
   }

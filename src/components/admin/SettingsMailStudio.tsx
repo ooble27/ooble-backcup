@@ -18,11 +18,11 @@ import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { SaveBar } from "./settingsUi";
 import {
-  MAILS, MAIL_BY_ID, MAIL_STYLES, SAMPLE_VARS, SAMPLE_VARS_EN, composeMail, copyOf, effective, fillSample, styleFromDb, styleToDb, unknownTokens,
+  STUDIO_MAILS as MAILS, MAIL_BY_ID, MAIL_STYLES, SAMPLE_VARS, SAMPLE_VARS_EN, composeMail, copyOf, effective, fillSample, styleFromDb, styleToDb, unknownTokens,
   DEFAULT_COMPANY, type MailKind, type MailLang, type MailStyle,
 } from "../../../supabase/functions/_shared/mailStudio.ts";
 
-const CSS = `
+export const MS_CSS = `
 .ms-k { margin: 0; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--a-t3); }
 .ms-h { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.03em; color: var(--a-t1); }
 .ms-sub { margin: 4px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--a-t3); max-width: 620px; }
@@ -184,7 +184,7 @@ function Thumb({ srcDoc, title, ratio }: { srcDoc: string; title: string; ratio?
 }
 
 /** Choix soulignés (comme les filtres du back-office). */
-function Opts<T extends string>({ value, options, onPick, label }: { value: T; options: { id: T; label: string }[]; onPick: (v: T) => void; label: string }) {
+export function Opts<T extends string>({ value, options, onPick, label }: { value: T; options: { id: T; label: string }[]; onPick: (v: T) => void; label: string }) {
   return (
     <div className="ms-opts" role="group" aria-label={label}>
       {options.map((o) => <button key={o.id} type="button" aria-pressed={o.id === value} onClick={() => onPick(o.id)}>{o.label}</button>)}
@@ -192,11 +192,11 @@ function Opts<T extends string>({ value, options, onPick, label }: { value: T; o
   );
 }
 
-const DEVICES = [{ id: "desktop" as const, label: "Ordinateur" }, { id: "mobile" as const, label: "Téléphone" }];
-type Device = (typeof DEVICES)[number]["id"];
-const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches;
+export const DEVICES = [{ id: "desktop" as const, label: "Ordinateur" }, { id: "mobile" as const, label: "Téléphone" }];
+export type Device = (typeof DEVICES)[number]["id"];
+export const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches;
 
-function Preview({ srcDoc, device, title }: { srcDoc: string; device: Device; title: string }) {
+export function Preview({ srcDoc, device, title }: { srcDoc: string; device: Device; title: string }) {
   return device === "mobile"
     ? <div className="ms-phone"><MailFrame srcDoc={srcDoc} width={390} title={title} /></div>
     : <MailFrame srcDoc={srcDoc} width={640} title={title} />;
@@ -469,7 +469,7 @@ function MailEditor({ kind, rows, texts, globalStyle, onBack, onOpen, reload }: 
 const PARAM = "courriel";
 const readMail = (): MailKind | null => {
   const k = new URLSearchParams(window.location.search).get(PARAM);
-  return k && k in MAIL_BY_ID ? (k as MailKind) : null;
+  return k && MAILS.some((m) => m.id === k) ? (k as MailKind) : null;
 };
 
 export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
@@ -511,7 +511,7 @@ export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
 
   if (mail) return (
     <>
-      <style>{CSS}</style>
+      <style>{MS_CSS}</style>
       <MailEditor kind={mail} rows={rows} texts={texts} globalStyle={globalStyle} onBack={() => openMail(null)} onOpen={openMail} reload={reload} />
     </>
   );
@@ -522,7 +522,7 @@ export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="st-page">
-      <style>{CSS}</style>
+      <style>{MS_CSS}</style>
       <button type="button" className="st-back" onClick={leave}>
         <ArrowLeft style={{ width: 15, height: 15 }} />Réglages
       </button>
@@ -592,7 +592,7 @@ export function MailStudioEntry({ onOpen }: { onOpen: () => void }) {
   const thumbs = useMemo(() => MAIL_STYLES.map((s) => ({ id: s.id, name: s.name, html: html("order-completed", s.id) })), []);
   return (
     <>
-      <style>{CSS + `
+      <style>{MS_CSS + `
 .ms-entry { display: grid; gap: 26px; width: 100%; margin-top: 56px; padding: 0; border: none; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; animation: st-in .55s cubic-bezier(.22,1,.36,1) .04s both; }
 @media (min-width: 900px) { .ms-entry { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; gap: 56px; } }
 .ms-entry:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 8px; border-radius: 12px; }

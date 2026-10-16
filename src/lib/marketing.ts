@@ -72,7 +72,8 @@ export interface CampaignRow {
 }
 
 export async function listCampaigns(): Promise<CampaignRow[]> {
-  const { data, error } = await supabase.from("campaigns").select("*").order("scheduled_at", { ascending: false }).limit(200);
+  // Les campagnes permanentes des parcours ont leur propre page.
+  const { data, error } = await supabase.from("campaigns").select("*").is("journey_id", null).order("scheduled_at", { ascending: false }).limit(200);
   if (error) throw new Error(error.message);
   return (data ?? []).map((c) => ({
     id: c.id, name: c.name, templateId: c.template_id, valuesByLang: c.values_by_lang as CampaignRow["valuesByLang"],
@@ -150,5 +151,66 @@ export async function setCampaignStatus(id: string, status: "cancelled" | "sched
   const { error } = await supabase.from("campaigns").update({ status }).eq("id", id);
   if (error) return error.message;
   void logAdminAction({ action: status === "cancelled" ? "marketing.campaign_cancel" : "marketing.campaign_resume", entityKind: "campaigns", entityId: id });
+  return null;
+}
+
+// ─── Parcours automatiques ───────────────────────────────────
+
+export type JourneyId = "verify" | "first-buy" | "abandoned" | "winback" | "thanks";
+export type JourneyStyle = "sobre" | "recu" | "phrase";
+
+export interface JourneyStep { kind: string; position: number; delayHours: number }
+export interface Journey {
+  id: JourneyId; enabled: boolean; style: JourneyStyle; campaignId: string | null;
+  updatedAt: string | null; updatedByName: string | null; steps: JourneyStep[];
+}
+export interface JourneyText { subject: string | null; heading: string | null; lead: string | null; button: string | null }
+
+export async function loadJourneys(): Promise<Journey[]> {
+  const [j, s] = await Promise.all([
+    supabase.from("journeys").select("*"),
+    supabase.from("journey_steps").select("*").order("position"),
+  ]);
+  const error = j.error ?? s.error;
+  if (error) throw new Error(error.message);
+  return (j.data ?? []).map((r) => ({
+    id: r.id as JourneyId, enabled: r.enabled, style: (r.style as JourneyStyle) ?? "phrase", campaignId: r.campaign_id,
+    updatedAt: r.updated_at, updatedByName: r.updated_by_name,
+    steps: (s.data ?? []).filter((x) => x.journey_id === r.id).map((x) => ({ kind: x.kind, position: x.position, delayHours: x.delay_hours })),
+  }));
+}
+
+/** Combien de personnes chaque courriel toucherait en ce moment. */
+export async function fetchJourneyPreview(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.rpc("journey_preview");
+  if (error) throw new Error(error.message);
+  return Object.fromEntries((data ?? []).map((r) => [r.kind, r.people]));
+}
+
+export async function saveJourney(id: JourneyId, patch: { enabled?: boolean; style?: JourneyStyle }, byName: string): Promise<string | null> {
+  const { data: auth } = await supabase.auth.getSession();
+  const { error } = await supabase.from("journeys").update({ ...patch, updated_at: new Date().toISOString(), updated_by: auth.session?.user?.id ?? null, updated_by_name: byName }).eq("id", id);
+  if (error) return error.message;
+  void logAdminAction({ action: "marketing.journey", entityKind: "journeys", entityId: id, metadata: patch });
+  return null;
+}
+
+export async function saveStepDelay(kind: string, hours: number): Promise<string | null> {
+  const { error } = await supabase.from("journey_steps").update({ delay_hours: hours }).eq("kind", kind);
+  if (error) return error.message.includes("check") ? "Délai hors des limites permises." : error.message;
+  void logAdminAction({ action: "marketing.journey_delay", entityKind: "journey_steps", entityId: kind, metadata: { hours } });
+  return null;
+}
+
+export async function loadJourneyTexts(): Promise<Record<string, JourneyText>> {
+  const { data, error } = await supabase.from("journey_texts").select("kind, lang, subject, heading, lead, button");
+  if (error) throw new Error(error.message);
+  return Object.fromEntries((data ?? []).map((r) => [`${r.kind}:${r.lang}`, { subject: r.subject, heading: r.heading, lead: r.lead, button: r.button }]));
+}
+
+export async function saveJourneyText(kind: string, lang: "fr" | "en", t: JourneyText, byName: string): Promise<string | null> {
+  const { error } = await supabase.from("journey_texts").upsert({ kind, lang, ...t, updated_at: new Date().toISOString(), updated_by_name: byName });
+  if (error) return error.message.includes("check") ? "Un texte dépasse la longueur permise." : error.message;
+  void logAdminAction({ action: "marketing.journey_text", entityKind: "journey_texts", entityId: kind, metadata: { lang } });
   return null;
 }

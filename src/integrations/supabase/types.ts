@@ -658,6 +658,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_name: string | null
+          journey_id: string | null
         }
         Insert: {
           id?: string
@@ -674,6 +675,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          journey_id?: string | null
         }
         Update: {
           id?: string
@@ -690,6 +692,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          journey_id?: string | null
         }
         Relationships: []
       }
@@ -1352,6 +1355,120 @@ export type Database = {
           title?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      journeys: {
+        Row: {
+          id: string
+          enabled: boolean
+          style: string
+          campaign_id: string | null
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+        }
+        Insert: {
+          id: string
+          enabled?: boolean
+          style?: string
+          campaign_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Update: {
+          id?: string
+          enabled?: boolean
+          style?: string
+          campaign_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
+      journey_runs: {
+        Row: {
+          id: number
+          journey_id: string
+          kind: string
+          user_id: string
+          run_key: string
+          send_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          journey_id: string
+          kind: string
+          user_id: string
+          run_key: string
+          send_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          journey_id?: string
+          kind?: string
+          user_id?: string
+          run_key?: string
+          send_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      journey_steps: {
+        Row: {
+          kind: string
+          journey_id: string
+          position: number
+          delay_hours: number
+        }
+        Insert: {
+          kind: string
+          journey_id: string
+          position?: number
+          delay_hours: number
+        }
+        Update: {
+          kind?: string
+          journey_id?: string
+          position?: number
+          delay_hours?: number
+        }
+        Relationships: []
+      }
+      journey_texts: {
+        Row: {
+          kind: string
+          lang: string
+          subject: string | null
+          heading: string | null
+          lead: string | null
+          button: string | null
+          updated_at: string
+          updated_by_name: string | null
+        }
+        Insert: {
+          kind: string
+          lang: string
+          subject?: string | null
+          heading?: string | null
+          lead?: string | null
+          button?: string | null
+          updated_at?: string
+          updated_by_name?: string | null
+        }
+        Update: {
+          kind?: string
+          lang?: string
+          subject?: string | null
+          heading?: string | null
+          lead?: string | null
+          button?: string | null
+          updated_at?: string
+          updated_by_name?: string | null
         }
         Relationships: []
       }
@@ -2499,6 +2616,7 @@ export type Database = {
         Returns: undefined
       }
       campaign_results: { Args: { _id: string }; Returns: Json }
+      journey_preview: { Args: never; Returns: { kind: string; people: number }[] }
       campaign_summaries: { Args: never; Returns: { campaign_id: string; total: number; queued: number; sent: number; delivered: number; opened: number; clicked: number; blocked: number; skipped: number; failed: number }[] }
       campaign_prepare: {
         Args: { p_emails: string[] }

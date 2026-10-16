@@ -43,11 +43,12 @@ import { Button, Notice, SidePanel, SummaryRow, Workspace, WsPane, type Workspac
 import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column } from "./layout";
 import { ScaledFrame } from "./EmailFrame";
 import { CampaignList, ControlCenter, MarketingOverview } from "./MarketingPanels";
+import { JourneysPanel } from "./JourneysPanel";
 import { loadMarketingSettings, queueCampaign, type MarketingSettings, type PreparedSend } from "@/lib/marketing";
 
 // ─── Types ──────────────────────────────────────────────────
 
-type SubTab = "overview" | "templates" | "history" | "control";
+type SubTab = "overview" | "templates" | "history" | "journeys" | "control";
 
 interface Recipient {
   id?: string;
@@ -492,6 +493,7 @@ const CampaignsPanel = () => {
         { id: "overview", label: "Vue d'ensemble" },
         { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
         { id: "history", label: "Campagnes envoyées" },
+        { id: "journeys", label: "Parcours" },
         { id: "control", label: "Centre de contrôle" },
       ]} />
       <div key={tab} style={{ marginTop: 34 }}>
@@ -542,6 +544,7 @@ const CampaignsPanel = () => {
             )}
           </>
         )}
+        {tab === "journeys" && <JourneysPanel onControl={() => setTab("control")} />}
         {tab === "control" && <ControlCenter />}
       </div>
       {studio && (

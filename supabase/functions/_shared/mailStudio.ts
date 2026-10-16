@@ -18,7 +18,11 @@ export const MAIL_STYLES: { id: MailStyle; name: string; line: string }[] = [
 
 export type MailKind =
   | "welcome" | "order-buy" | "order-sell" | "payment-received" | "usdt-received" | "order-completed"
-  | "kyc-approved" | "kyc-rejected" | "kyb-approved" | "kyb-rejected";
+  | "kyc-approved" | "kyc-rejected" | "kyb-approved" | "kyb-rejected"
+  | JourneyKind;
+
+/** Courriels des parcours automatiques (Marketing › Parcours) : marketing, avec désabonnement. */
+export type JourneyKind = "j-verify-1" | "j-verify-2" | "j-first-buy" | "j-abandoned" | "j-winback" | "j-thanks";
 
 /** Mots qu'on peut glisser dans les textes : {prénom} devient le vrai prénom à l'envoi. */
 export const TOKENS: Record<string, { v: string; sample: string }> = {
@@ -39,7 +43,7 @@ export interface MailSpec {
   name: string;
   /** Quand il part, dit simplement. */
   when: string;
-  group: "Commandes" | "Vérification" | "Compte";
+  group: "Commandes" | "Vérification" | "Compte" | "Parcours";
   eyebrow: string;
   subject: string;
   heading: string;
@@ -54,6 +58,8 @@ export interface MailSpec {
   notice?: string;
   /** Mots proposés à l'insertion pour ce courriel. */
   tokens: string[];
+  /** Courriel marketing : pied de page avec le lien de désabonnement {{unsubscribeUrl}}. */
+  marketing?: boolean;
 }
 
 const ORDER_TOKENS = ["référence", "montant CAD", "montant USDT", "réseau"];
@@ -169,6 +175,72 @@ export const MAILS: MailSpec[] = [
     notice: "<strong>Ce qu'il faut corriger</strong><br>{{reason}}",
     tokens: ["prénom", "entreprise"],
   },
+  {
+    id: "j-verify-1", name: "Il reste une étape", when: "Inscrite depuis 2 jours, vérification d'identité pas commencée.", group: "Parcours", marketing: true,
+    phrase: "Il ne reste *qu'une étape*, {{firstName}}.",
+    eyebrow: "Vérification", subject: "{prénom}, il reste une étape avant votre premier achat",
+    heading: "Il vous reste une étape, {prénom}",
+    lead: "Pour acheter ou vendre de l'USDT, la loi nous demande de vérifier votre identité. Cela prend environ trois minutes depuis votre téléphone : une pièce d'identité et un égoportrait.",
+    button: "Vérifier mon identité", url: "{{verifyIdUrl}}",
+    rows: [["Durée", "Environ 3 minutes"], ["Il vous faut", "Une pièce d'identité valide"], ["Ensuite", "Achat et vente ouverts"]],
+    hero: ["Il vous reste", "1 étape"],
+    tokens: ["prénom"],
+  },
+  {
+    id: "j-verify-2", name: "Votre compte vous attend", when: "Inscrite depuis 7 jours, toujours pas vérifiée.", group: "Parcours", marketing: true,
+    phrase: "Votre compte vous *attend toujours*, {{firstName}}.",
+    eyebrow: "Vérification", subject: "Votre compte Ooble attend toujours sa vérification",
+    heading: "Votre compte vous attend, {prénom}",
+    lead: "Votre vérification d'identité n'est pas encore faite. Dès qu'elle l'est, vous pouvez acheter de l'USDT par virement Interac et le recevoir sur votre propre portefeuille, en quelques minutes.",
+    button: "Terminer ma vérification", url: "{{verifyIdUrl}}",
+    rows: [["Vérification", "Pas encore commencée"], ["Durée", "Environ 3 minutes"]],
+    hero: ["Vérification", "À faire"],
+    tokens: ["prénom"],
+  },
+  {
+    id: "j-first-buy", name: "Premier achat", when: "Vérifiée depuis 3 jours, aucune commande.", group: "Parcours", marketing: true,
+    phrase: "Votre compte est prêt. *Premier achat* ?",
+    eyebrow: "Compte vérifié", subject: "Votre identité est vérifiée : passez à votre premier achat",
+    heading: "C'est le moment de votre premier achat, {prénom}",
+    lead: "Votre identité est vérifiée. Choisissez un montant, payez par virement Interac et recevez vos USDT sur la blockchain de votre choix, directement dans votre portefeuille.",
+    button: "Faire mon premier achat", url: "{{buyUrl}}",
+    rows: [["Paiement", "Interac e-Transfer"], ["Réception", "Dans votre propre portefeuille"], ["Blockchains", "Plusieurs au choix"]],
+    hero: ["Votre compte", "Prêt"],
+    tokens: ["prénom"],
+  },
+  {
+    id: "j-abandoned", name: "Achat expiré", when: "Un achat annulé faute de paiement, sans nouvel achat depuis.", group: "Parcours", marketing: true,
+    phrase: "Votre achat a *expiré*, {{firstName}}.",
+    eyebrow: "Achat expiré", subject: "Votre achat n'a pas été payé à temps",
+    heading: "Votre achat a expiré, {prénom}",
+    lead: "Votre ordre d'achat a été annulé parce que le virement Interac n'est pas arrivé à temps. Vous pouvez en créer un nouveau au taux du moment, en quelques secondes. Si vous aviez déjà envoyé le virement, répondez à ce courriel : nous le retrouvons.",
+    button: "Créer un nouvel achat", url: "{{buyUrl}}",
+    rows: [["Statut", "Annulé"], ["Nouvel achat", "Au taux du moment"]],
+    hero: ["Achat", "Expiré"],
+    tokens: ["prénom"],
+  },
+  {
+    id: "j-winback", name: "Ça fait un moment", when: "Aucune commande depuis 60 jours (la dernière était terminée).", group: "Parcours", marketing: true,
+    phrase: "Ça fait *un moment*, {{firstName}}.",
+    eyebrow: "Votre compte", subject: "Ça fait un moment, {prénom}",
+    heading: "Ça fait un moment, {prénom}",
+    lead: "Votre compte Ooble est toujours actif et vérifié. Quand vous voulez acheter ou vendre de l'USDT, c'est au même endroit : Interac d'un côté, votre portefeuille de l'autre.",
+    button: "Ouvrir Ooble", url: "{{appUrl}}",
+    rows: [["Votre compte", "Actif et vérifié"], ["Achat et vente", "Par Interac e-Transfer"]],
+    hero: ["Votre compte", "Actif"],
+    tokens: ["prénom"],
+  },
+  {
+    id: "j-thanks", name: "Merci", when: "Le lendemain de la première transaction terminée.", group: "Parcours", marketing: true,
+    phrase: "Merci pour votre *première transaction*, {{firstName}}.",
+    eyebrow: "Merci", subject: "Merci pour votre première transaction",
+    heading: "Merci, {prénom}",
+    lead: "Votre première transaction sur Ooble est terminée. Merci de votre confiance. Une question, une remarque ? Répondez simplement à ce courriel : un membre de l'équipe vous lit.",
+    button: "Ouvrir Ooble", url: "{{appUrl}}",
+    rows: [],
+    hero: ["Première transaction", "Terminée"],
+    tokens: ["prénom"],
+  },
 ];
 
 /** Ce qui change d'une langue à l'autre dans un courriel. */
@@ -272,6 +344,60 @@ export const MAIL_EN: Record<MailKind, MailCopy> = {
     notice: "<strong>What to fix</strong><br>{{reason}}",
     phrase: "The file for *{{businessName}}* ~needs corrections~.",
   },
+  "j-verify-1": {
+    eyebrow: "Verification", subject: "{prénom}, one step left before your first purchase",
+    heading: "One step left, {prénom}",
+    lead: "To buy or sell USDT, the law requires us to verify your identity. It takes about three minutes from your phone: a piece of ID and a selfie.",
+    button: "Verify my identity",
+    rows: [["Time", "About 3 minutes"], ["You'll need", "A valid piece of ID"], ["Then", "Buying and selling unlocked"]],
+    hero: ["You have", "1 step left"],
+    phrase: "Just *one step left*, {{firstName}}.",
+  },
+  "j-verify-2": {
+    eyebrow: "Verification", subject: "Your Ooble account is still waiting for verification",
+    heading: "Your account is waiting, {prénom}",
+    lead: "Your identity verification isn't done yet. Once it is, you can buy USDT by Interac e-Transfer and receive it in your own wallet within minutes.",
+    button: "Finish my verification",
+    rows: [["Verification", "Not started yet"], ["Time", "About 3 minutes"]],
+    hero: ["Verification", "To do"],
+    phrase: "Your account is *still waiting*, {{firstName}}.",
+  },
+  "j-first-buy": {
+    eyebrow: "Account verified", subject: "Your identity is verified: make your first purchase",
+    heading: "Time for your first purchase, {prénom}",
+    lead: "Your identity is verified. Pick an amount, pay by Interac e-Transfer and receive your USDT on the blockchain of your choice, straight to your wallet.",
+    button: "Make my first purchase",
+    rows: [["Payment", "Interac e-Transfer"], ["Delivery", "To your own wallet"], ["Blockchains", "Several to choose from"]],
+    hero: ["Your account", "Ready"],
+    phrase: "Your account is ready. *First purchase*?",
+  },
+  "j-abandoned": {
+    eyebrow: "Purchase expired", subject: "Your purchase wasn't paid in time",
+    heading: "Your purchase expired, {prénom}",
+    lead: "Your buy order was cancelled because the Interac e-Transfer didn't arrive in time. You can create a new one at the current rate in seconds. If you already sent the transfer, just reply to this email and we'll find it.",
+    button: "Start a new purchase",
+    rows: [["Status", "Cancelled"], ["New purchase", "At the current rate"]],
+    hero: ["Purchase", "Expired"],
+    phrase: "Your purchase *expired*, {{firstName}}.",
+  },
+  "j-winback": {
+    eyebrow: "Your account", subject: "It's been a while, {prénom}",
+    heading: "It's been a while, {prénom}",
+    lead: "Your Ooble account is still active and verified. Whenever you want to buy or sell USDT, it's all in the same place: Interac on one side, your wallet on the other.",
+    button: "Open Ooble",
+    rows: [["Your account", "Active and verified"], ["Buy and sell", "By Interac e-Transfer"]],
+    hero: ["Your account", "Active"],
+    phrase: "It's been *a while*, {{firstName}}.",
+  },
+  "j-thanks": {
+    eyebrow: "Thank you", subject: "Thank you for your first transaction",
+    heading: "Thank you, {prénom}",
+    lead: "Your first transaction on Ooble is complete. Thank you for your trust. A question or a comment? Just reply to this email: a team member reads every message.",
+    button: "Open Ooble",
+    rows: [],
+    hero: ["First transaction", "Complete"],
+    phrase: "Thank you for your *first transaction*, {{firstName}}.",
+  },
 };
 
 export type MailLang = "fr" | "en";
@@ -284,7 +410,11 @@ export function copyOf(spec: MailSpec, lang: MailLang = "fr"): MailCopy {
 }
 
 export const MAIL_BY_ID = Object.fromEntries(MAILS.map((m) => [m.id, m])) as Record<MailKind, MailSpec>;
-export const isMailKind = (k: string): k is MailKind => k in MAIL_BY_ID;
+/** Courriels automatiques du studio (Réglages) : tous sauf ceux des parcours. */
+export const isMailKind = (k: string): k is MailKind => k in MAIL_BY_ID && MAIL_BY_ID[k as MailKind].group !== "Parcours";
+export const isJourneyKind = (k: string): k is JourneyKind => k in MAIL_BY_ID && MAIL_BY_ID[k as MailKind].group === "Parcours";
+/** Les courriels montrés dans le studio des Réglages. */
+export const STUDIO_MAILS = MAILS.filter((m) => m.group !== "Parcours");
 export const isMailStyle = (s: unknown): s is MailStyle => MAIL_STYLES.some((x) => x.id === s);
 
 /** Textes modifiés depuis le studio. Vide ou absent = texte d'origine. */
@@ -337,7 +467,7 @@ const brandMark = () => `<table role="presentation" cellpadding="0" cellspacing=
     <td style="vertical-align:middle;font:600 17px/1 ${POP};letter-spacing:-0.02em;color:${INK};">Ooble</td>
   </tr></table>`;
 
-interface Parts { lang: MailLang; eyebrow: string; heading: string; lead: string; button: string; url: string; rows: Row[]; hero?: [string, string]; notice?: string; phrase: string }
+interface Parts { lang: MailLang; marketing?: boolean; eyebrow: string; heading: string; lead: string; button: string; url: string; rows: Row[]; hero?: [string, string]; notice?: string; phrase: string }
 
 function shell(opts: { lang: MailLang; bg: string; font: string; inner: string; preheader: string; poppins?: boolean }): string {
   return `<!doctype html>
@@ -369,7 +499,7 @@ ${opts.inner}
 </html>`;
 }
 
-function footer(c: MailCompany, tone: { text: string; link: string; rule: string; brand: string }, lang: MailLang, align: "left" | "center" = "left"): string {
+function footer(c: MailCompany, tone: { text: string; link: string; rule: string; brand: string }, lang: MailLang, marketing = false, align: "left" | "center" = "left"): string {
   const en = lang === "en";
   const host = c.website.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const contact = [c.email ? `<a href="mailto:${esc(c.email)}" style="color:${tone.link};text-decoration:none;">${esc(c.email)}</a>` : "",
@@ -387,6 +517,7 @@ function footer(c: MailCompany, tone: { text: string; link: string; rule: string
       ${en
         ? "You're receiving this email because you have an Ooble account. Questions? Just reply to this message and a team member will get back to you."
         : "Vous recevez ce courriel parce que vous avez un compte sur Ooble. Pour une question, répondez simplement à ce message : un membre de l'équipe vous répond."}
+      ${marketing ? `<br /><a href="{{unsubscribeUrl}}" style="color:${tone.link};text-decoration:underline;">${en ? "Unsubscribe from these emails" : "Ne plus recevoir ces courriels"}</a>` : ""}
       <br />&copy; {{year}} ${esc(c.legal)}.
     </div>
   </div>`;
@@ -421,7 +552,7 @@ function sobre(p: Parts, c: MailCompany): string {
       ${p.notice ? `<div style="margin:0 0 20px;padding:12px 14px;background:#f6f6f4;border-left:3px solid #111;border-radius:6px;font-size:13px;color:#3a3a37;">${p.notice}</div>` : ""}
       ${button(p.url, p.button, "#111", "#ffffff")}
     </div>
-    <div class="pad" style="padding:18px 28px 22px;border-top:1px solid #ececea;">${footer(c, { text: "#8a8a86", link: "#4a4a47", rule: "#ececea", brand: "#111" }, p.lang)}</div>
+    <div class="pad" style="padding:18px 28px 22px;border-top:1px solid #ececea;">${footer(c, { text: "#8a8a86", link: "#4a4a47", rule: "#ececea", brand: "#111" }, p.lang, p.marketing)}</div>
   </div>
 </div>`;
 }
@@ -448,7 +579,7 @@ function recu(p: Parts, c: MailCompany): string {
   ${lines ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:34px 0 0;border-collapse:collapse;border-top:2px solid ${INK};">${lines}</table>` : ""}
   ${p.notice ? `<p style="margin:28px 0 0;padding-left:14px;border-left:3px solid ${SUN};font:400 14px/1.65 ${POP};color:${BODY};">${p.notice}</p>` : ""}
   <div style="margin:36px 0 0;">${button(p.url, p.button, INK, "#ffffff", 12, POP)}</div>
-  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK }, p.lang)}</div>
+  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK }, p.lang, p.marketing)}</div>
 </div>`;
 }
 
@@ -472,7 +603,7 @@ function phrase(p: Parts, c: MailCompany): string {
   ${trs.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:40px 0 0;border-collapse:collapse;">${trs.join("")}</table>` : ""}
   ${p.notice ? `<p style="margin:${trs.length ? "8px" : "32px"} 0 0;padding-left:14px;border-left:3px solid ${SUN};font:400 14px/1.65 ${POP};color:${BODY};">${p.notice}</p>` : ""}
   <p style="margin:36px 0 0;"><a href="${p.url}" style="font:600 16px/1.4 ${POP};color:${INK};text-decoration:none;border-bottom:2px solid ${SUN};padding-bottom:3px;">${p.button}&nbsp;&rarr;</a></p>
-  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK }, p.lang)}</div>
+  <div style="margin:56px 0 0;padding-top:22px;border-top:1px solid ${LINE};">${footer(c, { text: MUTE, link: BODY, rule: LINE, brand: INK }, p.lang, p.marketing)}</div>
 </div>`;
 }
 
@@ -490,7 +621,7 @@ export function composeMail(kind: MailKind, style: MailStyle, text?: MailText | 
   // Seuls les mots que ce courriel sait remplir ; les autres restent du texte.
   const allowed = spec.tokens;
   const parts: Parts = {
-    lang, eyebrow: o.eyebrow,
+    lang, marketing: spec.marketing, eyebrow: o.eyebrow,
     heading: textToHtml(t.heading, allowed),
     lead: textToHtml(t.lead, allowed, true),
     button: textToHtml(t.button, allowed),
@@ -525,7 +656,7 @@ export const SAMPLE_VARS_EN: Record<string, string> = {
   receptionAddress: "TQ5NyrAp2Zb6v1mH8ZcX4kD9uR3tW7eLfP",
   depositAddress: "TXa9Pq3mLk2Vd8Rf6Hs1Ny4Bc7Ue5Jw0Zt",
   reason: "The photo of your ID is blurry: all four corners must be visible.",
-  orderUrl: "#", verifyUrl: "#", appUrl: "#", retryUrl: "#",
+  orderUrl: "#", verifyUrl: "#", appUrl: "#", retryUrl: "#", verifyIdUrl: "#", buyUrl: "#", unsubscribeUrl: "#",
 };
 export const SAMPLE_VARS: Record<string, string> = {
   ...Object.fromEntries(Object.values(TOKENS).map((t) => [t.v, t.sample])),
@@ -537,7 +668,7 @@ export const SAMPLE_VARS: Record<string, string> = {
   receptionAddress: "TQ5NyrAp2Zb6v1mH8ZcX4kD9uR3tW7eLfP",
   depositAddress: "TXa9Pq3mLk2Vd8Rf6Hs1Ny4Bc7Ue5Jw0Zt",
   reason: "La photo de la pièce d'identité est floue : les quatre coins doivent être visibles.",
-  orderUrl: "#", verifyUrl: "#", appUrl: "#", retryUrl: "#",
+  orderUrl: "#", verifyUrl: "#", appUrl: "#", retryUrl: "#", verifyIdUrl: "#", buyUrl: "#", unsubscribeUrl: "#",
 };
 
 /** Remplit les {{variables}} avec des valeurs d'exemple (échappées, sauf les *Html). */
