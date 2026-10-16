@@ -69,7 +69,7 @@ const GROUPS: NavGroup[] = [
   ] },
   { label: "Communication", items: [
     { id: "mailbox", label: "Messagerie", desc: "Écrire à un client à partir d'un modèle, historique des envois, boîte de réception.", icon: Mail },
-    { id: "campaigns", label: "Campagnes", desc: "Courriels marketing en français et en anglais, envoyés dans la langue de chaque client.", icon: Megaphone },
+    { id: "campaigns", label: "Marketing", desc: "Campagnes, parcours automatiques et résultats, sous votre contrôle.", icon: Megaphone },
     { id: "announcements", label: "Bannière et maintenance", desc: "Message en haut du site pour tous les clients, et mode maintenance qui suspend les commandes.", icon: Bell },
   ] },
   { label: "Administration", items: [

@@ -214,7 +214,7 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
                     <span className="n">{c.name}</span>
                     <span className="d">{when(c.scheduledAt)}{c.isTest ? " · test" : ""}</span>
                   </span>
-                  {m && <span className="v">{nf.format(m.sent)} envoyés · <span style={{ color: C.sage }}>{pct(m.opened, m.sent)} %</span> ouverts</span>}
+                  {m && <span className="v">{nf.format(m.sent)} envoyé{m.sent > 1 ? "s" : ""} · <span style={{ color: C.sage }}>{pct(m.opened, m.sent)} %</span> ouverts</span>}
                   <ArrowRight style={{ width: 16, height: 16, color: C.t3, flexShrink: 0 }} />
                 </button>
               );
@@ -416,7 +416,7 @@ function CampaignDetail({ c, onClose, onChanged, preview }: {
               <span style={{ color: C.t3 }}>{future ? `Programmée pour le ${when(c.scheduledAt)}.` : r.queued ? "En attente d'envoi." : "Aucun courriel envoyé."}</span>
             ) : (
               <>
-                <span style={{ color: C.sun }}>{nf.format(r.sent)}</span> envoyés<span style={{ color: C.t3 }}>, </span>
+                <span style={{ color: C.sun }}>{nf.format(r.sent)}</span> envoyé{r.sent > 1 ? "s" : ""}<span style={{ color: C.t3 }}>, </span>
                 <span style={{ color: C.sage }}>{pct(r.opened, r.sent)} %</span><span style={{ color: C.t3 }}> ouverts, </span>
                 {pct(r.clicked, r.sent)} %<span style={{ color: C.t3 }}> cliqués, </span>
                 <span style={{ color: C.coral }}>{nf.format(r.orders)} commande{r.orders > 1 ? "s" : ""}</span>

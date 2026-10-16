@@ -1001,7 +1001,8 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
     setProgress({ done: targets.length, total: targets.length });
 
     const res = await queueCampaign({
-      name: name.trim() || byLang.fr.subject || template.name,
+      // Nom par défaut : l'objet, sans ses variables ({{prenom}}…), sinon le nom du modèle.
+      name: name.trim() || (byLang.fr.subject ?? "").replace(/\{\{\s*\w+\s*\}\}\s*,?\s*/g, "").trim().replace(/^./, (ch) => ch.toUpperCase()) || template.name,
       templateId: template.id,
       valuesByLang: byLang,
       subject: byLang.fr.subject ?? "",
