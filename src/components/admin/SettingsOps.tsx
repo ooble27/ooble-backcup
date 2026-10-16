@@ -123,12 +123,13 @@ export function DelaysPage({ onBack }: { onBack: () => void }) {
   const s = useAppSettings();
   const [lock, setLock] = useState(s.rateLockMinutes);
   const [expiry, setExpiry] = useState(s.sellExpiryHours);
-  useEffect(() => { setLock(s.rateLockMinutes); setExpiry(s.sellExpiryHours); }, [s.rateLockMinutes, s.sellExpiryHours]);
+  const [unpaid, setUnpaid] = useState(s.buyExpiryMinutes);
+  useEffect(() => { setLock(s.rateLockMinutes); setExpiry(s.sellExpiryHours); setUnpaid(s.buyExpiryMinutes); }, [s.rateLockMinutes, s.sellExpiryHours, s.buyExpiryMinutes]);
   const { busy, msg, save, setMsg } = useSave("Délais");
-  const dirty = lock !== s.rateLockMinutes || expiry !== s.sellExpiryHours;
+  const dirty = lock !== s.rateLockMinutes || expiry !== s.sellExpiryHours || unpaid !== s.buyExpiryMinutes;
   return (
     <SettingsPage onBack={onBack}
-      title={<>Le taux est garanti <span style={{ color: C.sun }}>{lock} minutes</span><span className="mute">, une vente non envoyée expire après</span> <span style={{ color: C.sun }}>{expiry} heures</span><span className="mute">.</span></>}
+      title={<>Le taux est garanti <span style={{ color: C.sun }}>{lock} minutes</span><span className="mute">, un achat non payé est annulé après</span> <span style={{ color: C.sun }}>{unpaid} minutes</span><span className="mute">.</span></>}
       desc="S'applique aux nouvelles commandes. Une commande déjà passée garde ses délais.">
       <section>
         <h3 className="st-h3">Taux garanti</h3>
@@ -136,6 +137,14 @@ export function DelaysPage({ onBack }: { onBack: () => void }) {
         <div style={{ marginTop: 18 }}>
           <Stepper value={lock} onChange={setLock} step={5} min={5} max={60} unit="min" label="la durée du taux garanti" />
           <Presets options={[10, 15, 20, 30]} value={lock} onPick={setLock} format={(n) => `${n} min`} />
+        </div>
+      </section>
+      <section>
+        <h3 className="st-h3">Achat non payé</h3>
+        <p className="st-hint">Sans virement Interac reçu dans ce délai, l'achat est annulé automatiquement (vérifié chaque minute) et la limite du jour du client est libérée. Un virement qui arriverait après coup passe « À vérifier » dans Règlement auto : l'équipe rembourse ou rouvre la commande.</p>
+        <div style={{ marginTop: 18 }}>
+          <Stepper value={unpaid} onChange={setUnpaid} step={5} min={10} max={240} unit="min" label="le délai d'annulation d'un achat non payé" />
+          <Presets options={[15, 30, 60, 120]} value={unpaid} onPick={setUnpaid} format={(n) => (n >= 60 ? `${n / 60} h` : `${n} min`)} />
         </div>
       </section>
       <section>
@@ -148,8 +157,8 @@ export function DelaysPage({ onBack }: { onBack: () => void }) {
       </section>
       {(dirty || msg) && (
         <div style={{ display: "grid", gap: 12 }}>
-          <SaveBar show={dirty} busy={busy} onSave={() => void save({ rateLockMinutes: lock, sellExpiryHours: expiry })}
-            onCancel={() => { setLock(s.rateLockMinutes); setExpiry(s.sellExpiryHours); setMsg(null); }} />
+          <SaveBar show={dirty} busy={busy} onSave={() => void save({ rateLockMinutes: lock, sellExpiryHours: expiry, buyExpiryMinutes: unpaid })}
+            onCancel={() => { setLock(s.rateLockMinutes); setExpiry(s.sellExpiryHours); setUnpaid(s.buyExpiryMinutes); setMsg(null); }} />
           <Msg m={msg} />
         </div>
       )}

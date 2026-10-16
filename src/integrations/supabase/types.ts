@@ -292,6 +292,7 @@ export type Database = {
           otc_enabled: boolean
           rate_lock_minutes: number
           sell_expiry_hours: number
+          buy_expiry_minutes: number
           sell_margin_pct: number
           signups_business: boolean
           signups_individual: boolean
@@ -314,6 +315,7 @@ export type Database = {
           otc_enabled?: boolean
           rate_lock_minutes?: number
           sell_expiry_hours?: number
+          buy_expiry_minutes?: number
           sell_margin_pct?: number
           signups_business?: boolean
           signups_individual?: boolean
@@ -336,6 +338,7 @@ export type Database = {
           otc_enabled?: boolean
           rate_lock_minutes?: number
           sell_expiry_hours?: number
+          buy_expiry_minutes?: number
           sell_margin_pct?: number
           signups_business?: boolean
           signups_individual?: boolean

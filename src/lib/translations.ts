@@ -668,6 +668,7 @@ const dict = {
   "buy.newOrder": { fr: "Nouvel ordre", en: "New order" },
   "buy.done": { fr: "Terminé", en: "Done" },
   "buy.toPay": { fr: "À payer", en: "To pay" },
+  "buy.payBy": { fr: "Payez avant {time} : sans paiement reçu, la commande est annulée automatiquement.", en: "Pay before {time}: without payment, the order is cancelled automatically." },
 
   // ── Sell workflow ──
   "sell.title": { fr: "Vendre USDT", en: "Sell USDT" },

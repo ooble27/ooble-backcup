@@ -12,7 +12,7 @@ import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance
 import { amountText, parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
 import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
 import { useAuth } from "@/lib/auth";
-import { useT } from "@/lib/i18n";
+import { getLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { STAFF_TEST_MIN_CAD } from "@/lib/config";
 import { useOtcVisible } from "@/lib/otc";
@@ -78,7 +78,7 @@ const AppAcheter = () => {
 const AppAcheterForm = () => {
   const rate = useUsdtRate();
   const { user, isStaff } = useAuth();
-  const { tradeMinCad, tradeDailyMaxCad, networks, interacEmail } = useAppSettings();
+  const { tradeMinCad, tradeDailyMaxCad, networks, interacEmail, buyExpiryMinutes } = useAppSettings();
   const t = useT();
   const otc = useOtcVisible();
 
@@ -89,6 +89,8 @@ const AppAcheterForm = () => {
   const [net, setNet] = useState<NetId | null>(null);
   const [address, setAddress] = useState("");
   const [savedRef, setSavedRef] = useState("");
+  // Heure limite de paiement : sans virement reçu d'ici là, l'achat est annulé automatiquement.
+  const [payBy, setPayBy] = useState<Date | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -146,6 +148,7 @@ const AppAcheterForm = () => {
     }
     const ref = orderRef(res.id);
     setSavedRef(ref);
+    setPayBy(new Date(Date.now() + buyExpiryMinutes * 60_000));
     setStep("done");
 
     if (user?.email) {
@@ -380,6 +383,11 @@ const AppAcheterForm = () => {
         <CopyRow label={t("buy.exactAmount")} value={`${nfCad.format(cad)} CAD`} />
         <CopyRow label={t("buy.reference")} value={savedRef} mono />
       </div>
+      {payBy && (
+        <p className="mt-3 px-1 text-[13px] font-medium leading-relaxed text-foreground">
+          {t("buy.payBy").replace("{time}", payBy.toLocaleTimeString(getLang() === "en" ? "en-CA" : "fr-CA", { hour: "2-digit", minute: "2-digit" }))}
+        </p>
+      )}
       <p className="mt-3 px-1 text-[12.5px] leading-relaxed text-muted-foreground">
         {t("buy.autoNote")}{" "}
         <Link to="/faq/payer-par-interac#regles-interac" className="font-medium text-foreground underline underline-offset-2">{t("buy.rulesLink")}</Link>

@@ -76,6 +76,7 @@ const JOBS: Record<string, { name: string; every: string }> = {
   "drain-usdt-payouts": { name: "Envois d'USDT aux acheteurs", every: "chaque minute" },
   "reconcile-usdt-payouts": { name: "Confirmation des envois d'USDT", every: "toutes les 2 minutes" },
   "refresh-usdt-rate": { name: "Mise à jour du taux (cours Kraken)", every: "toutes les 10 secondes" },
+  "expire-unpaid-buys": { name: "Annulation des achats non payés", every: "chaque minute" },
   "sanctions-fetch": { name: "Téléchargement des listes de sanctions", every: "chaque jour" },
 };
 const pct = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
@@ -354,7 +355,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       rows: [
         { id: "ouverture", icon: Power, name: "Ouverture", desc: "Achats et ventes, vérification, bureau OTC.", value: <span style={{ color: open ? C.sage : C.coral }}>{open ? "Ouverts" : "Fermés aux clients"}</span>, onOpen: () => go("ouverture") },
         { id: "limites", icon: SlidersHorizontal, name: "Limites", desc: "Minimum par commande, maximum sur 24 heures.", value: `${$(s.tradeMinCad)} à ${$(s.tradeDailyMaxCad)}`, onOpen: () => go("limites") },
-        { id: "delais", icon: Timer, name: "Délais", desc: "Taux garanti, expiration d'une vente non envoyée.", value: `${s.rateLockMinutes} min · ${s.sellExpiryHours} h`, onOpen: () => go("delais") },
+        { id: "delais", icon: Timer, name: "Délais", desc: "Taux garanti, annulation d'un achat non payé, expiration d'une vente.", value: `${s.rateLockMinutes} min · ${s.buyExpiryMinutes} min · ${s.sellExpiryHours} h`, onOpen: () => go("delais") },
       ],
     },
     {

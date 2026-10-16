@@ -27,6 +27,8 @@ export interface AppSettings {
   rateLockMinutes: number;
   /** Une vente jamais envoyée expire après ce délai, en heures. */
   sellExpiryHours: number;
+  /** Achat non payé : annulé automatiquement après ce délai (minutes). */
+  buyExpiryMinutes: number;
   /** Cours du marché figé à la main (taux de secours), sinon null : cours automatique. */
   manualMarketRate: number | null;
   supportEmail: string;
@@ -47,7 +49,7 @@ const NETS_DEFAULT: NetworkSwitches = {
 const DEFAULTS: AppSettings = {
   tradingEnabled: false, verificationEnabled: false, otcEnabled: false,
   tradeMinCad: 100, tradeDailyMaxCad: 9999, buyMarginPct: 2, sellMarginPct: 2,
-  networks: NETS_DEFAULT, signupsIndividual: true, signupsBusiness: true, rateLockMinutes: 15, sellExpiryHours: 48,
+  networks: NETS_DEFAULT, signupsIndividual: true, signupsBusiness: true, rateLockMinutes: 15, sellExpiryHours: 48, buyExpiryMinutes: 30,
   manualMarketRate: null, supportEmail: "support@ooble.ca", interacEmail: "interac@ooble.ca", otcEmail: "otc@ooble.ca",
   updatedAt: null, updatedByName: null,
 };
@@ -80,6 +82,7 @@ const fromRow = (r: Database["public"]["Tables"]["app_settings"]["Row"]): AppSet
   signupsBusiness: r.signups_business,
   rateLockMinutes: r.rate_lock_minutes,
   sellExpiryHours: r.sell_expiry_hours,
+  buyExpiryMinutes: r.buy_expiry_minutes ?? 30,
   manualMarketRate: r.manual_market_rate == null ? null : Number(r.manual_market_rate),
   supportEmail: r.support_email,
   interacEmail: r.interac_email,
@@ -132,6 +135,7 @@ export async function saveAppSettings(patch: SettingsPatch): Promise<{ error?: s
   if (patch.signupsBusiness !== undefined) row.signups_business = patch.signupsBusiness;
   if (patch.rateLockMinutes !== undefined) row.rate_lock_minutes = patch.rateLockMinutes;
   if (patch.sellExpiryHours !== undefined) row.sell_expiry_hours = patch.sellExpiryHours;
+  if (patch.buyExpiryMinutes !== undefined) row.buy_expiry_minutes = patch.buyExpiryMinutes;
   if (patch.manualMarketRate !== undefined) row.manual_market_rate = patch.manualMarketRate;
   if (patch.supportEmail !== undefined) row.support_email = patch.supportEmail.trim();
   if (patch.interacEmail !== undefined) row.interac_email = patch.interacEmail.trim();
