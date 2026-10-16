@@ -18,7 +18,7 @@ const HELP: TabId[] = ["kb", "manual"];
 /** Nom des pages, pour dire à un membre ce qu'il verra. */
 export const TAB_LABEL: Record<TabId, string> = {
   dashboard: "Tableau de bord", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
-  accounting: "Comptabilité", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Campagnes", announcements: "Bannière et maintenance",
+  accounting: "Comptabilité", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
   team: "Équipe", platform: "Réglages", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
 };
 
@@ -79,6 +79,7 @@ const CAPS = {
   "accounts.unlock": ["admin", "support"],
   "accounts.suspend": ["admin", "compliance"],
   "clients.limit": ["admin", "compliance"],
+  "marketing.control": ["admin"],
 } as const satisfies Record<string, readonly Role[]>;
 export type Capability = keyof typeof CAPS;
 

@@ -6,7 +6,9 @@
  * 2. Composer : textes en français ET en anglais, sélecteur d'images visuel,
  *    éditeur de listes, aperçu ordinateur / téléphone, test, envoi.
  *    Chaque client reçoit la campagne dans sa langue (celle choisie dans l'app).
- * 3. Historique.
+ * 3. Marketing : vue d'ensemble, campagnes envoyées (résultats) et centre de contrôle
+ *    (MarketingPanels.tsx). Les courriels sont préparés ici puis envoyés par le serveur
+ *    (campaign-dispatch), tout de suite ou à l'heure programmée.
  *
  * Chaque destinataire reçoit un lien de désabonnement personnel ; les
  * adresses désabonnées sont ignorées à l'envoi (Loi anti-pourriel).
@@ -27,7 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchClientDirectory, type ClientDirectoryEntry } from "@/lib/adminClient";
 import { markdownToHtml } from "@/lib/mailComposer";
 import {
-  loadCampaigns, saveCampaign, SEGMENT_LABEL, DESIGN_LABEL,
+  loadCampaigns, SEGMENT_LABEL, DESIGN_LABEL,
   type CampaignRecord, type CampaignSegment, type CampaignDesign,
 } from "@/lib/campaigns";
 import { renderCampaign } from "@/lib/campaignDesigns";
@@ -40,10 +42,12 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice, SidePanel, SummaryRow, Workspace, WsPane, type WorkspaceStep } from "./ui";
 import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column } from "./layout";
 import { ScaledFrame } from "./EmailFrame";
+import { CampaignList, ControlCenter, MarketingOverview } from "./MarketingPanels";
+import { loadMarketingSettings, queueCampaign, type MarketingSettings, type PreparedSend } from "@/lib/marketing";
 
 // ─── Types ──────────────────────────────────────────────────
 
-type SubTab = "templates" | "history";
+type SubTab = "overview" | "templates" | "history" | "control";
 
 interface Recipient {
   id?: string;
@@ -458,7 +462,9 @@ function CtaPill({ children, onClick, autoFocus, full }: { children: React.React
 const CampaignsPanel = () => {
   const { user } = useAuth();
   const myEmail = user?.email ?? "";
-  const [tab, setTab] = useState<SubTab>("templates");
+  const [tab, setTab] = useState<SubTab>("overview");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [openCampaign, setOpenCampaign] = useState<string | null>(null);
   const [studio, setStudio] = useState<{ templateId: string; lang: EmailLang } | null>(null);
   const [clients, setClients] = useState<ClientDirectoryEntry[]>(() => peek<ClientDirectoryEntry[]>("clients.directory")?.value ?? []);
   const [clientsLoading, setClientsLoading] = useState(() => !peek("clients.directory"));
@@ -482,35 +488,62 @@ const CampaignsPanel = () => {
   return (
     <div>
       <style>{PANEL_CSS}</style>
-      {/* Ouverture : grande typographie aux couleurs d'Ooble, comme les pages OTC, Entreprises et FAQ. */}
-      <section className="cmp-hero">
-        <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
-          <p className="cmp-rise" style={{ margin: 0, fontSize: 14, color: C.coral }}>Campagnes · en français et en anglais</p>
-          <h1 className="cmp-rise cmp-hero-title" style={{ animationDelay: "60ms" }}>
-            Faites parler d'<span style={{ color: C.coral }}>Ooble</span><br />
-            dans chaque <span style={{ color: C.sun }}>boîte mail.</span>
-          </h1>
-          <p className="cmp-rise" style={{ margin: "18px 0 0", maxWidth: 520, fontSize: 15.5, lineHeight: 1.65, color: C.t2, animationDelay: "120ms" }}>
-            {CAMPAIGN_TEMPLATES.length} modèles prêts, envoyés à chaque client dans sa langue.{" "}
-            {clientsLoading ? "" : <><span style={{ color: C.t1 }}>{clients.length} contacts</span>, dont {english} en anglais. </>}
-            {campaigns.length > 0 && <><span style={{ color: C.t1 }}>{sent} courriels</span> déjà envoyés. </>}
-          </p>
-          <div className="cmp-rise" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 24, animationDelay: "180ms" }}>
-            <Button size="lg" variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={() => openStudio(CAMPAIGN_TEMPLATES[0].id, "fr")}>Nouvelle campagne</Button>
-            <span style={{ fontSize: 12.5, color: C.t3 }}>Forfait d'envoi : {DAILY_EMAIL_LIMIT} courriels par jour, commandes comprises.</span>
-          </div>
-        </div>
-        <div aria-hidden className="cmp-hero-art">
-          <img src="/illustrations/admin/campaigns.svg" alt="" style={{ display: "block", width: "100%", height: "auto", aspectRatio: "760 / 580" }} />
-        </div>
-      </section>
-
-      <Tabs style={{ marginTop: 36 }} value={tab} onChange={setTab} items={[
+      <Tabs value={tab} onChange={setTab} items={[
+        { id: "overview", label: "Vue d'ensemble" },
         { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
-        { id: "history", label: "Historique", count: campaigns.length || undefined },
+        { id: "history", label: "Campagnes envoyées" },
+        { id: "control", label: "Centre de contrôle" },
       ]} />
-
-      {tab === "templates" && <TemplateGallery me={me} onUse={openStudio} />}
+      <div key={tab} style={{ marginTop: 34 }}>
+        {tab === "overview" && (
+          <MarketingOverview refreshKey={refreshKey} onNew={() => setTab("templates")} onControl={() => setTab("control")}
+            onOpenCampaign={(id) => { setOpenCampaign(id); setTab("history"); }} />
+        )}
+        {tab === "templates" && (
+          <>
+      {/* Ouverture : grande typographie aux couleurs d'Ooble, comme les pages OTC, Entreprises et FAQ. */}
+        <section className="cmp-hero">
+          <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
+            <p className="cmp-rise" style={{ margin: 0, fontSize: 14, color: C.coral }}>Campagnes · en français et en anglais</p>
+            <h1 className="cmp-rise cmp-hero-title" style={{ animationDelay: "60ms" }}>
+              Faites parler d'<span style={{ color: C.coral }}>Ooble</span><br />
+              dans chaque <span style={{ color: C.sun }}>boîte mail.</span>
+            </h1>
+            <p className="cmp-rise" style={{ margin: "18px 0 0", maxWidth: 520, fontSize: 15.5, lineHeight: 1.65, color: C.t2, animationDelay: "120ms" }}>
+              {CAMPAIGN_TEMPLATES.length} modèles prêts, envoyés à chaque client dans sa langue.{" "}
+              {clientsLoading ? "" : <><span style={{ color: C.t1 }}>{clients.length} contacts</span>, dont {english} en anglais. </>}
+              {campaigns.length > 0 && <><span style={{ color: C.t1 }}>{sent} courriels</span> déjà envoyés. </>}
+            </p>
+            <div className="cmp-rise" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 24, animationDelay: "180ms" }}>
+              <Button size="lg" variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={() => openStudio(CAMPAIGN_TEMPLATES[0].id, "fr")}>Nouvelle campagne</Button>
+              <span style={{ fontSize: 12.5, color: C.t3 }}>Forfait d'envoi : {DAILY_EMAIL_LIMIT} courriels par jour, commandes comprises.</span>
+            </div>
+          </div>
+          <div aria-hidden className="cmp-hero-art">
+            <img src="/illustrations/admin/campaigns.svg" alt="" style={{ display: "block", width: "100%", height: "auto", aspectRatio: "760 / 580" }} />
+          </div>
+        </section>
+            <div style={{ marginTop: 36 }}><TemplateGallery me={me} onUse={openStudio} /></div>
+          </>
+        )}
+        {tab === "history" && (
+          <>
+            <CampaignList refreshKey={refreshKey} openId={openCampaign} onOpen={setOpenCampaign}
+              preview={(c, l) => (
+                <div style={{ background: "#d9d5cc", padding: 12, borderRadius: 10 }}>
+                  <DevicePreview html={previewHtml(c.templateId ?? "", c.valuesByLang?.[l] ?? {}, l, l === "en" ? "Sarah" : "Awa")} device="desktop" title="Courriel envoyé" />
+                </div>
+              )} />
+            {campaigns.length > 0 && (
+              <div style={{ marginTop: 56 }}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em" }}>Avant le suivi des résultats</h2>
+                <CampaignHistory campaigns={campaigns} />
+              </div>
+            )}
+          </>
+        )}
+        {tab === "control" && <ControlCenter />}
+      </div>
       {studio && (
         <CampaignComposer
           key={`${studio.templateId}:${studio.lang}`}
@@ -521,10 +554,9 @@ const CampaignsPanel = () => {
           me={me}
           clients={clients}
           clientsLoading={clientsLoading}
-          onSent={() => { setCampaigns(loadCampaigns()); setStudio(null); setTab("history"); }}
+          onSent={(id) => { setStudio(null); setRefreshKey((k) => k + 1); setOpenCampaign(id ?? null); setTab("history"); }}
         />
       )}
-      {tab === "history" && <CampaignHistory campaigns={campaigns} />}
     </div>
   );
 };
@@ -786,7 +818,7 @@ interface ComposerProps {
   me: Recipient;
   clients: ClientDirectoryEntry[];
   clientsLoading: boolean;
-  onSent: () => void;
+  onSent: (id?: string) => void;
 }
 
 type StudioStep = "content" | "audience" | "send";
@@ -857,6 +889,15 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const [feedback, setFeedback] = useState<null | { kind: "ok" | "err"; text: string }>(null);
   const [confirming, setConfirming] = useState(false);
   const [fullPreview, setFullPreview] = useState(false);
+  // Envoi tout de suite ou à une date choisie ; les interrupteurs du centre de contrôle s'appliquent au serveur.
+  const [timing, setTiming] = useState<"now" | "later">("now");
+  const [laterAt, setLaterAt] = useState(() => {
+    const d = new Date(Date.now() + 24 * 3600_000); d.setMinutes(0, 0, 0); d.setHours(10);
+    const z = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+  });
+  const [mk, setMk] = useState<MarketingSettings | null>(null);
+  useEffect(() => { loadMarketingSettings().then(setMk).catch(() => {}); }, []);
 
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -923,6 +964,12 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
 
   const send = async () => {
     if (!canSend || busy) return;
+    const scheduledAt = timing === "later" ? new Date(laterAt) : null;
+    if (scheduledAt && (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() + 5 * 60_000)) {
+      setFeedback({ kind: "err", text: "Choisissez une date et une heure au moins 5 minutes plus tard." });
+      setConfirming(false);
+      return;
+    }
     setBusy(true);
     setFeedback(null);
     let map: Map<string, { token: string; unsubscribed: boolean }>;
@@ -937,45 +984,43 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
     const skipped = recipients.length - targets.length;
     setProgress({ done: 0, total: targets.length });
 
-    let ok = 0;
-    let failed = 0;
+    // Chaque courriel est préparé ici (dans la langue du client, avec son lien de désabonnement),
+    // puis confié au serveur, qui l'envoie en respectant le centre de contrôle et le forfait du jour.
+    const sends: PreparedSend[] = [];
     const perLang = { fr: 0, en: 0 };
-    let lastError: string | undefined;
     for (let i = 0; i < targets.length; i++) {
       const r = targets[i];
       const l = langFor(r, sendLang, unknownLang);
-      const res = await sendTemplate(templateId, byLang[l], l, r, map.get(r.email.toLowerCase())?.token);
-      if (res.error) { failed += 1; lastError = res.error; } else { ok += 1; perLang[l] += 1; }
-      setProgress({ done: i + 1, total: targets.length });
+      const token = map.get(r.email.toLowerCase())?.token;
+      const url = unsubscribeUrl(l, token);
+      const out = renderTemplate(templateId, byLang[l], { prenom: r.firstName || "", email: r.email, unsubscribeUrl: url, lang: l });
+      sends.push({ email: r.email, userId: r.id ?? null, lang: l, subject: out.subject, html: out.html, text: out.text, unsubscribeUrl: url });
+      perLang[l] += 1;
+      if (i % 25 === 0) setProgress({ done: i + 1, total: targets.length });
     }
+    setProgress({ done: targets.length, total: targets.length });
 
-    saveCampaign({
-      id: crypto.randomUUID(),
+    const res = await queueCampaign({
       name: name.trim() || byLang.fr.subject || template.name,
-      segment: "manual",
-      design: template.id,
       templateId: template.id,
-      values: byLang.fr,
       valuesByLang: byLang,
       subject: byLang.fr.subject ?? "",
-      preheader: byLang.fr.preheader ?? "",
-      body: "",
-      sentAt: new Date().toISOString(),
-      sentBy: author,
-      stats: { total: recipients.length, ok, failed, skipped, fr: perLang.fr, en: perLang.en },
+      audience: `${targets.length} destinataire${targets.length > 1 ? "s" : ""} · ${perLang.fr} en français, ${perLang.en} en anglais`,
+      scheduledAt,
+      byName: author,
+      sends,
     });
 
     setBusy(false); setProgress(null); setConfirming(false);
-    const skippedText = skipped > 0 ? ` ${skipped} désabonné${skipped > 1 ? "s" : ""} ignoré${skipped > 1 ? "s" : ""}.` : "";
-    const langText = ` (${perLang.fr} en français, ${perLang.en} en anglais)`;
-    if (failed === 0) {
-      setFeedback({ kind: "ok", text: `Campagne envoyée à ${ok} destinataire${ok > 1 ? "s" : ""}${langText}.${skippedText}` });
-      setTimeout(onSent, 1400);
-    } else if (ok === 0) {
-      setFeedback({ kind: "err", text: (lastError ?? "Échec de tous les envois.") + skippedText });
-    } else {
-      setFeedback({ kind: "err", text: `${ok} envoyés${langText}, ${failed} en échec (${lastError ?? "cause inconnue"}).${skippedText}` });
-    }
+    if (res.error) { setFeedback({ kind: "err", text: res.error }); return; }
+    const skippedText = skipped > 0 ? ` ${skipped} désabonné${skipped > 1 ? "s" : ""} exclu${skipped > 1 ? "s" : ""}.` : "";
+    setFeedback({
+      kind: "ok",
+      text: scheduledAt
+        ? `Campagne programmée pour le ${dateFmt.format(scheduledAt)} (${targets.length} courriels).${skippedText}`
+        : `Campagne lancée : ${targets.length} courriels partent maintenant, deux par seconde.${skippedText}`,
+    });
+    setTimeout(() => onSent(res.id), 1600);
   };
 
   const steps: WorkspaceStep[] = [
@@ -1240,6 +1285,30 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           <SummaryRow label="Désabonnés">Ignorés automatiquement (loi anti-pourriel)</SummaryRow>
         </div>
 
+        <div style={{ marginTop: 30 }}>
+          <StudioSection title="Quand ?" hint="Tout de suite, ou à une date choisie (heure de votre appareil)." flush>
+            <div className="ms-when" style={{ display: "flex", gap: "6px 22px", flexWrap: "wrap", alignItems: "center" }}>
+              {(["now", "later"] as const).map((k) => (
+                <button key={k} type="button" aria-pressed={timing === k} onClick={() => setTiming(k)}
+                  style={{ border: "none", background: "none", padding: "4px 0", font: "inherit", fontSize: 15, cursor: "pointer", color: timing === k ? C.t1 : C.t3, textDecoration: timing === k ? "underline" : "none", textUnderlineOffset: 6, textDecorationThickness: 1.5 }}>
+                  {k === "now" ? "Maintenant" : "Programmer"}
+                </button>
+              ))}
+              {timing === "later" && (
+                <input type="datetime-local" value={laterAt} onChange={(e) => setLaterAt(e.target.value)} aria-label="Date et heure d'envoi"
+                  style={{ border: "none", borderBottom: `1px solid ${C.bds}`, background: "transparent", color: C.t1, font: "inherit", fontSize: 15, padding: "4px 0" }} />
+              )}
+            </div>
+          </StudioSection>
+        </div>
+
+        {mk && (!mk.clientSends || (timing === "later" && !mk.automaticSends)) && (
+          <div style={{ marginTop: 18, display: "grid", gap: 6, fontSize: 14, lineHeight: 1.6 }}>
+            {!mk.clientSends && <p style={{ margin: 0, color: C.coral }}>Envois aux clients coupés (Centre de contrôle) : seuls les membres de l'équipe recevront cette campagne ; les clients seront bloqués.</p>}
+            {timing === "later" && !mk.automaticSends && <p style={{ margin: 0, color: C.sun }}>Envois automatiques coupés : la campagne attendra, même à son heure, jusqu'à ce qu'on les allume.</p>}
+          </div>
+        )}
+
         {recipients.length > 0 && (
           <div style={{ marginTop: 20 }}>
             <Notice tone={heavy ? "warn" : "info"}>
@@ -1278,7 +1347,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           {progress && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: C.t2, marginBottom: 6 }}>
-                <span>Envoi en cours… ne fermez pas cette page.</span>
+                <span>Préparation des courriels…</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>{progress.done} / {progress.total}</span>
               </div>
               <div style={{ height: 6, background: C.l3, borderRadius: 99, overflow: "hidden" }}>
@@ -1288,18 +1357,20 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           )}
           {confirming ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ flex: "1 1 200px", fontSize: 14, color: C.t1 }}>Envoyer maintenant à {recipients.length} personne{recipients.length > 1 ? "s" : ""} ?</span>
+              <span style={{ flex: "1 1 200px", fontSize: 14, color: C.t1 }}>
+                {timing === "now" ? `Envoyer maintenant à ${recipients.length} personne${recipients.length > 1 ? "s" : ""} ?` : `Programmer pour ${recipients.length} personne${recipients.length > 1 ? "s" : ""} ?`}
+              </span>
               <Button variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>Annuler</Button>
               <Button variant="primary" onClick={send} disabled={busy}
                 icon={busy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 15, height: 15 }} />}>
-                Oui, envoyer
+                {timing === "now" ? "Oui, envoyer" : "Oui, programmer"}
               </Button>
             </div>
           ) : canSend && feedback?.kind !== "ok" ? (
-            <div><CtaPill onClick={() => setConfirming(true)}>Envoyer à {recipients.length} destinataire{recipients.length > 1 ? "s" : ""}</CtaPill></div>
+            <div><CtaPill onClick={() => setConfirming(true)}>{timing === "now" ? "Envoyer" : "Programmer"} pour {recipients.length} destinataire{recipients.length > 1 ? "s" : ""}</CtaPill></div>
           ) : (
             <p style={{ margin: 0, fontSize: 13.5, color: C.t3 }}>
-              {feedback?.kind === "ok" ? "Campagne envoyée." : !subjectsOk ? "Il manque un objet (français ou anglais)." : "Ajoutez des destinataires pour envoyer."}
+              {feedback?.kind === "ok" ? (timing === "now" ? "Campagne lancée." : "Campagne programmée.") : !subjectsOk ? "Il manque un objet (français ou anglais)." : "Ajoutez des destinataires pour envoyer."}
             </p>
           )}
         </div>

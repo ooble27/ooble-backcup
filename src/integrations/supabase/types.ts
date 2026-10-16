@@ -546,6 +546,153 @@ export type Database = {
           },
         ]
       }
+      campaign_events: {
+        Row: {
+          id: number
+          send_id: string
+          type: string
+          url: string | null
+          at: string
+        }
+        Insert: {
+          id?: number
+          send_id: string
+          type: string
+          url?: string | null
+          at?: string
+        }
+        Update: {
+          id?: number
+          send_id?: string
+          type?: string
+          url?: string | null
+          at?: string
+        }
+        Relationships: []
+      }
+      campaign_sends: {
+        Row: {
+          id: string
+          campaign_id: string
+          email: string
+          user_id: string | null
+          lang: string
+          subject: string
+          html: string
+          text_body: string | null
+          unsubscribe_url: string | null
+          status: string
+          error: string | null
+          resend_id: string | null
+          sent_at: string | null
+          delivered_at: string | null
+          opened_at: string | null
+          clicked_at: string | null
+          bounced_at: string | null
+          complained_at: string | null
+          opens: number
+          clicks: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          email: string
+          user_id?: string | null
+          lang?: string
+          subject: string
+          html: string
+          text_body?: string | null
+          unsubscribe_url?: string | null
+          status?: string
+          error?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          delivered_at?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
+          bounced_at?: string | null
+          complained_at?: string | null
+          opens?: number
+          clicks?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          campaign_id?: string
+          email?: string
+          user_id?: string | null
+          lang?: string
+          subject?: string
+          html?: string
+          text_body?: string | null
+          unsubscribe_url?: string | null
+          status?: string
+          error?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          delivered_at?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
+          bounced_at?: string | null
+          complained_at?: string | null
+          opens?: number
+          clicks?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      campaigns: {
+        Row: {
+          id: string
+          name: string
+          template_id: string | null
+          values_by_lang: Json | null
+          subject: string | null
+          audience: string | null
+          status: string
+          scheduled_at: string
+          is_test: boolean
+          started_at: string | null
+          finished_at: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          template_id?: string | null
+          values_by_lang?: Json | null
+          subject?: string | null
+          audience?: string | null
+          status?: string
+          scheduled_at?: string
+          is_test?: boolean
+          started_at?: string | null
+          finished_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          template_id?: string | null
+          values_by_lang?: Json | null
+          subject?: string | null
+          audience?: string | null
+          status?: string
+          scheduled_at?: string
+          is_test?: boolean
+          started_at?: string | null
+          finished_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+        }
+        Relationships: []
+      }
       chain_deposits: {
         Row: {
           block_time: string
@@ -1523,6 +1670,39 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_settings: {
+        Row: {
+          id: number
+          client_sends: boolean
+          automatic_sends: boolean
+          daily_limit: number
+          daily_reserve: number
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+        }
+        Insert: {
+          id?: number
+          client_sends?: boolean
+          automatic_sends?: boolean
+          daily_limit?: number
+          daily_reserve?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Update: {
+          id?: number
+          client_sends?: boolean
+          automatic_sends?: boolean
+          daily_limit?: number
+          daily_reserve?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
       marketing_optout: {
         Row: {
           created_at: string
@@ -2318,6 +2498,8 @@ export type Database = {
         Args: { _deposit: string; _order: string }
         Returns: undefined
       }
+      campaign_results: { Args: { _id: string }; Returns: Json }
+      campaign_summaries: { Args: never; Returns: { campaign_id: string; total: number; queued: number; sent: number; delivered: number; opened: number; clicked: number; blocked: number; skipped: number; failed: number }[] }
       campaign_prepare: {
         Args: { p_emails: string[] }
         Returns: {
@@ -2391,6 +2573,7 @@ export type Database = {
         Args: { p_subscribe?: boolean; p_token: string }
         Returns: string
       }
+      marketing_overview: { Args: { _since: string }; Returns: Json }
       match_sell_deposits: {
         Args: never
         Returns: {
