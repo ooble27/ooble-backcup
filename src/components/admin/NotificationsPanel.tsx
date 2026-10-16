@@ -14,7 +14,6 @@ import {
 } from "@/lib/notifications";
 import { C } from "./adminTheme";
 import { Button, SidePanel } from "./ui";
-import { DataTable, type Column } from "./layout";
 import { ST_CSS } from "./settingsUi";
 import { MS_CSS, Opts } from "./SettingsMailStudio";
 import { MESSAGE_TEMPLATES, PUSH_TEMPLATES, archiveOwnTemplate, loadOwnTemplates, saveOwnTemplate, type NotifTemplate } from "@/lib/notifTemplates";
@@ -31,8 +30,8 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
   const { s } = useMarketingSettings();
   const [d, setD] = useState<Data | null>(() => peek<Data>("nt.all")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
   const [compose, setCompose] = useState<{ kind: "push" | "message"; from?: NotifTemplate } | null>(null);
-  const [history, setHistory] = useState<"push" | "message" | null>(null);
   const [own, setOwn] = useState<NotifTemplate[]>(() => peek<NotifTemplate[]>("nt.own")?.value ?? []);
   const reloadOwn = useCallback(() => { loadOwnTemplates().then((v) => { setOwn(v); put("nt.own", v); }).catch(() => {}); }, []);
   useEffect(reloadOwn, [reloadOwn]);
@@ -51,10 +50,9 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
 
   const now = Date.now();
   const live = (d?.messages ?? []).filter((m) => m.active && new Date(m.startsAt).getTime() <= now && (!m.endsAt || new Date(m.endsAt).getTime() > now));
-  // Sur la page : ce qui est programmé, puis les 3 dernières. Le reste est dans l'historique.
-  const pushUpcoming = (d?.push ?? []).filter((p) => p.status === "scheduled" || p.status === "sending");
-  const pushShown = [...pushUpcoming, ...(d?.push ?? []).filter((p) => !pushUpcoming.includes(p)).slice(0, 3)];
-  const msgShown = (d?.messages ?? []).filter((m) => m.active && (!m.endsAt || new Date(m.endsAt).getTime() > now)).slice(0, 5);
+  // Une notification quitte la page dès qu'elle est partie ; un message, dès qu'il est terminé.
+  const pushShown = (d?.push ?? []).filter((p) => p.status === "scheduled" || p.status === "sending");
+  const msgShown = (d?.messages ?? []).filter((m) => !m.endsAt || new Date(m.endsAt).getTime() > now);
 
   return (
     <div>
@@ -70,6 +68,7 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
       </p>
       <ControlLine s={s} onOpen={onControl} />
       {err && <p style={{ marginTop: 14, fontSize: 13.5, color: C.coral }}>{err}</p>}
+      {done && <p style={{ marginTop: 14, fontSize: 15, color: C.sage }}>{done}</p>}
 
       <section className="mk-sec">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
@@ -80,16 +79,10 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
           <Button variant="primary" icon={<BellRing style={{ width: 16, height: 16 }} />} onClick={() => setCompose({ kind: "push" })}>Écrire une notification</Button>
         </div>
         <Shelf list={[...own.filter((t) => t.kind === "push"), ...PUSH_TEMPLATES]} onPick={(t) => setCompose({ kind: "push", from: t })} />
-        {d && d.push.length === 0 && <p style={{ margin: "18px 0 0", fontSize: 14, color: C.t3 }}>Aucune notification pour l'instant.</p>}
-        {pushShown.length > 0 && <p className="ms-k" style={{ margin: "34px 0 0" }}>{pushUpcoming.length ? "Programmées et dernières envoyées" : "Dernières envoyées"}</p>}
+        {pushShown.length > 0 && <p className="ms-k" style={{ margin: "34px 0 0" }}>En attente d'envoi</p>}
         <div className="mk-list">
           {pushShown.map((p) => <PushItem key={p.id} p={p} taps={d?.stats.push[p.id] ?? 0} automatic={!!s?.automaticSends} onErr={setErr} onChanged={reload} />)}
         </div>
-        {(d?.push.length ?? 0) > pushShown.length && (
-          <button type="button" className="mk-link" style={{ marginTop: 14 }} onClick={() => setHistory("push")}>
-            Tout l'historique · {plural(d!.push.length, "notification")} <ArrowRight style={{ width: 14, height: 14 }} />
-          </button>
-        )}
       </section>
 
       <section className="mk-sec">
@@ -104,19 +97,13 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
           <Button variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={() => setCompose({ kind: "message" })}>Écrire un message</Button>
         </div>
         <Shelf list={[...own.filter((t) => t.kind === "message"), ...MESSAGE_TEMPLATES]} onPick={(t) => setCompose({ kind: "message", from: t })} />
-        {msgShown.length > 0 && <p className="ms-k" style={{ margin: "34px 0 0" }}>En ligne et à venir</p>}
+        {msgShown.length > 0 && <p className="ms-k" style={{ margin: "34px 0 0" }}>En ligne, à venir ou en pause</p>}
         <div className="mk-list">
           {msgShown.map((m) => <MessageItem key={m.id} m={m} st={d?.stats.messages[m.id]} onErr={setErr} onChanged={reload} />)}
         </div>
-        {(d?.messages.length ?? 0) > msgShown.length && (
-          <button type="button" className="mk-link" style={{ marginTop: 14 }} onClick={() => setHistory("message")}>
-            Tout l'historique · {plural(d!.messages.length, "message")} <ArrowRight style={{ width: 14, height: 14 }} />
-          </button>
-        )}
       </section>
 
-      {history && d && <History kind={history} d={d} automatic={!!s?.automaticSends} onErr={setErr} onChanged={reload} onClose={() => setHistory(null)} />}
-      {compose?.kind === "push" && <PushComposer from={compose.from} own={own} onOwnChanged={reloadOwn} clientSends={!!s?.clientSends} automatic={!!s?.automaticSends} onClose={() => setCompose(null)} onDone={() => { setCompose(null); reload(); }} />}
+      {compose?.kind === "push" && <PushComposer from={compose.from} own={own} onOwnChanged={reloadOwn} clientSends={!!s?.clientSends} automatic={!!s?.automaticSends} onClose={() => setCompose(null)} onDone={(later) => { setCompose(null); setDone(later ? "Notification programmée." : "Notification envoyée."); reload(); }} />}
       {compose?.kind === "message" && <MessageComposer from={compose.from} own={own} onOwnChanged={reloadOwn} clientSends={!!s?.clientSends} onClose={() => setCompose(null)} onDone={() => { setCompose(null); reload(); }} />}
     </div>
   );
@@ -189,59 +176,6 @@ function MessageItem({ m, st = { seen: 0, click: 0, dismiss: 0 }, onErr, onChang
         }}>{m.active ? "Mettre en pause" : "Remettre en ligne"}</button>
       )}
     </div>
-  );
-}
-
-/** Tout l'historique, dans un tableau qu'on peut trier, avec une recherche. */
-function History({ kind, d, automatic, onErr, onChanged, onClose }: {
-  kind: "push" | "message"; d: Data; automatic: boolean; onErr: (e: string) => void; onChanged: () => void; onClose: () => void;
-}) {
-  const [q, setQ] = useState("");
-  const match = (...xs: (string | null)[]) => !q.trim() || xs.some((x) => x?.toLowerCase().includes(q.trim().toLowerCase()));
-  const cell = (main: string, sub?: string | null) => (
-    <span style={{ display: "block", minWidth: 0 }}>
-      <span style={{ display: "block", fontSize: 14.5, fontWeight: 500, color: C.t1 }}>{main}</span>
-      {sub && <span style={{ display: "block", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 360 }}>{sub}</span>}
-    </span>
-  );
-  const pushCols: Column<PushRow>[] = [
-    { key: "t", header: "Notification", render: (p) => cell(p.titleFr, p.bodyFr) },
-    { key: "a", header: "Public", hideBelow: 760, render: (p) => <span style={{ color: C.t2 }}>{audienceLabel(p.audience)}</span> },
-    { key: "n", header: "Téléphones", align: "right", sort: (p) => p.sent, render: (p) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{nf.format(p.sent)}</span> },
-    { key: "c", header: "Touchées", align: "right", sort: (p) => d.stats.push[p.id] ?? 0, render: (p) => <span style={{ color: C.sage, fontVariantNumeric: "tabular-nums" }}>{nf.format(d.stats.push[p.id] ?? 0)}</span> },
-    { key: "s", header: "État", hideBelow: 600, render: (p) => { const [l, c] = pushState(p, automatic); return <span style={{ color: c, fontSize: 13.5 }}>{l}</span>; } },
-    { key: "d", header: "Date", align: "right", sort: (p) => p.scheduledAt, render: (p) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{when(p.scheduledAt)}</span> },
-  ];
-  const msgCols: Column<MessageRow>[] = [
-    { key: "t", header: "Message", render: (m) => cell(m.titleFr, m.bodyFr) },
-    { key: "a", header: "Public", hideBelow: 760, render: (m) => <span style={{ color: C.t2 }}>{audienceLabel(m.audience)}</span> },
-    { key: "v", header: "Vus", align: "right", sort: (m) => d.stats.messages[m.id]?.seen ?? 0, render: (m) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{nf.format(d.stats.messages[m.id]?.seen ?? 0)}</span> },
-    { key: "c", header: "Touchés", align: "right", hideBelow: 600, sort: (m) => d.stats.messages[m.id]?.click ?? 0, render: (m) => <span style={{ color: C.sage, fontVariantNumeric: "tabular-nums" }}>{nf.format(d.stats.messages[m.id]?.click ?? 0)}</span> },
-    { key: "s", header: "État", render: (m) => { const [l, c] = msgState(m); return <span style={{ color: c, fontSize: 13.5 }}>{l}</span>; } },
-    { key: "d", header: "Début", align: "right", hideBelow: 700, sort: (m) => m.startsAt, render: (m) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{when(m.startsAt)}</span> },
-  ];
-  const [open, setOpen] = useState<string | null>(null);
-  const pushRows = d.push.filter((p) => match(p.titleFr, p.bodyFr, p.titleEn));
-  const msgRows = d.messages.filter((m) => match(m.titleFr, m.bodyFr, m.titleEn));
-  const openPush = d.push.find((p) => p.id === open);
-  const openMsg = d.messages.find((m) => m.id === open);
-  return (
-    <SidePanel title={kind === "push" ? "Toutes les notifications" : "Tous les messages dans l'app"}
-      subtitle={kind === "push" ? plural(d.push.length, "notification") : plural(d.messages.length, "message")} onClose={onClose} width={960}>
-      <style>{ST_CSS + MS_CSS + MK_CSS}</style>
-      <input type="search" className="ms-in body" placeholder="Chercher un titre ou un texte" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Chercher" style={{ marginBottom: 18 }} />
-      {kind === "push"
-        ? <DataTable rows={pushRows} columns={pushCols} rowKey={(p) => p.id} pageSize={25} initialSort={{ key: "d", dir: "desc" }}
-            onRowClick={(p) => setOpen(open === p.id ? null : p.id)} selectedKey={open}
-            empty={<p style={{ fontSize: 14, color: C.t3 }}>Aucune notification.</p>}
-            mobile={(p) => cell(p.titleFr, `${when(p.scheduledAt)} · ${nf.format(p.sent)} téléphones · ${nf.format(d.stats.push[p.id] ?? 0)} touchées`)} />
-        : <DataTable rows={msgRows} columns={msgCols} rowKey={(m) => m.id} pageSize={25} initialSort={{ key: "d", dir: "desc" }}
-            onRowClick={(m) => setOpen(open === m.id ? null : m.id)} selectedKey={open}
-            empty={<p style={{ fontSize: 14, color: C.t3 }}>Aucun message.</p>}
-            mobile={(m) => cell(m.titleFr, `${msgState(m)[0]} · vu par ${nf.format(d.stats.messages[m.id]?.seen ?? 0)}`)} />}
-      {openPush && <div style={{ marginTop: 22 }}><PushItem p={openPush} taps={d.stats.push[openPush.id] ?? 0} automatic={automatic} onErr={onErr} onChanged={onChanged} /></div>}
-      {openMsg && <div style={{ marginTop: 22 }}><MessageItem m={openMsg} st={d.stats.messages[openMsg.id]} onErr={onErr} onChanged={onChanged} /></div>}
-    </SidePanel>
   );
 }
 
@@ -333,7 +267,7 @@ function Reach({ clientSends, audience }: { clientSends: boolean; audience: Audi
 }
 
 function PushComposer({ from, own, onOwnChanged, clientSends, automatic, onClose, onDone }: {
-  from?: NotifTemplate; own: NotifTemplate[]; onOwnChanged: () => void; clientSends: boolean; automatic: boolean; onClose: () => void; onDone: () => void;
+  from?: NotifTemplate; own: NotifTemplate[]; onOwnChanged: () => void; clientSends: boolean; automatic: boolean; onClose: () => void; onDone: (later: boolean) => void;
 }) {
   const { user } = useAuth();
   const fill = (x?: NotifTemplate | null) => ({ titleFr: x?.titleFr ?? "", bodyFr: x?.bodyFr ?? "", titleEn: x?.titleEn ?? "", bodyEn: x?.bodyEn ?? "" });
@@ -360,7 +294,7 @@ function PushComposer({ from, own, onOwnChanged, clientSends, automatic, onClose
     setBusy(true); setMsg(null);
     const e = await createPush({ ...t, url, audience: aud, scheduledAt: later, byName: user?.email ?? "équipe" });
     setBusy(false);
-    if (e) setMsg(e); else onDone();
+    if (e) setMsg(e); else onDone(!!later);
   };
 
   return (
