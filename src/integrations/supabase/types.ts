@@ -281,6 +281,81 @@ export type Database = {
         }
         Relationships: []
       }
+      app_message_events: {
+        Row: {
+          message_id: string
+          user_id: string
+          kind: string
+          at: string
+        }
+        Insert: {
+          message_id: string
+          user_id: string
+          kind: string
+          at?: string
+        }
+        Update: {
+          message_id?: string
+          user_id?: string
+          kind?: string
+          at?: string
+        }
+        Relationships: []
+      }
+      app_messages: {
+        Row: {
+          id: string
+          title_fr: string
+          body_fr: string | null
+          cta_fr: string | null
+          title_en: string | null
+          body_en: string | null
+          cta_en: string | null
+          url: string | null
+          audience: string
+          active: boolean
+          starts_at: string
+          ends_at: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+        }
+        Insert: {
+          id?: string
+          title_fr: string
+          body_fr?: string | null
+          cta_fr?: string | null
+          title_en?: string | null
+          body_en?: string | null
+          cta_en?: string | null
+          url?: string | null
+          audience: string
+          active?: boolean
+          starts_at?: string
+          ends_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+        }
+        Update: {
+          id?: string
+          title_fr?: string
+          body_fr?: string | null
+          cta_fr?: string | null
+          title_en?: string | null
+          body_en?: string | null
+          cta_en?: string | null
+          url?: string | null
+          audience?: string
+          active?: boolean
+          starts_at?: string
+          ends_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           buy_margin_pct: number
@@ -2105,6 +2180,90 @@ export type Database = {
         }
         Relationships: []
       }
+      push_campaigns: {
+        Row: {
+          id: string
+          title_fr: string
+          body_fr: string
+          title_en: string | null
+          body_en: string | null
+          url: string
+          audience: string
+          status: string
+          scheduled_at: string
+          is_test: boolean
+          people: number
+          devices: number
+          sent: number
+          failed: number
+          blocked: number
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          finished_at: string | null
+        }
+        Insert: {
+          id?: string
+          title_fr: string
+          body_fr: string
+          title_en?: string | null
+          body_en?: string | null
+          url?: string
+          audience: string
+          status?: string
+          scheduled_at?: string
+          is_test?: boolean
+          people?: number
+          devices?: number
+          sent?: number
+          failed?: number
+          blocked?: number
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          finished_at?: string | null
+        }
+        Update: {
+          id?: string
+          title_fr?: string
+          body_fr?: string
+          title_en?: string | null
+          body_en?: string | null
+          url?: string
+          audience?: string
+          status?: string
+          scheduled_at?: string
+          is_test?: boolean
+          people?: number
+          devices?: number
+          sent?: number
+          failed?: number
+          blocked?: number
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          finished_at?: string | null
+        }
+        Relationships: []
+      }
+      push_clicks: {
+        Row: {
+          campaign_id: string
+          user_id: string
+          at: string
+        }
+        Insert: {
+          campaign_id: string
+          user_id: string
+          at?: string
+        }
+        Update: {
+          campaign_id?: string
+          user_id?: string
+          at?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -2616,6 +2775,11 @@ export type Database = {
         Returns: undefined
       }
       campaign_results: { Args: { _id: string }; Returns: Json }
+      notif_audience_count: { Args: { _aud: string }; Returns: Json }
+      notif_stats: { Args: never; Returns: Json }
+      push_clicked: { Args: { _id: string }; Returns: undefined }
+      my_app_message: { Args: never; Returns: { id: string; title: string; body: string | null; cta: string | null; url: string | null }[] }
+      app_message_event: { Args: { _id: string; _kind: string }; Returns: undefined }
       journey_preview: { Args: never; Returns: { kind: string; people: number }[] }
       campaign_summaries: { Args: never; Returns: { campaign_id: string; total: number; queued: number; sent: number; delivered: number; opened: number; clicked: number; blocked: number; skipped: number; failed: number }[] }
       campaign_prepare: {

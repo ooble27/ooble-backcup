@@ -44,11 +44,12 @@ import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatS
 import { ScaledFrame } from "./EmailFrame";
 import { CampaignList, ControlCenter, MarketingOverview } from "./MarketingPanels";
 import { JourneysPanel } from "./JourneysPanel";
+import { NotificationsPanel } from "./NotificationsPanel";
 import { loadMarketingSettings, queueCampaign, type MarketingSettings, type PreparedSend } from "@/lib/marketing";
 
 // ─── Types ──────────────────────────────────────────────────
 
-type SubTab = "overview" | "templates" | "history" | "journeys" | "control";
+type SubTab = "overview" | "templates" | "history" | "journeys" | "notifications" | "control";
 
 interface Recipient {
   id?: string;
@@ -494,6 +495,7 @@ const CampaignsPanel = () => {
         { id: "templates", label: "Modèles", count: CAMPAIGN_TEMPLATES.length },
         { id: "history", label: "Campagnes envoyées" },
         { id: "journeys", label: "Parcours" },
+        { id: "notifications", label: "Notifications" },
         { id: "control", label: "Centre de contrôle" },
       ]} />
       <div key={tab} style={{ marginTop: 34 }}>
@@ -545,6 +547,7 @@ const CampaignsPanel = () => {
           </>
         )}
         {tab === "journeys" && <JourneysPanel onControl={() => setTab("control")} />}
+        {tab === "notifications" && <NotificationsPanel onControl={() => setTab("control")} />}
         {tab === "control" && <ControlCenter />}
       </div>
       {studio && (

@@ -10,6 +10,7 @@ import { warmAppData } from "@/lib/warm";
 import { ensurePush } from "@/lib/pushNotifications";
 import { recordOrigin, syncLang } from "@/lib/origin";
 import { useNoZoom } from "@/lib/noZoom";
+import { trackPushOpen } from "@/lib/appMessages";
 
 /**
  * Marque <html> pendant que l'app est montée pour que la racine, le <body> et
@@ -80,6 +81,8 @@ const AppShell = ({ children, header, backTo, wide, wider, center, className }: 
   useEffect(() => { void syncLang(user?.id, lang); }, [user?.id, lang]);
   // Notifications actives pour tout le monde, sans bouton à activer.
   useEffect(() => { if (user?.id) ensurePush(lang); }, [user?.id, lang]);
+  // Ouverte depuis une notification de l'équipe : le toucher est compté.
+  useEffect(() => { if (user?.id) trackPushOpen(); }, [user?.id]);
   return (
   <div className="app-surface app-type min-h-screen bg-background">
     <div className={cn("mx-auto flex min-h-screen max-w-[400px] flex-col px-5 pb-28 pt-[max(1.25rem,var(--ios-top))] app-top md:max-w-[720px] lg:max-w-[960px]", wider && "md:max-w-[840px] lg:max-w-[1040px] xl:max-w-[1180px] md:px-8")}>

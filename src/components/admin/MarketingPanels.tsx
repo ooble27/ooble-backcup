@@ -316,16 +316,16 @@ export function ControlCenter() {
           <p className="mk-say">Envois aux clients : <Word on={!!s?.clientSends} yes="ouverts" no="coupés" onFlip={flipClients} disabled={off} />.</p>
           <p className="mk-ctl-h">
             {s?.clientSends
-              ? "Les campagnes et les parcours écrivent à tous leurs destinataires. Les désabonnés restent toujours exclus."
-              : "Seuls les membres de l'équipe reçoivent, pour tester en vrai. Les courriels destinés aux clients sont retenus et ne partiront jamais."}
+              ? "Les campagnes, les parcours, les notifications et les messages dans l'app atteignent tout leur public. Les désabonnés restent toujours exclus des courriels."
+              : "Seuls les membres de l'équipe reçoivent les courriels et les notifications, et voient les messages dans l'app, pour tester en vrai. Ce qui est destiné aux clients est retenu et ne partira jamais."}
           </p>
         </div>
         <div>
           <p className="mk-say">Envois automatiques : <Word on={!!s?.automaticSends} yes="allumés" no="coupés" onFlip={flipAuto} disabled={off} />.</p>
           <p className="mk-ctl-h">
             {s?.automaticSends
-              ? "Les campagnes programmées partent à leur heure, et les parcours allumés écrivent au bon moment."
-              : "Une campagne programmée attend sans rien envoyer, même à son heure. Les parcours ne préparent rien."}
+              ? "Les campagnes et les notifications programmées partent à leur heure, et les parcours allumés écrivent au bon moment."
+              : "Une campagne ou une notification programmée attend sans rien envoyer, même à son heure. Les parcours ne préparent rien."}
           </p>
         </div>
         <div>

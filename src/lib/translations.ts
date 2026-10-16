@@ -211,6 +211,8 @@ const dict = {
   "dash.networks": { fr: "Recevez sur {n} blockchains", en: "Receive on {n} blockchains" },
   "dash.networksOne": { fr: "Recevez sur 1 blockchain", en: "Receive on 1 blockchain" },
   "dash.recent": { fr: "Activité récente", en: "Recent activity" },
+  "msg.open": { fr: "Voir", en: "View" },
+  "msg.close": { fr: "Fermer le message", en: "Close message" },
   "dash.viewAll": { fr: "Voir tout", en: "View all" },
   "dash.loading": { fr: "Chargement…", en: "Loading…" },
   "dash.noTx": { fr: "Aucune transaction", en: "No transactions" },
