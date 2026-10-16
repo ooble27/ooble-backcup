@@ -22,44 +22,20 @@ import {
   type MailKind, type MailLang,
 } from "../../../supabase/functions/_shared/mailStudio.ts";
 import { C } from "./adminTheme";
-import { ST_CSS, SaveBar, Stepper, Toggle } from "./settingsUi";
+import { ST_CSS, SaveBar, Stepper } from "./settingsUi";
 import { MS_CSS, DEVICES, Opts, Preview, isPhone, type Device } from "./SettingsMailStudio";
-import { ControlLine, Funnel, MK_CSS, useMarketingSettings } from "./MarketingPanels";
+import { ControlLine, Funnel, MK_CSS, Word, useMarketingSettings } from "./MarketingPanels";
 
 const JR_CSS = `
-.jr-list { display: grid; gap: 8px; margin-top: 40px; max-width: 1080px; }
-.jr-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 28px; padding: 26px 0; align-items: start; }
-.jr-open { display: block; width: 100%; border: none; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: transform .4s cubic-bezier(.22,1,.36,1); }
-@media (hover: hover) { .jr-open:hover { transform: translateX(6px); } .jr-open:hover .jr-go { color: var(--a-t1); transform: translateX(4px); } .jr-open:hover .jr-line::after { animation-duration: 1.1s; } }
-.jr-open:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 6px; border-radius: 8px; }
-.jr-name { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; font-size: clamp(22px, 2.4vw, 28px); font-weight: 600; letter-spacing: -0.035em; color: var(--a-t1); line-height: 1.15; }
-.jr-name small { font-size: 14px; font-weight: 500; letter-spacing: 0; }
-.jr-go { width: 18px; height: 18px; color: var(--a-t3); transition: transform .35s cubic-bezier(.22,1,.36,1), color .2s; align-self: center; }
-.jr-why { margin: 6px 0 0; font-size: 14px; line-height: 1.6; color: var(--a-t2); max-width: 720px; }
-
-/* Le chemin : événement → attente → courriel, reliés par un fil qui avance. */
-.jr-path { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 0; margin-top: 18px; }
-.jr-node { display: grid; gap: 2px; }
-.jr-node .k { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--a-t3); }
-.jr-node .v { font-size: 15px; font-weight: 500; color: var(--a-t1); white-space: nowrap; }
-.jr-node.wait .v { color: var(--a-sun); }
-.jr-node.mail .v { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; text-decoration-color: color-mix(in srgb, var(--a-t3) 45%, transparent); }
-.jr-line { position: relative; width: clamp(22px, 4vw, 54px); height: 1.5px; margin: 14px 14px 0; background: color-mix(in srgb, var(--a-t3) 30%, transparent); overflow: hidden; }
-.jr-line::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--a-t2); animation: jr-flow 2.4s linear infinite; }
-.jr-off .jr-line::after { display: none; }
-@keyframes jr-flow { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
-
-.jr-nums { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-top: 16px; font-size: 13.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
-.jr-nums b { font-weight: 600; color: var(--a-t1); }
-.jr-side { display: grid; justify-items: end; gap: 8px; padding-top: 4px; }
-.jr-side span { font-size: 12.5px; color: var(--a-t3); }
-
+.jr-list { display: grid; gap: 56px; margin-top: 64px; max-width: 1040px; }
+.jr-k { margin: 0 0 10px; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--a-t3); }
+.jr-when { margin: 12px 0 0; font-size: 15px; line-height: 1.6; color: var(--a-t2); max-width: 760px; }
+.jr-when b { font-weight: 600; color: var(--a-t1); }
+.jr-acts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 28px; margin-top: 16px; font-size: 15px; color: var(--a-t2); }
 .jr-steps { display: grid; gap: 22px; }
 .jr-step { display: grid; gap: 10px; }
 .jr-rules { display: grid; gap: 10px; margin: 26px 0 0; padding: 0; list-style: none; max-width: 720px; }
 .jr-rules li { font-size: 14px; line-height: 1.6; color: var(--a-t2); }
-@media (max-width: 640px) { .jr-item { grid-template-columns: minmax(0, 1fr); } .jr-side { justify-items: start; grid-auto-flow: column; align-items: center; justify-content: start; gap: 14px; } }
-@media (prefers-reduced-motion: reduce) { .jr-line::after { animation: none; } .jr-open { transition: none; } }
 `;
 
 /** Ce que chaque parcours fait, dit simplement, et l'événement qui le déclenche. */
@@ -79,6 +55,41 @@ const plural = (n: number, one: string, many = `${one}s`) => `${nf.format(n)} ${
 /** « 2 jours », « 1 heure », « 60 jours ». */
 const delayLabel = (h: number) => (h % 24 === 0 ? plural(h / 24, "jour") : plural(h, "heure"));
 const styleName = (s: JourneyStyle) => MAIL_STYLES.find((x) => x.id === s)?.name ?? s;
+
+/** La grande phrase d'un parcours : qui est concerné en ce moment. */
+function story(id: JourneyId, n: number): React.ReactNode {
+  const who = (one: string, many: string) => <><b style={{ color: C.sun }}>{plural(n, "personne")}</b> {n > 1 ? many : one}</>;
+  if (n === 0) {
+    const none: Record<JourneyId, string> = {
+      verify: "Personne n'attend sa vérification en ce moment.",
+      "first-buy": "Personne n'attend son premier achat en ce moment.",
+      abandoned: "Aucun achat expiré à relancer en ce moment.",
+      thanks: "Aucune première transaction à fêter en ce moment.",
+      winback: "Aucun client endormi en ce moment.",
+    };
+    return none[id];
+  }
+  switch (id) {
+    case "verify": return who("s'est inscrite sans commencer sa vérification.", "se sont inscrites sans commencer leur vérification.");
+    case "first-buy": return who("est vérifiée mais n'a encore rien acheté.", "sont vérifiées mais n'ont encore rien acheté.");
+    case "abandoned": return who("a laissé expirer un achat, sans en refaire.", "ont laissé expirer un achat, sans en refaire.");
+    case "thanks": return who("vient de terminer sa première transaction.", "viennent de terminer leur première transaction.");
+    case "winback": return who("n'a rien commandé depuis deux mois.", "n'ont rien commandé depuis deux mois.");
+  }
+}
+
+/** Quand Ooble écrit, en clair. */
+function timing(j: Journey): React.ReactNode {
+  const [a, b] = j.steps.map((s) => s.delayHours);
+  const d = (h: number) => <b>{delayLabel(h)}</b>;
+  switch (j.id) {
+    case "verify": return <>Ooble écrit {d(a)} après l'inscription{b ? <>, puis à nouveau après {d(b)}</> : null}.</>;
+    case "first-buy": return <>Ooble écrit {d(a)} après la vérification.</>;
+    case "abandoned": return <>Ooble écrit {d(a)} après l'annulation, au plus une fois par semaine.</>;
+    case "thanks": return a === 24 ? <>Ooble écrit <b>le lendemain</b>.</> : <>Ooble écrit {d(a)} après la transaction.</>;
+    case "winback": return <>Ooble écrit après {d(a)} sans commande.</>;
+  }
+}
 
 /** Parcours, textes, personnes concernées et chiffres (cache pour un retour instantané). */
 function useJourneys() {
@@ -134,8 +145,8 @@ export function JourneysPanel({ onControl }: { onControl: () => void }) {
   return (
     <div>
       <style>{ST_CSS + MK_CSS + JR_CSS}</style>
-      <p className="mk-in" style={{ margin: 0, fontSize: 14, color: C.coral }}>Marketing · parcours</p>
-      <h1 className="mk-hero mk-in d1" style={{ marginTop: 14 }}>
+      <p style={{ margin: 0, fontSize: 14, color: C.coral }}>Marketing · parcours</p>
+      <h1 className="mk-hero" style={{ marginTop: 14 }}>
         {!data.list ? <span className="mute">Parcours</span> : on === 0 ? (
           <>{journeys.length} parcours prêts, <span style={{ color: C.coral }}>aucun allumé</span><span className="mute">. Rien ne part sans vous.</span></>
         ) : (
@@ -146,56 +157,38 @@ export function JourneysPanel({ onControl }: { onControl: () => void }) {
           </>
         )}
       </h1>
-      <p className="mk-lead mk-in d2">
+      <p className="mk-lead">
         Chaque parcours écrit à une personne quand il se passe quelque chose dans son compte, une seule fois par événement.
-        Le serveur vérifie qui est concerné toutes les 10 minutes.
+        Touchez « éteint » ou « allumé » pour changer.
       </p>
       <ControlLine s={s} onOpen={onControl} />
       {data.err && <p style={{ marginTop: 14, fontSize: 13.5, color: C.coral }}>{data.err}</p>}
       {msg && <p style={{ marginTop: 14, fontSize: 14, color: msg.ok ? C.sage : C.coral }}>{msg.text}</p>}
 
       <div className="jr-list">
-        {journeys.map((j, i) => {
+        {journeys.map((j) => {
           const info = INFO[j.id];
           const m = j.campaignId ? data.sums[j.campaignId] : undefined;
+          const sent = m?.sent ?? 0;
           const waiting = j.steps.reduce((n, st) => n + (data.people?.[st.kind] ?? 0), 0);
           return (
-            <div key={j.id} className={`jr-item mk-in d${Math.min(4, i + 1)}${j.enabled ? "" : " jr-off"}`}>
-              <button type="button" className="jr-open" onClick={() => setOpen(j.id)} aria-label={`Ouvrir ${info.name}`}>
-                <span className="jr-name">
-                  {info.name}
-                  <small style={{ color: j.enabled ? C.sage : C.t3 }}>{j.enabled ? "Allumé" : "Éteint"}</small>
-                  <ArrowRight className="jr-go" />
-                </span>
-                <span className="jr-why" style={{ display: "block" }}>{info.why}</span>
-                <span className="jr-path">
-                  <span className="jr-node"><span className="k">Quand</span><span className="v">{info.trigger}</span></span>
-                  {j.steps.map((st) => (
-                    <span key={st.kind} style={{ display: "contents" }}>
-                      <span className="jr-line" aria-hidden="true" />
-                      <span className="jr-node wait"><span className="k">Après</span><span className="v">{delayLabel(st.delayHours)}</span></span>
-                      <span className="jr-line" aria-hidden="true" />
-                      <span className="jr-node mail"><span className="k">Courriel</span><span className="v">{MAIL_BY_ID[st.kind as MailKind]?.name ?? st.kind}</span></span>
-                    </span>
-                  ))}
-                </span>
-                <span className="jr-nums">
-                  <span><b style={{ color: waiting ? C.sun : undefined }}>{data.people ? nf.format(waiting) : "…"}</b> {waiting > 1 ? "personnes concernées" : "personne concernée"} en ce moment</span>
-                  <span><b>{nf.format(m?.sent ?? 0)}</b> envoyé{(m?.sent ?? 0) > 1 ? "s" : ""}</span>
-                  {(m?.sent ?? 0) > 0 && <span><b style={{ color: C.sage }}>{pct(m!.opened, m!.sent)} %</b> ouverts</span>}
-                  {(m?.sent ?? 0) > 0 && <span><b>{pct(m!.clicked, m!.sent)} %</b> cliqués</span>}
-                </span>
-              </button>
-              <div className="jr-side">
-                <Toggle on={j.enabled} disabled={!admin || busy === j.id} label={`${info.name} allumé`} onChange={(v) => void flip(j, v)} />
-                <span>Style {styleName(j.style)}</span>
+            <div key={j.id}>
+              <p className="jr-k">{info.name}</p>
+              <p className="mk-say">{data.people ? story(j.id, waiting) : <span>…</span>}</p>
+              <p className="jr-when">
+                {timing(j)}
+                {sent > 0 && <> Déjà <b>{plural(sent, "courriel envoyé", "courriels envoyés")}</b>, <b style={{ color: C.sage }}>{pct(m!.opened, sent)} %</b> ouverts, <b>{pct(m!.clicked, sent)} %</b> cliqués.</>}
+              </p>
+              <div className="jr-acts">
+                <span>Parcours <Word on={j.enabled} yes="allumé" no="éteint" disabled={!admin || busy === j.id} onFlip={(v) => void flip(j, v)} /></span>
+                <button type="button" className="mk-link" onClick={() => setOpen(j.id)}>Voir et modifier {j.steps.length > 1 ? "les courriels" : "le courriel"} <ArrowRight style={{ width: 14, height: 14 }} /></button>
               </div>
             </div>
           );
         })}
       </div>
 
-      <section className="mk-sec mk-in d4">
+      <section className="mk-sec">
         <h2 className="mk-h">Les règles, toujours appliquées</h2>
         <ul className="jr-rules">
           <li>Un même courriel n'est jamais envoyé deux fois à une personne pour le même événement.</li>

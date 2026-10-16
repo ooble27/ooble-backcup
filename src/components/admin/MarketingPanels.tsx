@@ -2,10 +2,9 @@
  * Marketing : Vue d'ensemble, Centre de contrôle et campagnes envoyées (avec leurs résultats).
  *
  * Tout est à plat, comme le reste du back-office : de grandes phrases aux mots clés en couleur,
- * des chiffres posés sur la page, des barres fines pour le parcours des courriels. Les seules
- * animations sont en CSS (apparition, barres qui se remplissent), sans calcul en JavaScript.
+ * des chiffres en grand posés sur la page. Pas d'animation : seul le survol fait bouger.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Megaphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -18,12 +17,9 @@ import {
 import { C } from "./adminTheme";
 import { Button, SidePanel } from "./ui";
 import { DataTable, EmptyState, FilterChips, type Column } from "./layout";
-import { ST_CSS, Stepper, Toggle } from "./settingsUi";
+import { ST_CSS, Stepper } from "./settingsUi";
 
 export const MK_CSS = `
-.mk-in { animation: mk-in .55s cubic-bezier(.22,1,.36,1) both; }
-.mk-in.d1 { animation-delay: .06s } .mk-in.d2 { animation-delay: .12s } .mk-in.d3 { animation-delay: .18s } .mk-in.d4 { animation-delay: .24s }
-@keyframes mk-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 .mk-hero { margin: 0; font-size: clamp(32px, 4.2vw, 54px); line-height: 1.06; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; max-width: 1000px; }
 .mk-hero .mute { color: var(--a-t3); }
 .mk-lead { margin: 14px 0 0; font-size: 15px; line-height: 1.65; color: var(--a-t2); max-width: 680px; }
@@ -34,7 +30,7 @@ export const MK_CSS = `
 .mk-link { display: inline-flex; align-items: center; gap: 6px; border: none; background: none; padding: 2px 0; font: inherit; font-size: 14px; color: var(--a-t1); cursor: pointer; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; text-decoration-color: var(--a-sun); transition: transform .3s cubic-bezier(.22,1,.36,1); }
 .mk-link:hover { transform: translateX(3px); }
 .mk-link.quiet { color: var(--a-t3); text-decoration-color: currentColor; }
-/* Parcours des courriels : une barre fine par étape, qui se remplit à l'arrivée. */
+/* Parcours des courriels : une barre fine par étape. */
 .mk-fun { display: grid; gap: 16px; margin-top: 22px; max-width: 860px; }
 .mk-fun-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 120px; align-items: center; gap: 16px; }
 @media (max-width: 640px) { .mk-fun-row { grid-template-columns: 96px minmax(0, 1fr) 84px; gap: 10px; } }
@@ -42,8 +38,7 @@ export const MK_CSS = `
 .mk-fun-v { text-align: right; font-size: 15px; font-weight: 600; color: var(--a-t1); font-variant-numeric: tabular-nums; }
 .mk-fun-v small { font-size: 12px; font-weight: 400; color: var(--a-t3); margin-left: 6px; }
 .mk-bar { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--a-t3) 14%, transparent); overflow: hidden; }
-.mk-bar > span { display: block; height: 100%; border-radius: 99px; transform-origin: left; animation: mk-grow .9s cubic-bezier(.22,1,.36,1) both; }
-@keyframes mk-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.mk-bar > span { display: block; height: 100%; border-radius: 99px; }
 .mk-list { display: grid; margin-top: 12px; max-width: 900px; }
 .mk-item { display: flex; align-items: center; gap: 18px; width: 100%; padding: 15px 0; border: none; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: transform .35s cubic-bezier(.22,1,.36,1); }
 @media (hover: hover) { .mk-item:hover { transform: translateX(6px); } }
@@ -51,12 +46,19 @@ export const MK_CSS = `
 .mk-item .n { display: block; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--a-t1); }
 .mk-item .d { display: block; margin-top: 2px; font-size: 13px; color: var(--a-t3); }
 .mk-item .v { flex-shrink: 0; text-align: right; font-size: 13.5px; color: var(--a-t2); font-variant-numeric: tabular-nums; }
-.mk-ctl { display: grid; gap: 34px; margin-top: 40px; max-width: 820px; }
-.mk-ctl-row { display: flex; gap: 24px; align-items: flex-start; }
-.mk-ctl-row > div:first-child { flex: 1; min-width: 0; }
-.mk-ctl-t { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: var(--a-t1); }
 .mk-ctl-h { margin: 6px 0 0; font-size: 14px; line-height: 1.6; color: var(--a-t2); max-width: 620px; }
-@media (prefers-reduced-motion: reduce) { .mk-in, .mk-bar > span { animation: none; } .mk-item, .mk-link { transition: none; } }
+/* Grands chiffres posés sur la page. */
+.mk-nums { display: flex; flex-wrap: wrap; gap: 22px 64px; margin-top: 44px; }
+.mk-num .v { display: block; font-size: clamp(38px, 4.4vw, 56px); line-height: 1; font-weight: 600; letter-spacing: -0.05em; color: var(--a-t1); font-variant-numeric: tabular-nums; }
+.mk-num .l { display: block; margin-top: 8px; font-size: 13.5px; color: var(--a-t3); }
+/* Un mot qui sert de bouton : on le touche, il change. */
+.mk-word { display: inline; border: none; background: none; padding: 0; font: inherit; letter-spacing: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: .07em; text-underline-offset: .18em; transition: opacity .2s; }
+@media (hover: hover) { .mk-word:hover { opacity: .75; } }
+.mk-word:disabled { cursor: default; text-decoration: none; opacity: 1; }
+.mk-word:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 4px; border-radius: 6px; }
+.mk-say { margin: 0; font-size: clamp(24px, 2.8vw, 34px); line-height: 1.22; font-weight: 500; letter-spacing: -0.035em; color: var(--a-t3); max-width: 980px; text-wrap: balance; }
+.mk-say b { font-weight: 500; color: var(--a-t1); }
+@media (prefers-reduced-motion: reduce) { .mk-item, .mk-link, .mk-word { transition: none; } }
 `;
 
 const nf = new Intl.NumberFormat("fr-CA");
@@ -69,11 +71,11 @@ export function Funnel({ steps }: { steps: { label: string; n: number; of?: numb
   const max = Math.max(1, steps[0]?.n ?? 1);
   return (
     <div className="mk-fun">
-      {steps.map((s, i) => (
+      {steps.map((s) => (
         <div key={s.label} className="mk-fun-row">
           <span className="mk-fun-l">{s.label}</span>
           <div className="mk-bar" aria-hidden="true">
-            <span style={{ width: `${Math.max(s.n ? 2 : 0, (s.n / max) * 100)}%`, background: s.color, animationDelay: `${i * 0.08}s` }} />
+            <span style={{ width: `${Math.max(s.n ? 2 : 0, (s.n / max) * 100)}%`, background: s.color }} />
           </div>
           <span className="mk-fun-v">{nf.format(s.n)}{s.of !== undefined && <small>{pct(s.n, s.of)} %</small>}</span>
         </div>
@@ -97,7 +99,7 @@ export function useMarketingSettings() {
 export function ControlLine({ s, onOpen }: { s: MarketingSettings | null; onOpen?: () => void }) {
   if (!s) return null;
   return (
-    <div className="mk-state mk-in d2">
+    <div className="mk-state">
       <span>Envois aux clients : {s.clientSends ? <b style={{ color: C.sage, fontWeight: 600 }}>ouverts</b> : <b style={{ color: C.coral, fontWeight: 600 }}>coupés</b>}</span>
       <span>Envois automatiques : {s.automaticSends ? <b style={{ color: C.sage, fontWeight: 600 }}>allumés</b> : <b style={{ color: C.coral, fontWeight: 600 }}>coupés</b>}</span>
       {onOpen && <button type="button" className="mk-link" onClick={onOpen}>Centre de contrôle <ArrowRight style={{ width: 14, height: 14 }} /></button>}
@@ -136,11 +138,11 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
   return (
     <div>
       <style>{MK_CSS}</style>
-      <div className="mk-in" style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
         <p style={{ margin: 0, fontSize: 14, color: C.coral }}>Marketing · vue d'ensemble</p>
         <FilterChips value={period} onChange={setPeriod} options={PERIODS} />
       </div>
-      <h1 className="mk-hero mk-in d1" style={{ marginTop: 14 }}>
+      <h1 className="mk-hero" style={{ marginTop: 14 }}>
         {!o ? <span className="mute">Marketing</span> : o.sent === 0 ? (
           <>Aucun courriel de campagne <span className="mute">{label}.</span></>
         ) : (
@@ -152,18 +154,27 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
           </>
         )}
       </h1>
-      <p className="mk-lead mk-in d2">
+      <p className="mk-lead">
         Une commande compte pour une campagne quand le destinataire commande dans les 7 jours qui suivent l'envoi.
         {o ? <> Aujourd'hui : {nf.format(o.today)} courriel{o.today > 1 ? "s" : ""} de campagne envoyé{o.today > 1 ? "s" : ""}.</> : null}
       </p>
       <ControlLine s={s} onOpen={onControl} />
-      <div className="mk-in d3" style={{ marginTop: 26 }}>
+      <div style={{ marginTop: 26 }}>
         <Button variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={onNew}>Nouvelle campagne</Button>
       </div>
       {err && <p style={{ marginTop: 14, fontSize: 13.5, color: C.coral }}>{err}</p>}
 
       {o && o.sent > 0 && (
-        <section className="mk-sec mk-in d3">
+        <div className="mk-nums">
+          <div className="mk-num"><span className="v">{nf.format(o.sent)}</span><span className="l">courriels envoyés</span></div>
+          <div className="mk-num"><span className="v" style={{ color: C.sage }}>{pct(o.opened, o.sent)} %</span><span className="l">ouverts</span></div>
+          <div className="mk-num"><span className="v" style={{ color: C.sun }}>{pct(o.clicked, o.sent)} %</span><span className="l">cliqués</span></div>
+          <div className="mk-num"><span className="v" style={{ color: C.coral }}>{nf.format(o.orders)}</span><span className="l">commande{o.orders > 1 ? "s" : ""}{o.orders ? ` · ${money(o.volume)}` : ""}</span></div>
+        </div>
+      )}
+
+      {o && o.sent > 0 && (
+        <section className="mk-sec">
           <h2 className="mk-h">Le parcours des courriels</h2>
           <p className="mk-sub">De l'envoi à la commande, {label}. Les ouvertures ne comptent que les clients qui affichent les images.</p>
           <Funnel key={period} steps={[
@@ -176,7 +187,7 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
         </section>
       )}
 
-      <section className="mk-sec mk-in d4">
+      <section className="mk-sec">
         <h2 className="mk-h">À venir</h2>
         <p className="mk-sub">
           Les campagnes programmées.{s && !s.automaticSends ? " Les envois automatiques sont coupés : elles attendront qu'on les allume." : " Elles partiront seules à l'heure dite."}
@@ -187,9 +198,10 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
             <div className="mk-list">
               {upcoming.map((c) => (
                 <div key={c.id} className="mk-item" style={{ cursor: "default" }}>
+                  <span style={{ width: 150, flexShrink: 0, fontSize: 15, fontWeight: 600, color: C.sun, fontVariantNumeric: "tabular-nums" }}>{when(c.scheduledAt)}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span className="n">{c.name}</span>
-                    <span className="d">{when(c.scheduledAt)} · {sums[c.id]?.total ?? 0} destinataire{(sums[c.id]?.total ?? 0) > 1 ? "s" : ""}</span>
+                    <span className="d">{sums[c.id]?.total ?? 0} destinataire{(sums[c.id]?.total ?? 0) > 1 ? "s" : ""}</span>
                   </span>
                   <button type="button" className="mk-link quiet" onClick={async () => {
                     if (!confirm(`Annuler « ${c.name} » ? Rien ne partira.`)) return;
@@ -203,7 +215,7 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
       </section>
 
       {recent.length > 0 && (
-        <section className="mk-sec mk-in d4">
+        <section className="mk-sec">
           <h2 className="mk-h">Dernières campagnes</h2>
           <div className="mk-list">
             {recent.map((c) => {
@@ -227,19 +239,34 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
 }
 
 /* ─── Centre de contrôle ─── */
+
+/** Un mot qui sert d'interrupteur, dans sa couleur. Sans droit de changer : simple texte coloré. */
+export function Word({ on, yes, no, onFlip, disabled }: { on: boolean; yes: string; no: string; onFlip: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button type="button" className="mk-word" disabled={disabled} aria-pressed={on} onClick={() => onFlip(!on)}
+      style={{ color: on ? C.sage : C.coral }} title={disabled ? undefined : "Toucher pour changer"}>
+      {on ? yes : no}
+    </button>
+  );
+}
+
 export function ControlCenter() {
   const { s, err, reload } = useMarketingSettings();
   const can = useCan();
   const admin = can("marketing.control");
   const { user } = useAuth();
   const [launched, setLaunched] = useState<boolean | null>(null);
+  const [today, setToday] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [editQuota, setEditQuota] = useState(false);
   const [limit, setLimit] = useState(100);
   const [reserve, setReserve] = useState(30);
   useEffect(() => { if (s) { setLimit(s.dailyLimit); setReserve(s.dailyReserve); } }, [s]);
   useEffect(() => {
     void supabase.rpc("platform_launched").then(({ data }) => setLaunched(!!data));
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    fetchOverview(start).then((o) => setToday(o.today)).catch(() => {});
   }, []);
 
   const write = async (patch: Parameters<typeof saveMarketingSettings>[0], ok: string) => {
@@ -249,84 +276,89 @@ export function ControlCenter() {
     setMsg(e ? { ok: false, text: e } : { ok: true, text: ok });
     reload();
     if (!e && (patch.clientSends || patch.automaticSends)) void dispatchNow();
+    return !e;
   };
 
   const flipClients = (v: boolean) => {
-    if (v && launched === false && !confirm("La plateforme n'est pas encore lancée. Autoriser quand même les campagnes à partir vers les clients ?")) return;
-    if (v && !confirm("Les campagnes en attente partiront vers les clients. Continuer ?")) return;
-    void write({ clientSends: v }, v ? "Les campagnes peuvent maintenant partir vers les clients." : "Plus aucune campagne ne part vers les clients : équipe seulement.");
+    if (v && launched === false && !confirm("La plateforme n'est pas encore lancée. Laisser quand même les courriels partir vers les clients ?")) return;
+    if (v && !confirm("Les campagnes et les parcours pourront écrire aux clients. Continuer ?")) return;
+    void write({ clientSends: v }, v ? "Les courriels peuvent maintenant partir vers les clients." : "Plus rien ne part vers les clients : équipe seulement.");
   };
   const flipAuto = (v: boolean) => {
-    if (v && !confirm("Les campagnes programmées partiront seules, à leur heure. Continuer ?")) return;
-    void write({ automaticSends: v }, v ? "Les campagnes programmées partiront à leur heure." : "Les campagnes programmées attendent : rien ne part seul.");
+    if (v && !confirm("Les campagnes programmées et les parcours allumés partiront seuls. Continuer ?")) return;
+    void write({ automaticSends: v }, v ? "Les campagnes programmées et les parcours partent seuls, à leur heure." : "Rien ne part seul : tout attend votre feu vert.");
   };
-  const budget = useMemo(() => Math.max(0, limit - reserve), [limit, reserve]);
+  const budget = Math.max(0, limit - reserve);
   const dirtyQuota = !!s && (limit !== s.dailyLimit || reserve !== s.dailyReserve);
+  const off = !admin || busy || !s;
 
   return (
     <div>
       <style>{ST_CSS + MK_CSS}</style>
-      <p className="mk-in" style={{ margin: 0, fontSize: 14, color: C.coral }}>Marketing · centre de contrôle</p>
-      <h1 className="mk-hero mk-in d1" style={{ marginTop: 14 }}>
-        {!s ? <span className="mute">Centre de contrôle</span> : s.clientSends ? (
-          <>Les campagnes <span style={{ color: C.sage }}>partent vers les clients</span><span className="mute">{s.automaticSends ? ", même programmées." : ", seulement quand vous cliquez."}</span></>
+      <p style={{ margin: 0, fontSize: 14, color: C.coral }}>Marketing · centre de contrôle</p>
+      <h1 className="mk-hero" style={{ marginTop: 14 }}>
+        {!s ? <span className="mute">Centre de contrôle</span> : !s.clientSends ? (
+          <>Rien ne part vers les clients. <span className="mute">Vous avez la main.</span></>
+        ) : s.automaticSends ? (
+          <>Les courriels partent <span style={{ color: C.sage }}>vers les clients</span><span className="mute">, même programmés.</span></>
         ) : (
-          <>Rien ne part <span style={{ color: C.coral }}>vers les clients</span><span className="mute">. Seule l'équipe reçoit les campagnes.</span></>
+          <>Les courriels partent <span style={{ color: C.sage }}>vers les clients</span><span className="mute">, seulement quand vous cliquez.</span></>
         )}
       </h1>
-      <p className="mk-lead mk-in d2">
-        Vous gardez la main sur tout. Ces interrupteurs sont appliqués par le serveur, au moment même de l'envoi : un courriel bloqué ne part jamais, quelle que soit la page qui l'a préparé.
+      <p className="mk-lead">
+        Ces réglages sont appliqués par le serveur, au moment même de l'envoi : un courriel retenu ne part jamais, quelle que soit la page qui l'a préparé.
         {launched === false && <> <b style={{ color: C.sun, fontWeight: 600 }}>La plateforme n'est pas encore lancée.</b></>}
       </p>
       {err && <p style={{ marginTop: 14, fontSize: 13.5, color: C.coral }}>{err}</p>}
-      {!admin && <p style={{ marginTop: 14, fontSize: 13.5, color: C.t3 }}>Seul un administrateur peut changer ces réglages.</p>}
 
-      <div className="mk-ctl mk-in d3">
-        <div className="mk-ctl-row">
-          <div>
-            <p className="mk-ctl-t">Envois aux clients</p>
-            <p className="mk-ctl-h">
-              Coupé : les campagnes ne partent que vers les membres de l'équipe, pour tester en vrai. Les courriels destinés aux clients passent « bloqués » et ne partiront jamais.
-              Allumé : les campagnes partent vers tous leurs destinataires (les désabonnés restent toujours exclus).
-            </p>
-          </div>
-          <Toggle on={!!s?.clientSends} disabled={!admin || busy || !s} label="Envois aux clients" onChange={flipClients} />
-        </div>
-        <div className="mk-ctl-row">
-          <div>
-            <p className="mk-ctl-t">Envois automatiques</p>
-            <p className="mk-ctl-h">
-              Coupé : une campagne programmée pour plus tard attend sans rien envoyer, même à son heure. Allumé : elle part seule, à l'heure choisie.
-              Les parcours automatiques (Marketing › Parcours) suivent le même interrupteur.
-            </p>
-          </div>
-          <Toggle on={!!s?.automaticSends} disabled={!admin || busy || !s} label="Envois automatiques" onChange={flipAuto} />
+      <div style={{ display: "grid", gap: 44, marginTop: 56 }}>
+        <div>
+          <p className="mk-say">Envois aux clients : <Word on={!!s?.clientSends} yes="ouverts" no="coupés" onFlip={flipClients} disabled={off} />.</p>
+          <p className="mk-ctl-h">
+            {s?.clientSends
+              ? "Les campagnes et les parcours écrivent à tous leurs destinataires. Les désabonnés restent toujours exclus."
+              : "Seuls les membres de l'équipe reçoivent, pour tester en vrai. Les courriels destinés aux clients sont retenus et ne partiront jamais."}
+          </p>
         </div>
         <div>
-          <p className="mk-ctl-t">Forfait d'envoi par jour</p>
+          <p className="mk-say">Envois automatiques : <Word on={!!s?.automaticSends} yes="allumés" no="coupés" onFlip={flipAuto} disabled={off} />.</p>
           <p className="mk-ctl-h">
-            Le forfait Resend compte tous les courriels de la journée. Une réserve reste toujours libre pour les courriels de commande :
-            les campagnes s'arrêtent avant, et reprennent le lendemain. Aujourd'hui, les campagnes peuvent utiliser <b style={{ color: C.t1 }}>{nf.format(budget)} courriels</b>.
+            {s?.automaticSends
+              ? "Les campagnes programmées partent à leur heure, et les parcours allumés écrivent au bon moment."
+              : "Une campagne programmée attend sans rien envoyer, même à son heure. Les parcours ne préparent rien."}
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "18px 48px", marginTop: 18 }}>
-            <div>
-              <p className="st-hint" style={{ margin: "0 0 6px" }}>Limite du forfait</p>
-              <Stepper value={limit} onChange={setLimit} step={50} min={50} max={100000} unit="par jour" label="la limite du forfait" />
-            </div>
-            <div>
-              <p className="st-hint" style={{ margin: "0 0 6px" }}>Réservés aux commandes</p>
-              <Stepper value={reserve} onChange={setReserve} step={10} min={0} max={Math.max(0, limit - 10)} unit="courriels" label="la réserve pour les commandes" />
-            </div>
-          </div>
-          {dirtyQuota && admin && (
-            <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 18 }}>
-              <Button variant="primary" disabled={busy} onClick={() => void write({ dailyLimit: limit, dailyReserve: reserve }, "Forfait enregistré.")}>Enregistrer</Button>
-              <button type="button" className="mk-link quiet" onClick={() => { if (s) { setLimit(s.dailyLimit); setReserve(s.dailyReserve); } }}>Annuler</button>
+        </div>
+        <div>
+          <p className="mk-say">
+            Chaque jour, jusqu'à <b>{nf.format(budget)} courriels</b> de campagne, et <b>{nf.format(reserve)}</b> toujours gardés pour les commandes.
+            {today !== null && <> <span>Aujourd'hui, </span><b style={{ color: C.sun }}>{nf.format(today)}</b> <span>déjà partis.</span></>}
+          </p>
+          <p className="mk-ctl-h">Le forfait Resend compte tous les courriels de la journée. Quand la part des campagnes est atteinte, la suite attend le lendemain.</p>
+          {admin && !editQuota && <button type="button" className="mk-link" style={{ marginTop: 14 }} onClick={() => setEditQuota(true)}>Changer le forfait <ArrowRight style={{ width: 14, height: 14 }} /></button>}
+          {admin && editQuota && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "18px 48px" }}>
+                <div>
+                  <p className="st-hint" style={{ margin: "0 0 6px" }}>Limite du forfait</p>
+                  <Stepper value={limit} onChange={setLimit} step={50} min={50} max={100000} unit="par jour" label="la limite du forfait" />
+                </div>
+                <div>
+                  <p className="st-hint" style={{ margin: "0 0 6px" }}>Gardés pour les commandes</p>
+                  <Stepper value={reserve} onChange={setReserve} step={10} min={0} max={Math.max(0, limit - 10)} unit="courriels" label="la réserve pour les commandes" />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 18 }}>
+                <Button variant="primary" disabled={busy || !dirtyQuota} onClick={async () => { if (await write({ dailyLimit: limit, dailyReserve: reserve }, "Forfait enregistré.")) setEditQuota(false); }}>Enregistrer</Button>
+                <button type="button" className="mk-link quiet" onClick={() => { if (s) { setLimit(s.dailyLimit); setReserve(s.dailyReserve); } setEditQuota(false); }}>Annuler</button>
+              </div>
             </div>
           )}
         </div>
-        {msg && <p style={{ margin: 0, fontSize: 14, color: msg.ok ? C.sage : C.coral }}>{msg.text}</p>}
-        {s?.updatedAt && s.updatedByName && <p style={{ margin: 0, fontSize: 13, color: C.t3 }}>Dernier changement par {s.updatedByName}, le {when(s.updatedAt)}.</p>}
+        {msg && <p style={{ margin: 0, fontSize: 15, color: msg.ok ? C.sage : C.coral }}>{msg.text}</p>}
+        <p style={{ margin: 0, fontSize: 14, color: C.t3 }}>
+          {!admin ? "Seul un administrateur peut changer ces réglages. " : "Touchez les mots en couleur pour changer. "}
+          {s?.updatedAt && s.updatedByName && <>Dernier changement par <span style={{ color: C.t2 }}>{s.updatedByName}</span>, le {when(s.updatedAt)}.</>}
+        </p>
       </div>
     </div>
   );
@@ -411,7 +443,7 @@ function CampaignDetail({ c, onClose, onChanged, preview }: {
       {err && <p style={{ fontSize: 13.5, color: C.coral }}>{err}</p>}
       {r && (
         <>
-          <p className="mk-in" style={{ margin: 0, fontSize: "clamp(22px, 2.6vw, 30px)", lineHeight: 1.2, fontWeight: 600, letterSpacing: "-0.035em", color: C.t1 }}>
+          <p style={{ margin: 0, fontSize: "clamp(22px, 2.6vw, 30px)", lineHeight: 1.2, fontWeight: 600, letterSpacing: "-0.035em", color: C.t1 }}>
             {r.sent === 0 ? (
               <span style={{ color: C.t3 }}>{future ? `Programmée pour le ${when(c.scheduledAt)}.` : r.queued ? "En attente d'envoi." : "Aucun courriel envoyé."}</span>
             ) : (
