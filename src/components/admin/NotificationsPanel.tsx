@@ -16,6 +16,7 @@ import { C } from "./adminTheme";
 import { Button, SidePanel } from "./ui";
 import { ST_CSS } from "./settingsUi";
 import { MS_CSS, Opts } from "./SettingsMailStudio";
+import { MESSAGE_TEMPLATES, PUSH_TEMPLATES, archiveOwnTemplate, loadOwnTemplates, saveOwnTemplate, type NotifTemplate } from "@/lib/notifTemplates";
 import { ControlLine, MK_CSS, useMarketingSettings } from "./MarketingPanels";
 
 const nf = new Intl.NumberFormat("fr-CA");
@@ -29,7 +30,10 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
   const { s } = useMarketingSettings();
   const [d, setD] = useState<Data | null>(() => peek<Data>("nt.all")?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
-  const [compose, setCompose] = useState<"push" | "message" | null>(null);
+  const [compose, setCompose] = useState<{ kind: "push" | "message"; from?: NotifTemplate } | null>(null);
+  const [own, setOwn] = useState<NotifTemplate[]>(() => peek<NotifTemplate[]>("nt.own")?.value ?? []);
+  const reloadOwn = useCallback(() => { loadOwnTemplates().then((v) => { setOwn(v); put("nt.own", v); }).catch(() => {}); }, []);
+  useEffect(reloadOwn, [reloadOwn]);
   const [subs, setSubs] = useState<AudienceCount | null>(null);
   const reload = useCallback(() => {
     loadNotifications().then((v) => { setD(v); put("nt.all", v); setErr(null); }).catch((e) => setErr(e.message));
@@ -67,8 +71,9 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
             <h2 className="mk-h">Notifications push</h2>
             <p className="mk-sub">Une alerte sur l'écran du téléphone, même app fermée. Touchée, elle ouvre l'app à la page choisie.</p>
           </div>
-          <Button variant="primary" icon={<BellRing style={{ width: 16, height: 16 }} />} onClick={() => setCompose("push")}>Nouvelle notification</Button>
+          <Button variant="primary" icon={<BellRing style={{ width: 16, height: 16 }} />} onClick={() => setCompose({ kind: "push" })}>Écrire une notification</Button>
         </div>
+        <Shelf list={[...own.filter((t) => t.kind === "push"), ...PUSH_TEMPLATES]} onPick={(t) => setCompose({ kind: "push", from: t })} />
         {d && d.push.length === 0 && <p style={{ margin: "18px 0 0", fontSize: 14, color: C.t3 }}>Aucune notification pour l'instant.</p>}
         <div className="mk-list">
           {(d?.push ?? []).map((p) => {
@@ -110,8 +115,9 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
               Le plus récent s'affiche en haut de l'accueil ; le client peut le fermer.
             </p>
           </div>
-          <Button variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={() => setCompose("message")}>Nouveau message</Button>
+          <Button variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={() => setCompose({ kind: "message" })}>Écrire un message</Button>
         </div>
+        <Shelf list={[...own.filter((t) => t.kind === "message"), ...MESSAGE_TEMPLATES]} onPick={(t) => setCompose({ kind: "message", from: t })} />
         <div className="mk-list">
           {(d?.messages ?? []).map((m) => {
             const st = d?.stats.messages[m.id] ?? { seen: 0, click: 0, dismiss: 0 };
@@ -141,10 +147,63 @@ export function NotificationsPanel({ onControl }: { onControl: () => void }) {
         </div>
       </section>
 
-      {compose === "push" && <PushComposer clientSends={!!s?.clientSends} automatic={!!s?.automaticSends} onClose={() => setCompose(null)} onDone={() => { setCompose(null); reload(); }} />}
-      {compose === "message" && <MessageComposer clientSends={!!s?.clientSends} onClose={() => setCompose(null)} onDone={() => { setCompose(null); reload(); }} />}
+      {compose?.kind === "push" && <PushComposer from={compose.from} own={own} onOwnChanged={reloadOwn} clientSends={!!s?.clientSends} automatic={!!s?.automaticSends} onClose={() => setCompose(null)} onDone={() => { setCompose(null); reload(); }} />}
+      {compose?.kind === "message" && <MessageComposer from={compose.from} own={own} onOwnChanged={reloadOwn} clientSends={!!s?.clientSends} onClose={() => setCompose(null)} onDone={() => { setCompose(null); reload(); }} />}
     </div>
   );
+}
+
+/* ─── Modèles ─── */
+
+/** Les modèles, en mots soulignés : un clic ouvre le formulaire déjà rempli. */
+function Shelf({ list, onPick }: { list: NotifTemplate[]; onPick: (t: NotifTemplate) => void }) {
+  return (
+    <div style={{ marginTop: 22 }}>
+      <p className="ms-k" style={{ marginBottom: 10 }}>Ou partir d'un modèle, en français et en anglais{list.some((t) => t.own) ? " · les vôtres en jaune" : ""}</p>
+      <div className="ms-opts" style={{ gap: "6px 22px" }}>
+        {list.map((t) => (
+          <button key={t.id} type="button" onClick={() => onPick(t)} style={{ fontSize: 15, color: t.own ? C.sun : undefined }}>{t.name}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Choisir un modèle dans le formulaire, enregistrer le texte comme modèle, retirer un modèle de l'équipe. */
+function TemplateBar({ kind, current, own, dirty, onPick, onSave, onOwnChanged }: {
+  kind: "push" | "message"; current: string | null; own: NotifTemplate[]; dirty: boolean;
+  onPick: (t: NotifTemplate | null) => void; onSave: () => void; onOwnChanged: () => void;
+}) {
+  const list = [...own.filter((t) => t.kind === kind), ...(kind === "push" ? PUSH_TEMPLATES : MESSAGE_TEMPLATES)];
+  const pick = (id: string) => {
+    if (dirty && !confirm("Remplacer le texte en cours par ce modèle ?")) return;
+    onPick(list.find((t) => t.id === id) ?? null);
+  };
+  const mine = own.find((t) => t.id === current);
+  return (
+    <div>
+      <p className="ms-k" style={{ marginBottom: 8 }}>Modèle</p>
+      <Opts label="Modèle" value={current ?? "none"} onPick={(id) => pick(id)}
+        options={[{ id: "none", label: "J'écris moi-même" }, ...list.map((t) => ({ id: t.id, label: t.name }))]} />
+      <div style={{ display: "flex", gap: 22, marginTop: 10 }}>
+        <button type="button" className="ms-link" onClick={onSave}>Enregistrer comme modèle</button>
+        {mine && (
+          <button type="button" className="ms-link" onClick={async () => {
+            if (!confirm(`Retirer le modèle « ${mine.name} » ?`)) return;
+            await archiveOwnTemplate(mine.id); onOwnChanged(); onPick(null);
+          }}>Retirer ce modèle</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+async function askAndSave(t: Omit<NotifTemplate, "id" | "own" | "name">, byName: string, done: () => void): Promise<string | null> {
+  const name = window.prompt("Nom du modèle (par exemple « Taux du lundi ») :", "");
+  if (!name || !name.trim()) return null;
+  const e = await saveOwnTemplate({ ...t, name }, byName);
+  if (!e) done();
+  return e ?? `Modèle « ${name.trim()} » enregistré.`;
 }
 
 /* ─── Saisie ─── */
@@ -181,11 +240,18 @@ function Reach({ clientSends, audience }: { clientSends: boolean; audience: Audi
     : <p style={{ margin: 0, fontSize: 14, color: C.coral }}>Les envois aux clients sont coupés : seuls les membres de l'équipe dans ce public le recevront.</p>;
 }
 
-function PushComposer({ clientSends, automatic, onClose, onDone }: { clientSends: boolean; automatic: boolean; onClose: () => void; onDone: () => void }) {
+function PushComposer({ from, own, onOwnChanged, clientSends, automatic, onClose, onDone }: {
+  from?: NotifTemplate; own: NotifTemplate[]; onOwnChanged: () => void; clientSends: boolean; automatic: boolean; onClose: () => void; onDone: () => void;
+}) {
   const { user } = useAuth();
-  const [t, setT] = useState({ titleFr: "", bodyFr: "", titleEn: "", bodyEn: "" });
-  const [url, setUrl] = useState<string>("/app");
-  const [aud, setAud] = useState<Audience>("staff");
+  const fill = (x?: NotifTemplate | null) => ({ titleFr: x?.titleFr ?? "", bodyFr: x?.bodyFr ?? "", titleEn: x?.titleEn ?? "", bodyEn: x?.bodyEn ?? "" });
+  const [tpl, setTpl] = useState<string | null>(from?.id ?? null);
+  const [t, setT] = useState(() => fill(from));
+  const [url, setUrl] = useState<string>(from?.url ?? "/app");
+  const [aud, setAud] = useState<Audience>(from?.audience ?? "staff");
+  const [note, setNote] = useState<string | null>(null);
+  const use = (x: NotifTemplate | null) => { setTpl(x?.id ?? null); setT(fill(x)); setUrl(x?.url ?? "/app"); setAud(x?.audience ?? "staff"); setNote(null); };
+  const dirty = !!(t.titleFr || t.bodyFr || t.titleEn || t.bodyEn);
   const [timing, setTiming] = useState<"now" | "later">("now");
   const [at, setAt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -214,6 +280,9 @@ function PushComposer({ clientSends, automatic, onClose, onDone }: { clientSends
       </div>}>
       <style>{ST_CSS + MS_CSS + MK_CSS}</style>
       <div style={{ display: "grid", gap: 28 }}>
+        <TemplateBar kind="push" current={tpl} own={own} dirty={dirty} onPick={use} onOwnChanged={onOwnChanged}
+          onSave={async () => { if (!t.titleFr.trim()) { setNote("Écrivez au moins un titre."); return; } setNote(await askAndSave({ kind: "push", ...t, url, audience: aud }, user?.email ?? "équipe", onOwnChanged)); }} />
+        {note && <p style={{ margin: 0, fontSize: 13.5, color: C.t2 }}>{note}</p>}
         <Line id="pt-title" label="Titre" value={t.titleFr} onChange={(v) => setT({ ...t, titleFr: v })} max={80} big />
         <Line id="pt-body" label="Texte" value={t.bodyFr} onChange={(v) => setT({ ...t, bodyFr: v })} max={240} />
         <div>
@@ -251,11 +320,18 @@ function PushComposer({ clientSends, automatic, onClose, onDone }: { clientSends
   );
 }
 
-function MessageComposer({ clientSends, onClose, onDone }: { clientSends: boolean; onClose: () => void; onDone: () => void }) {
+function MessageComposer({ from, own, onOwnChanged, clientSends, onClose, onDone }: {
+  from?: NotifTemplate; own: NotifTemplate[]; onOwnChanged: () => void; clientSends: boolean; onClose: () => void; onDone: () => void;
+}) {
   const { user } = useAuth();
-  const [t, setT] = useState({ titleFr: "", bodyFr: "", ctaFr: "", titleEn: "", bodyEn: "", ctaEn: "" });
-  const [url, setUrl] = useState<string>("none");
-  const [aud, setAud] = useState<Audience>("staff");
+  const fill = (x?: NotifTemplate | null) => ({ titleFr: x?.titleFr ?? "", bodyFr: x?.bodyFr ?? "", ctaFr: x?.ctaFr ?? "", titleEn: x?.titleEn ?? "", bodyEn: x?.bodyEn ?? "", ctaEn: x?.ctaEn ?? "" });
+  const [tpl, setTpl] = useState<string | null>(from?.id ?? null);
+  const [t, setT] = useState(() => fill(from));
+  const [url, setUrl] = useState<string>(from?.url ?? "none");
+  const [aud, setAud] = useState<Audience>(from?.audience ?? "staff");
+  const [note, setNote] = useState<string | null>(null);
+  const use = (x: NotifTemplate | null) => { setTpl(x?.id ?? null); setT(fill(x)); setUrl(x?.url ?? "none"); setAud(x?.audience ?? "staff"); setNote(null); };
+  const dirty = !!(t.titleFr || t.bodyFr || t.ctaFr || t.titleEn || t.bodyEn || t.ctaEn);
   const [until, setUntil] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -281,6 +357,9 @@ function MessageComposer({ clientSends, onClose, onDone }: { clientSends: boolea
       </div>}>
       <style>{ST_CSS + MS_CSS + MK_CSS}</style>
       <div style={{ display: "grid", gap: 28 }}>
+        <TemplateBar kind="message" current={tpl} own={own} dirty={dirty} onPick={use} onOwnChanged={onOwnChanged}
+          onSave={async () => { if (!t.titleFr.trim()) { setNote("Écrivez au moins un titre."); return; } setNote(await askAndSave({ kind: "message", ...t, url: url === "none" ? null : url, audience: aud }, user?.email ?? "équipe", onOwnChanged)); }} />
+        {note && <p style={{ margin: 0, fontSize: 13.5, color: C.t2 }}>{note}</p>}
         <Line id="am-title" label="Titre" value={t.titleFr} onChange={(v) => setT({ ...t, titleFr: v })} max={80} big />
         <Line id="am-body" label="Texte" value={t.bodyFr} onChange={(v) => setT({ ...t, bodyFr: v })} max={280} optional />
         <div>

@@ -2180,6 +2180,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notif_templates: {
+        Row: {
+          id: string
+          kind: string
+          name: string
+          title_fr: string
+          body_fr: string | null
+          cta_fr: string | null
+          title_en: string | null
+          body_en: string | null
+          cta_en: string | null
+          url: string | null
+          audience: string
+          archived: boolean
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+        }
+        Insert: {
+          id?: string
+          kind: string
+          name: string
+          title_fr: string
+          body_fr?: string | null
+          cta_fr?: string | null
+          title_en?: string | null
+          body_en?: string | null
+          cta_en?: string | null
+          url?: string | null
+          audience?: string
+          archived?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+        }
+        Update: {
+          id?: string
+          kind?: string
+          name?: string
+          title_fr?: string
+          body_fr?: string | null
+          cta_fr?: string | null
+          title_en?: string | null
+          body_en?: string | null
+          cta_en?: string | null
+          url?: string | null
+          audience?: string
+          archived?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+        }
+        Relationships: []
+      }
       push_campaigns: {
         Row: {
           id: string
