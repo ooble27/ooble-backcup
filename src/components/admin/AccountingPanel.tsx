@@ -7,6 +7,7 @@ import { Button, Notice } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
 import AccountingMonth from "./AccountingMonth";
 import { replayRise } from "@/lib/pageMotion";
+import { CountText } from "./CountUp";
 
 /**
  * Comptabilité réelle : marge calculée commande par commande à partir du taux du marché au moment
@@ -102,7 +103,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
 
       <div style={{ marginTop: 26 }}>
         <p className="vz-head" style={{ fontSize: "clamp(34px, 4.4vw, 58px)" }}>
-          <span style={{ color: C.sage }}>{money(t?.margin ?? 0)}</span> de marge réelle <span className="mute">sur {money(t?.volume ?? 0)} échangés.</span>
+          <span style={{ color: C.sage }}><CountText text={money(t?.margin ?? 0)} /></span> de marge réelle <span className="mute">sur <CountText text={money(t?.volume ?? 0)} /> échangés.</span>
         </p>
         <p className="vz-sub">
           {t ? <>Soit <b style={{ color: C.t1, fontWeight: 600 }}>{pct(t.margin, t.volume)}</b> du volume, sur {t.n} commande{t.n > 1 ? "s" : ""} terminée{t.n > 1 ? "s" : ""}{t.n ? `, panier moyen ${money(t.volume / t.n)}` : ""}.</> : "Calcul en cours."}
@@ -120,7 +121,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
         ].map(([label, value, note, color]) => (
           <div key={label}>
             <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>{label}</p>
-            <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color, fontVariantNumeric: "tabular-nums" }}>{value}</p>
+            <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color, fontVariantNumeric: "tabular-nums" }}><CountText text={value} /></p>
             <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3 }}>{note}</p>
           </div>
         ))}

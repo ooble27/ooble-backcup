@@ -75,7 +75,7 @@ const JOBS: Record<string, { name: string; every: string }> = {
   "sell-watch": { name: "Surveillance des USDT reçus (ventes)", every: "toutes les 2 minutes" },
   "drain-usdt-payouts": { name: "Envois d'USDT aux acheteurs", every: "chaque minute" },
   "reconcile-usdt-payouts": { name: "Confirmation des envois d'USDT", every: "toutes les 2 minutes" },
-  "refresh-usdt-rate": { name: "Mise à jour du taux", every: "toutes les 10 minutes" },
+  "refresh-usdt-rate": { name: "Mise à jour du taux (cours Kraken)", every: "toutes les 10 secondes" },
   "sanctions-fetch": { name: "Téléchargement des listes de sanctions", every: "chaque jour" },
 };
 const pct = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });

@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Search } from "lucide-react";
 import { C, FONT } from "./adminTheme";
+import { Counted } from "./CountUp";
 import { replayRise } from "@/lib/pageMotion";
 
 /* ─── En-tête de page ─────────────────────────────────────── */
@@ -99,7 +100,7 @@ export function StatStrip({ items, style }: { items: Stat[]; style?: React.CSSPr
           <dd style={{
             margin: "6px 0 0", fontSize: 28, fontWeight: 600, letterSpacing: "-0.035em", fontVariantNumeric: "tabular-nums", lineHeight: 1.1,
             color: s.color ? s.color : s.tone === "danger" ? C.dangerText : s.tone === "warn" ? C.warnText : s.tone === "ok" ? C.successText : C.t1,
-          }}>{s.value}</dd>
+          }}><Counted value={s.value} /></dd>
           {s.hint && <dd style={{ margin: "4px 0 0", fontSize: 12, color: C.t3 }}>{s.hint}</dd>}
         </div>
       ))}

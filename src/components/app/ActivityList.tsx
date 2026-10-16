@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import type { TKey } from "@/lib/translations";
 import type { Database } from "@/integrations/supabase/types";
 import { EXPLORER_NAME, fetchOutboundTx, txUrl } from "@/lib/settlement";
+import OrderTimeline from "@/components/app/OrderTimeline";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
 
@@ -100,10 +101,8 @@ export const OrderDetailContent = ({ o }: { o: OrderRow }) => {
           {nfUsdt.format(Number(o.usdt_amount))} <span className="text-[18px] text-muted-foreground">USDT</span>
         </p>
         <p className="mt-1 text-[14px] text-muted-foreground">{nf.format(Number(o.cad_amount))} CAD</p>
-        <span className="mt-3 inline-flex rounded-full bg-secondary px-3 py-1 text-[12px] font-semibold text-muted-foreground">
-          {t(statusKey(o))}
-        </span>
       </div>
+      <OrderTimeline o={o} />
       <div className="overflow-hidden rounded-[14px] border border-border bg-card">
         {[
           { label: t("act.ref"), value: orderRef(o.id), copy: true },

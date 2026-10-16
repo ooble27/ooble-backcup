@@ -18,6 +18,7 @@ import { C, FONT } from "./adminTheme";
 import { FilterChips, Section, StatStrip } from "./layout";
 import OriginsCard from "./OriginsCard";
 import { HundredSignups } from "./viz";
+import { CountText } from "./CountUp";
 
 interface KpiDashboardProps {
   orders: AdminOrder[];
@@ -94,7 +95,7 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
           <p style={{ margin: 0, fontSize: 14, color: C.coral }}>{today.charAt(0).toUpperCase() + today.slice(1)} · en direct</p>
           <h1 className="kd-title">
             {greeting}.<br />
-            <span style={{ color: C.sun }}>{loading || !volume ? "…" : money(volume.totalCad)}</span>{" "}
+            <span style={{ color: C.sun }}>{loading || !volume ? "…" : <CountText text={money(volume.totalCad)} />}</span>{" "}
             <span style={{ color: C.t3 }}>échangés{period === "1" ? " en 24 h" : period === "7" ? " cette semaine" : " ce mois-ci"}.</span>
           </h1>
         </div>

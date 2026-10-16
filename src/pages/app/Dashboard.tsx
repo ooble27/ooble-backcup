@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, Coins, HandCoins, Inbox, ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, Coins, HandCoins, Inbox, ChevronRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import RateChart from "@/components/app/RateChart";
+import RollingNumber from "@/components/app/RollingNumber";
 import { openNetworks } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { useUsdtHistory } from "@/hooks/useUsdtHistory";
@@ -16,7 +17,19 @@ import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import BusinessMark from "@/components/app/BusinessMark";
 
-const nf = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+/** Le taux en direct, à 4 décimales : c'est là qu'il bouge. */
+const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
+
+/** « En direct · il y a 12 s » : avance toute seule, sans faire redessiner l'accueil. */
+function RateAge({ at }: { at?: number }) {
+  const t = useT();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(id); }, []);
+  if (!at) return null;
+  const s = Math.max(0, Math.round((now - at) / 1000));
+  const x = s < 60 ? `${s} s` : `${Math.round(s / 60)} min`;
+  return <span className="text-[12px] text-muted-foreground tabular-nums">{s < 10 ? t("dash.rateNow") : t("dash.rateAgo").replace("{x}", x)}</span>;
+}
 
 const RecentActivity = () => {
   const t = useT();
@@ -73,8 +86,19 @@ const RecentActivity = () => {
 
 const Dashboard = () => {
   const t = useT();
-  const rate = useUsdtRate();
+  // En direct : relu toutes les 5 secondes, le serveur le recalcule toutes les 10 secondes.
+  const rate = useUsdtRate({ live: true });
   const history = useUsdtHistory();
+  // Une flèche le temps de voir le sens du mouvement, puis elle s'efface.
+  const [trend, setTrend] = useState<"up" | "down" | null>(null);
+  const prevBuy = useRef(rate.buy);
+  useEffect(() => {
+    if (rate.buy === prevBuy.current) return;
+    setTrend(rate.buy > prevBuy.current ? "up" : "down");
+    prevBuy.current = rate.buy;
+    const id = window.setTimeout(() => setTrend(null), 2600);
+    return () => window.clearTimeout(id);
+  }, [rate.buy]);
   const { user, isStaff } = useAuth();
   const { tradingEnabled, networks } = useAppSettings();
   const openCount = openNetworks(networks).length;
@@ -133,11 +157,13 @@ const Dashboard = () => {
           </span>
 
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="font-display text-[34px] font-light leading-none tracking-tight">
-              {nf.format(rate.buy)}
-            </span>
+            <RollingNumber value={nfRate.format(rate.buy)} className="font-display text-[34px] font-light tracking-tight" />
             <span className="text-[15px] font-medium text-muted-foreground">CAD</span>
+            <span aria-hidden="true" className={cn("self-center transition-opacity duration-500", trend ? "opacity-100" : "opacity-0", trend === "down" ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
+              {trend === "down" ? <ArrowDown className="h-4 w-4" strokeWidth={2.2} /> : <ArrowUp className="h-4 w-4" strokeWidth={2.2} />}
+            </span>
           </div>
+          <div className="mt-2"><RateAge at={rate.at} /></div>
           <RateChart data={history.points} className="hidden w-full text-foreground/55 md:mt-4 md:block md:min-h-[6rem] md:flex-1" />
         </section>
 
