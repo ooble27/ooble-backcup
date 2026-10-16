@@ -99,7 +99,7 @@ const dict = {
   },
 
   // ── Landing — Networks ──
-  "net.kicker": { fr: "Recevez sur 4 réseaux", en: "Receive on 4 networks" },
+  "net.kicker": { fr: "Recevez sur 4 blockchains", en: "Receive on 4 blockchains" },
   "net.title": { fr: "La chaîne de votre choix", en: "The chain of your choice" },
   "net.sub": {
     fr: "Le réseau se choisit à la création de l'ordre. Les frais de réseau varient, le taux ne change pas.",
@@ -208,7 +208,8 @@ const dict = {
   "dash.rate": { fr: "Taux USDT / CAD", en: "USDT / CAD Rate" },
   "dash.buy": { fr: "Acheter", en: "Buy" },
   "dash.sell": { fr: "Vendre", en: "Sell" },
-  "dash.networks": { fr: "Recevez sur 4 réseaux", en: "Receive on 4 networks" },
+  "dash.networks": { fr: "Recevez sur {n} blockchains", en: "Receive on {n} blockchains" },
+  "dash.networksOne": { fr: "Recevez sur 1 blockchain", en: "Receive on 1 blockchain" },
   "dash.recent": { fr: "Activité récente", en: "Recent activity" },
   "dash.viewAll": { fr: "Voir tout", en: "View all" },
   "dash.loading": { fr: "Chargement…", en: "Loading…" },

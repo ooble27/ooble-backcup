@@ -77,6 +77,7 @@ const Dashboard = () => {
   const history = useUsdtHistory();
   const { user, isStaff } = useAuth();
   const { tradingEnabled, networks } = useAppSettings();
+  const openCount = openNetworks(networks).length;
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
   useEffect(() => { getMyProfile().then(setProfile); }, []);
   const kybPending = profile?.businessStatus === "pending";
@@ -182,9 +183,10 @@ const Dashboard = () => {
             </p>
           )}
 
-          <div>
+          {/* Le nombre suit les blockchains ouvertes dans Réglages › Réseaux. */}
+          {openCount > 0 && <div>
             <p className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              {t("dash.networks")}
+              {openCount === 1 ? t("dash.networksOne") : t("dash.networks").replace("{n}", String(openCount))}
             </p>
             <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
               {openNetworks(networks).map((n) => (
@@ -197,7 +199,7 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* Activité récente — sous réseaux sur mobile, sous taux sur desktop */}

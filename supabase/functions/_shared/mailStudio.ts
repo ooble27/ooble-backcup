@@ -66,7 +66,7 @@ export const MAILS: MailSpec[] = [
     heading: "Bienvenue sur Ooble, {prénom}",
     lead: "Votre compte est créé. Vous pouvez acheter et vendre de l'USDT en dollars canadiens, réglé par Interac e-Transfer, de façon simple, rapide et non-custodial.",
     button: "Vérifier mon adresse", url: "{{verifyUrl}}",
-    rows: [["USDT", "4 réseaux au choix"], ["Paiement", "Interac e-Transfer"], ["Modèle", "Non-custodial"]],
+    rows: [["USDT", "Plusieurs blockchains au choix"], ["Paiement", "Interac e-Transfer"], ["Modèle", "Non-custodial"]],
     tokens: ["prénom"],
   },
   {
@@ -187,7 +187,7 @@ export const MAIL_EN: Record<MailKind, MailCopy> = {
     heading: "Welcome to Ooble, {prénom}",
     lead: "Your account is ready. You can buy and sell USDT in Canadian dollars, settled by Interac e-Transfer: simple, fast and non-custodial.",
     button: "Verify my email",
-    rows: [["USDT", "4 networks to choose from"], ["Payment", "Interac e-Transfer"], ["Model", "Non-custodial"]],
+    rows: [["USDT", "Several blockchains to choose from"], ["Payment", "Interac e-Transfer"], ["Model", "Non-custodial"]],
     phrase: "Welcome to Ooble, *{{firstName}}*.",
   },
   "order-buy": {
