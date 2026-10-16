@@ -14,8 +14,6 @@ interface UsdtRate {
   sell: number;
   /** true si un taux réel a été chargé. */
   live: boolean;
-  /** Heure du taux affiché (ms), si connue. */
-  at?: number;
 }
 
 interface Loaded { buy: number; sell: number; base: number; fetchedAt?: number }
@@ -126,7 +124,7 @@ export function useUsdtRate(opts?: { live?: boolean }): UsdtRate {
     return () => { alive = false; };
   }, []);
 
-  if (loaded) return { buy: loaded.buy, sell: loaded.sell, base: loaded.base, live: true, at: loaded.fetchedAt };
+  if (loaded) return { buy: loaded.buy, sell: loaded.sell, base: loaded.base, live: true };
   return {
     ...withMargins(FALLBACK_BASE),
     live: false,

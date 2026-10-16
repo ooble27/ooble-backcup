@@ -16,19 +16,8 @@ import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import BusinessMark from "@/components/app/BusinessMark";
 
-/** Le taux en direct, à 4 décimales : c'est là qu'il bouge. */
+/** Le taux d'achat (cours du marché + marge d'achat), à 4 décimales. */
 const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
-
-/** « En direct · il y a 12 s » : avance toute seule, sans faire redessiner l'accueil. */
-function RateAge({ at }: { at?: number }) {
-  const t = useT();
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(id); }, []);
-  if (!at) return null;
-  const s = Math.max(0, Math.round((now - at) / 1000));
-  const x = s < 60 ? `${s} s` : `${Math.round(s / 60)} min`;
-  return <span className="text-[12px] text-muted-foreground tabular-nums">{s < 10 ? t("dash.rateNow") : t("dash.rateAgo").replace("{x}", x)}</span>;
-}
 
 const RecentActivity = () => {
   const t = useT();
@@ -85,7 +74,7 @@ const RecentActivity = () => {
 
 const Dashboard = () => {
   const t = useT();
-  // En direct : relu toutes les 5 secondes, le serveur le recalcule toutes les 10 secondes.
+  // Relu toutes les 5 secondes : le serveur le recalcule toutes les 10 secondes.
   const rate = useUsdtRate({ live: true });
   const history = useUsdtHistory();
 
@@ -152,7 +141,6 @@ const Dashboard = () => {
             </span>
             <span className="text-[15px] font-medium text-muted-foreground">CAD</span>
           </div>
-          <div className="mt-2"><RateAge at={rate.at} /></div>
           <RateChart data={history.points} className="hidden w-full text-foreground/55 md:mt-4 md:block md:min-h-[6rem] md:flex-1" />
         </section>
 

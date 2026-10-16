@@ -206,8 +206,6 @@ const dict = {
   "dash.ge": { fr: "Bonsoir", en: "Good evening" },
   "dash.gn": { fr: "Bonne nuit", en: "Good night" },
   "dash.rate": { fr: "Taux USDT / CAD", en: "USDT / CAD Rate" },
-  "dash.rateNow": { fr: "En direct · à l'instant", en: "Live · just now" },
-  "dash.rateAgo": { fr: "En direct · il y a {x}", en: "Live · {x} ago" },
   "dash.buy": { fr: "Acheter", en: "Buy" },
   "dash.sell": { fr: "Vendre", en: "Sell" },
   "dash.networks": { fr: "Recevez sur {n} blockchains", en: "Receive on {n} blockchains" },
