@@ -1096,7 +1096,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
 
   const contentStep = wide ? (
     <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(400px, 520px) minmax(0, 1fr)" }}>
-      <WsPane flat>{editor}</WsPane>
+      <WsPane flat fade>{editor}</WsPane>
       <WsPane style={stage}>{preview}</WsPane>
     </div>
   ) : (
@@ -1106,7 +1106,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           options={[{ id: "edit", label: "Modifier" }, { id: "preview", label: <><Eye style={{ width: 13, height: 13 }} /> Aperçu</> }]} />
       </div>
       {/* Clés distinctes : chaque volet a son propre élément (sinon l'aperçu retirait le défilement de « Modifier »). */}
-      {mobilePane === "edit" ? <WsPane key="edit" style={{ flex: 1 }}>{editor}</WsPane> : <WsPane key="preview" style={{ flex: 1, ...stage }}>{preview}</WsPane>}
+      {mobilePane === "edit" ? <WsPane key="edit" fade style={{ flex: 1 }}>{editor}</WsPane> : <WsPane key="preview" style={{ flex: 1, ...stage }}>{preview}</WsPane>}
     </div>
   );
 

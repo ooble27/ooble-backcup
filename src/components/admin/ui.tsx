@@ -14,6 +14,11 @@ import { C, FONT } from "./adminTheme";
 export const UI_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export const UI_CSS = `
+/* Fondu aux bords d'un volet qui défile (seulement là où on le demande : le contenu d'une campagne) :
+   le texte s'efface en douceur en haut et en bas au lieu d'être coupé net, et seulement s'il reste à défiler. */
+.ws-fade { --ft: 0px; --fb: 0px; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ft), #000 calc(100% - var(--fb)), transparent 100%); }
+.ws-fade[data-top="1"] { --ft: 36px; }
+.ws-fade[data-bottom="1"] { --fb: 36px; }
 /* Espace de travail d'une seule couleur, partout : les volets (photos à gauche, dossier à droite) sont posés
    sur le même fond, sans écrin ni anneau, et rien ne s'efface ni ne recouvre le texte aux bords. */
 .ws-root, .ws-head { background: var(--a-bg) !important; }
@@ -223,9 +228,25 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "ok" | "wa
 export interface WorkspaceStep { id: string; label: string; badge?: number | string; done?: boolean }
 
 /** Volet d'un espace de travail : posé sur le fond, sans écrin ni anneau ; il défile s'il le faut. */
-export function WsPane({ children, style, className, flat }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; flat?: boolean }) {
+export function WsPane({ children, style, className, flat, fade }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; flat?: boolean; fade?: boolean }) {
+  // `fade` : fondu en haut et en bas quand il reste du contenu à défiler de ce côté.
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!fade || !el) return;
+    const sync = () => {
+      el.dataset.top = el.scrollTop > 2 ? "1" : "0";
+      el.dataset.bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 2 ? "1" : "0";
+    };
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => { el.removeEventListener("scroll", sync); ro.disconnect(); };
+  }, [fade]);
   return (
-    <div className={[className, flat ? "ws-flat" : "ws-card"].filter(Boolean).join(" ")} style={{ minWidth: 0, minHeight: 0, overflowY: "auto", background: "transparent", ...style }}>
+    <div ref={ref} className={[className, flat ? "ws-flat" : "ws-card", fade && "ws-fade"].filter(Boolean).join(" ")} style={{ minWidth: 0, minHeight: 0, overflowY: "auto", background: "transparent", ...style }}>
       {children}
     </div>
   );
