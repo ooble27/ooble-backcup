@@ -476,7 +476,7 @@ function phrase(p: Parts, c: MailCompany): string {
 </div>`;
 }
 
-const BG: Record<MailStyle, string> = { sobre: "#f6f6f4", recu: "#ffffff", phrase: "#f5f5f3" };
+const BG: Record<MailStyle, string> = { sobre: "#f6f6f4", recu: "#ffffff", phrase: "#ffffff" };
 const RENDER: Record<MailStyle, (p: Parts, c: MailCompany) => string> = { sobre, recu, phrase };
 
 /**
