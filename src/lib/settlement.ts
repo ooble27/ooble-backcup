@@ -63,10 +63,11 @@ const EXPLORER: Record<string, string> = {
   polygon: "https://polygonscan.com/tx/",
   avalanche: "https://snowtrace.io/tx/",
   erc20: "https://etherscan.io/tx/",
+  spl: "https://solscan.io/tx/",
 };
 export const txUrl = (network: string, hash: string) => (EXPLORER[network] ? EXPLORER[network] + hash : "");
 export const EXPLORER_NAME: Record<string, string> = {
-  trc20: "Tronscan", bep20: "BscScan", polygon: "PolygonScan", avalanche: "Snowtrace", erc20: "Etherscan",
+  trc20: "Tronscan", bep20: "BscScan", polygon: "PolygonScan", avalanche: "Snowtrace", erc20: "Etherscan", spl: "Solscan",
 };
 
 /** Transaction d'envoi des USDT d'un achat (visible par le client via RLS). */
