@@ -71,4 +71,13 @@ export const FLAT_CSS = `
 /* Une phrase qui demande l'attention, sans couleur : en clair, un peu plus appuyée. */
 .ac-note { margin: 12px 0 0; font-size: 13.5px; line-height: 1.55; font-weight: 500; color: hsl(var(--foreground)); }
 .ac-help { margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: hsl(var(--muted-foreground)); }
+/* Action à plat : le mot en gras, souligné, et une flèche qui avance au survol. */
+.ac-act { display: inline-flex; align-items: center; gap: 8px; border: none; background: none; padding: 6px 0; font: inherit; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: hsl(var(--foreground)); cursor: pointer; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 7px; -webkit-tap-highlight-color: transparent; }
+.ac-act svg { transition: transform .35s cubic-bezier(.22,1,.36,1); }
+@media (hover: hover) { .ac-act:not(:disabled):hover svg { transform: translateX(4px); } }
+.ac-act:not(:disabled):active svg { transform: translateX(4px); }
+.ac-act:disabled { opacity: .35; cursor: default; }
+.ac-act.quiet { font-size: 15px; font-weight: 500; color: hsl(var(--muted-foreground)); text-decoration: none; }
+@media (hover: hover) { .ac-act.quiet:not(:disabled):hover { color: hsl(var(--foreground)); } }
+.ac-act:focus-visible { outline: 2px solid hsl(var(--foreground)); outline-offset: 4px; border-radius: 4px; }
 `;

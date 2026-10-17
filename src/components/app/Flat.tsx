@@ -4,7 +4,7 @@
  * chargé une fois par AppShell.
  */
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, ShieldOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ShieldOff } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import type { Network } from "@/components/app/networks";
 import { useT } from "@/lib/i18n";
@@ -99,11 +99,30 @@ export const NetworkPick = ({ list, value, onPick }: { list: Network[]; value: s
   </div>
 );
 
-/** Récapitulatif : libellé à gauche, valeur à droite, séparés par un trait fin. */
-export const Facts = ({ rows }: { rows: { label: string; value: string; mono?: boolean }[] }) => (
+/** Récapitulatif : libellé à gauche, valeur à droite, séparés par un trait fin. `usdt` : logo USDT devant la valeur. */
+export const Facts = ({ rows }: { rows: { label: string; value: string; mono?: boolean; usdt?: boolean }[] }) => (
   <div className="ac-lines">
     {rows.map((r) => (
-      <div key={r.label} className={cn("ac-kv", r.mono && "mono")}><span>{r.label}</span><span>{r.value}</span></div>
+      <div key={r.label} className={cn("ac-kv", r.mono && "mono")}>
+        <span>{r.label}</span>
+        <span className={r.usdt ? "inline-flex items-center justify-end gap-1.5" : undefined}>
+          {r.usdt && <img src="/coins/usdt.svg" alt="" className="h-[18px] w-[18px] shrink-0" />}
+          {r.value}
+        </span>
+      </div>
     ))}
   </div>
 );
+
+/** Les actions d'une étape, à plat : la principale soulignée avec une flèche, les autres en gris. */
+export const Actions = ({ children }: { children: React.ReactNode }) => (
+  <div className="mt-10 flex flex-wrap items-center gap-x-9 gap-y-3">{children}</div>
+);
+
+export const Action = ({ children, onClick, to, disabled, quiet }: {
+  children: React.ReactNode; onClick?: () => void; to?: string; disabled?: boolean; quiet?: boolean;
+}) => {
+  const inner = <>{children}{!quiet && <ArrowRight className="h-[18px] w-[18px]" strokeWidth={2} />}</>;
+  if (to) return <Link to={to} className={cn("ac-act", quiet && "quiet")}>{inner}</Link>;
+  return <button type="button" className={cn("ac-act", quiet && "quiet")} disabled={disabled} onClick={onClick}>{inner}</button>;
+};

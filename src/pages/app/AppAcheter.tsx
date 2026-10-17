@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { Link } from "react-router-dom";
-import { ArrowRight, Coins, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
+import { Action, Actions, AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
-import { Button } from "@/components/ui/button";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance } from "@/lib/orders";
 import { amountText, parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
@@ -139,12 +138,8 @@ const AppAcheterForm = () => {
     });
   };
 
-  const next = (go: () => void, disabled: boolean, label = t("buy.continue")) => (
-    <div className="mt-10">
-      <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={disabled} onClick={go}>
-        <Coins className="h-[17px] w-[17px]" strokeWidth={2} /> {label}
-      </Button>
-    </div>
+  const next = (go: () => void, disabled: boolean) => (
+    <Actions><Action disabled={disabled} onClick={go}>{t("buy.continue")}</Action></Actions>
   );
 
   if (step === "amount") {
@@ -165,7 +160,7 @@ const AppAcheterForm = () => {
 
         <div className="mt-6">
           <Facts rows={[
-            { label: unit === "CAD" ? t("buy.youReceive") : t("buy.youPay"), value: unit === "CAD" ? `${nfUsdt.format(usdt)} USDT` : `${nfCad.format(cad)} CAD` },
+            { label: unit === "CAD" ? t("buy.youReceive") : t("buy.youPay"), value: unit === "CAD" ? `${nfUsdt.format(usdt)} USDT` : `${nfCad.format(cad)} CAD`, usdt: unit === "CAD" },
             { label: t("buy.rate"), value: `1 USDT = ${nfCad.format(buyRate)} CAD` },
           ]} />
         </div>
@@ -218,7 +213,7 @@ const AppAcheterForm = () => {
         <StepHeader title={t("buy.recap")} sub={t("buy.recapSub")} onBack={() => setStep("address")} />
         <Facts rows={[
           { label: t("buy.youPay"), value: `${nfCad.format(cad)} CAD` },
-          { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} USDT` },
+          { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} USDT`, usdt: true },
           { label: t("buy.rate"), value: `1 USDT = ${nfCad.format(buyRate)} CAD` },
           { label: t("buy.network"), value: `${network?.name} · ${network?.tag}` },
           { label: t("buy.address"), value: short(address), mono: true },
@@ -226,11 +221,7 @@ const AppAcheterForm = () => {
 
         {err && <p className="ac-note">{err}</p>}
 
-        <div className="mt-10">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={saving} onClick={submit}>
-            <Check className="h-[17px] w-[17px]" strokeWidth={2} /> {saving ? t("buy.validating") : t("buy.validate")}
-          </Button>
-        </div>
+        <Actions><Action disabled={saving} onClick={submit}>{t("buy.validate")}</Action></Actions>
       </AppShell>
     );
   }
@@ -238,7 +229,7 @@ const AppAcheterForm = () => {
   return (
     <AppShell header={<StepHeader title={t("buy.created")} sub={t("buy.payInterac")} />}>
       <Facts rows={[
-        { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} USDT` },
+        { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} USDT`, usdt: true },
         { label: t("buy.toPay"), value: `${nfCad.format(cad)} CAD` },
         { label: t("buy.network"), value: `${network?.name} · ${network?.tag}` },
         { label: t("buy.address"), value: short(address), mono: true },
@@ -260,14 +251,10 @@ const AppAcheterForm = () => {
         <Link to="/faq/payer-par-interac#regles-interac" className="font-medium text-foreground underline underline-offset-2">{t("buy.rulesLink")}</Link>
       </p>
 
-      <div className="mt-10 flex flex-wrap items-center gap-2.5">
-        <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" asChild>
-          <Link to="/app"><Check className="h-[17px] w-[17px]" strokeWidth={2} /> {t("buy.done")}</Link>
-        </Button>
-        <Button variant="ghost" shape="soft" className="h-auto px-[22px] py-[13px] text-sm" onClick={() => { setStep("amount"); setAmount(""); setNet(null); setAddress(""); setSavedRef(""); setErr(null); }}>
-          {t("buy.newOrder")}
-        </Button>
-      </div>
+      <Actions>
+        <Action to="/app">{t("buy.done")}</Action>
+        <Action quiet onClick={() => { setStep("amount"); setAmount(""); setNet(null); setAddress(""); setSavedRef(""); setErr(null); }}>{t("buy.newOrder")}</Action>
+      </Actions>
     </AppShell>
   );
 };

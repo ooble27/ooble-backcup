@@ -4,10 +4,9 @@
  * fermer l'app au milieu d'une vente et la reprendre.
  */
 import { useState } from "react";
-import { Check } from "lucide-react";
 import CopyRow from "@/components/app/CopyRow";
 import { NETWORKS } from "@/components/app/networks";
-import { Button } from "@/components/ui/button";
+import { Action, Actions } from "@/components/app/Flat";
 import { useT } from "@/lib/i18n";
 import { DB_TO_NET, type OrderRow } from "@/lib/orders";
 import { cancelUnsentSell, declareSellSent } from "@/lib/sellProof";
@@ -57,14 +56,10 @@ export default function SellPending({ order, onChange }: { order: OrderRow; onCh
 
       {err && <p className="ac-note">{err}</p>}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[20px] py-[12px] text-sm" disabled={busy} onClick={declare}>
-          <Check className="h-[16px] w-[16px]" strokeWidth={2} /> {t("sell.iSent")}
-        </Button>
-        <Button variant="ghost" shape="soft" className="h-auto px-[18px] py-[12px] text-sm text-muted-foreground" disabled={busy} onClick={cancel}>
-          {t("sell.cancelSell")}
-        </Button>
-      </div>
+      <Actions>
+        <Action disabled={busy} onClick={declare}>{t("sell.iSent")}</Action>
+        <Action quiet disabled={busy} onClick={cancel}>{t("sell.cancelSell")}</Action>
+      </Actions>
     </div>
   );
 }

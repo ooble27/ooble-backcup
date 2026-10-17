@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Coins, HandCoins, ChevronRight, ExternalLink } from "lucide-react";
 import { orderRef, DB_TO_NET, type OrderRow } from "@/lib/orders";
 import { NETWORKS } from "@/components/app/networks";
-import BottomSheet from "@/components/app/BottomSheet";
 import CopyRow from "@/components/app/CopyRow";
 import { useT } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n";
@@ -91,72 +90,43 @@ export const OrderDetailContent = ({ o }: { o: OrderRow }) => {
     return () => { on = false; };
   }, [o.id, o.status, buy]);
   const link = tx ? txUrl(tx.network, tx.tx_hash) : "";
+  const rows: { label: string; value: string; mono?: boolean; copy?: boolean }[] = [
+    { label: t("act.ref"), value: orderRef(o.id), copy: true },
+    { label: t("act.rate"), value: `1 USDT = ${nf.format(Number(o.locked_rate))} CAD` },
+    { label: t("act.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
+    ...(buy && o.wallet_address && o.wallet_address !== "à générer"
+      ? [{ label: t("act.recvAddr"), value: o.wallet_address, mono: true, copy: true }]
+      : []),
+    ...(!buy && o.interac_email
+      ? [{ label: t("act.interacEmail"), value: o.interac_email, mono: true }]
+      : []),
+    { label: t("act.date"), value: dateLong(new Date(o.created_at)) },
+  ];
   return (
     <>
-      <div className="mb-5 flex flex-col items-center text-center">
-        <p className="font-display text-[28px] font-light tracking-tight">
-          {nfUsdt.format(Number(o.usdt_amount))} <span className="text-[18px] text-muted-foreground">USDT</span>
+      <div className="mb-8">
+        <p className="flex items-center gap-2.5 font-display text-[40px] font-semibold leading-none tracking-tight tabular-nums">
+          <img src="/coins/usdt.svg" alt="" className="h-8 w-8 shrink-0" />
+          {nfUsdt.format(Number(o.usdt_amount))} <span className="text-[20px] font-medium text-muted-foreground">USDT</span>
         </p>
-        <p className="mt-1 text-[14px] text-muted-foreground">{nf.format(Number(o.cad_amount))} CAD</p>
-        <span className="mt-3 inline-flex rounded-full bg-secondary px-3 py-1 text-[12px] font-semibold text-muted-foreground">
-          {t(statusKey(o))}
-        </span>
+        <p className="mt-2 text-[15px] text-muted-foreground">{nf.format(Number(o.cad_amount))} CAD · <span className="text-foreground">{t(statusKey(o))}</span></p>
       </div>
-      <div className="overflow-hidden rounded-[14px] border border-border bg-card">
-        {[
-          { label: t("act.ref"), value: orderRef(o.id), copy: true },
-          { label: t("act.rate"), value: `1 USDT = ${nf.format(Number(o.locked_rate))} CAD` },
-          { label: t("act.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
-          ...(buy && o.wallet_address && o.wallet_address !== "à générer"
-            ? [{ label: t("act.recvAddr"), value: o.wallet_address, mono: true, copy: true }]
-            : []),
-          ...(!buy && o.interac_email
-            ? [{ label: t("act.interacEmail"), value: o.interac_email, mono: true }]
-            : []),
-          { label: t("act.date"), value: dateLong(new Date(o.created_at)) },
-        ].map((r, i, arr) => (
-          "copy" in r && r.copy ? (
-            <div key={r.label} className={cn(i < arr.length - 1 && "border-b border-border")}>
-              <CopyRow label={r.label} value={r.value} mono={"mono" in r && !!r.mono} />
-            </div>
-          ) : (
-            <div key={r.label} className={cn("flex items-start justify-between px-4 py-3", i < arr.length - 1 && "border-b border-border")}>
-              <span className="text-[12.5px] text-muted-foreground">{r.label}</span>
-              <span className={cn(
-                "max-w-[60%] break-all text-right text-[12.5px] font-medium",
-                "mono" in r && r.mono && "font-mono text-[11px]",
-              )}>
-                {r.value}
-              </span>
-            </div>
-          )
+      <div className="ac-lines">
+        {rows.map((r) => (
+          r.copy
+            ? <CopyRow key={r.label} flat label={r.label} value={r.value} mono={!!r.mono} />
+            : <div key={r.label} className={cn("ac-kv", r.mono && "mono")}><span>{r.label}</span><span>{r.value}</span></div>
         ))}
         {link && (
-          <a
-            href={link}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-between border-t border-border px-4 py-3 transition-colors hover:bg-secondary/50"
-          >
-            <span className="text-[12.5px] text-muted-foreground">{t("act.tx")}</span>
-            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium underline-offset-4 hover:underline">
+          <div className="ac-kv">
+            <span>{t("act.tx")}</span>
+            <a href={link} target="_blank" rel="noreferrer" className="ac-link justify-end">
               {t("act.viewOn").replace("{x}", EXPLORER_NAME[tx!.network] ?? "explorer")}
               <ExternalLink className="h-3.5 w-3.5" />
-            </span>
-          </a>
+            </a>
+          </div>
         )}
       </div>
     </>
-  );
-};
-
-export const OrderDetailSheet = ({ o, open, onClose }: { o: OrderRow | null; open: boolean; onClose: () => void }) => {
-  const t = useT();
-  if (!o) return null;
-  const buy = o.side === "buy";
-  return (
-    <BottomSheet open={open} onClose={onClose} title={buy ? t("act.buyDetail") : t("act.sellDetail")}>
-      <OrderDetailContent o={o} />
-    </BottomSheet>
   );
 };

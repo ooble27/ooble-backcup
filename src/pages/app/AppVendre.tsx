@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { familyOf, useDepositAddresses } from "@/lib/depositAddresses";
 import { Link } from "react-router-dom";
-import { ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, Wallet, Lock } from "lucide-react";
+import { ArrowRight, Check, Mail, AlertTriangle, MessageSquare, Wallet, Lock } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
-import { Button } from "@/components/ui/button";
+import { Action, Actions, AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance } from "@/lib/orders";
@@ -197,11 +196,7 @@ const AppVendreForm = () => {
   };
 
   const next = (go: () => void, disabled: boolean) => (
-    <div className="mt-10">
-      <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={disabled} onClick={go}>
-        <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
-      </Button>
-    </div>
+    <Actions><Action disabled={disabled} onClick={go}>{t("sell.continue")}</Action></Actions>
   );
 
   if (step === "amount") {
@@ -223,7 +218,7 @@ const AppVendreForm = () => {
 
         <div className="mt-6">
           <Facts rows={[
-            { label: unit === "USDT" ? t("sell.youReceive") : t("sell.youSend"), value: unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} USDT` },
+            { label: unit === "USDT" ? t("sell.youReceive") : t("sell.youSend"), value: unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} USDT`, usdt: unit !== "USDT" },
             { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
           ]} />
         </div>
@@ -338,14 +333,10 @@ const AppVendreForm = () => {
 
         {err && <p className="ac-note">{err}</p>}
 
-        <div className="mt-10 flex flex-wrap items-center gap-2.5">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={saving} onClick={submit}>
-            <Check className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.iSent")}
-          </Button>
-          <Button variant="ghost" shape="soft" className="h-auto px-[18px] py-[13px] text-sm text-muted-foreground" disabled={saving} onClick={cancelSale}>
-            {t("sell.cancelSell")}
-          </Button>
-        </div>
+        <Actions>
+          <Action disabled={saving} onClick={submit}>{t("sell.iSent")}</Action>
+          <Action quiet disabled={saving} onClick={cancelSale}>{t("sell.cancelSell")}</Action>
+        </Actions>
       </AppShell>
     );
   }
@@ -361,7 +352,7 @@ const AppVendreForm = () => {
       </p>
 
       <Facts rows={[
-        { label: t("sell.youSend"), value: `${nfUsdt.format(usdt)} USDT` },
+        { label: t("sell.youSend"), value: `${nfUsdt.format(usdt)} USDT`, usdt: true },
         { label: t("sell.youReceive"), value: `${nfCad.format(cad)} CAD` },
         { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
         { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
@@ -375,14 +366,10 @@ const AppVendreForm = () => {
         <CopyRow flat label={t("sell.orderRef")} value={savedRef} mono />
       </div>
 
-      <div className="mt-10 flex flex-wrap items-center gap-2.5">
-        <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" asChild>
-          <Link to="/app"><Check className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.done")}</Link>
-        </Button>
-        <Button variant="ghost" shape="soft" className="h-auto px-[22px] py-[13px] text-sm" onClick={resetAll}>
-          {t("sell.newOrder")}
-        </Button>
-      </div>
+      <Actions>
+        <Action to="/app">{t("sell.done")}</Action>
+        <Action quiet onClick={resetAll}>{t("sell.newOrder")}</Action>
+      </Actions>
     </AppShell>
   );
 };
