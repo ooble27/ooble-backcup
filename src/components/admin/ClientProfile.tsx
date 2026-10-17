@@ -172,8 +172,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   const notes_ = <Block title="Notes internes"><ClientNotes userId={userId} /></Block>;
   const access_ = (
     <>
-      {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
-      {can("accounts.suspend") && <Block title="Compte de test"><ClientTestAccount userId={userId} /></Block>}
+      {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /><ClientTestAccount userId={userId} /></Block>}
       {profile && can("clients.limit") && (
         <Block title="Limite quotidienne">
           <ClientLimit userId={userId} limit={profile.dailyLimitCad} onChange={(v) => setProfile({ ...profile, dailyLimitCad: v })} />

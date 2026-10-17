@@ -2951,6 +2951,7 @@ export type Database = {
       my_referral: { Args: never; Returns: Json }
       claim_referral: { Args: { _code: string }; Returns: string }
       referral_info: { Args: { _code: string }; Returns: Json }
+      set_test_account: { Args: { _uid: string; _on: boolean }; Returns: boolean }
       promo_stats: { Args: never; Returns: { code_id: string; uses: number; completed: number; volume: number }[] }
       referral_stats: { Args: never; Returns: { referrer_id: string; name: string; invited: number; ordered: number; qualified: number; volume: number }[] }
       link_stats: { Args: { _since: string }; Returns: { source: string; campaign: string | null; signups: number; verified: number; buyers: number; volume: number }[] }
