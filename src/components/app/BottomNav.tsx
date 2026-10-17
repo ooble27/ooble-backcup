@@ -13,7 +13,8 @@ const items: { to: string; labelKey: TKey; icon: typeof House; end: boolean }[] 
 
 /**
  * Menu du bas : centré, sur une seule ligne, posé directement sur la page (ni cadre ni fond). La page en cours montre son nom, et un
- * trait fin glisse sous elle d'une page à l'autre (à la place de l'ancienne pastille).
+ * trait fin glisse sous elle d'une page à l'autre (à la place de l'ancienne pastille). Affiché seulement sur ses trois pages
+ * (Accueil, Acheter, Vendre) : les autres pages ont « ← Retour » en haut, et rien ne passe sous les icônes.
  */
 const BottomNav = () => {
   const t = useT();
@@ -44,12 +45,7 @@ const BottomNav = () => {
   }, [measure]);
 
   return (
-    // Un fondu de la couleur de la page, sans bord : le contenu s'efface doucement sous le menu
-    // au lieu de passer derrière les icônes. Ce n'est pas une boîte : il n'a ni contour ni limite visible.
-    <div
-      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-10"
-      style={{ background: "linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background)) 62%, hsl(var(--background) / 0) 100%)" }}
-    >
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <nav
         ref={navRef}
         className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 p-2"

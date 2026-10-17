@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { LayoutGrid, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
@@ -73,6 +73,9 @@ const AppShell = ({ children, header, wide, wider, center, className }: AppShell
   useNoZoom();
   const { user, isStaff } = useAuth();
   const [lang] = useLang();
+  const { pathname } = useLocation();
+  // Le menu du bas : seulement sur ses trois pages.
+  const withNav = ["/app", "/app/acheter", "/app/vendre"].includes(pathname.replace(/\/$/, "") || "/");
   useEffect(() => { warmAppData(user?.id); }, [user?.id]);
   // Lieu et source de l'inscription, enregistrés une fois.
   useEffect(() => { void recordOrigin(user?.id); }, [user?.id]);
@@ -127,7 +130,7 @@ const AppShell = ({ children, header, wide, wider, center, className }: AppShell
       </div>
     </div>
 
-    <BottomNav />
+    {withNav && <BottomNav />}
   </div>
   );
 };
