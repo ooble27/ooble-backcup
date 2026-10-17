@@ -82,7 +82,7 @@ export default function ClientWallets({ userId }: { userId: string }) {
           ref={panel}
           className="admin-scope"
           style={{
-            position: "fixed", top: at.top, left: at.left, width: at.width, zIndex: 2147482000,
+            position: "fixed", top: at.top, left: at.left, maxWidth: at.width, zIndex: 2147482000, // largeur ajustée aux adresses
             maxHeight: `min(340px, calc(100vh - ${Math.round(at.top)}px - 16px))`, overflowY: "auto", overscrollBehavior: "contain",
             display: "grid", gap: 14, padding: "14px 16px", fontFamily: FONT,
             background: C.l1, border: `1px solid ${C.bd}`, borderRadius: 10, boxShadow: C.shadowHeavy,
