@@ -44,7 +44,12 @@ const BottomNav = () => {
   }, [measure]);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+    // Un fondu de la couleur de la page, sans bord : le contenu s'efface doucement sous le menu
+    // au lieu de passer derrière les icônes. Ce n'est pas une boîte : il n'a ni contour ni limite visible.
+    <div
+      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-10"
+      style={{ background: "linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background)) 62%, hsl(var(--background) / 0) 100%)" }}
+    >
       <nav
         ref={navRef}
         className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 p-2"
