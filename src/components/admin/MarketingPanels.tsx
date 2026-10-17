@@ -4,15 +4,15 @@
  * Tout est à plat, comme le reste du back-office : de grandes phrases aux mots clés en couleur,
  * des chiffres en grand posés sur la page. Pas d'animation : seul le survol fait bouger.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Megaphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useCan } from "@/lib/roles";
 import { peek, put } from "@/lib/adminCache";
 import {
-  fetchCampaignResults, fetchOverview, fetchSummaries, listCampaigns, loadMarketingSettings, saveMarketingSettings, setCampaignStatus, dispatchNow,
-  type CampaignResults, type CampaignRow, type CampaignSummary, type MarketingSettings, type Overview,
+  fetchCampaignOrders, fetchCampaignResults, fetchDaily, fetchOverview, fetchSummaries, listCampaigns, loadMarketingSettings, saveMarketingSettings, setCampaignStatus, dispatchNow,
+  type CampaignResults, type CampaignRow, type CampaignSummary, type MarketingDay, type MarketingSettings, type Overview,
 } from "@/lib/marketing";
 import { C } from "./adminTheme";
 import { Button, SidePanel } from "./ui";
@@ -30,15 +30,22 @@ export const MK_CSS = `
 .mk-link { display: inline-flex; align-items: center; gap: 6px; border: none; background: none; padding: 2px 0; font: inherit; font-size: 14px; color: var(--a-t1); cursor: pointer; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; text-decoration-color: var(--a-sun); transition: transform .3s cubic-bezier(.22,1,.36,1); }
 .mk-link:hover { transform: translateX(3px); }
 .mk-link.quiet { color: var(--a-t3); text-decoration-color: currentColor; }
-/* Parcours des courriels : une barre fine par étape. */
-.mk-fun { display: grid; gap: 16px; margin-top: 22px; max-width: 860px; }
-.mk-fun-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 120px; align-items: center; gap: 16px; }
-@media (max-width: 640px) { .mk-fun-row { grid-template-columns: 96px minmax(0, 1fr) 84px; gap: 10px; } }
-.mk-fun-l { font-size: 14px; color: var(--a-t2); }
-.mk-fun-v { text-align: right; font-size: 15px; font-weight: 600; color: var(--a-t1); font-variant-numeric: tabular-nums; }
-.mk-fun-v small { font-size: 12px; font-weight: 400; color: var(--a-t3); margin-left: 6px; }
-.mk-bar { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--a-t3) 14%, transparent); overflow: hidden; }
-.mk-bar > span { display: block; height: 100%; border-radius: 99px; }
+/* Parcours des courriels : un ruban qui se rétrécit d'une étape à l'autre. */
+.mk-rib { margin-top: 26px; max-width: 980px; }
+.mk-rib-k { display: grid; gap: 8px; }
+.mk-rib-l { font-size: 12.5px; color: var(--a-t3); }
+.mk-rib-v { font-size: clamp(22px, 2.4vw, 30px); font-weight: 600; letter-spacing: -0.04em; line-height: 1; color: var(--a-t1); font-variant-numeric: tabular-nums; }
+.mk-rib-p { font-size: 12.5px; color: var(--a-t2); font-variant-numeric: tabular-nums; }
+/* Calendrier des envois. */
+.mk-cal-cap { min-height: 20px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
+/* À venir et dernières campagnes : la date en grand à gauche. */
+.mk-cols { display: grid; gap: 48px; margin-top: 56px; }
+@media (min-width: 1100px) { .mk-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; } }
+.mk-date { width: 54px; flex-shrink: 0; text-align: left; }
+.mk-date b { display: block; font-size: 26px; line-height: 1; font-weight: 600; letter-spacing: -0.04em; color: var(--a-t1); font-variant-numeric: tabular-nums; }
+.mk-date small { display: block; margin-top: 4px; font-size: 11.5px; color: var(--a-t3); text-transform: lowercase; }
+.mk-met { display: flex; gap: 14px; flex-shrink: 0; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
+.mk-met b { display: block; font-size: 15px; font-weight: 600; color: var(--a-t1); }
 .mk-list { display: grid; margin-top: 12px; max-width: 900px; }
 .mk-item { display: flex; align-items: center; gap: 18px; width: 100%; padding: 15px 0; border: none; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: transform .35s cubic-bezier(.22,1,.36,1); }
 @media (hover: hover) { .mk-item:hover { transform: translateX(6px); } }
@@ -47,10 +54,6 @@ export const MK_CSS = `
 .mk-item .d { display: block; margin-top: 2px; font-size: 13px; color: var(--a-t3); }
 .mk-item .v { flex-shrink: 0; text-align: right; font-size: 13.5px; color: var(--a-t2); font-variant-numeric: tabular-nums; }
 .mk-ctl-h { margin: 6px 0 0; font-size: 14px; line-height: 1.6; color: var(--a-t2); max-width: 620px; }
-/* Grands chiffres posés sur la page. */
-.mk-nums { display: flex; flex-wrap: wrap; gap: 22px 64px; margin-top: 44px; }
-.mk-num .v { display: block; font-size: clamp(38px, 4.4vw, 56px); line-height: 1; font-weight: 600; letter-spacing: -0.05em; color: var(--a-t1); font-variant-numeric: tabular-nums; }
-.mk-num .l { display: block; margin-top: 8px; font-size: 13.5px; color: var(--a-t3); }
 /* Un mot qui sert de bouton : on le touche, il change. */
 .mk-word { display: inline; border: none; background: none; padding: 0; font: inherit; letter-spacing: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: .07em; text-underline-offset: .18em; transition: opacity .2s; }
 @media (hover: hover) { .mk-word:hover { opacity: .75; } }
@@ -66,20 +69,70 @@ const money = (n: number) => `${new Intl.NumberFormat("fr-CA", { maximumFraction
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const when = (iso: string) => new Date(iso).toLocaleString("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-/** Le parcours des courriels : envoyés → délivrés → ouverts → cliqués → commandes. */
+/** Largeur réelle du conteneur, pour dessiner à l'échelle 1. */
+function useWidth(fallback: number): [React.RefObject<HTMLDivElement>, number] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(fallback);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width) || fallback));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fallback]);
+  return [ref, w];
+}
+
+/**
+ * Le parcours des courriels (envoyés → … → commandes) : un ruban qui se rétrécit d'une étape à
+ * l'autre, chaque étape avec son chiffre et sa part des envois. Pas de barres.
+ */
 export function Funnel({ steps }: { steps: { label: string; n: number; of?: number; color: string }[] }) {
+  const [ref, w] = useWidth(800);
   const max = Math.max(1, steps[0]?.n ?? 1);
+  const H = 120, n = steps.length, col = w / n;
+  // Hauteur de chaque étape : racine carrée, pour que les petites étapes restent visibles.
+  const h = steps.map((s) => Math.max(s.n ? 6 : 2, Math.sqrt(s.n / max) * H));
+  const xs = steps.map((_, i) => i * col + col * 0.12);
+  let top = `M ${xs[0]} ${(H - h[0]) / 2}`;
+  let bot = "";
+  for (let i = 0; i < n; i++) {
+    const x0 = xs[i], x1 = i < n - 1 ? xs[i + 1] : w;
+    const y0 = (H - h[i]) / 2, y1 = i < n - 1 ? (H - h[i + 1]) / 2 : y0;
+    const plateau = x0 + col * 0.5;
+    top += ` L ${plateau} ${y0}`;
+    if (i < n - 1) top += ` C ${plateau + col * 0.25} ${y0}, ${x1 - col * 0.25} ${y1}, ${x1} ${y1}`;
+    else top += ` L ${x1} ${y0}`;
+  }
+  for (let i = n - 1; i >= 0; i--) {
+    const x0 = xs[i], x1 = i < n - 1 ? xs[i + 1] : w;
+    const y0 = (H + h[i]) / 2, y1 = i < n - 1 ? (H + h[i + 1]) / 2 : y0;
+    const plateau = x0 + col * 0.5;
+    if (i === n - 1) bot += ` L ${x1} ${y0} L ${plateau} ${y0}`;
+    else bot += ` C ${x1 - col * 0.25} ${y1}, ${plateau + col * 0.25} ${y0}, ${plateau} ${y0}`;
+    bot += ` L ${x0} ${y0}`;
+  }
+  const gid = `mk-rib-${steps.map((s) => s.label).join("").length}-${n}`;
   return (
-    <div className="mk-fun">
-      {steps.map((s) => (
-        <div key={s.label} className="mk-fun-row">
-          <span className="mk-fun-l">{s.label}</span>
-          <div className="mk-bar" aria-hidden="true">
-            <span style={{ width: `${Math.max(s.n ? 2 : 0, (s.n / max) * 100)}%`, background: s.color }} />
+    <div className="mk-rib" ref={ref}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, marginBottom: 16 }}>
+        {steps.map((s, i) => (
+          <div key={s.label} className="mk-rib-k" style={{ marginLeft: "12%" }}>
+            <span className="mk-rib-l">{s.label}</span>
+            <span className="mk-rib-v" style={{ color: i === n - 1 && s.n ? s.color : undefined }}>{nf.format(s.n)}</span>
+            <span className="mk-rib-p">{s.of !== undefined ? `${pct(s.n, s.of)} %` : "\u00a0"}</span>
           </div>
-          <span className="mk-fun-v">{nf.format(s.n)}{s.of !== undefined && <small>{pct(s.n, s.of)} %</small>}</span>
-        </div>
-      ))}
+        ))}
+      </div>
+      <svg width={w} height={H} viewBox={`0 0 ${w} ${H}`} style={{ display: "block", maxWidth: "100%" }} role="img"
+        aria-label={steps.map((s) => `${s.label} : ${s.n}`).join(", ")}>
+        <defs>
+          <linearGradient id={gid} x1="0" x2="1" y1="0" y2="0">
+            {steps.map((s, i) => <stop key={s.label} offset={`${((xs[i] + col * 0.25) / w) * 100}%`} stopColor={s.color} />)}
+          </linearGradient>
+        </defs>
+        <path d={`${top}${bot} Z`} fill={`url(#${gid})`} opacity={0.9} />
+      </svg>
     </div>
   );
 }
@@ -111,13 +164,109 @@ export function ControlLine({ s, onOpen }: { s: MarketingSettings | null; onOpen
 type Period = "7" | "30" | "90";
 const PERIODS: { id: Period; label: string }[] = [{ id: "7", label: "7 jours" }, { id: "30", label: "30 jours" }, { id: "90", label: "90 jours" }];
 
+/** Les mots variables d'un nom de campagne ({{prenom}}…) en gris, entre crochets : on voit qu'ils changent. */
+const VAR_NAME: Record<string, string> = { prenom: "Prénom", prénom: "Prénom", nom: "Nom", montant: "Montant" };
+export function CampaignName({ name }: { name: string }) {
+  const parts = name.split(/\{\{?\s*([\wÀ-ÿ]+)\s*\}?\}/);
+  return (
+    <>
+      {parts.map((p, i) => (i % 2
+        ? <span key={i} style={{ color: C.t3 }}>[{VAR_NAME[p.toLowerCase()] ?? p.charAt(0).toUpperCase() + p.slice(1)}]</span>
+        : <span key={i}>{p}</span>))}
+    </>
+  );
+}
+
+const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const CAL_PAST = 16, CAL_NEXT = 4;
+
+/**
+ * Le calendrier des envois : une case par jour, plus foncée quand on a envoyé plus de courriels ;
+ * un point corail les jours où une commande a suivi une campagne ; les campagnes programmées en
+ * contour jaune sur les jours à venir.
+ */
+function SendCalendar({ days, upcoming }: { days: MarketingDay[]; upcoming: CampaignRow[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const weeks = CAL_PAST + CAL_NEXT;
+  const data = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dow = (today.getDay() + 6) % 7;
+    const start = new Date(today.getTime() - (dow + (CAL_PAST - 1) * 7) * 86400000);
+    const byDay = new Map(days.map((d) => [d.day, d]));
+    const plans = new Map<string, CampaignRow[]>();
+    for (const c of upcoming) {
+      const k = dayKey(new Date(c.scheduledAt));
+      plans.set(k, [...(plans.get(k) ?? []), c]);
+    }
+    const cells = Array.from({ length: weeks * 7 }, (_, i) => {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const k = dayKey(d);
+      return { d, k, m: byDay.get(k), plan: plans.get(k) ?? [] };
+    });
+    const sentDays = days.filter((d) => d.sent > 0).map((d) => d.sent).sort((a, b) => a - b);
+    const q = (p: number) => (sentDays.length ? sentDays[Math.min(sentDays.length - 1, Math.floor(p * sentDays.length))] : 1);
+    return { cells, todayIndex: dow + (CAL_PAST - 1) * 7, cuts: [q(0.25), q(0.5), q(0.75)] };
+  }, [days, upcoming, weeks]);
+
+  const level = (n: number) => (n <= 0 ? 0 : n <= data.cuts[0] ? 1 : n <= data.cuts[1] ? 2 : n <= data.cuts[2] ? 3 : 4);
+  const OP = [0, 0.3, 0.52, 0.76, 1];
+  const CELL = 15, G = 4, LEFT = 22, TOP = 18;
+  const W = LEFT + weeks * (CELL + G), H = TOP + 7 * (CELL + G);
+  const months: { col: number; label: string }[] = [];
+  for (let w = 0; w < weeks; w++) {
+    const label = data.cells[w * 7].d.toLocaleDateString("fr-CA", { month: "short" }).replace(".", "");
+    if (!months.length || months[months.length - 1].label !== label) months.push({ col: w, label });
+  }
+  const cap = (() => {
+    if (hover === null) return "Une case par jour. Plus foncée : plus de courriels envoyés. Point corail : une commande a suivi. Contour jaune : campagne programmée.";
+    const c = data.cells[hover];
+    const date = c.d.toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" });
+    if (hover > data.todayIndex) return c.plan.length ? `${date} : ${c.plan.map((p) => p.name.replace(/\{\{?\s*([\wÀ-ÿ]+)\s*\}?\}/g, "[$1]")).join(", ")}` : `${date} : rien de programmé`;
+    if (!c.m || (!c.m.sent && !c.m.orders)) return `${date} : aucun envoi`;
+    return `${date} : ${nf.format(c.m.sent)} envoyé${c.m.sent > 1 ? "s" : ""}${c.m.sent ? `, ${pct(c.m.opened, c.m.sent)} % ouverts` : ""}${c.m.orders ? `, ${c.m.orders} commande${c.m.orders > 1 ? "s" : ""} (${money(c.m.volume)})` : ""}`;
+  })();
+
+  return (
+    <div style={{ width: W, maxWidth: "100%" }}>
+      <div style={{ overflowX: "auto", scrollbarWidth: "none" }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: W, height: "auto", display: "block" }} role="img"
+          aria-label="Calendrier des envois de campagnes" onMouseLeave={() => setHover(null)}>
+          {months.map((m) => <text key={m.col} x={LEFT + m.col * (CELL + G)} y={11} fontSize={10.5} fill={C.t3}>{m.label}</text>)}
+          {["L", "", "M", "", "V", "", "D"].map((d, i) => d && <text key={i} x={0} y={TOP + i * (CELL + G) + CELL - 3} fontSize={10.5} fill={C.t3}>{d}</text>)}
+          {data.cells.map((c, i) => {
+            const x = LEFT + Math.floor(i / 7) * (CELL + G), y = TOP + (i % 7) * (CELL + G);
+            const future = i > data.todayIndex;
+            const lv = level(c.m?.sent ?? 0);
+            return (
+              <g key={c.k} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} style={{ cursor: "default" }}>
+                <rect x={x} y={y} width={CELL} height={CELL} rx={4} fill={C.hover3} opacity={future ? 0.45 : 1} />
+                {!future && lv > 0 && <rect x={x} y={y} width={CELL} height={CELL} rx={4} fill={C.vzIndigo} opacity={OP[lv]} />}
+                {!future && (c.m?.orders ?? 0) > 0 && <circle cx={x + CELL / 2} cy={y + CELL / 2} r={3.2} fill={C.coral} />}
+                {c.plan.length > 0 && <rect x={x + 0.75} y={y + 0.75} width={CELL - 1.5} height={CELL - 1.5} rx={3.5} fill="none" stroke={C.sun} strokeWidth={1.5} />}
+                {(hover === i || i === data.todayIndex) && <rect x={x - 1.5} y={y - 1.5} width={CELL + 3} height={CELL + 3} rx={5} fill="none" stroke={C.t1} strokeWidth={1.2} opacity={hover === i ? 1 : 0.35} />}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <p className="mk-cal-cap" style={{ margin: "10px 0 0" }}>{cap}</p>
+    </div>
+  );
+}
+
+const dayNum = (iso: string) => new Date(iso).getDate();
+const monthShort = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { month: "short" }).replace(".", "");
+const hour = (iso: string) => new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" });
+
 export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey }: {
   onNew: () => void; onControl: () => void; onOpenCampaign: (id: string) => void; refreshKey: number;
 }) {
   const [period, setPeriod] = useState<Period>("30");
   const [o, setO] = useState<Overview | null>(() => peek<Overview>(`mk.ov.30`)?.value ?? null);
+  const [days, setDays] = useState<MarketingDay[]>(() => peek<MarketingDay[]>("mk.days")?.value ?? []);
   const [rows, setRows] = useState<CampaignRow[]>(() => peek<CampaignRow[]>("mk.list")?.value ?? []);
   const [sums, setSums] = useState<Record<string, CampaignSummary>>(() => peek<Record<string, CampaignSummary>>("mk.sums")?.value ?? {});
+  const [gains, setGains] = useState<Record<string, { orders: number; volume: number }>>(() => peek<Record<string, { orders: number; volume: number }>>("mk.gains")?.value ?? {});
   const [err, setErr] = useState<string | null>(null);
   const { s } = useMarketingSettings();
 
@@ -126,13 +275,16 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
     fetchOverview(since).then((v) => { setO(v); put(`mk.ov.${period}`, v); setErr(null); }).catch((e) => setErr(e.message));
   }, [period, refreshKey]);
   useEffect(() => {
+    const since = new Date(Date.now() - (CAL_PAST * 7 + 7) * 86_400_000);
+    fetchDaily(since).then((v) => { setDays(v); put("mk.days", v); }).catch(() => {});
     listCampaigns().then((v) => { setRows(v); put("mk.list", v); }).catch(() => {});
     fetchSummaries().then((v) => { setSums(v); put("mk.sums", v); }).catch(() => {});
+    fetchCampaignOrders().then((v) => { setGains(v); put("mk.gains", v); }).catch(() => {});
   }, [refreshKey]);
 
   const upcoming = rows.filter((r) => r.status === "scheduled" && new Date(r.scheduledAt).getTime() > Date.now())
     .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
-  const recent = rows.filter((r) => r.status === "sent" || r.status === "sending").slice(0, 5);
+  const recent = rows.filter((r) => r.status === "sent" || r.status === "sending").slice(0, 6);
   const label = period === "7" ? "ces 7 derniers jours" : period === "30" ? "ces 30 derniers jours" : "ces 3 derniers mois";
 
   return (
@@ -142,44 +294,42 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
         <p style={{ margin: 0, fontSize: 14, color: C.coral }}>Marketing · vue d'ensemble</p>
         <FilterChips value={period} onChange={setPeriod} options={PERIODS} />
       </div>
-      <h1 className="mk-hero" style={{ marginTop: 14 }}>
-        {!o ? <span className="mute">Marketing</span> : o.sent === 0 ? (
-          <>Aucun courriel de campagne <span className="mute">{label}.</span></>
-        ) : (
-          <>
-            <span style={{ color: C.sun }}>{nf.format(o.sent)}</span> courriels <span className="mute">{label}, </span>
-            <span style={{ color: C.sage }}>{pct(o.opened, o.sent)} %</span> <span className="mute">ouverts,</span>{" "}
-            <span style={{ color: C.coral }}>{nf.format(o.orders)} commande{o.orders > 1 ? "s" : ""}</span>
-            <span className="mute"> {o.orders ? <>pour {money(o.volume)}.</> : "pour l'instant."}</span>
-          </>
-        )}
-      </h1>
-      <p className="mk-lead">
-        Une commande compte pour une campagne quand le destinataire commande dans les 7 jours qui suivent l'envoi.
-        {o ? <> Aujourd'hui : {nf.format(o.today)} courriel{o.today > 1 ? "s" : ""} de campagne envoyé{o.today > 1 ? "s" : ""}.</> : null}
-      </p>
-      <ControlLine s={s} onOpen={onControl} />
-      <div style={{ marginTop: 26 }}>
-        <Button variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={onNew}>Nouvelle campagne</Button>
-      </div>
-      {err && <p style={{ marginTop: 14, fontSize: 13.5, color: C.coral }}>{err}</p>}
 
-      {o && o.sent > 0 && (
-        <div className="mk-nums">
-          <div className="mk-num"><span className="v">{nf.format(o.sent)}</span><span className="l">courriels envoyés</span></div>
-          <div className="mk-num"><span className="v" style={{ color: C.sage }}>{pct(o.opened, o.sent)} %</span><span className="l">ouverts</span></div>
-          <div className="mk-num"><span className="v" style={{ color: C.sun }}>{pct(o.clicked, o.sent)} %</span><span className="l">cliqués</span></div>
-          <div className="mk-num"><span className="v" style={{ color: C.coral }}>{nf.format(o.orders)}</span><span className="l">commande{o.orders > 1 ? "s" : ""}{o.orders ? ` · ${money(o.volume)}` : ""}</span></div>
+      {/* La phrase à gauche, le calendrier des envois à droite (en dessous sur petit écran). */}
+      <div style={{ display: "grid", gap: 32, marginTop: 14 }} className="xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+        <div style={{ minWidth: 0 }}>
+          <h1 className="mk-hero">
+            {!o ? <span className="mute">Marketing</span> : o.sent === 0 ? (
+              <>Aucun courriel de campagne <span className="mute">{label}.</span></>
+            ) : (
+              <>
+                <span style={{ color: C.sun }}>{nf.format(o.sent)}</span> courriels <span className="mute">{label}, </span>
+                <span style={{ color: C.sage }}>{pct(o.opened, o.sent)} %</span> <span className="mute">ouverts,</span>{" "}
+                <span style={{ color: C.coral }}>{nf.format(o.orders)} commande{o.orders > 1 ? "s" : ""}</span>
+                <span className="mute"> {o.orders ? <>pour {money(o.volume)}.</> : "pour l'instant."}</span>
+              </>
+            )}
+          </h1>
+          <p className="mk-lead">
+            Une commande compte pour une campagne quand le destinataire commande dans les 7 jours qui suivent l'envoi.
+            {o ? <> Aujourd'hui : {nf.format(o.today)} courriel{o.today > 1 ? "s" : ""} de campagne envoyé{o.today > 1 ? "s" : ""}.</> : null}
+          </p>
+          <ControlLine s={s} onOpen={onControl} />
+          <div style={{ marginTop: 26 }}>
+            <Button variant="primary" icon={<Megaphone style={{ width: 16, height: 16 }} />} onClick={onNew}>Nouvelle campagne</Button>
+          </div>
+          {err && <p style={{ marginTop: 14, fontSize: 13.5, color: C.coral }}>{err}</p>}
         </div>
-      )}
+        <SendCalendar days={days} upcoming={upcoming} />
+      </div>
 
       {o && o.sent > 0 && (
         <section className="mk-sec">
-          <h2 className="mk-h">Le parcours des courriels</h2>
-          <p className="mk-sub">De l'envoi à la commande, {label}. Les ouvertures ne comptent que les clients qui affichent les images.</p>
+          <h2 className="mk-h">De l'envoi à la commande</h2>
+          <p className="mk-sub">{label.charAt(0).toUpperCase() + label.slice(1)}. Les ouvertures ne comptent que les clients qui affichent les images.</p>
           <Funnel key={period} steps={[
-            { label: "Envoyés", n: o.sent, color: "var(--a-t1)" },
-            { label: "Délivrés", n: o.delivered, of: o.sent, color: "var(--a-t2)" },
+            { label: "Envoyés", n: o.sent, color: "var(--a-t2)" },
+            { label: "Délivrés", n: o.delivered, of: o.sent, color: "var(--a-vzIndigo)" },
             { label: "Ouverts", n: o.opened, of: o.sent, color: "var(--a-sage)" },
             { label: "Cliqués", n: o.clicked, of: o.sent, color: "var(--a-sun)" },
             { label: "Commandes", n: o.orders, of: o.sent, color: "var(--a-coral)" },
@@ -187,53 +337,65 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
         </section>
       )}
 
-      <section className="mk-sec">
-        <h2 className="mk-h">À venir</h2>
-        <p className="mk-sub">
-          Les campagnes programmées.{s && !s.automaticSends ? " Les envois automatiques sont coupés : elles attendront qu'on les allume." : " Elles partiront seules à l'heure dite."}
-        </p>
-        {upcoming.length === 0
-          ? <p style={{ margin: "14px 0 0", fontSize: 14, color: C.t3 }}>Rien de programmé.</p>
-          : (
-            <div className="mk-list">
-              {upcoming.map((c) => (
-                <div key={c.id} className="mk-item" style={{ cursor: "default" }}>
-                  <span style={{ width: 150, flexShrink: 0, fontSize: 15, fontWeight: 600, color: C.sun, fontVariantNumeric: "tabular-nums" }}>{when(c.scheduledAt)}</span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="n">{c.name}</span>
-                    <span className="d">{sums[c.id]?.total ?? 0} destinataire{(sums[c.id]?.total ?? 0) > 1 ? "s" : ""}</span>
-                  </span>
-                  <button type="button" className="mk-link quiet" onClick={async () => {
-                    if (!confirm(`Annuler « ${c.name} » ? Rien ne partira.`)) return;
-                    await setCampaignStatus(c.id, "cancelled");
-                    setRows((r) => r.map((x) => (x.id === c.id ? { ...x, status: "cancelled" } : x)));
-                  }}>Annuler</button>
-                </div>
-              ))}
-            </div>
-          )}
-      </section>
-
-      {recent.length > 0 && (
-        <section className="mk-sec">
-          <h2 className="mk-h">Dernières campagnes</h2>
-          <div className="mk-list">
-            {recent.map((c) => {
-              const m = sums[c.id];
-              return (
-                <button key={c.id} type="button" className="mk-item" onClick={() => onOpenCampaign(c.id)}>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="n">{c.name}</span>
-                    <span className="d">{when(c.scheduledAt)}{c.isTest ? " · test" : ""}</span>
-                  </span>
-                  {m && <span className="v">{nf.format(m.sent)} envoyé{m.sent > 1 ? "s" : ""} · <span style={{ color: C.sage }}>{pct(m.opened, m.sent)} %</span> ouverts</span>}
-                  <ArrowRight style={{ width: 16, height: 16, color: C.t3, flexShrink: 0 }} />
-                </button>
-              );
-            })}
-          </div>
+      <div className="mk-cols">
+        <section>
+          <h2 className="mk-h">À venir</h2>
+          <p className="mk-sub">
+            {s && !s.automaticSends ? "Les envois automatiques sont coupés : ces campagnes attendront qu'on les allume." : "Elles partiront seules à l'heure dite."}
+          </p>
+          {upcoming.length === 0
+            ? <p style={{ margin: "14px 0 0", fontSize: 14, color: C.t3 }}>Rien de programmé.</p>
+            : (
+              <div className="mk-list">
+                {upcoming.map((c) => (
+                  <div key={c.id} className="mk-item" style={{ cursor: "default" }}>
+                    <span className="mk-date"><b style={{ color: C.sun }}>{dayNum(c.scheduledAt)}</b><small>{monthShort(c.scheduledAt)} · {hour(c.scheduledAt)}</small></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span className="n"><CampaignName name={c.name} /></span>
+                      <span className="d">{sums[c.id]?.total ?? 0} destinataire{(sums[c.id]?.total ?? 0) > 1 ? "s" : ""}</span>
+                    </span>
+                    <button type="button" className="mk-link quiet" onClick={async () => {
+                      if (!confirm(`Annuler « ${c.name} » ? Rien ne partira.`)) return;
+                      await setCampaignStatus(c.id, "cancelled");
+                      setRows((r) => r.map((x) => (x.id === c.id ? { ...x, status: "cancelled" } : x)));
+                    }}>Annuler</button>
+                  </div>
+                ))}
+              </div>
+            )}
         </section>
-      )}
+
+        <section>
+          <h2 className="mk-h">Dernières campagnes</h2>
+          <p className="mk-sub">Ouvertures, clics et commandes de chaque envoi.</p>
+          {recent.length === 0
+            ? <p style={{ margin: "14px 0 0", fontSize: 14, color: C.t3 }}>Aucune campagne envoyée.</p>
+            : (
+              <div className="mk-list">
+                {recent.map((c) => {
+                  const m = sums[c.id];
+                  const g = gains[c.id];
+                  return (
+                    <button key={c.id} type="button" className="mk-item" onClick={() => onOpenCampaign(c.id)}>
+                      <span className="mk-date"><b>{dayNum(c.scheduledAt)}</b><small>{monthShort(c.scheduledAt)}</small></span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span className="n"><CampaignName name={c.name} /></span>
+                        <span className="d">{m ? `${nf.format(m.sent)} envoyé${m.sent > 1 ? "s" : ""}` : "…"}{c.isTest ? " · test" : ""}</span>
+                      </span>
+                      {m && m.sent > 0 && (
+                        <span className="mk-met">
+                          <span><b style={{ color: C.sage }}>{pct(m.opened, m.sent)} %</b>ouverts</span>
+                          <span><b style={{ color: C.sun }}>{pct(m.clicked, m.sent)} %</b>cliqués</span>
+                          <span><b style={{ color: g?.orders ? C.coral : undefined }}>{g?.orders ?? 0}</b>cmd.</span>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+        </section>
+      </div>
     </div>
   );
 }

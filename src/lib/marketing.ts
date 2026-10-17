@@ -54,6 +54,22 @@ export async function fetchOverview(since: Date): Promise<Overview> {
   return data as unknown as Overview;
 }
 
+/** Un jour du calendrier des envois (heure de Montréal). */
+export interface MarketingDay { day: string; sent: number; opened: number; clicked: number; orders: number; volume: number }
+
+export async function fetchDaily(since: Date): Promise<MarketingDay[]> {
+  const { data, error } = await supabase.rpc("marketing_daily", { _since: since.toISOString() });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((d) => ({ ...d, volume: Number(d.volume) }));
+}
+
+/** Commandes rapportées par chaque campagne, par identifiant. */
+export async function fetchCampaignOrders(): Promise<Record<string, { orders: number; volume: number }>> {
+  const { data, error } = await supabase.rpc("campaign_orders");
+  if (error) throw new Error(error.message);
+  return Object.fromEntries((data ?? []).map((r) => [r.campaign_id, { orders: r.orders, volume: Number(r.volume) }]));
+}
+
 export type CampaignStatus = "scheduled" | "sending" | "sent" | "cancelled" | "paused";
 
 export interface CampaignRow {

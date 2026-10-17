@@ -2835,6 +2835,7 @@ export type Database = {
       my_app_message: { Args: never; Returns: { id: string; title: string; body: string | null; cta: string | null; url: string | null }[] }
       app_message_event: { Args: { _id: string; _kind: string }; Returns: undefined }
       journey_preview: { Args: never; Returns: { kind: string; people: number }[] }
+      campaign_orders: { Args: never; Returns: { campaign_id: string; orders: number; volume: number }[] }
       campaign_summaries: { Args: never; Returns: { campaign_id: string; total: number; queued: number; sent: number; delivered: number; opened: number; clicked: number; blocked: number; skipped: number; failed: number }[] }
       campaign_prepare: {
         Args: { p_emails: string[] }
@@ -2910,6 +2911,7 @@ export type Database = {
         Returns: string
       }
       marketing_overview: { Args: { _since: string }; Returns: Json }
+      marketing_daily: { Args: { _since: string }; Returns: { day: string; sent: number; opened: number; clicked: number; orders: number; volume: number }[] }
       match_sell_deposits: {
         Args: never
         Returns: {
