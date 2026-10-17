@@ -15,7 +15,7 @@ import {
   type GrowthSettings, type LinkRow, type PromoCode, type SponsorRow,
 } from "@/lib/growth";
 import { C } from "./adminTheme";
-import { Button, Field, TextInput } from "./ui";
+import { Button, Field } from "./ui";
 import { DataTable, FilterChips, type Column } from "./layout";
 import { CampaignName, MK_CSS, Word } from "./MarketingPanels";
 
@@ -25,11 +25,16 @@ const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const date = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" });
 
 export const GR_CSS = `
-.gr-opts { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; vertical-align: baseline; }
-.gr-opts button { border: none; background: none; padding: 0; font: inherit; letter-spacing: inherit; color: var(--a-t3); cursor: pointer; text-decoration-thickness: .07em; text-underline-offset: .18em; transition: color .15s; }
+.gr-opts { display: inline; }
+.gr-opts button { display: inline; border: none; background: none; padding: 0; margin-right: .55em; font: inherit; letter-spacing: inherit; color: var(--a-t3); cursor: pointer; text-decoration-thickness: .07em; text-underline-offset: .18em; transition: color .15s; }
+.gr-opts button:last-child { margin-right: 0; }
 .gr-opts button[aria-pressed="true"] { color: var(--a-t1); text-decoration: underline; }
 .gr-opts button:disabled { cursor: default; }
 @media (hover: hover) { .gr-opts button:not(:disabled):hover { color: var(--a-t1); } }
+/* Champs à plat : un trait fin sous le texte, pas de cadre. */
+.gr-in { width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--a-bd); border-radius: 0; background: transparent; padding: 8px 0 9px; font: inherit; font-size: 15px; color: var(--a-t1); outline: none; color-scheme: light dark; transition: border-color .15s; }
+.gr-in::placeholder { color: var(--a-t3); }
+.gr-in:focus { border-bottom-color: var(--a-t1); }
 .gr-form { display: grid; gap: 18px; margin-top: 22px; max-width: 780px; }
 @media (min-width: 720px) { .gr-form { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .gr-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 17px; font-weight: 600; letter-spacing: .02em; color: var(--a-t1); }
@@ -251,18 +256,18 @@ function NewPromo({ max, by, onDone }: { max: number; by: string | null; onDone:
       </p>
       <div className="gr-form">
         <Field label="Code" hint="Lettres et chiffres, sans espace.">
-          <TextInput value={code} onChange={(e) => setCode(e.target.value.replace(/\s/g, "").toUpperCase().slice(0, 24))} placeholder="BIENVENUE" autoFocus />
+          <input className="gr-in" value={code} onChange={(e) => setCode(e.target.value.replace(/\s/g, "").toUpperCase().slice(0, 24))} placeholder="BIENVENUE" autoFocus />
         </Field>
         <Field label="Utilisations au plus" hint="Vide : sans limite. Une fois par client.">
-          <TextInput inputMode="numeric" value={maxUses} onChange={(e) => setMaxUses(e.target.value.replace(/\D/g, ""))} placeholder="Sans limite" />
+          <input className="gr-in" inputMode="numeric" value={maxUses} onChange={(e) => setMaxUses(e.target.value.replace(/\D/g, ""))} placeholder="Sans limite" />
         </Field>
         <Field label="Dernier jour" hint="Vide : sans date de fin.">
-          <TextInput type="date" value={ends} onChange={(e) => setEnds(e.target.value)} />
+          <input className="gr-in" type="date" value={ends} onChange={(e) => setEnds(e.target.value)} />
         </Field>
       </div>
       <div style={{ marginTop: 14, maxWidth: 780 }}>
         <Field label="Note pour l'équipe (facultatif)">
-          <TextInput value={note} onChange={(e) => setNote(e.target.value.slice(0, 200))} placeholder="Ex. : publication Instagram d'octobre" />
+          <input className="gr-in" value={note} onChange={(e) => setNote(e.target.value.slice(0, 200))} placeholder="Ex. : publication Instagram d'octobre" />
         </Field>
       </div>
       {err && <p style={{ margin: "12px 0 0", fontSize: 13.5, color: C.coral }}>{err}</p>}
@@ -286,10 +291,10 @@ function LinkMaker() {
     <div style={{ marginTop: 18 }}>
       <div className="gr-form" style={{ marginTop: 0 }}>
         <Field label="Canal" hint="Ex. : instagram, tiktok, affiche-montreal">
-          <TextInput value={src} onChange={(e) => { setSrc(e.target.value); setCopied(false); }} placeholder="instagram" />
+          <input className="gr-in" value={src} onChange={(e) => { setSrc(e.target.value); setCopied(false); }} placeholder="instagram" />
         </Field>
         <Field label="Campagne (facultatif)" hint="Ex. : octobre, influenceur-ali">
-          <TextInput value={camp} onChange={(e) => { setCamp(e.target.value); setCopied(false); }} placeholder="octobre" />
+          <input className="gr-in" value={camp} onChange={(e) => { setCamp(e.target.value); setCopied(false); }} placeholder="octobre" />
         </Field>
       </div>
       {link && (

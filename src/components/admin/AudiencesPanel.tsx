@@ -12,7 +12,7 @@ import {
   type AudiencePreview, type AudienceRules, type SavedAudience,
 } from "@/lib/audiences";
 import { C } from "./adminTheme";
-import { Button, Field, TextInput } from "./ui";
+import { Button, Field } from "./ui";
 import { MK_CSS } from "./MarketingPanels";
 import { GR_CSS, Opts } from "./GrowthPanel";
 
@@ -176,10 +176,10 @@ function Builder({ initial, byName, onDone }: { initial: { id?: string; name: st
           </p>
           <div style={{ display: "grid", gap: 18, marginTop: 26, maxWidth: 640 }} className="sm:grid-cols-2">
             <Field label="Nom de l'audience">
-              <TextInput value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="Ex. : Vérifiés sans commande" autoFocus={!initial.name} />
+              <input className="gr-in" value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="Ex. : Vérifiés sans commande" autoFocus={!initial.name} />
             </Field>
             <Field label="Venus de (facultatif)" hint="La source d'un lien suivi : instagram, tiktok…">
-              <TextInput value={source} onChange={(e) => setSource(e.target.value.slice(0, 60))} placeholder="Toutes les sources" />
+              <input className="gr-in" value={source} onChange={(e) => setSource(e.target.value.slice(0, 60))} placeholder="Toutes les sources" />
             </Field>
           </div>
           {err && <p style={{ margin: "12px 0 0", fontSize: 13.5, color: C.coral }}>{err}</p>}

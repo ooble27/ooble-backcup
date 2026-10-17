@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, Building2, ChevronRight, Copy, Gauge, Gift, Globe, Handshake, LayoutGrid, Lock, LogOut, Mail, Share2, ShieldCheck, SunMoon, Trash2,
+  ArrowLeft, ArrowRight, Building2, Check, ChevronRight, Copy, Gauge, Gift, Globe, Handshake, HelpCircle, KeyRound, LayoutGrid, Link2, Lock, LogOut, Mail, Share2, ShieldCheck, SunMoon, Trash2,
 } from "lucide-react";
 import { useOtcVisible } from "@/lib/otc";
 import { useAppSettings } from "@/lib/settings";
@@ -65,8 +65,8 @@ const Opts = <V extends string>({ value, options, onChange, label }: { value: V;
   </div>
 );
 
-/** Ligne Interac : un toucher copie la valeur. */
-const CopyLine = ({ name, value, mono }: { name: string; value: string; mono?: boolean }) => {
+/** Ligne à copier : un toucher copie la valeur (l'icône de copie, à droite, devient une coche). */
+const CopyLine = ({ icon: Icon, name, value, shown, mono }: { icon: React.ElementType; name: string; value: string; shown?: string; mono?: boolean }) => {
   const [lang] = useLang();
   const [done, setDone] = useState(false);
   const copy = async () => {
@@ -76,14 +76,15 @@ const CopyLine = ({ name, value, mono }: { name: string; value: string; mono?: b
       window.setTimeout(() => setDone(false), 1500);
     } catch { /* presse-papiers indisponible */ }
   };
+  const Mark = done ? Check : Copy;
   return (
     <button type="button" className="ac-row" onClick={copy} aria-label={lang === "en" ? `Copy ${name}` : `Copier ${name}`}>
-      <Copy className="ac-ico" strokeWidth={1.7} />
+      <Icon className="ac-ico" strokeWidth={1.7} />
       <span className="ac-txt">
         <span className="ac-d" style={{ marginTop: 0 }}>{name}</span>
-        <span className="ac-n" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined }}>{value}</span>
+        <span className="ac-n" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined }}>{shown ?? value}</span>
       </span>
-      <span className="ac-v">{done ? (lang === "en" ? "Copied" : "Copié") : (lang === "en" ? "Copy" : "Copier")}</span>
+      <Mark className="ac-go" strokeWidth={1.8} aria-hidden />
     </button>
   );
 };
@@ -174,9 +175,9 @@ const Compte = () => {
 
         {profile?.interacQuestion && profile.interacAnswer && (
           <Group title={t("acct.interac")} sub={t("acct.interacSub")}>
-            {email && <CopyLine name={t("acct.interacEmail")} value={email} />}
-            <CopyLine name={t("acct.question")} value={profile.interacQuestion} />
-            <CopyLine name={t("acct.answer")} value={profile.interacAnswer} mono />
+            {email && <CopyLine icon={Mail} name={t("acct.interacEmail")} value={email} />}
+            <CopyLine icon={HelpCircle} name={t("acct.question")} value={profile.interacQuestion} />
+            <CopyLine icon={KeyRound} name={t("acct.answer")} value={profile.interacAnswer} mono />
           </Group>
         )}
 
@@ -196,7 +197,7 @@ const Compte = () => {
 
         {ref?.enabled && ref.code && (
           <Group title={t("acct.refTitle")} sub={t("acct.refSub").replace("{pct}", bpsText(ref.bonusBps, lang))}>
-            <CopyLine name={t("acct.refLink")} value={referralLink(ref.code)} />
+            <CopyLine icon={Link2} name={t("acct.refLink")} value={referralLink(ref.code)} shown={referralLink(ref.code).replace(/^https?:\/\/(www\.)?/, "")} />
             {typeof navigator !== "undefined" && "share" in navigator && (
               <Row icon={Share2} name={t("acct.refShare")} onClick={() => {
                 void navigator.share({ title: "Ooble", text: t("acct.refShareText"), url: referralLink(ref.code!) }).catch(() => {});

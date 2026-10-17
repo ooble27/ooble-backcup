@@ -153,10 +153,11 @@ function MailFrame({ srcDoc, width, title, onSize }: { srcDoc: string; width: nu
     window.setTimeout(read, 250);
   };
   return (
-    <div ref={wrap} style={{ width: "100%", height: h * scale, overflow: "hidden" }}>
+    // L'aperçu est posé hors du flux : sa largeur réelle (640 px) n'élargit jamais la page sur téléphone.
+    <div ref={wrap} style={{ position: "relative", width: "100%", minWidth: 0, height: h * scale, overflow: "hidden" }}>
       <iframe ref={frame} title={title} srcDoc={srcDoc} onLoad={measure} scrolling="no" tabIndex={-1}
         sandbox="allow-same-origin"
-        style={{ width, height: h, border: 0, display: "block", transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none", visibility: scale ? "visible" : "hidden" }} />
+        style={{ position: "absolute", top: 0, left: 0, width, height: h, border: 0, display: "block", transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none", visibility: scale ? "visible" : "hidden" }} />
     </div>
   );
 }

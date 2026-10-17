@@ -11,7 +11,7 @@ export const FLAT_CSS = `
 .ac-todo-t { display: block; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; color: hsl(var(--foreground)); }
 .ac-todo-s { display: block; margin-top: 4px; font-size: 14px; line-height: 1.55; color: hsl(var(--muted-foreground)); }
 .ac-todo-c { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 14.5px; font-weight: 500; color: hsl(var(--foreground)); text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; }
-.ac-grid { display: grid; gap: 44px 72px; margin-top: 44px; }
+.ac-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px 72px; margin-top: 44px; }
 @media (min-width: 1024px) { .ac-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ac-gt { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.03em; color: hsl(var(--foreground)); }
 .ac-gs { margin: 4px 0 8px; font-size: 13.5px; line-height: 1.5; color: hsl(var(--muted-foreground)); max-width: 560px; }
