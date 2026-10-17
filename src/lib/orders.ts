@@ -116,9 +116,13 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
   if (!uid) return { error: getLang() === "en" ? "You must be logged in." : "Vous devez être connecté." };
 
   if (!(await getAppSettings()).tradingEnabled) {
-    const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+    // Équipe et comptes de test (activés par un admin) passent ; la base refait le contrôle.
+    const [{ data: roleRows }, { data: prof }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("profiles").select("test_account").eq("id", uid).maybeSingle(),
+    ]);
     const isStaff = (roleRows ?? []).length > 0;
-    if (!isStaff) {
+    if (!isStaff && !prof?.test_account) {
       return {
         error: getLang() === "en"
           ? "Trading is temporarily suspended. Account creation and verification remain available."
