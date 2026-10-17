@@ -314,6 +314,9 @@ if (message === "disposable_email") return t("reg.errDisposable");
               />
             </div>
 
+            {/* Le courriel du compte est celui où partent les virements Interac des ventes. */}
+            <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">{t("regb.interacHint")}</p>
+
             <p className="mt-3 rounded-xl border border-border/60 bg-secondary/50 px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
               {t("regb.docs")}
             </p>

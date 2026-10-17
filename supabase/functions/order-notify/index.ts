@@ -70,10 +70,12 @@ Deno.serve(async (req) => {
   const db = createClient(supabaseUrl, serviceKey);
   const { data: row } = await db
     .from("orders")
-    .select("id, user_id, side, cad_amount, usdt_amount, status")
+    .select("id, user_id, side, cad_amount, usdt_amount, status, hidden")
     .eq("id", orderId)
     .maybeSingle();
   if (!row || row.status !== newStatus) return json({ ok: true, skipped: "mismatch" });
+  // Essai retiré par l'équipe : rien à annoncer au client.
+  if (row.hidden) return json({ ok: true, skipped: "hidden" });
   const userId = row.user_id as string;
   const ref = `OOB-${orderId.slice(0, 8).toUpperCase()}`;
   const nf = (n: number, loc: string) => Number(n).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ");

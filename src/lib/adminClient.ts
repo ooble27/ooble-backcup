@@ -57,7 +57,8 @@ export async function fetchClientProfile(userId: string): Promise<ClientProfile 
   const { count } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("hidden", false);
 
   const { data: totals } = await supabase
     .from("orders")
@@ -155,6 +156,7 @@ export async function fetchClientOrders(userId: string): Promise<ClientOrder[]> 
     .from("orders")
     .select("id, side, status, cad_amount, usdt_amount, created_at")
     .eq("user_id", userId)
+    .eq("hidden", false)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data.map((o) => ({

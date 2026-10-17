@@ -1959,6 +1959,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          hidden: boolean
           is_test: boolean
           assigned_at: string | null
           assigned_to: string | null
@@ -1985,6 +1986,7 @@ export type Database = {
           bonus_reason: string | null
         }
         Insert: {
+          hidden?: boolean
           is_test?: boolean
           assigned_at?: string | null
           assigned_to?: string | null
@@ -2011,6 +2013,7 @@ export type Database = {
           bonus_reason?: string | null
         }
         Update: {
+          hidden?: boolean
           is_test?: boolean
           assigned_at?: string | null
           assigned_to?: string | null
@@ -2955,6 +2958,7 @@ export type Database = {
       claim_referral: { Args: { _code: string }; Returns: string }
       referral_info: { Args: { _code: string }; Returns: Json }
       set_test_account: { Args: { _uid: string; _on: boolean }; Returns: boolean }
+      remove_test_order: { Args: { _id: string }; Returns: undefined }
       promo_stats: { Args: never; Returns: { code_id: string; uses: number; completed: number; volume: number }[] }
       referral_stats: { Args: never; Returns: { referrer_id: string; name: string; invited: number; ordered: number; qualified: number; volume: number }[] }
       link_stats: { Args: { _since: string }; Returns: { source: string; campaign: string | null; signups: number; verified: number; buyers: number; volume: number }[] }

@@ -79,6 +79,13 @@ export async function deleteOrder(id: string): Promise<{ error?: string }> {
     .select("*")
     .eq("id", id)
     .maybeSingle();
+  // Commande d'essai (compte de test) : retirée des listes, jamais effacée de la base.
+  if (before?.is_test) {
+    const { error } = await supabase.rpc("remove_test_order", { _id: id });
+    if (error) return { error: error.message };
+    void logAdminAction({ action: "order.test_removed", entityKind: "order", entityId: id, before, after: null });
+    return {};
+  }
   const { error } = await supabase.from("orders").delete().eq("id", id);
   if (error) return { error: error.message };
   void logAdminAction({
@@ -100,6 +107,7 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
   const data = await fetchAll((a, b) => supabase
     .from("orders")
     .select("*, profiles(full_name, email)")
+    .eq("hidden", false)
     .order("created_at", { ascending: false })
     .order("id")
     .range(a, b)).catch(() => null);

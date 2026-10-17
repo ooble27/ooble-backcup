@@ -263,7 +263,8 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
   const finished = order.status === "termine" || order.status === "rembourse";
   const locked = !!activePayout || finished;
   // Suppression : seulement une commande sans aucun mouvement d'argent.
-  const canDelete = (order.status === "attente" || order.status === "annule") && (payouts ?? []).length === 0;
+  // Un essai (compte de test) se retire toujours : aucun argent réel n'a bougé.
+  const canDelete = order.isTest || ((order.status === "attente" || order.status === "annule") && (payouts ?? []).length === 0);
   const refundAmount = order.type === "buy" ? `${nfCad.format(order.cad)} CAD` : `${nfUsdt.format(order.usdt)} USDT`;
 
   const handleRefund = async () => {
@@ -441,14 +442,18 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
 
           {can("orders.delete") && canDelete && (
             <Block title="Zone sensible">
-              <p style={{ margin: "0 0 10px", fontSize: 12.5, color: C.t3, lineHeight: 1.5 }}>Possible seulement sans aucun mouvement d'argent : les commandes payées restent dans les registres.</p>
+              <p style={{ margin: "0 0 10px", fontSize: 12.5, color: C.t3, lineHeight: 1.5 }}>
+                {order.isTest
+                  ? "Commande d'essai : elle disparaît des listes et de l'app du client, et le parrainage qu'elle a déclenché repart à zéro (pour refaire l'essai). Aucun argent réel n'a bougé."
+                  : "Possible seulement sans aucun mouvement d'argent : les commandes payées restent dans les registres."}
+              </p>
               {confirmDel ? (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Button variant="danger" size="sm" icon={<Trash2 style={{ width: 14, height: 14 }} />} onClick={() => onDelete(order.id)}>Supprimer définitivement</Button>
+                  <Button variant="danger" size="sm" icon={<Trash2 style={{ width: 14, height: 14 }} />} onClick={() => onDelete(order.id)}>{order.isTest ? "Supprimer l'essai" : "Supprimer définitivement"}</Button>
                   <Button variant="ghost" size="sm" onClick={() => setConfirmDel(false)}>Annuler</Button>
                 </div>
               ) : (
-                <Button variant="ghost" size="sm" icon={<Trash2 style={{ width: 14, height: 14 }} />} onClick={() => setConfirmDel(true)}>Supprimer la commande</Button>
+                <Button variant="ghost" size="sm" icon={<Trash2 style={{ width: 14, height: 14 }} />} onClick={() => setConfirmDel(true)}>{order.isTest ? "Supprimer l'essai" : "Supprimer la commande"}</Button>
               )}
             </Block>
           )}
