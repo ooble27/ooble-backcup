@@ -5,8 +5,9 @@ import { DB_TO_NET, NET_TO_DB } from "@/lib/orders";
 import { getLang } from "@/lib/i18n";
 import { peekCache, putCache } from "@/lib/cache";
 
-/** Carnet de destinataires : adresses wallet (achat) et courriels Interac (vente). */
+/** Carnet : adresses de réception (achat, `wallet`), adresses d'envoi (vente, `sender`) et courriels Interac. */
 export type RecipientKind = Database["public"]["Enums"]["recipient_kind"];
+const hasNetwork = (kind: RecipientKind) => kind === "wallet" || kind === "sender";
 
 type Row = Database["public"]["Tables"]["saved_recipients"]["Row"];
 
@@ -35,7 +36,7 @@ const SELECT = "id, kind, label, value, network, last_used_at" as const;
 const cacheKey = (uid: string) => `recipients:${uid}`;
 
 const only = (rows: SavedRecipient[], kind: RecipientKind, network?: NetId | null) =>
-  rows.filter((r) => r.kind === kind && (kind !== "wallet" || !network || r.network === network));
+  rows.filter((r) => r.kind === kind && (!hasNetwork(kind) || !network || r.network === network));
 
 /**
  * Carnet déjà chargé (cache), filtré comme listRecipients : la page
@@ -93,7 +94,7 @@ export async function findRecipient(
     .eq("kind", kind)
     .eq("value", value.trim());
 
-  if (kind === "wallet") {
+  if (hasNetwork(kind)) {
     if (!network) return null;
     query = query.eq("network", NET_TO_DB[network]);
   }
@@ -122,8 +123,8 @@ export async function saveRecipient(input: {
   if (!value) return { error: getLang() === "en" ? "Missing value." : "Valeur manquante." };
   if (!label) return { error: getLang() === "en" ? "Give this recipient a name." : "Donnez un nom à ce destinataire." };
 
-  const netId = input.kind === "wallet" ? (input.network ?? null) : null;
-  if (input.kind === "wallet" && !netId) return { error: getLang() === "en" ? "Network missing." : "Réseau manquant." };
+  const netId = hasNetwork(input.kind) ? (input.network ?? null) : null;
+  if (hasNetwork(input.kind) && !netId) return { error: getLang() === "en" ? "Network missing." : "Réseau manquant." };
 
   const existing = await findRecipient(input.kind, value, netId);
   if (existing) {

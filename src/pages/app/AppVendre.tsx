@@ -297,7 +297,7 @@ const AppVendreForm = () => {
           <>
             <p className="ac-k">{t("sell.connected")}</p>
             <div className="ac-kv mono">
-              <span>{`${sender.slice(0, 6)}…${sender.slice(-6)}`}</span>
+              <span style={{ wordBreak: "break-all", textAlign: "left" }}>{sender}</span>
               <button type="button" className="ac-link" onClick={() => { setSender(""); setConnected(false); }}>{t("sell.change")}</button>
             </div>
           </>
@@ -323,8 +323,8 @@ const AppVendreForm = () => {
               : <p className="ac-note">{`${t("sell.senderBad")} ${network?.tag ?? ""}.`}</p>)}
             {linkErr && <p className="ac-note">{connector ? t("sell.connectFailed") : t("sell.noWallet")}</p>}
             {connector && "openUrl" in connector && <p className="ac-help">{t("sell.openInHelp")}</p>}
-            {/* Carnet d'adresses par réseau, le même que pour les achats : une adresse enregistrée sur BEP20 ne s'affiche que sur BEP20. */}
-            <RecipientBook kind="wallet" network={net} value={sender} onPick={setSender} />
+            {/* Carnet des adresses d'envoi (ventes), séparé des adresses de réception (achats), par réseau. */}
+            <RecipientBook kind="sender" network={net} value={sender} onPick={setSender} />
           </>
         )}
 

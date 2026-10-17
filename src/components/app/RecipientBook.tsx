@@ -41,7 +41,7 @@ const RecipientBook = ({ kind, network, value, onPick }: Props) => {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const isWallet = kind === "wallet";
+  const isWallet = kind === "wallet" || kind === "sender";
   const trimmed = value.trim();
 
   const reload = () => {
