@@ -6,8 +6,7 @@
 -- à la vente. La surveillance automatique (match_sell_deposits) et le rattachement à la main
 -- (attach_chain_deposit) rattachent le dépôt avant de changer le statut : ils ne sont pas gênés.
 --
--- Solana (« spl ») n'est pas surveillé automatiquement : il garde son fonctionnement actuel
--- en attendant une solution dédiée.
+-- Solana (« spl ») était exclu au départ ; il est couvert depuis 20261017020000.
 
 create or replace function public.guard_sell_received()
  returns trigger

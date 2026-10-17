@@ -177,7 +177,6 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
     return () => { on = false; };
   }, [order.id, order.userId, order.status]);
   const dep = (deps ?? []).find((d) => d.status === "matched") ?? deps?.[0];
-  const solana = order.network === "sol";
 
   return (
     <>
@@ -194,9 +193,7 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
               )}
               {dep.status !== "matched" && dep.reason && <span>· {dep.reason}</span>}
             </>
-          ) : solana
-            ? "Solana n'est pas surveillé : vérifiez l'arrivée des USDT dans le portefeuille de dépôt, puis « Marquer les USDT reçus »."
-            : order.status === "attente"
+          ) : order.status === "attente"
               ? `En attente de ${nfUsdt.format(order.usdt)} USDT sur l'adresse de dépôt. Lecture automatique toutes les 2 minutes : la commande passe seule à « À traiter » dès leur arrivée.`
               : "Aucun dépôt lu automatiquement pour cette vente."}
         </p>
@@ -234,7 +231,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
   }, [order.id, order.type]);
   useEffect(() => { loadPayouts(); }, [loadPayouts, order.status]);
   const [events, setEvents] = useState<OrderEvent[] | null>(() => peekOrderPart("events", order.id));
-  // Vente : la base refuse « USDT reçus » sans dépôt rattaché (sauf Solana, non surveillé). Le bouton suit la même règle.
+  // Vente : la base refuse « USDT reçus » sans dépôt rattaché (tous les réseaux, Solana compris). Le bouton suit la même règle.
   const isSell = order.type === "sell";
   const [sellDeps, setSellDeps] = useState<ChainDeposit[] | null>(() => (isSell ? peekOrderPart("deposits", order.id) : []));
   const [sellProof, setSellProof] = useState<SellProof | null>(() => (isSell ? peekOrderPart("proof", order.id) : null));
@@ -245,9 +242,8 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
     loadOrderPart("proof", order.id).then((v) => { if (on) setSellProof(v); });
     return () => { on = false; };
   }, [isSell, order.id, order.status]);
-  const sellWatched = isSell && order.network !== "sol";
   const sellMatched = (sellDeps ?? []).some((d) => d.status === "matched");
-  const sellBlocked = sellWatched && !sellMatched;
+  const sellBlocked = isSell && !sellMatched;
   const [confirmDel, setConfirmDel] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
   const [refunding, setRefunding] = useState(false);
