@@ -234,6 +234,20 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
   }, [order.id, order.type]);
   useEffect(() => { loadPayouts(); }, [loadPayouts, order.status]);
   const [events, setEvents] = useState<OrderEvent[] | null>(() => peekOrderPart("events", order.id));
+  // Vente : la base refuse « USDT reçus » sans dépôt rattaché (sauf Solana, non surveillé). Le bouton suit la même règle.
+  const isSell = order.type === "sell";
+  const [sellDeps, setSellDeps] = useState<ChainDeposit[] | null>(() => (isSell ? peekOrderPart("deposits", order.id) : []));
+  const [sellProof, setSellProof] = useState<SellProof | null>(() => (isSell ? peekOrderPart("proof", order.id) : null));
+  useEffect(() => {
+    if (!isSell) return;
+    let on = true;
+    loadOrderPart("deposits", order.id).then((v) => { if (on) setSellDeps(v); });
+    loadOrderPart("proof", order.id).then((v) => { if (on) setSellProof(v); });
+    return () => { on = false; };
+  }, [isSell, order.id, order.status]);
+  const sellWatched = isSell && order.network !== "sol";
+  const sellMatched = (sellDeps ?? []).some((d) => d.status === "matched");
+  const sellBlocked = sellWatched && !sellMatched;
   const [confirmDel, setConfirmDel] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
   const [refunding, setRefunding] = useState(false);
@@ -294,7 +308,16 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
         <Button variant="danger" icon={<Banknote style={{ width: 15, height: 15 }} />} onClick={() => setConfirmRefund(true)}>Rembourser</Button>
       )}
       {!locked && (order.status === "attente" || order.status === "cours") && (
-        <Button variant="primary" icon={<Check style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { status: "recu" })}>
+        <Button
+          variant="primary"
+          icon={<Check style={{ width: 15, height: 15 }} />}
+          disabled={sellBlocked}
+          title={sellBlocked ? "Aucun USDT reçu sur l'adresse de dépôt pour cette vente." : undefined}
+          onClick={() => {
+            if (isSell && !confirm(`Confirmer que ${nfUsdt.format(order.usdt)} USDT sont bien arrivés pour cette vente ? Le client recevra le courriel « USDT reçus » et le virement Interac deviendra à envoyer.`)) return;
+            onPatch(order.id, { status: "recu" });
+          }}
+        >
           {order.type === "buy" ? "Marquer le paiement reçu" : "Marquer les USDT reçus"}
         </Button>
       )}
@@ -328,6 +351,13 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{actions}</div>
+        {canAct && !lockedByOther && sellBlocked && (order.status === "attente" || order.status === "cours") && (
+          <p style={{ flexBasis: "100%", margin: 0, fontSize: 13, lineHeight: 1.55, color: C.t2 }}>
+            « Marquer les USDT reçus » reste grisé : aucun USDT n'est encore arrivé sur l'adresse de dépôt pour cette vente.
+            {sellProof && !sellProof.clientSentAt ? " Le client n'a pas encore indiqué avoir envoyé ses USDT." : ""}
+            {" "}La vente passe seule à « À traiter » dès leur arrivée ; un dépôt reçu mais non reconnu se rattache depuis Règlement auto.
+          </p>
+        )}
       </header>
 
       {!canAct && <div style={{ marginBottom: 20 }}><Notice tone="info">Consultation seule : ce sont l'opérateur et l'administrateur qui agissent sur une commande.</Notice></div>}
