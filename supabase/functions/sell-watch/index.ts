@@ -11,10 +11,10 @@
 // réseau + hash + position) : déployée sans vérification JWT, comme le
 // « reconcile » de usdt-payout.
 //
-// Réseaux : Tron (API TronGrid) et EVM (eth_getLogs sur des nœuds publics,
-// remplaçables par les secrets SCAN_RPC_*). Solana : non surveillé.
+// Réseaux : Tron (API TronGrid), EVM (eth_getLogs sur des nœuds publics) et Solana (JSON-RPC
+// public, transactions « finalized »), chacun remplaçable par un secret SCAN_RPC_*.
 // Secrets facultatifs : TRONGRID_API_KEY, SCAN_RPC_BEP20, SCAN_RPC_POLYGON,
-// SCAN_RPC_AVALANCHE, SCAN_RPC_ERC20.
+// SCAN_RPC_AVALANCHE, SCAN_RPC_ERC20, SCAN_RPC_SOLANA.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -34,12 +34,12 @@ const SITE = Deno.env.get("SITE_URL") ?? "https://ooble.ca";
 const RETIRED_WATCH_MS = 7 * 86400_000;
 
 /** Adresses de dépôt à surveiller (Back-office › Réglages › Adresses de dépôt) : l'active, et les récemment remplacées. */
-async function depositAddresses(db: SupabaseClient): Promise<{ tron: string[]; evm: string[] }> {
+async function depositAddresses(db: SupabaseClient): Promise<{ tron: string[]; evm: string[]; solana: string[] }> {
   const { data } = await db.from("deposit_addresses").select("family, address, active, retired_at");
   const since = Date.now() - RETIRED_WATCH_MS;
   const watched = (data ?? []).filter((r: { active: boolean; retired_at: string | null }) => r.active || (r.retired_at && new Date(r.retired_at).getTime() > since));
   const of = (f: string) => watched.filter((r: { family: string }) => r.family === f).map((r: { address: string }) => r.address);
-  return { tron: of("tron"), evm: of("evm") };
+  return { tron: of("tron"), evm: of("evm"), solana: of("solana") };
 }
 
 type EvmNet = "bep20" | "polygon" | "avalanche" | "erc20";
@@ -60,9 +60,11 @@ const EXPLORER: Record<string, [string, string]> = {
   polygon: ["https://polygonscan.com/tx/", "PolygonScan"],
   avalanche: ["https://snowtrace.io/tx/", "Snowtrace"],
   erc20: ["https://etherscan.io/tx/", "Etherscan"],
+  spl: ["https://solscan.io/tx/", "Solscan"],
 };
 const NET_LABEL: Record<string, string> = {
   trc20: "Tron · TRC20", bep20: "BNB Chain · BEP20", polygon: "Polygon", avalanche: "Avalanche · C-Chain", erc20: "Ethereum · ERC20",
+  spl: "Solana",
 };
 
 interface Deposit {
@@ -154,6 +156,66 @@ async function scanEvm(net: EvmNet, addresses: string[], cursor: number | null):
   return { deposits, cursor: from };
 }
 
+// ───────────────────────── Solana ─────────────────────────
+
+/** USDT sur Solana (jeton SPL de Tether), 6 décimales. */
+const SOL_USDT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+const SOL_RPC = "https://api.mainnet-beta.solana.com";
+/** Signatures lues par compte et par passage (les plus récentes d'abord). */
+const SOL_PAGE = 100;
+
+type SolTokenBalance = { accountIndex: number; mint: string; owner?: string; uiTokenAmount: { amount: string; decimals: number } };
+
+/**
+ * Les USDT arrivent sur le « compte de jetons » USDT de l'adresse de dépôt, pas sur l'adresse elle-même.
+ * On lit donc les transactions de ce compte (et de l'adresse, pour le tout premier dépôt qui le crée),
+ * puis, dans chaque transaction finalisée, ce que le solde USDT de l'adresse de dépôt a gagné.
+ */
+async function scanSolana(addresses: string[], cursorMs: number): Promise<{ deposits: Deposit[]; cursor: number }> {
+  if (!addresses.length) return { deposits: [], cursor: cursorMs };
+  const url = Deno.env.get("SCAN_RPC_SOLANA") || SOL_RPC;
+  const since = cursorMs - 60_000; // marge : les doublons sont ignorés par l'index unique
+  const deposits: Deposit[] = [];
+  let cursor = cursorMs;
+
+  for (const owner of addresses) {
+    const accounts = await rpc<{ value: { pubkey: string }[] }>(url, "getTokenAccountsByOwner", [owner, { mint: SOL_USDT }, { encoding: "jsonParsed", commitment: "finalized" }]);
+    const watched = [owner, ...accounts.value.map((a) => a.pubkey)];
+    const sigs = new Map<string, number>();
+    for (const acct of watched) {
+      const list = await rpc<{ signature: string; blockTime: number | null; err: unknown }[]>(url, "getSignaturesForAddress", [acct, { limit: SOL_PAGE, commitment: "finalized" }]);
+      for (const x of list) if (!x.err && x.blockTime && x.blockTime * 1000 >= since) sigs.set(x.signature, x.blockTime);
+    }
+    for (const [sig, blockTime] of sigs) {
+      const tx = await rpc<{ meta: { err: unknown; preTokenBalances?: SolTokenBalance[]; postTokenBalances?: SolTokenBalance[] } | null } | null>(
+        url, "getTransaction", [sig, { encoding: "jsonParsed", commitment: "finalized", maxSupportedTransactionVersion: 0 }]);
+      if (!tx?.meta || tx.meta.err) continue;
+      const pre = (tx.meta.preTokenBalances ?? []).filter((b) => b.mint === SOL_USDT);
+      const post = (tx.meta.postTokenBalances ?? []).filter((b) => b.mint === SOL_USDT);
+      const before = (i: number) => BigInt(pre.find((b) => b.accountIndex === i)?.uiTokenAmount.amount ?? "0");
+      // Ce que l'adresse de dépôt a reçu dans cette transaction.
+      let received = 0n;
+      for (const b of post) if (b.owner === owner) received += BigInt(b.uiTokenAmount.amount) - before(b.accountIndex);
+      if (received <= 0n) continue;
+      // L'expéditeur : le propriétaire du compte USDT qui a le plus baissé.
+      let sender: string | null = null, drop = 0n;
+      for (const b of pre) {
+        if (b.owner === owner) continue;
+        const after = BigInt(post.find((p) => p.accountIndex === b.accountIndex)?.uiTokenAmount.amount ?? "0");
+        const d = BigInt(b.uiTokenAmount.amount) - after;
+        if (d > drop) { drop = d; sender = b.owner ?? null; }
+      }
+      deposits.push({
+        network: "spl", tx_hash: sig, log_index: 0, from_address: sender, to_address: owner,
+        usdt_amount: units(received, 6), block_time: new Date(blockTime * 1000).toISOString(),
+      });
+      cursor = Math.max(cursor, blockTime * 1000);
+    }
+  }
+  // Sans nouveau dépôt, on avance quand même, en gardant une marge de 10 minutes.
+  return { deposits, cursor: Math.max(cursor, Date.now() - 10 * 60_000) };
+}
+
 // ───────────────────────── Passage complet ─────────────────────────
 
 async function scan(db: SupabaseClient) {
@@ -165,6 +227,7 @@ async function scan(db: SupabaseClient) {
 
   const jobs: [string, () => Promise<{ deposits: Deposit[]; cursor: number }>][] = [
     ["trc20", () => scanTron(addr.tron, cur.get("trc20") ?? Date.now() - 6 * 3600_000)],
+    ["spl", () => scanSolana(addr.solana, cur.get("spl") ?? Date.now() - 6 * 3600_000)],
     ...(Object.keys(EVM) as EvmNet[]).map((n) => [n, () => scanEvm(n, addr.evm, cur.get(n) ?? null)] as [string, () => Promise<{ deposits: Deposit[]; cursor: number }>]),
   ];
 
