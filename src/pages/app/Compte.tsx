@@ -50,7 +50,6 @@ const AC_CSS = `
 .ac-opts button[aria-pressed="true"] { color: hsl(var(--foreground)); text-decoration: underline; }
 @media (hover: hover) { .ac-opts button:hover { color: hsl(var(--foreground)); } }
 .ac-opts button:focus-visible { outline: 2px solid hsl(var(--foreground)); outline-offset: 3px; border-radius: 4px; }
-.ac-foot { margin: 48px 0 0; font-size: 12.5px; color: hsl(var(--muted-foreground)); }
 @media (prefers-reduced-motion: reduce) { .ac-row, .ac-todo, .ac-go { transition: none; } }
 `;
 
@@ -240,7 +239,6 @@ const Compte = () => {
         </Group>
       </div>
 
-      <p className="ac-foot">{t("acct.nonCustodial")}</p>
     </AppShell>
   );
 };

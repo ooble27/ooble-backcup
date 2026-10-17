@@ -233,7 +233,6 @@ const dict = {
   "acct.dark": { fr: "Sombre", en: "Dark" },
   "acct.language": { fr: "Langue (app et courriels)", en: "Language (app and emails)" },
   "acct.kyc": { fr: "Vérification d'identité", en: "Identity verification" },
-  "acct.nonCustodial": { fr: "Non-custodial : vos clés, vos USDT", en: "Non-custodial: your keys, your USDT" },
   "acct.backoffice": { fr: "Back-office", en: "Back office" },
   "acct.notifications": { fr: "Notifications", en: "Notifications" },
   "acct.notifSub": { fr: "Recevez des alertes sur vos transactions", en: "Get alerts about your transactions" },
