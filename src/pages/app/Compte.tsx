@@ -12,7 +12,6 @@ import { getMyKyc, peekMyKyc, type KycDbStatus } from "@/lib/kyc";
 import { useLang, useT } from "@/lib/i18n";
 import { getTheme, onThemeChange, setTheme, type Theme } from "@/lib/theme";
 import type { TKey } from "@/lib/translations";
-import { FLAT_CSS } from "@/components/app/flat";
 
 /*
  * Mon compte, dans l'esprit des Réglages du back-office : rien n'est encadré, la typographie fait
@@ -139,7 +138,6 @@ const Compte = () => {
         </div>
       }
     >
-      <style>{FLAT_CSS}</style>
 
       {/* Identité */}
       <p className="ac-name">{business ? profile?.businessName || name : name}</p>

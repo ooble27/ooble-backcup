@@ -44,4 +44,31 @@ export const FLAT_CSS = `
 @media (hover: hover) { .ac-link:hover { opacity: .7; } }
 /* Lignes d'une liste séparées par un trait fin. */
 .ac-lines > * + * { border-top: 1px solid hsl(var(--border)); }
+/* Retour d'une étape : un mot et une flèche, qui recule au survol. */
+.ac-back { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; padding: 4px 0; border: none; background: none; font: inherit; font-size: 13.5px; color: hsl(var(--muted-foreground)); cursor: pointer; transition: color .15s; }
+.ac-back svg { transition: transform .3s cubic-bezier(.22,1,.36,1); }
+@media (hover: hover) { .ac-back:hover { color: hsl(var(--foreground)); } .ac-back:hover svg { transform: translateX(-4px); } }
+.ac-back:focus-visible { outline: 2px solid hsl(var(--foreground)); outline-offset: 3px; border-radius: 4px; }
+.ac-title { margin: 0; font-size: clamp(24px, 3vw, 30px); line-height: 1.12; font-weight: 600; letter-spacing: -0.035em; color: hsl(var(--foreground)); }
+.ac-sub { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: hsl(var(--muted-foreground)); max-width: 560px; }
+/* Champ à plat : du texte sur un trait fin, qui s'épaissit à la saisie. */
+.ac-in { width: 100%; box-sizing: border-box; border: none; border-radius: 0; color: hsl(var(--foreground)); font: inherit; font-size: 16px; caret-color: hsl(var(--foreground)); padding: 8px 0 12px; outline: none;
+  background: linear-gradient(hsl(var(--foreground)), hsl(var(--foreground))) no-repeat left bottom / 0 1.5px, linear-gradient(hsl(var(--border)), hsl(var(--border))) no-repeat left bottom / 100% 1px;
+  transition: background-size .35s cubic-bezier(.22,1,.36,1); }
+.ac-in:focus { background-size: 100% 1.5px, 100% 1px; }
+.ac-in::placeholder { color: hsl(var(--muted-foreground) / .55); }
+.ac-in:disabled { opacity: .5; }
+.ac-in.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; }
+.ac-amount { font-size: clamp(40px, 9vw, 54px); font-weight: 600; letter-spacing: -0.045em; line-height: 1.1; padding-right: 96px; font-variant-numeric: tabular-nums; }
+/* Paires libellé · valeur. */
+.ac-kv { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding: 13px 0; }
+.ac-kv > span:first-child { flex-shrink: 0; font-size: 14px; color: hsl(var(--muted-foreground)); }
+.ac-kv > span:last-child { min-width: 0; text-align: right; font-size: 14.5px; font-weight: 500; color: hsl(var(--foreground)); overflow-wrap: anywhere; }
+.ac-kv.mono > span:last-child { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+/* Un choix dans une liste : le choix retenu en clair avec une coche, les autres en gris. */
+.ac-row.pick .ac-n { color: hsl(var(--muted-foreground)); transition: color .2s; }
+.ac-row.pick.on .ac-n { color: hsl(var(--foreground)); }
+/* Une phrase qui demande l'attention, sans couleur : en clair, un peu plus appuyée. */
+.ac-note { margin: 12px 0 0; font-size: 13.5px; line-height: 1.55; font-weight: 500; color: hsl(var(--foreground)); }
+.ac-help { margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: hsl(var(--muted-foreground)); }
 `;

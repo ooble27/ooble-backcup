@@ -11,6 +11,7 @@ import { ensurePush } from "@/lib/pushNotifications";
 import { recordOrigin, syncLang } from "@/lib/origin";
 import { useNoZoom } from "@/lib/noZoom";
 import { trackPushOpen } from "@/lib/appMessages";
+import { FLAT_CSS } from "./flat";
 
 /**
  * Marque <html> pendant que l'app est montée pour que la racine, le <body> et
@@ -85,6 +86,7 @@ const AppShell = ({ children, header, backTo, wide, wider, center, className }: 
   useEffect(() => { if (user?.id) trackPushOpen(); }, [user?.id]);
   return (
   <div className="app-surface app-type min-h-screen bg-background">
+    <style>{FLAT_CSS}</style>
     <div className={cn("mx-auto flex min-h-screen max-w-[400px] flex-col px-5 pb-28 pt-[max(1.25rem,var(--ios-top))] app-top md:max-w-[720px] lg:max-w-[960px]", wider && "md:max-w-[840px] lg:max-w-[1040px] xl:max-w-[1180px] md:px-8")}>
       {/* Barre du haut — largeur constante, avatar toujours au même endroit */}
       <div className="flex items-start justify-between gap-4 pb-6 pt-2 lg:pb-10 lg:pt-4">

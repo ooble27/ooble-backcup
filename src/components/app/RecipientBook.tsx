@@ -90,37 +90,24 @@ const RecipientBook = ({ kind, network, value, onPick }: Props) => {
   };
 
   return (
-    <div className="mt-3">
+    <div className="mt-8">
       {items && items.length > 0 && (
         <>
-          <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          <p className="ac-k">
             {isWallet
               ? (lang === "en" ? "Saved addresses" : "Adresses enregistrées")
               : (lang === "en" ? "Saved emails" : "Courriels enregistrés")}
           </p>
-          <div className="divide-y divide-border overflow-hidden rounded-[14px] border border-border bg-card">
+          <div className="ac-lines mt-1">
             {items.map((r) => {
               const sel = r.value === trimmed;
               return (
-                <div key={r.id} className="flex items-center gap-3 px-3 py-2.5">
-                  <button
-                    type="button"
-                    onClick={() => pick(r)}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left transition-opacity active:opacity-60"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                        sel ? "bg-foreground text-background" : "bg-secondary text-muted-foreground",
-                      )}
-                    >
-                      {sel ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <BookmarkPlus className="h-3.5 w-3.5" strokeWidth={1.8} />}
-                    </span>
-                    <span className="min-w-0 leading-tight">
-                      <span className="block truncate text-[13px]">{r.label}</span>
-                      <span className="block truncate font-mono text-[11px] text-muted-foreground">
-                        {short(r.value)}
-                      </span>
+                <div key={r.id} className="flex items-center gap-3">
+                  <button type="button" onClick={() => pick(r)} className={cn("ac-row pick", sel && "on")}>
+                    {sel ? <Check className="ac-ico" strokeWidth={2.2} style={{ color: "hsl(var(--foreground))" }} /> : <BookmarkPlus className="ac-ico" strokeWidth={1.7} />}
+                    <span className="ac-txt">
+                      <span className="ac-n">{r.label}</span>
+                      <span className="ac-d font-mono">{short(r.value)}</span>
                     </span>
                   </button>
                   <button
@@ -128,9 +115,9 @@ const RecipientBook = ({ kind, network, value, onPick }: Props) => {
                     onClick={() => drop(r.id)}
                     disabled={busy}
                     aria-label={lang === "en" ? `Delete ${r.label}` : `Supprimer ${r.label}`}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
                   >
-                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    <Trash2 className="h-4 w-4" strokeWidth={1.7} />
                   </button>
                 </div>
               );
@@ -140,11 +127,7 @@ const RecipientBook = ({ kind, network, value, onPick }: Props) => {
       )}
 
       {canOfferSave && !adding && (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="mt-3 inline-flex items-center gap-2 px-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-        >
+        <button type="button" onClick={() => setAdding(true)} className="ac-link mt-4">
           <BookmarkPlus className="h-4 w-4" strokeWidth={1.8} />
           {isWallet
             ? (lang === "en" ? "Save this address" : "Enregistrer cette adresse")
@@ -153,28 +136,21 @@ const RecipientBook = ({ kind, network, value, onPick }: Props) => {
       )}
 
       {canOfferSave && adding && (
-        <div className="mt-3 rounded-[14px] border border-border bg-card p-3">
+        <div className="mt-5">
           <input
             autoFocus
             value={label}
             onChange={(e) => setLabel(e.target.value)}
+            aria-label={lang === "en" ? "Name" : "Nom"}
             placeholder={isWallet
               ? (lang === "en" ? "Name (e.g. My Ledger)" : "Nom (ex. Mon Ledger)")
               : (lang === "en" ? "Name (e.g. Main account)" : "Nom (ex. Compte principal)")}
             maxLength={60}
             /* 16 px minimum : en dessous, iOS zoome automatiquement sur le champ. */
-            className="w-full rounded-[10px] border border-border bg-secondary/40 px-3 py-2.5 text-[16px] outline-none placeholder:text-muted-foreground/60"
+            className="ac-in"
           />
-          {err && <p className="mt-2 text-[12px] text-destructive">{err}</p>}
-          <div className="mt-2.5 flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              shape="soft"
-              className="h-auto px-3.5 py-2 text-[13px]"
-              onClick={() => { setAdding(false); setLabel(""); setErr(null); }}
-            >
-              <T en="Cancel">Annuler</T>
-            </Button>
+          {err && <p className="ac-note">{err}</p>}
+          <div className="mt-4 flex items-center gap-4">
             <Button
               variant="appPrimary"
               shape="soft"
@@ -186,6 +162,9 @@ const RecipientBook = ({ kind, network, value, onPick }: Props) => {
                 ? <T en="Saving…">Enregistrement…</T>
                 : <T en="Save">Enregistrer</T>}
             </Button>
+            <button type="button" className="ac-back" style={{ margin: 0 }} onClick={() => { setAdding(false); setLabel(""); setErr(null); }}>
+              <T en="Cancel">Annuler</T>
+            </button>
           </div>
         </div>
       )}

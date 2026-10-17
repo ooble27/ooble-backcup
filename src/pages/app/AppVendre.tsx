@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { familyOf, useDepositAddresses } from "@/lib/depositAddresses";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, ShieldOff, Wallet, Lock } from "lucide-react";
+import { ArrowRight, HandCoins, Check, Mail, AlertTriangle, MessageSquare, Wallet, Lock } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
+import { AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
 import { Button } from "@/components/ui/button";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
@@ -16,7 +17,6 @@ import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
 import { getMyProfile, peekMyProfile } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { useOtcVisible } from "@/lib/otc";
 import { cancelUnsentSell, declareSellSent, isSenderAddress } from "@/lib/sellProof";
 
@@ -27,25 +27,6 @@ const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}
 const nfCad = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
 
-const StepHeader = ({ title, sub, onBack, backLabel }: { title: string; sub: string; onBack?: () => void; backLabel?: string }) => (
-  <div className="mb-4 flex items-start gap-3">
-    {onBack && (
-      <button
-        type="button"
-        onClick={onBack}
-        aria-label={backLabel ?? "Back"}
-        className="mt-0.5 flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-secondary/70 active:scale-95"
-      >
-        <ArrowLeft className="h-[18px] w-[18px]" />
-      </button>
-    )}
-    <div>
-      <h1 className="font-display text-[18px] font-semibold tracking-tight">{title}</h1>
-      <p className="mt-1 text-[13px] text-muted-foreground">{sub}</p>
-    </div>
-  </div>
-);
-
 /* Commandes fermées aux clients : la page d'attente. Composant à part, pour que les rôles de
    l'équipe, chargés après le premier affichage, ne changent jamais le nombre de hooks du formulaire. */
 const AppVendre = () => {
@@ -54,28 +35,7 @@ const AppVendre = () => {
   const t = useT();
   if (!tradingEnabled && !isStaff) {
     if (rolesLoading) return null;
-    return (
-      <AppShell center>
-        <div className="flex flex-col items-center py-16 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
-            <ShieldOff className="h-7 w-7" strokeWidth={1.5} />
-          </span>
-          <h1 className="mt-5 font-display text-[20px] font-semibold tracking-tight">
-            {t("sell.title")}
-          </h1>
-          <p className="mt-2 max-w-xs text-[14px] leading-relaxed text-muted-foreground">
-            {t("sell.comingSoonMsg")}
-          </p>
-          <Link
-            to="/app"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-secondary px-5 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-secondary/70"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t("trade.backToDash")}
-          </Link>
-        </div>
-      </AppShell>
-    );
+    return <ClosedPage title={t("sell.title")} message={t("sell.comingSoonMsg")} />;
   }
   return <AppVendreForm />;
 };
@@ -236,84 +196,39 @@ const AppVendreForm = () => {
     });
   };
 
+  const next = (go: () => void, disabled: boolean) => (
+    <div className="mt-10">
+      <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={disabled} onClick={go}>
+        <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
+      </Button>
+    </div>
+  );
+
   if (step === "amount") {
     return (
       <AppShell center>
-        <div className="mb-5">
-          <h1 className="font-display text-[22px] font-semibold tracking-tight">{t("sell.title")}</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">{t("sell.sub")}</p>
-        </div>
-        <div className="rounded-[20px] border border-border bg-card p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.amount")}</span>
-            <div className="flex items-center gap-3">
-              <div className="inline-flex gap-0.5 rounded-[10px] bg-secondary/70 p-[3px]">
-                {(["USDT", "CAD"] as Unit[]).map((u) => (
-                  <button
-                    key={u}
-                    type="button"
-                    onClick={() => { setUnit(u); setAmount(""); }}
-                    className={cn(
-                      "rounded-[7px] px-3 py-[5px] text-xs font-semibold transition-colors",
-                      unit === u ? "bg-card text-foreground dark:bg-neutral-600" : "text-muted-foreground",
-                    )}
-                  >
-                    {u}
-                  </button>
-                ))}
-              </div>
-              <div className={isStaff ? "hidden" : "flex gap-2"}>
-                <button type="button" onClick={() => setAmount(minText(unit))} className="text-[11px] font-medium text-muted-foreground underline">Min</button>
-                <button type="button" onClick={() => setAmount(maxText(unit))} className="text-[11px] font-medium text-muted-foreground underline">Max</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative">
-            <input
-              inputMode="decimal"
-              placeholder="0"
-              value={amount}
-              onChange={(e) => onAmount(e.target.value)}
-              disabled={blocked}
-              className="w-full rounded-[14px] border border-border bg-secondary/40 py-[18px] pl-5 pr-[84px] text-[34px] font-bold tracking-[-1px] outline-none placeholder:text-muted-foreground/40"
-            />
-            <span className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-sm font-medium text-muted-foreground">
-              {unit === "USDT" && <img src="/coins/usdt.svg" alt="" className="h-5 w-5" />}
-              {unit}
-            </span>
-          </div>
-
+        <StepHeader title={t("sell.title")} sub={t("sell.sub")} />
+        <AmountField label={t("sell.amount")} units={["USDT", "CAD"] as Unit[]} unit={unit} onUnit={(u) => { setUnit(u); setAmount(""); }}
+          value={amount} onChange={onAmount} disabled={blocked}
+          onMin={isStaff ? undefined : () => setAmount(minText(unit))} onMax={isStaff ? undefined : () => setAmount(maxText(unit))}>
           {blocked ? (
-            <p className="mt-3 text-[13px] leading-relaxed text-destructive">
-              {t("sell.limitReached").replace("{time}", nextAtText)}
-            </p>
+            <p className="ac-note">{t("sell.limitReached").replace("{time}", nextAtText)}</p>
           ) : belowMin ? (
-            <p className="mt-3 text-[13px] text-destructive">{t("sell.minHint")}</p>
+            <p className="ac-note">{t("sell.minHint")}</p>
           ) : null}
           {otc && !isStaff && (blocked || (value > 0 && cad >= maxCad)) && (
-            <Link to="/app/otc" className="mt-3 inline-flex items-center gap-1 text-[13px] font-medium text-foreground underline-offset-2 hover:underline">
-              {t("trade.otcHint")} <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <Link to="/app/otc" className="ac-link mt-3">{t("trade.otcHint")} <ArrowRight className="h-3.5 w-3.5" /></Link>
           )}
+        </AmountField>
+
+        <div className="mt-6">
+          <Facts rows={[
+            { label: unit === "USDT" ? t("sell.youReceive") : t("sell.youSend"), value: unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} USDT` },
+            { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
+          ]} />
         </div>
 
-        <div className="mt-3 flex flex-col gap-2.5 rounded-[16px] border border-border bg-card px-5 py-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] text-muted-foreground">{unit === "USDT" ? t("sell.youReceive") : t("sell.youSend")}</span>
-            <span className="text-sm font-semibold">{unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} USDT`}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] text-muted-foreground">{t("sell.rate")}</span>
-            <span className="text-[13px] text-muted-foreground">1 USDT = {nfCad.format(sellRate)} CAD</span>
-          </div>
-        </div>
-
-        <div className="mt-3 flex justify-start">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={value <= 0 || belowMin || blocked} onClick={() => setStep("reception")}>
-            <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
-          </Button>
-        </div>
+        {next(() => setStep("reception"), value <= 0 || belowMin || blocked)}
       </AppShell>
     );
   }
@@ -321,42 +236,31 @@ const AppVendreForm = () => {
   if (step === "reception") {
     return (
       <AppShell center>
-        <StepHeader title={t("sell.reception")} sub={t("sell.receptionSub")} onBack={() => setStep("amount")} backLabel={t("misc.back")} />
-        <div className="overflow-hidden rounded-[14px] border border-border bg-card">
-          <div className="border-b border-border px-4 py-2.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.interacEmail")}</span>
-          </div>
-          <div className="flex items-center gap-2.5 px-4 py-4">
-            <Mail className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.9} />
-            <span className="min-w-0 flex-1 truncate text-base">{email}</span>
-            <Lock className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.9} aria-label={t("sell.interacLocked")} />
-          </div>
+        <StepHeader title={t("sell.reception")} sub={t("sell.receptionSub")} onBack={() => setStep("amount")} />
+        <p className="ac-k">{t("sell.interacEmail")}</p>
+        <div className="mt-1 flex items-center gap-3 py-3">
+          <Mail className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />
+          <span className="min-w-0 flex-1 truncate text-[16px] font-medium">{email}</span>
+          <Lock className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} aria-label={t("sell.interacLocked")} />
         </div>
-        <p className="mt-2 px-1 text-[12px] leading-snug text-muted-foreground">{t("sell.interacAccountOnly")}</p>
+        <p className="ac-help" style={{ marginTop: 2 }}>{t("sell.interacAccountOnly")}</p>
 
-        <p className="mt-3 px-1 text-[13px] text-muted-foreground">
+        <p className="mt-6 text-[14px] text-muted-foreground">
           <span className="font-semibold text-foreground">{nfCad.format(cad)} CAD</span> {t("sell.receiveInfo")}
         </p>
 
         {interacQA && (
-          <div className="mt-4 overflow-hidden rounded-[14px] border border-border bg-card">
-            <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-              <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.securityQ")}</span>
+          <div className="mt-8">
+            <p className="ac-k flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5" strokeWidth={2} /> {t("sell.securityQ")}</p>
+            <div className="ac-lines mt-1">
+              <CopyRow flat label={t("sell.question")} value={interacQA.q} />
+              <CopyRow flat label={t("sell.answerToEnter")} value={interacQA.a} mono />
             </div>
-            <CopyRow label={t("sell.question")} value={interacQA.q} />
-            <CopyRow label={t("sell.answerToEnter")} value={interacQA.a} mono />
           </div>
         )}
-        <p className="mt-2 px-1 text-[12px] text-muted-foreground">
-          {t("sell.unlockHelp")}
-        </p>
+        <p className="ac-help">{t("sell.unlockHelp")}</p>
 
-        <div className="mt-5 flex justify-start">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={!email} onClick={() => setStep("network")}>
-            <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
-          </Button>
-        </div>
+        {next(() => setStep("network"), !email)}
       </AppShell>
     );
   }
@@ -364,32 +268,9 @@ const AppVendreForm = () => {
   if (step === "network") {
     return (
       <AppShell center>
-        <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} backLabel={t("misc.back")} />
-        <div className="flex flex-wrap gap-2">
-          {openNetworks(networks, "sell").map((n) => {
-            const sel = net === n.id;
-            return (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => { if (net !== n.id) setSender(""); setNet(n.id); }}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-[10px] border py-2 pl-2 pr-3.5 transition-colors active:scale-[0.98]",
-                  sel ? "border-foreground bg-secondary" : "border-border bg-card",
-                )}
-              >
-                <img src={`/coins/${n.id}.svg`} alt="" className="h-7 w-7 shrink-0 rounded-full" draggable={false} />
-                <span className="whitespace-nowrap text-sm">{n.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 flex justify-start">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={!net} onClick={() => setStep("from")}>
-            <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
-          </Button>
-        </div>
+        <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} />
+        <NetworkPick list={openNetworks(networks, "sell")} value={net} onPick={(id) => { if (net !== id) setSender(""); setNet(id); }} />
+        {next(() => setStep("from"), !net)}
       </AppShell>
     );
   }
@@ -397,42 +278,32 @@ const AppVendreForm = () => {
   if (step === "from") {
     return (
       <AppShell center>
-        <StepHeader title={t("sell.walletTitle")} sub={`${t("sell.walletSub")} ${network?.tag ?? ""}.`} onBack={() => setStep("network")} backLabel={t("misc.back")} />
-        <div className="overflow-hidden rounded-[14px] border border-border bg-card">
-          <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-            <Wallet className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
-            <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.senderAddr")}</span>
-            {network && <img src={`/coins/${network.id}.svg`} alt="" className="h-[18px] w-[18px] shrink-0 rounded-full" draggable={false} />}
-          </div>
-          <div className="px-4 py-3.5">
-            <input
-              autoFocus
-              spellCheck={false}
-              autoCapitalize="none"
-              autoComplete="off"
-              aria-label={t("sell.senderAddr")}
-              placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
-              value={sender}
-              onChange={(e) => setSender(e.target.value.trim())}
-              className="w-full min-w-0 bg-transparent font-mono text-[13px] outline-none placeholder:text-muted-foreground/60"
-            />
-          </div>
+        <StepHeader title={t("sell.walletTitle")} sub={`${t("sell.walletSub")} ${network?.tag ?? ""}.`} onBack={() => setStep("network")} />
+        <div className="flex items-center gap-2.5">
+          <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+          <span className="ac-k min-w-0 flex-1 truncate">{t("sell.senderAddr")}</span>
+          {network && <img src={`/coins/${network.id}.svg`} alt="" className="h-5 w-5 shrink-0 rounded-full" draggable={false} />}
         </div>
-        {sender && (
-          <p className={cn("mt-2 px-1 text-[12px]", senderOk ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
-            {senderOk ? t("sell.senderOk") : `${t("sell.senderBad")} ${network?.tag ?? ""}.`}
-          </p>
-        )}
+        <input
+          autoFocus
+          spellCheck={false}
+          autoCapitalize="none"
+          autoComplete="off"
+          aria-label={t("sell.senderAddr")}
+          placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
+          value={sender}
+          onChange={(e) => setSender(e.target.value.trim())}
+          className="ac-in mono mt-2"
+        />
+        {sender && (senderOk
+          ? <p className="ac-help flex items-center gap-1.5"><Check className="h-3.5 w-3.5" strokeWidth={2.4} /> {t("sell.senderOk")}</p>
+          : <p className="ac-note">{`${t("sell.senderBad")} ${network?.tag ?? ""}.`}</p>)}
         {/* Carnet d'adresses par réseau, le même que pour les achats : une adresse enregistrée sur BEP20 ne s'affiche que sur BEP20. */}
         <RecipientBook kind="wallet" network={net} value={sender} onPick={setSender} />
 
-        {err && <p className="mt-3 text-[13px] text-destructive">{err}</p>}
+        {err && <p className="ac-note">{err}</p>}
 
-        <div className="mt-6 flex justify-start">
-          <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={!senderOk || saving} onClick={openSale}>
-            <HandCoins className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.continue")}
-          </Button>
-        </div>
+        {next(openSale, !senderOk || saving)}
       </AppShell>
     );
   }
@@ -440,37 +311,34 @@ const AppVendreForm = () => {
   if (step === "deposit") {
     return (
       <AppShell header={<StepHeader title={t("sell.sendUsdt")} sub={t("sell.sendUsdtSub")} />}>
-        <div className="flex justify-center">
-          <div className="rounded-2xl border border-border bg-white p-4">
-            <QRCodeSVG value={depositAddr} size={180} level="M" />
-          </div>
+        {/* Le QR garde son fond blanc : les appareils photo le lisent mieux. */}
+        <div className="inline-block rounded-2xl bg-white p-4">
+          <QRCodeSVG value={depositAddr} size={180} level="M" />
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-[14px] border border-border bg-card">
-          <div className="flex items-center gap-2.5 border-b border-border px-4 py-2.5">
-            <img src={`/coins/${network?.id}.svg`} alt="" className="h-[26px] w-[26px] rounded-full" draggable={false} />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{network?.name}</span>
-            <span className="ml-auto text-[11px] font-medium text-muted-foreground">{network?.tag}</span>
-          </div>
-          <CopyRow label={t("sell.depositAddr")} value={depositAddr} mono />
-          <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} USDT`} />
+        <div className="mt-8 flex items-center gap-2.5">
+          <img src={`/coins/${network?.id}.svg`} alt="" className="h-6 w-6 rounded-full" draggable={false} />
+          <span className="ac-k">{network?.name}</span>
+          <span className="ml-auto text-[12px] text-muted-foreground">{network?.tag}</span>
+        </div>
+        <div className="ac-lines mt-1">
+          <CopyRow flat label={t("sell.depositAddr")} value={depositAddr} mono />
+          <CopyRow flat label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} USDT`} />
         </div>
 
-        <div className="mt-3 flex items-start gap-2.5">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" strokeWidth={2} />
-          <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">
-            {t("sell.networkWarn")} <strong>{network?.tag}</strong>. {t("sell.networkWarnLoss")}
-          </p>
-        </div>
+        <p className="ac-note flex items-start gap-2">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+          <span>{t("sell.networkWarn")} <strong>{network?.tag}</strong>. {t("sell.networkWarnLoss")}</span>
+        </p>
 
-        <p className="mt-3 px-1 text-[13px] text-muted-foreground">
+        <p className="mt-5 text-[14px] text-muted-foreground">
           {t("sell.afterSend")}{" "}
           <span className="font-semibold text-foreground">{nfCad.format(cad)} CAD</span> {t("sell.afterSend2")}
         </p>
 
-        {err && <p className="mt-3 text-[13px] text-destructive">{err}</p>}
+        {err && <p className="ac-note">{err}</p>}
 
-        <div className="mt-6 flex flex-wrap items-center justify-start gap-2.5">
+        <div className="mt-10 flex flex-wrap items-center gap-2.5">
           <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" disabled={saving} onClick={submit}>
             <Check className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.iSent")}
           </Button>
@@ -484,39 +352,30 @@ const AppVendreForm = () => {
 
   return (
     <AppShell header={<StepHeader title={t("sell.sentTitle")} sub={t("sell.sentSub")} />}>
-      <div className="mb-5 flex items-start gap-2.5">
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-white">
-          <Check className="h-[14px] w-[14px]" strokeWidth={2.5} />
-        </span>
-        <p className="text-[13px] leading-snug text-muted-foreground">
+      <p className="mb-6 flex items-start gap-2.5 text-[14px] leading-relaxed text-muted-foreground">
+        <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" strokeWidth={2.4} />
+        <span>
           {t("sell.checking")}{" "}
           <span className="font-semibold text-foreground">{nfCad.format(cad)} CAD</span> {t("sell.checking2")}
-        </p>
+        </span>
+      </p>
+
+      <Facts rows={[
+        { label: t("sell.youSend"), value: `${nfUsdt.format(usdt)} USDT` },
+        { label: t("sell.youReceive"), value: `${nfCad.format(cad)} CAD` },
+        { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
+        { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
+        { label: t("sell.receivedByInterac"), value: email, mono: true },
+        { label: t("sell.sentFrom"), value: short(sender), mono: true },
+      ]} />
+
+      <p className="ac-k mt-10">{t("sell.orderDetail")}</p>
+      <div className="ac-lines mt-1">
+        <CopyRow flat label={t("sell.amountSent")} value={`${nfUsdt.format(usdt)} USDT`} />
+        <CopyRow flat label={t("sell.orderRef")} value={savedRef} mono />
       </div>
 
-      <div className="overflow-hidden rounded-[16px] border border-border bg-card">
-        {[
-          { label: t("sell.youSend"), value: `${nfUsdt.format(usdt)} USDT` },
-          { label: t("sell.youReceive"), value: `${nfCad.format(cad)} CAD` },
-          { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
-          { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
-          { label: t("sell.receivedByInterac"), value: email, mono: true },
-          { label: t("sell.sentFrom"), value: short(sender), mono: true },
-        ].map((r, i, arr) => (
-          <div key={r.label} className={cn("flex items-center justify-between gap-4 px-4 py-[14px]", i < arr.length - 1 && "border-b border-border")}>
-            <span className="shrink-0 text-[13px] text-muted-foreground">{r.label}</span>
-            <span className={cn("max-w-[60%] break-all text-right text-[13px] font-medium", r.mono && "font-mono text-[11px]")}>{r.value}</span>
-          </div>
-        ))}
-      </div>
-
-      <p className="mb-2 mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("sell.orderDetail")}</p>
-      <div className="divide-y divide-border overflow-hidden rounded-[16px] border border-border bg-card">
-        <CopyRow label={t("sell.amountSent")} value={`${nfUsdt.format(usdt)} USDT`} />
-        <CopyRow label={t("sell.orderRef")} value={savedRef} mono />
-      </div>
-
-      <div className="mt-6 flex justify-start gap-2.5">
+      <div className="mt-10 flex flex-wrap items-center gap-2.5">
         <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[22px] py-[13px] text-sm" asChild>
           <Link to="/app"><Check className="h-[17px] w-[17px]" strokeWidth={2} /> {t("sell.done")}</Link>
         </Button>

@@ -42,18 +42,20 @@ export default function SellPending({ order, onChange }: { order: OrderRow; onCh
   return (
     <div className="mt-5">
       {order.wallet_address && (
-        <div className="overflow-hidden rounded-[14px] border border-border bg-card">
-          <div className="flex items-center gap-2.5 border-b border-border px-4 py-2.5">
+        <div>
+          <div className="flex items-center gap-2.5">
             {network && <img src={`/coins/${network.id}.svg`} alt="" className="h-[22px] w-[22px] shrink-0 rounded-full" draggable={false} />}
-            <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{network?.name}</span>
-            <span className="shrink-0 text-[11px] font-medium text-muted-foreground">{network?.tag}</span>
+            <span className="ac-k min-w-0 flex-1 truncate">{network?.name}</span>
+            <span className="shrink-0 text-[12px] text-muted-foreground">{network?.tag}</span>
           </div>
-          <CopyRow label={t("sell.depositAddr")} value={order.wallet_address} mono />
-          <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(Number(order.usdt_amount))} USDT`} />
+          <div className="ac-lines mt-1">
+            <CopyRow flat label={t("sell.depositAddr")} value={order.wallet_address} mono />
+            <CopyRow flat label={t("sell.exactToSend")} value={`${nfUsdt.format(Number(order.usdt_amount))} USDT`} />
+          </div>
         </div>
       )}
 
-      {err && <p className="mt-3 px-1 text-[13px] text-destructive">{err}</p>}
+      {err && <p className="ac-note">{err}</p>}
 
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
         <Button variant="appPrimary" shape="soft" className="h-auto gap-2 px-[20px] py-[12px] text-sm" disabled={busy} onClick={declare}>

@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import InAppMessage from "@/components/app/InAppMessage";
-import { FLAT_CSS } from "@/components/app/flat";
 
 /** Le taux d'achat (cours du marché + marge d'achat), à 4 décimales. */
 const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
@@ -123,7 +122,6 @@ const Dashboard = () => {
         )
       }
     >
-      <style>{FLAT_CSS}</style>
       <InAppMessage />
 
       {!isStaff && businessBlocked(profile) && (
