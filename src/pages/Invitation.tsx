@@ -56,11 +56,11 @@ const Invitation = () => {
             {active && <span className="text-foreground">{t("inv.bonus").replace("{pct}", pct)}</span>}
             {info && !active && t("inv.stillOpen")}
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+          {/* Le parrainage ne vaut qu'à la création d'un compte : pas de lien « J'ai déjà un compte ». */}
+          <div className="mt-10">
             <Button asChild variant="appSolid" shape="rounded" size="lg" className="px-7">
               <Link to="/inscription">{t("inv.cta")} <ArrowRight className="h-4 w-4" strokeWidth={1.8} /></Link>
             </Button>
-            <Link to="/connexion" className="text-[15px] font-medium underline-offset-[6px] hover:underline">{t("inv.signin")}</Link>
           </div>
         </section>
 

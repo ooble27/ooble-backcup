@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import Captcha, { captchaEnabled, type CaptchaHandle } from "@/components/Captcha";
 import { useAuth } from "@/lib/auth";
+import ReferralCodeField from "@/components/auth/ReferralCodeField";
 import AuthShell from "@/components/auth/AuthShell";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -167,6 +168,8 @@ if (message === "disposable_email") return t("reg.errDisposable");
               }
             />
           </div>
+
+          <ReferralCodeField />
 
           <Captcha ref={captchaRef} onToken={setCaptcha} className="mt-4" />
 

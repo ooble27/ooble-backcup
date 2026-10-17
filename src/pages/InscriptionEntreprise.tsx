@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Building2, Eye, EyeOff, FileText, Lock, Mail, Ma
 import { Button } from "@/components/ui/button";
 import Captcha, { captchaEnabled, type CaptchaHandle } from "@/components/Captcha";
 import { useAuth } from "@/lib/auth";
+import ReferralCodeField from "@/components/auth/ReferralCodeField";
 import AuthShell from "@/components/auth/AuthShell";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -316,6 +317,8 @@ if (message === "disposable_email") return t("reg.errDisposable");
             <p className="mt-3 rounded-xl border border-border/60 bg-secondary/50 px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
               {t("regb.docs")}
             </p>
+
+            <ReferralCodeField />
 
             <Captcha ref={captchaRef} onToken={setCaptcha} className="mt-4" />
 

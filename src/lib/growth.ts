@@ -42,6 +42,26 @@ export const referralLink = (code: string) => `${window.location.origin}/i/${enc
 
 const REF_KEY = "ooble.parrain";
 
+/** Code de parrainage retenu sur cet appareil (null : aucun). */
+export function storedReferral(): string | null {
+  try { return localStorage.getItem(REF_KEY); } catch { return null; }
+}
+
+/** Code saisi à l'inscription : remplace celui retenu (vide : on l'oublie). */
+export function setStoredReferral(code: string | null) {
+  try {
+    if (code && /^[A-Za-z0-9]{4,12}$/.test(code)) localStorage.setItem(REF_KEY, code.toUpperCase());
+    else localStorage.removeItem(REF_KEY);
+  } catch { /* stockage indisponible */ }
+}
+
+/** Ce que la page d'inscription montre d'un code : à qui il appartient, et l'avantage. */
+export async function referralInfo(code: string): Promise<{ valid: boolean; enabled: boolean; firstName: string | null; bonusBps: number }> {
+  const { data } = await supabase.rpc("referral_info", { _code: code });
+  const d = (data ?? {}) as Record<string, unknown>;
+  return { valid: !!d.valid, enabled: !!d.enabled, firstName: (d.first_name as string) ?? null, bonusBps: Number(d.bonus_bps ?? 0) };
+}
+
 /** Retient le code de parrainage sur l'appareil (le premier vu). */
 export function rememberReferral(code: string) {
   try {

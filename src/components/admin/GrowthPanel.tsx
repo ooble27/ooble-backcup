@@ -123,7 +123,7 @@ export function GrowthPanel() {
         )}
         <p className="mk-sub" style={{ marginTop: 14 }}>
           Chaque client trouve son lien dans Mon compte. Le parrain gagne son avantage quand la commande du filleul est terminée.
-          On ne peut pas se parrainer soi-même, et seul un compte de moins de 30 jours, sans commande, peut être parrainé.
+          Le parrainage se fait seulement à l'inscription (lien d'invitation, ou code saisi en créant le compte), jamais pour un compte existant. On ne peut pas se parrainer soi-même.
         </p>
         {sponsors.length > 0 && (
           <div className="mk-list" style={{ marginTop: 18 }}>
