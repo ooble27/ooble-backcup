@@ -59,6 +59,8 @@ const AppVendreForm = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [sender, setSender] = useState("");
   const [linking, setLinking] = useState(false);
+  // Adresse lue depuis le portefeuille (« Connecter ») : affichée à part, pas dans le champ à coller.
+  const [connected, setConnected] = useState(false);
   const [linkErr, setLinkErr] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -115,7 +117,7 @@ const AppVendreForm = () => {
 
   const resetAll = () => {
     setStep("amount"); setAmount(""); setNet(null); setSavedRef(""); setErr(null);
-    setOrderId(null); setSender("");
+    setOrderId(null); setSender(""); setConnected(false);
   };
 
   // La vente est créée avant l'envoi : l'adresse de dépôt ne s'affiche qu'ensuite. Un dépôt n'est
@@ -267,7 +269,7 @@ const AppVendreForm = () => {
     return (
       <AppShell center>
         <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} />
-        <NetworkPick list={openNetworks(networks, "sell")} value={net} onPick={(id) => { if (net !== id) setSender(""); setNet(id); }} />
+        <NetworkPick list={openNetworks(networks, "sell")} value={net} onPick={(id) => { if (net !== id) { setSender(""); setConnected(false); } setNet(id); }} />
         {next(() => setStep("from"), !net)}
       </AppShell>
     );
@@ -282,8 +284,8 @@ const AppVendreForm = () => {
       setLinkErr(false);
       try {
         const a = (await connector.connect()).trim();
-        setSender(a);
         if (family && !isSenderAddress(family, a)) setLinkErr(true);
+        else { setSender(a); setConnected(true); }
       } catch { setLinkErr(true); }
       setLinking(false);
     };
@@ -291,28 +293,40 @@ const AppVendreForm = () => {
       <AppShell center>
         <StepHeader title={t("sell.walletTitle")} sub={`${t("sell.walletSub")} ${network?.tag ?? ""}.`} onBack={() => setStep("network")} />
 
-        {/* Une seule ligne : l'adresse à coller, ou « Connecter » pour la lire depuis le portefeuille. */}
-        <div className="flex items-baseline gap-4">
-          <label htmlFor="sell-sender" className="ac-k min-w-0 flex-1">{t("sell.senderAddr")}</label>
-          <button type="button" className="ac-link shrink-0" disabled={linking} onClick={() => void connect()}>{t("sell.connect")}</button>
-        </div>
-        <input
-          id="sell-sender"
-          spellCheck={false}
-          autoCapitalize="none"
-          autoComplete="off"
-          placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
-          value={sender}
-          onChange={(e) => { setSender(e.target.value.trim()); setLinkErr(false); }}
-          className="ac-in mono mt-2"
-        />
-        {sender && (senderOk
-          ? <p className="ac-help flex items-center gap-1.5"><Check className="h-3.5 w-3.5" strokeWidth={2.4} /> {t("sell.senderOk")}</p>
-          : <p className="ac-note">{`${t("sell.senderBad")} ${network?.tag ?? ""}.`}</p>)}
-        {linkErr && <p className="ac-note">{connector ? t("sell.connectFailed") : t("sell.noWallet")}</p>}
-        {connector && "openUrl" in connector && <p className="ac-help">{t("sell.openInHelp")}</p>}
-        {/* Carnet d'adresses par réseau, le même que pour les achats : une adresse enregistrée sur BEP20 ne s'affiche que sur BEP20. */}
-        <RecipientBook kind="wallet" network={net} value={sender} onPick={setSender} />
+        {connected && senderOk ? (
+          <>
+            <p className="ac-k">{t("sell.connected")}</p>
+            <div className="ac-kv mono">
+              <span>{`${sender.slice(0, 6)}…${sender.slice(-6)}`}</span>
+              <button type="button" className="ac-link" onClick={() => { setSender(""); setConnected(false); }}>{t("sell.change")}</button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* L'adresse à coller, ou « Connecter » pour la lire depuis le portefeuille. */}
+            <div className="flex items-baseline gap-4">
+              <label htmlFor="sell-sender" className="ac-k min-w-0 flex-1">{t("sell.senderAddr")}</label>
+              <button type="button" className="ac-link shrink-0" disabled={linking} onClick={() => void connect()}>{t("sell.connect")}</button>
+            </div>
+            <input
+              id="sell-sender"
+              spellCheck={false}
+              autoCapitalize="none"
+              autoComplete="off"
+              placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
+              value={sender}
+              onChange={(e) => { setSender(e.target.value.trim()); setLinkErr(false); }}
+              className="ac-in mono mt-2"
+            />
+            {sender && (senderOk
+              ? <p className="ac-help flex items-center gap-1.5"><Check className="h-3.5 w-3.5" strokeWidth={2.4} /> {t("sell.senderOk")}</p>
+              : <p className="ac-note">{`${t("sell.senderBad")} ${network?.tag ?? ""}.`}</p>)}
+            {linkErr && <p className="ac-note">{connector ? t("sell.connectFailed") : t("sell.noWallet")}</p>}
+            {connector && "openUrl" in connector && <p className="ac-help">{t("sell.openInHelp")}</p>}
+            {/* Carnet d'adresses par réseau, le même que pour les achats : une adresse enregistrée sur BEP20 ne s'affiche que sur BEP20. */}
+            <RecipientBook kind="wallet" network={net} value={sender} onPick={setSender} />
+          </>
+        )}
 
         {err && <p className="ac-note">{err}</p>}
 

@@ -719,6 +719,8 @@ const dict = {
   "sell.cancelSell": { fr: "Annuler la vente", en: "Cancel the sale" },
   "sell.cancelConfirm": { fr: "Annuler cette vente ? N'envoyez pas d'USDT à cette adresse ensuite.", en: "Cancel this sale? Don't send USDT to this address afterwards." },
   "sell.sentFrom": { fr: "Envoyé depuis", en: "Sent from" },
+  "sell.connected": { fr: "Portefeuille connecté", en: "Wallet connected" },
+  "sell.change": { fr: "Changer", en: "Change" },
   "sell.connect": { fr: "Connecter mon portefeuille", en: "Connect my wallet" },
   "sell.openInHelp": { fr: "Ooble s'ouvre dans l'app de votre portefeuille : connectez-vous à votre compte et reprenez la vente là-bas.", en: "Ooble opens inside your wallet app: sign in to your account and restart the sale there." },
   "sell.noWallet": { fr: "Aucun portefeuille trouvé dans ce navigateur. Installez l'extension de votre portefeuille, ou collez son adresse.", en: "No wallet found in this browser. Install your wallet's extension, or paste its address." },
