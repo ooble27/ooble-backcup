@@ -109,6 +109,8 @@ const AppVendreForm = () => {
   const depositAddr = net && deposit ? deposit[familyOf(net)] ?? "" : "";
   const family = net ? familyOf(net) : null;
   const senderOk = !!family && isSenderAddress(family, sender);
+  // Solana : pas d'étape « Votre portefeuille » (adresse d'envoi difficile à trouver pour le client).
+  const askSender = net !== "sol";
 
   const resetAll = () => {
     setStep("amount"); setAmount(""); setNet(null); setSavedRef(""); setErr(null);
@@ -118,7 +120,7 @@ const AppVendreForm = () => {
   // La vente est créée avant l'envoi : l'adresse de dépôt ne s'affiche qu'ensuite. Un dépôt n'est
   // rattaché automatiquement qu'à une vente qui existait déjà à son arrivée.
   const openSale = async () => {
-    if (saving || !senderOk) return;
+    if (saving || (askSender && !senderOk)) return;
     if (orderId) { setStep("deposit"); return; }
     setSaving(true);
     setErr(null);
@@ -130,7 +132,7 @@ const AppVendreForm = () => {
       network: net ?? undefined,
       address: depositAddr,
       interacEmail: email,
-      senderAddress: sender.trim(),
+      senderAddress: askSender ? sender.trim() : undefined,
     });
     setSaving(false);
     if ("error" in res) {
@@ -265,7 +267,8 @@ const AppVendreForm = () => {
       <AppShell center>
         <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} />
         <NetworkPick list={openNetworks(networks, "sell")} value={net} onPick={(id) => { if (net !== id) setSender(""); setNet(id); }} />
-        {next(() => setStep("from"), !net)}
+        {err && !askSender && <p className="ac-note">{err}</p>}
+        {next(() => (askSender ? setStep("from") : void openSale()), !net || saving)}
       </AppShell>
     );
   }
@@ -357,7 +360,7 @@ const AppVendreForm = () => {
         { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
         { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
         { label: t("sell.receivedByInterac"), value: email, mono: true },
-        { label: t("sell.sentFrom"), value: short(sender), mono: true },
+        ...(askSender && sender ? [{ label: t("sell.sentFrom"), value: short(sender), mono: true }] : []),
       ]} />
 
       <p className="ac-k mt-10">{t("sell.orderDetail")}</p>
