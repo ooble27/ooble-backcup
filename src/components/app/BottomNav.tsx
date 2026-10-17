@@ -1,4 +1,3 @@
-import { useRef, useEffect, useState, useCallback } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { House, Coins, HandCoins } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,43 +10,20 @@ const items: { to: string; labelKey: TKey; icon: typeof House; end: boolean }[] 
   { to: "/app/vendre", labelKey: "bnav.sell", icon: HandCoins, end: false },
 ];
 
+/**
+ * Menu du bas (téléphone), à plat : posé au bas de l'écran, séparé de la page par un trait fin.
+ * La page en cours est en clair avec son nom souligné ; les autres en gris.
+ */
 const BottomNav = () => {
   const t = useT();
   const location = useLocation();
-  const navRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
-
   const activeIndex = items.findIndex(({ to, end }) =>
     end ? location.pathname === to : location.pathname.startsWith(to),
   );
 
-  const measure = useCallback(() => {
-    const nav = navRef.current;
-    const el = itemRefs.current[activeIndex];
-    if (!nav || !el) return;
-    const navRect = nav.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    setPill({ left: elRect.left - navRect.left, width: elRect.width, ready: true });
-  }, [activeIndex]);
-
-  useEffect(() => {
-    requestAnimationFrame(measure);
-  }, [measure]);
-
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-      <nav
-        ref={navRef}
-        className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 rounded-[22px] border border-border bg-card/95 p-2 backdrop-blur-xl"
-      >
-        {pill.ready && (
-          <div
-            className="absolute top-2 h-[calc(100%-16px)] rounded-2xl bg-secondary transition-[left,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            style={{ left: pill.left, width: pill.width }}
-          />
-        )}
-
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[400px] items-stretch justify-around">
         {items.map(({ to, labelKey, icon: Icon, end }, i) => {
           const isActive = i === activeIndex;
           return (
@@ -55,21 +31,16 @@ const BottomNav = () => {
               key={to}
               to={to}
               end={end}
-              ref={(el) => { itemRefs.current[i] = el; }}
               className={cn(
-                "relative z-10 flex items-center justify-center rounded-2xl py-[12px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                isActive ? "gap-2 px-[18px]" : "gap-0 px-[15px]",
+                "flex flex-1 flex-col items-center gap-1 pb-2.5 pt-3 transition-colors active:opacity-60",
+                isActive ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              <Icon
-                size={20}
-                strokeWidth={isActive ? 2.2 : 1.8}
-                className="shrink-0 text-foreground transition-colors duration-200"
-              />
+              <Icon size={21} strokeWidth={isActive ? 2.1 : 1.7} className="shrink-0" />
               <span
                 className={cn(
-                  "overflow-hidden whitespace-nowrap text-[13px] font-semibold tracking-[0.01em] text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                  isActive ? "max-w-[80px] opacity-100" : "max-w-0 opacity-0",
+                  "text-[11.5px] font-medium tracking-[0.01em]",
+                  isActive && "underline decoration-[1.5px] underline-offset-[5px]",
                 )}
               >
                 {t(labelKey)}
@@ -77,8 +48,8 @@ const BottomNav = () => {
             </NavLink>
           );
         })}
-      </nav>
-    </div>
+      </div>
+    </nav>
   );
 };
 
