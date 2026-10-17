@@ -12,7 +12,7 @@ const items: { to: string; labelKey: TKey; icon: typeof House; end: boolean }[] 
 ];
 
 /**
- * Menu du bas : centré, sur une seule ligne, sans cadre. La page en cours montre son nom, et un
+ * Menu du bas : centré, sur une seule ligne, posé directement sur la page (ni cadre ni fond). La page en cours montre son nom, et un
  * trait fin glisse sous elle d'une page à l'autre (à la place de l'ancienne pastille).
  */
 const BottomNav = () => {
@@ -47,7 +47,7 @@ const BottomNav = () => {
     <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <nav
         ref={navRef}
-        className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 rounded-[22px] bg-background/90 p-2 backdrop-blur-xl"
+        className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 p-2"
       >
         {line.ready && (
           <div
