@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
@@ -60,6 +61,9 @@ const AppOTC = () => {
 
 function OtcFlow() {
   const t = useT();
+  const navigate = useNavigate();
+  // Ouvert depuis Mon compte, Acheter ou Vendre : on revient d'où l'on vient (sinon, à l'accueil).
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate("/app"));
   const { networks, otcEmail } = useAppSettings();
   const [lang] = useLang();
   const { user } = useAuth();
@@ -153,7 +157,7 @@ function OtcFlow() {
   if (step === "amount") {
     return (
       <AppShell center>
-        <StepHeader title={t("otcApp.title")} sub={lang === "en" ? "A firm price from $10,000" : "Un prix ferme à partir de 10 000 $"} />
+        <StepHeader title={t("otcApp.title")} sub={lang === "en" ? "A firm price from $10,000" : "Un prix ferme à partir de 10 000 $"} onBack={goBack} />
 
         <div className="ac-opts mb-8" role="group" aria-label={t("otcApp.sideLabel")} style={{ gap: 24 }}>
           {(["buy", "sell"] as Side[]).map((sd) => (

@@ -1,18 +1,15 @@
 import { Send, Handshake } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
-import { Action, Actions } from "@/components/app/Flat";
+import { Action, Actions, StepHeader } from "@/components/app/Flat";
+import { useNavigate } from "react-router-dom";
 import { useT } from "@/lib/i18n";
 
 const Envoyer = () => {
   const t = useT();
+  const navigate = useNavigate();
   return (
     <AppShell
-      header={
-        <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{t("send.title")}</h1>
-          <p className="mt-1 text-[15px] text-muted-foreground">{t("send.sub")}</p>
-        </div>
-      }
+      header={<StepHeader title={t("send.title")} sub={t("send.sub")} onBack={() => navigate("/app")} />}
     >
       <Send className="h-8 w-8 text-muted-foreground" strokeWidth={1.6} />
       <p className="ac-title mt-4">{t("send.comingSoon")}</p>
