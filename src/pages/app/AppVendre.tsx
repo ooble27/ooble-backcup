@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { familyOf, useDepositAddresses } from "@/lib/depositAddresses";
 import { Link } from "react-router-dom";
-import { ArrowRight, Check, Mail, AlertTriangle, MessageSquare, Wallet, Lock } from "lucide-react";
+import { ArrowRight, Building2, Check, ClipboardPaste, Link2, Mail, AlertTriangle, MessageSquare, Wallet, Lock } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
@@ -18,8 +18,11 @@ import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useOtcVisible } from "@/lib/otc";
 import { cancelUnsentSell, declareSellSent, isSenderAddress } from "@/lib/sellProof";
+import { PLATFORMS, WALLET_NAMES, walletChoices, type WalletChoice } from "@/lib/walletLink";
+import { cn } from "@/lib/utils";
 
 type Step = "amount" | "reception" | "network" | "from" | "deposit" | "done";
+type SenderHow = "connect" | "paste" | "platform";
 const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
 
 
@@ -57,6 +60,10 @@ const AppVendreForm = () => {
   const [savedRef, setSavedRef] = useState("");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [sender, setSender] = useState("");
+  const [how, setHow] = useState<SenderHow | null>(null);
+  const [platform, setPlatform] = useState("");
+  const [linking, setLinking] = useState<string | null>(null);
+  const [linkErr, setLinkErr] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [interacQA, setInteracQA] = useState<{ q: string; a: string } | null>(() => {
@@ -109,18 +116,19 @@ const AppVendreForm = () => {
   const depositAddr = net && deposit ? deposit[familyOf(net)] ?? "" : "";
   const family = net ? familyOf(net) : null;
   const senderOk = !!family && isSenderAddress(family, sender);
-  // Solana : pas d'étape « Votre portefeuille » (adresse d'envoi difficile à trouver pour le client).
-  const askSender = net !== "sol";
+  // D'où partent les USDT : portefeuille connecté, adresse collée, ou plateforme d'échange (la vente
+  // est alors reconnue par le montant).
+  const fromOk = how === "platform" ? !!platform : senderOk;
 
   const resetAll = () => {
     setStep("amount"); setAmount(""); setNet(null); setSavedRef(""); setErr(null);
-    setOrderId(null); setSender("");
+    setOrderId(null); setSender(""); setHow(null); setPlatform("");
   };
 
   // La vente est créée avant l'envoi : l'adresse de dépôt ne s'affiche qu'ensuite. Un dépôt n'est
   // rattaché automatiquement qu'à une vente qui existait déjà à son arrivée.
   const openSale = async () => {
-    if (saving || (askSender && !senderOk)) return;
+    if (saving || !fromOk) return;
     if (orderId) { setStep("deposit"); return; }
     setSaving(true);
     setErr(null);
@@ -132,7 +140,8 @@ const AppVendreForm = () => {
       network: net ?? undefined,
       address: depositAddr,
       interacEmail: email,
-      senderAddress: askSender ? sender.trim() : undefined,
+      senderAddress: how === "platform" ? undefined : sender.trim(),
+      senderPlatform: how === "platform" ? platform : undefined,
     });
     setSaving(false);
     if ("error" in res) {
@@ -266,42 +275,119 @@ const AppVendreForm = () => {
     return (
       <AppShell center>
         <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} />
-        <NetworkPick list={openNetworks(networks, "sell")} value={net} onPick={(id) => { if (net !== id) setSender(""); setNet(id); }} />
-        {err && !askSender && <p className="ac-note">{err}</p>}
-        {next(() => (askSender ? setStep("from") : void openSale()), !net || saving)}
+        <NetworkPick list={openNetworks(networks, "sell")} value={net} onPick={(id) => { if (net !== id) { setSender(""); setHow(null); } setNet(id); }} />
+        {next(() => setStep("from"), !net)}
       </AppShell>
     );
   }
 
   if (step === "from") {
+    const wallets = family ? walletChoices(family) : [];
+    const link = async (c: WalletChoice) => {
+      if (c.openUrl) { window.location.href = c.openUrl; return; }
+      if (!c.connect) return;
+      setLinking(c.id);
+      setLinkErr(false);
+      try {
+        const a = (await c.connect()).trim();
+        setSender(a);
+        if (family && !isSenderAddress(family, a)) setLinkErr(true);
+      } catch { setLinkErr(true); }
+      setLinking(null);
+    };
+    const pick = (h: SenderHow) => { setHow(h); setSender(""); setPlatform(""); setLinkErr(false); };
+    const ways: { id: SenderHow; icon: React.ElementType; name: string; desc: string }[] = [
+      { id: "connect", icon: Link2, name: t("sell.howConnect"), desc: family ? WALLET_NAMES[family] : "" },
+      { id: "paste", icon: ClipboardPaste, name: t("sell.howPaste"), desc: t("sell.howPasteSub") },
+      { id: "platform", icon: Building2, name: t("sell.howPlatform"), desc: "Binance, Coinbase, Kraken…" },
+    ];
     return (
       <AppShell center>
         <StepHeader title={t("sell.walletTitle")} sub={`${t("sell.walletSub")} ${network?.tag ?? ""}.`} onBack={() => setStep("network")} />
-        <div className="flex items-center gap-2.5">
-          <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
-          <span className="ac-k min-w-0 flex-1 truncate">{t("sell.senderAddr")}</span>
-          {network && <img src={`/coins/${network.id}.svg`} alt="" className="h-5 w-5 shrink-0 rounded-full" draggable={false} />}
+
+        <div className="ac-lines" role="radiogroup">
+          {ways.map((w) => {
+            const Icon = w.icon;
+            const on = how === w.id;
+            return (
+              <button key={w.id} type="button" role="radio" aria-checked={on} className={cn("ac-row pick", on && "on")} onClick={() => pick(w.id)}>
+                <Icon className="ac-ico" strokeWidth={1.7} />
+                <span className="ac-txt"><span className="ac-n">{w.name}</span><span className="ac-d">{w.desc}</span></span>
+                <Check className={cn("h-[18px] w-[18px] shrink-0 transition-opacity", on ? "opacity-100" : "opacity-0")} strokeWidth={2.2} />
+              </button>
+            );
+          })}
         </div>
-        <input
-          autoFocus
-          spellCheck={false}
-          autoCapitalize="none"
-          autoComplete="off"
-          aria-label={t("sell.senderAddr")}
-          placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
-          value={sender}
-          onChange={(e) => setSender(e.target.value.trim())}
-          className="ac-in mono mt-2"
-        />
-        {sender && (senderOk
-          ? <p className="ac-help flex items-center gap-1.5"><Check className="h-3.5 w-3.5" strokeWidth={2.4} /> {t("sell.senderOk")}</p>
-          : <p className="ac-note">{`${t("sell.senderBad")} ${network?.tag ?? ""}.`}</p>)}
-        {/* Carnet d'adresses par réseau, le même que pour les achats : une adresse enregistrée sur BEP20 ne s'affiche que sur BEP20. */}
-        <RecipientBook kind="wallet" network={net} value={sender} onPick={setSender} />
+
+        {how === "connect" && (
+          <div className="mt-8">
+            {senderOk ? (
+              <>
+                <p className="ac-k">{t("sell.connected")}</p>
+                <p className="ac-kv mono" style={{ borderBottom: "none" }}><span>{short(sender)}</span>
+                  <button type="button" className="ac-link" onClick={() => setSender("")}>{t("sell.change")}</button></p>
+              </>
+            ) : wallets.length ? (
+              <>
+                <div className="ac-lines">
+                  {wallets.map((c) => (
+                    <button key={c.id} type="button" className="ac-row" disabled={!!linking} onClick={() => void link(c)}>
+                      {c.icon ? <img src={c.icon} alt="" className="h-6 w-6 shrink-0 rounded-md" /> : <Wallet className="ac-ico" strokeWidth={1.7} />}
+                      <span className="ac-txt"><span className="ac-n">{c.name}</span></span>
+                      <span className="ac-v">{c.openUrl ? t("sell.openIn") : t("sell.connect")}</span>
+                    </button>
+                  ))}
+                </div>
+                {wallets.some((c) => c.openUrl) && <p className="ac-help">{t("sell.openInHelp")}</p>}
+              </>
+            ) : (
+              <p className="ac-help">{t("sell.noWallet")}</p>
+            )}
+            {linkErr && <p className="ac-note">{t("sell.connectFailed")}</p>}
+          </div>
+        )}
+
+        {how === "paste" && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2.5">
+              <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+              <span className="ac-k min-w-0 flex-1 truncate">{t("sell.senderAddr")}</span>
+              {network && <img src={`/coins/${network.id}.svg`} alt="" className="h-5 w-5 shrink-0 rounded-full" draggable={false} />}
+            </div>
+            <input
+              autoFocus
+              spellCheck={false}
+              autoCapitalize="none"
+              autoComplete="off"
+              aria-label={t("sell.senderAddr")}
+              placeholder={family === "evm" ? "0x…" : family === "tron" ? "T…" : ""}
+              value={sender}
+              onChange={(e) => setSender(e.target.value.trim())}
+              className="ac-in mono mt-2"
+            />
+            {sender && (senderOk
+              ? <p className="ac-help flex items-center gap-1.5"><Check className="h-3.5 w-3.5" strokeWidth={2.4} /> {t("sell.senderOk")}</p>
+              : <p className="ac-note">{`${t("sell.senderBad")} ${network?.tag ?? ""}.`}</p>)}
+            {/* Carnet d'adresses par réseau, le même que pour les achats : une adresse enregistrée sur BEP20 ne s'affiche que sur BEP20. */}
+            <RecipientBook kind="wallet" network={net} value={sender} onPick={setSender} />
+          </div>
+        )}
+
+        {how === "platform" && (
+          <div className="mt-8">
+            <p className="ac-k">{t("sell.whichPlatform")}</p>
+            <div className="ac-opts mt-2 flex-wrap" style={{ rowGap: 6 }} role="group" aria-label={t("sell.whichPlatform")}>
+              {[...PLATFORMS, t("sell.otherPlatform")].map((p) => (
+                <button key={p} type="button" aria-pressed={platform === p} onClick={() => setPlatform(p)}>{p}</button>
+              ))}
+            </div>
+            <p className="ac-help">{t("sell.platformHelp")}</p>
+          </div>
+        )}
 
         {err && <p className="ac-note">{err}</p>}
 
-        {next(openSale, !senderOk || saving)}
+        {next(openSale, !fromOk || saving)}
       </AppShell>
     );
   }
@@ -360,7 +446,7 @@ const AppVendreForm = () => {
         { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
         { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
         { label: t("sell.receivedByInterac"), value: email, mono: true },
-        ...(askSender && sender ? [{ label: t("sell.sentFrom"), value: short(sender), mono: true }] : []),
+        { label: t("sell.sentFrom"), value: how === "platform" ? platform : short(sender), mono: how !== "platform" },
       ]} />
 
       <p className="ac-k mt-10">{t("sell.orderDetail")}</p>
