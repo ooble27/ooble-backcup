@@ -59,8 +59,8 @@ function load(): Promise<AppKit> {
 export async function connectViaWalletConnect(family: "evm" | "solana"): Promise<string> {
   const k = await load();
   const ns = family === "evm" ? "eip155" : "solana";
-  const known = k.getAddress(ns);
-  if (known) return known;
+  // « Connecter » touché de nouveau : on repart de zéro pour pouvoir choisir un autre portefeuille.
+  if (k.getAddress(ns)) await k.disconnect(ns).catch(() => {});
   // La fenêtre suit le thème choisi dans Ooble au moment où on l'ouvre.
   k.setThemeMode(isDark() ? "dark" : "light");
   return new Promise<string>((resolve, reject) => {
@@ -79,8 +79,3 @@ export async function connectViaWalletConnect(family: "evm" | "solana"): Promise
   });
 }
 
-/** « Changer » : oublie le portefeuille connecté pour en choisir un autre. */
-export async function forgetWalletConnect(): Promise<void> {
-  if (!kit) return;
-  try { await (await kit).disconnect(); } catch { /* déjà déconnecté */ }
-}
