@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronRight, Clock } from "lucide-react";
-import BusinessMark from "@/components/app/BusinessMark";
+import { useNavigate } from "react-router-dom";
+import { Clock } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
-import { Button } from "@/components/ui/button";
+import { Action, Actions, StepHeader } from "@/components/app/Flat";
 import { useAuth } from "@/lib/auth";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { useT } from "@/lib/i18n";
@@ -30,26 +29,21 @@ const BusinessGate = ({ children }: { children: React.ReactNode }) => {
 
   const pending = profile!.businessStatus === "pending";
   return (
-    <AppShell backTo="/app" header={<h1 className="font-display text-[22px] font-semibold tracking-tight">{t("kyb.gateTitle")}</h1>}>
-      <div className="flex flex-col items-center rounded-2xl border border-border bg-card px-6 py-10 text-center">
-        <BusinessMark name={profile!.businessName} size="lg" />
-        <p className="mt-3 font-display text-[17px] font-semibold tracking-tight">{profile!.businessName}</p>
-        {pending && (
-          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-[3px] text-[11.5px] font-semibold text-foreground">
-            <Clock className="h-3 w-3" /> {t("kyb.pillPending")}
-          </span>
-        )}
-        <p className="mt-4 max-w-[340px] text-[14px] leading-relaxed text-muted-foreground">
-          {pending ? t("kyb.gatePending") : t("kyb.gateSub")}
-        </p>
-        <Button asChild variant="appSolid" shape="rounded" className="mt-6 gap-2 px-5 text-[13px]">
-          <Link to="/app/entreprise">
-            {pending ? t("kyb.gateView") : t("kyb.gateCta")} <ChevronRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
+    <AppShell header={<GateHeader title={t("kyb.gateTitle")} />}>
+      <p className="ac-name">{profile!.businessName}</p>
+      {pending && (
+        <p className="ac-meta flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {t("kyb.pillPending")}</p>
+      )}
+      <p className="ac-sub mt-4">{pending ? t("kyb.gatePending") : t("kyb.gateSub")}</p>
+      <Actions><Action to="/app/entreprise">{pending ? t("kyb.gateView") : t("kyb.gateCta")}</Action></Actions>
     </AppShell>
   );
+};
+
+/** Titre avec retour vers l'accueil. */
+const GateHeader = ({ title }: { title: string }) => {
+  const navigate = useNavigate();
+  return <StepHeader title={title} onBack={() => navigate("/app")} />;
 };
 
 export default BusinessGate;

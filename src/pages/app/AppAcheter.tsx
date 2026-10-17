@@ -237,9 +237,9 @@ const AppAcheterForm = () => {
 
       <p className="ac-k mt-10">{t("buy.sendEtransfer")}</p>
       <div className="ac-lines mt-2">
-        <CopyRow flat label={t("buy.recipient")} value={interacEmail} mono />
-        <CopyRow flat label={t("buy.exactAmount")} value={`${nfCad.format(cad)} CAD`} />
-        <CopyRow flat label={t("buy.reference")} value={savedRef} mono />
+        <CopyRow label={t("buy.recipient")} value={interacEmail} mono />
+        <CopyRow label={t("buy.exactAmount")} value={`${nfCad.format(cad)} CAD`} />
+        <CopyRow label={t("buy.reference")} value={savedRef} mono />
       </div>
       {payBy && (
         <p className="ac-note">

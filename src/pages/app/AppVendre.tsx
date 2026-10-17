@@ -248,8 +248,8 @@ const AppVendreForm = () => {
           <div className="mt-8">
             <p className="ac-k flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5" strokeWidth={2} /> {t("sell.securityQ")}</p>
             <div className="ac-lines mt-1">
-              <CopyRow flat label={t("sell.question")} value={interacQA.q} />
-              <CopyRow flat label={t("sell.answerToEnter")} value={interacQA.a} mono />
+              <CopyRow label={t("sell.question")} value={interacQA.q} />
+              <CopyRow label={t("sell.answerToEnter")} value={interacQA.a} mono />
             </div>
           </div>
         )}
@@ -317,8 +317,8 @@ const AppVendreForm = () => {
           <span className="ml-auto text-[12px] text-muted-foreground">{network?.tag}</span>
         </div>
         <div className="ac-lines mt-1">
-          <CopyRow flat label={t("sell.depositAddr")} value={depositAddr} mono />
-          <CopyRow flat label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} USDT`} />
+          <CopyRow label={t("sell.depositAddr")} value={depositAddr} mono />
+          <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} USDT`} />
         </div>
 
         <p className="ac-note flex items-start gap-2">
@@ -362,8 +362,8 @@ const AppVendreForm = () => {
 
       <p className="ac-k mt-10">{t("sell.orderDetail")}</p>
       <div className="ac-lines mt-1">
-        <CopyRow flat label={t("sell.amountSent")} value={`${nfUsdt.format(usdt)} USDT`} />
-        <CopyRow flat label={t("sell.orderRef")} value={savedRef} mono />
+        <CopyRow label={t("sell.amountSent")} value={`${nfUsdt.format(usdt)} USDT`} />
+        <CopyRow label={t("sell.orderRef")} value={savedRef} mono />
       </div>
 
       <Actions>

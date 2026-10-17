@@ -114,7 +114,7 @@ export const OrderDetailContent = ({ o }: { o: OrderRow }) => {
       <div className="ac-lines">
         {rows.map((r) => (
           r.copy
-            ? <CopyRow key={r.label} flat label={r.label} value={r.value} mono={!!r.mono} />
+            ? <CopyRow key={r.label} label={r.label} value={r.value} mono={!!r.mono} />
             : <div key={r.label} className={cn("ac-kv", r.mono && "mono")}><span>{r.label}</span><span>{r.value}</span></div>
         ))}
         {link && (

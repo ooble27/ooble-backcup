@@ -254,7 +254,6 @@ const dict = {
   "acct.emailChange": { fr: "Changer l'e-mail", en: "Change email" },
   "acct.emailNew": { fr: "Nouvel e-mail", en: "New email" },
   "acct.emailSave": { fr: "Confirmer", en: "Confirm" },
-  "acct.emailSaving": { fr: "Envoi…", en: "Sending…" },
   "acct.emailSent": {
     fr: "Un lien de confirmation a été envoyé à votre nouvelle adresse. Vérifiez votre boîte de réception.",
     en: "A confirmation link has been sent to your new address. Check your inbox.",
@@ -1008,7 +1007,6 @@ const dict = {
   "del.type": { fr: "Pour confirmer, tapez SUPPRIMER", en: "To confirm, type DELETE" },
   "del.word": { fr: "SUPPRIMER", en: "DELETE" },
   "del.cta": { fr: "Supprimer définitivement", en: "Delete permanently" },
-  "del.busy": { fr: "Suppression…", en: "Deleting…" },
   "del.error": { fr: "La suppression n'a pas abouti. Réessayez, ou écrivez à support@ooble.ca.", en: "Deletion didn't go through. Try again, or write to support@ooble.ca." },
   "del.doneTitle": { fr: "Votre compte est supprimé", en: "Your account is deleted" },
   "del.doneSub": { fr: "Un courriel de confirmation vous a été envoyé. Merci d'avoir utilisé Ooble.", en: "We've sent you a confirmation email. Thank you for using Ooble." },

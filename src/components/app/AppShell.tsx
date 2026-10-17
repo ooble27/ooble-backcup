@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, LayoutGrid, User } from "lucide-react";
+import { LayoutGrid, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
 import ThemeToggle from "./ThemeToggle";
@@ -51,8 +51,6 @@ interface AppShellProps {
   children: React.ReactNode;
   /** Contenu d'en-tête à gauche (salutation, titre…). */
   header?: React.ReactNode;
-  /** Affiche une flèche retour vers `backTo`. */
-  backTo?: string;
   /** Élargit la colonne sur tablette/desktop (tableau de bord uniquement). */
   wide?: boolean;
   /** Encore plus large sur grand écran (page Mon compte). */
@@ -69,7 +67,7 @@ interface AppShellProps {
  * largeur ; les pages de saisie gardent une colonne un peu plus large que le
  * mobile (600px, alignée à gauche) pour respirer sans être trop grosses.
  */
-const AppShell = ({ children, header, backTo, wide, wider, center, className }: AppShellProps) => {
+const AppShell = ({ children, header, wide, wider, center, className }: AppShellProps) => {
   useAppScope();
   // Pas de zoom dans l'app, comme dans le back-office (ordinateur et téléphone).
   useNoZoom();
@@ -91,15 +89,6 @@ const AppShell = ({ children, header, backTo, wide, wider, center, className }: 
       {/* Barre du haut — largeur constante, avatar toujours au même endroit */}
       <div className="flex items-start justify-between gap-4 pb-6 pt-2 lg:pb-10 lg:pt-4">
         <div className="flex min-w-0 items-start gap-3">
-          {backTo && (
-            <Link
-              to={backTo}
-              aria-label={lang === "en" ? "Back" : "Retour"}
-              className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-all hover:bg-secondary active:scale-95"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          )}
           <div className="min-w-0">{header}</div>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">

@@ -1,7 +1,6 @@
-import { Link } from "react-router-dom";
 import { Send, Handshake } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
-import { Button } from "@/components/ui/button";
+import { Action, Actions } from "@/components/app/Flat";
 import { useT } from "@/lib/i18n";
 
 const Envoyer = () => {
@@ -15,26 +14,16 @@ const Envoyer = () => {
         </div>
       }
     >
-      <div className="rounded-2xl border border-border bg-card p-8">
-        <div className="flex flex-col items-center py-6 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-foreground/70">
-            <Send className="h-7 w-7" strokeWidth={1.7} />
-          </span>
-          <p className="mt-5 font-display text-xl font-bold">{t("send.comingSoon")}</p>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            {t("send.comingSoonSub")}
-          </p>
-        </div>
-      </div>
+      <Send className="h-8 w-8 text-muted-foreground" strokeWidth={1.6} />
+      <p className="ac-title mt-4">{t("send.comingSoon")}</p>
+      <p className="ac-sub">{t("send.comingSoonSub")}</p>
 
-      <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3.5 text-sm text-muted-foreground">
-        <Handshake className="h-5 w-5 shrink-0" strokeWidth={1.9} />
+      <p className="ac-help mt-8 flex items-center gap-2.5">
+        <Handshake className="h-5 w-5 shrink-0" strokeWidth={1.8} />
         <span>{t("send.largeVolume")}</span>
-      </div>
+      </p>
 
-      <Button variant="appPrimary" shape="soft" size="lg" className="mt-6 w-full" asChild>
-        <Link to="/app/acheter">{t("send.buyUsdt")}</Link>
-      </Button>
+      <Actions><Action to="/app/acheter">{t("send.buyUsdt")}</Action></Actions>
     </AppShell>
   );
 };

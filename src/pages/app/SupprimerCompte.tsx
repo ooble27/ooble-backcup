@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Clock, EyeOff, FileLock2, LogIn, RotateCcw } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
+import { Action, Actions, StepHeader } from "@/components/app/Flat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { clearCache } from "@/lib/cache";
 import { listMyOrders, peekMyOrders, type OrderRow } from "@/lib/orders";
 import { useLang, useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import type { TKey } from "@/lib/translations";
 
 /* Suppression du compte par le client. Explique ce qui part et ce que la loi
@@ -59,37 +59,25 @@ const SupprimerCompte = () => {
   };
 
   return (
-    <AppShell
-      backTo="/app/compte"
-      header={
-        <div>
-          <h1 className="font-display text-[22px] font-semibold tracking-tight">{t("del.title")}</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">{t("del.sub")}</p>
-        </div>
-      }
-    >
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
-        <p className="px-5 pb-1 pt-4 text-[11.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{t("del.what")}</p>
-        <ul className="divide-y divide-border">
-          {POINTS.map(({ icon: Icon, key }) => (
-            <li key={key} className="flex gap-3.5 px-5 py-3.5">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-secondary text-foreground/75">
-                <Icon className="h-[17px] w-[17px]" strokeWidth={1.9} />
-              </span>
-              <span className="text-[14px] leading-relaxed">{t(key)}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+    <AppShell header={<StepHeader title={t("del.title")} sub={t("del.sub")} onBack={() => navigate("/app/compte")} />}>
+      <p className="ac-k">{t("del.what")}</p>
+      <ul className="ac-lines mt-1">
+        {POINTS.map(({ icon: Icon, key }) => (
+          <li key={key} className="flex gap-3.5 py-3.5">
+            <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />
+            <span className="text-[14.5px] leading-relaxed">{t(key)}</span>
+          </li>
+        ))}
+      </ul>
 
       {blocked ? (
-        <div className="mt-4 flex gap-3 rounded-2xl border border-border bg-card p-4 text-[14px] leading-relaxed">
+        <p className="ac-note mt-8 flex gap-3" style={{ fontSize: 14.5 }}>
           <Clock className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
           <span>{t(isStaff ? "del.staff" : "del.active")}</span>
-        </div>
+        </p>
       ) : (
-        <section className="mt-4">
-          <label htmlFor="del-confirm" className="block text-[13.5px] text-muted-foreground">
+        <section className="mt-10">
+          <label htmlFor="del-confirm" className="block text-[14px] text-muted-foreground">
             {t("del.type")}
           </label>
           <input
@@ -100,26 +88,15 @@ const SupprimerCompte = () => {
             autoCapitalize="characters"
             spellCheck={false}
             placeholder={word}
-            className="mt-2 w-full rounded-xl border border-border bg-secondary/40 px-4 py-3 font-mono text-[16px] tracking-[0.12em] outline-none placeholder:text-muted-foreground/40 focus:border-foreground/40"
+            className="ac-in mono mt-2"
+            style={{ letterSpacing: "0.12em" }}
           />
           {error && (
-            <p role="alert" className="mt-3 flex gap-2 text-[13.5px] text-destructive">
+            <p role="alert" className="ac-note flex gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
             </p>
           )}
-          <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!ok}
-              className={cn(
-                "inline-flex h-10 items-center rounded-xl px-5 text-[14px] font-semibold transition-opacity",
-                "bg-destructive text-white disabled:opacity-35",
-              )}
-            >
-              {busy ? t("del.busy") : t("del.cta")}
-            </button>
-          </div>
+          <Actions><Action disabled={!ok} onClick={submit}>{t("del.cta")}</Action></Actions>
         </section>
       )}
     </AppShell>

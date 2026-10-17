@@ -3,7 +3,6 @@ import { getAllowance, peekAllowance, type TradeAllowance } from "@/lib/orders";
 import { useAuth } from "@/lib/auth";
 import { getAppSettingsNow } from "@/lib/settings";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import type { TKey } from "@/lib/translations";
 
 /* ─── Limites sur 24 heures (même règle qu'en base) ───
@@ -38,34 +37,29 @@ export default function LimitsCard({ className }: { className?: string }) {
   ];
   const notes = rows.filter((r) => lim[r.key].nextAt).map((r) => t(r.next).replace("{time}", fmtNext(lim[r.key].nextAt!)));
   return (
-    <section className={cn("overflow-hidden rounded-2xl border border-border bg-card px-6 py-5", className)}>
-      <div className="flex items-baseline justify-between gap-4">
-        <p className="text-[11.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{t("acct.limits")}</p>
-        <p className="text-[13px] text-muted-foreground">
-          <span className="font-medium text-foreground tabular-nums">{nfInt.format(lim.buy.limit)} $</span> {t("acct.buyLimitPer")}
-        </p>
-      </div>
-      <div className="mt-4 flex flex-col gap-3.5">
+    <section className={className}>
+      <p className="ac-help" style={{ marginTop: 0 }}>
+        <span className="font-medium text-foreground tabular-nums">{nfInt.format(lim.buy.limit)} $</span> {t("acct.buyLimitPer")}
+      </p>
+      <div className="mt-6 flex flex-col gap-7">
         {rows.map(({ key, label }) => {
           const a = lim[key];
           const pct = a.limit > 0 ? Math.min(100, (a.used / a.limit) * 100) : 0;
           return (
             <div key={key}>
-              <div className="flex items-baseline justify-between gap-4 text-[14.5px]">
-                <span>{t(label)}</span>
-                <span className="text-[13.5px] text-muted-foreground">
-                  {t("acct.buyLimitLeft")} <span className="font-medium text-foreground tabular-nums">{nfInt.format(Math.floor(a.remaining))} $</span>
-                  <span className="sr-only"> · {t("acct.buyLimitUsed")} {nfInt.format(a.used)} $</span>
-                </span>
-              </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
+              <p className="ac-k">{t(label)}</p>
+              <p className="mt-2 font-display text-[34px] font-semibold leading-none tracking-tight tabular-nums">
+                {nfInt.format(Math.floor(a.remaining))} $ <span className="text-[14px] font-normal text-muted-foreground">{t("acct.buyLimitLeft").toLowerCase()}</span>
+                <span className="sr-only"> · {t("acct.buyLimitUsed")} {nfInt.format(a.used)} $</span>
+              </p>
+              <div className="mt-3 h-[3px] overflow-hidden rounded-full bg-border">
                 <div className="h-full rounded-full bg-foreground transition-[width]" style={{ width: `${pct}%` }} />
               </div>
             </div>
           );
         })}
       </div>
-      <p className="mt-4 text-[12.5px] leading-relaxed text-muted-foreground">
+      <p className="ac-help mt-6">
         {notes.length ? notes.join(" ") : t("acct.buyLimitReset")}
       </p>
     </section>

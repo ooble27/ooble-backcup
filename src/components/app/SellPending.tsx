@@ -48,8 +48,8 @@ export default function SellPending({ order, onChange }: { order: OrderRow; onCh
             <span className="shrink-0 text-[12px] text-muted-foreground">{network?.tag}</span>
           </div>
           <div className="ac-lines mt-1">
-            <CopyRow flat label={t("sell.depositAddr")} value={order.wallet_address} mono />
-            <CopyRow flat label={t("sell.exactToSend")} value={`${nfUsdt.format(Number(order.usdt_amount))} USDT`} />
+            <CopyRow label={t("sell.depositAddr")} value={order.wallet_address} mono />
+            <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(Number(order.usdt_amount))} USDT`} />
           </div>
         </div>
       )}
