@@ -98,5 +98,3 @@ export const WALLET_NAMES: Record<AddressFamily, string> = {
   solana: "Phantom, Solflare…",
   tron: "TronLink…",
 };
-
-export const PLATFORMS = ["Binance", "Coinbase", "Kraken", "KuCoin", "OKX", "Bybit"] as const;

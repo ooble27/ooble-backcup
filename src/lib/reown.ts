@@ -8,6 +8,20 @@ import type { AppKit } from "@reown/appkit";
 
 const PROJECT_ID = "8f69e2582bb6f88b871623bb21683c26";
 
+const isDark = () => document.documentElement.classList.contains("dark");
+
+/**
+ * Sur iPhone (app installée surtout), la barre d'état prend la couleur de la fenêtre de WalletConnect
+ * et la garde après sa fermeture : on redonne à la barre la couleur de la page.
+ */
+function restoreStatusBar() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const color = meta?.getAttribute("content");
+  if (!meta || !color) return;
+  meta.setAttribute("content", isDark() ? "#000000" : "#ffffff");
+  requestAnimationFrame(() => meta.setAttribute("content", color));
+}
+
 let kit: Promise<AppKit> | null = null;
 
 function load(): Promise<AppKit> {
@@ -28,7 +42,7 @@ function load(): Promise<AppKit> {
         url: window.location.origin,
         icons: [`${window.location.origin}/icons/icon-192.png`],
       },
-      themeMode: document.documentElement.classList.contains("dark") ? "dark" : "light",
+      themeMode: isDark() ? "dark" : "light",
       features: { analytics: false, email: false, socials: false, swaps: false, onramp: false, send: false, receive: false, history: false },
     });
   })().catch((e) => { kit = null; throw e; });
@@ -41,10 +55,12 @@ export async function connectViaWalletConnect(family: "evm" | "solana"): Promise
   const ns = family === "evm" ? "eip155" : "solana";
   const known = k.getAddress(ns);
   if (known) return known;
+  // La fenêtre suit le thème choisi dans Ooble au moment où on l'ouvre.
+  k.setThemeMode(isDark() ? "dark" : "light");
   return new Promise<string>((resolve, reject) => {
     let opened = false, done = false;
     let stopAccount = () => {}, stopState = () => {};
-    const finish = (fn: () => void) => { if (done) return; done = true; stopAccount(); stopState(); fn(); };
+    const finish = (fn: () => void) => { if (done) return; done = true; stopAccount(); stopState(); fn(); setTimeout(restoreStatusBar, 300); };
     stopAccount = k.subscribeAccount((a) => {
       if (a.isConnected && a.address) finish(() => { void k.close(); resolve(a.address as string); });
     }, ns);

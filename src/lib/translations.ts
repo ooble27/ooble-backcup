@@ -722,7 +722,6 @@ const dict = {
   "sell.howConnect": { fr: "Connecter mon portefeuille", en: "Connect my wallet" },
   "sell.howPaste": { fr: "Coller l'adresse", en: "Paste the address" },
   "sell.howPasteSub": { fr: "Celle de votre propre portefeuille", en: "The one of your own wallet" },
-  "sell.howPlatform": { fr: "Depuis une plateforme", en: "From an exchange" },
   "sell.connect": { fr: "Connecter", en: "Connect" },
   "sell.connected": { fr: "Portefeuille connecté", en: "Wallet connected" },
   "sell.change": { fr: "Changer", en: "Change" },
@@ -730,9 +729,6 @@ const dict = {
   "sell.openInHelp": { fr: "Ooble s'ouvre dans l'app de votre portefeuille : connectez-vous à votre compte et reprenez la vente là-bas.", en: "Ooble opens inside your wallet app: sign in to your account and restart the sale there." },
   "sell.noWallet": { fr: "Aucun portefeuille trouvé dans ce navigateur. Installez l'extension de votre portefeuille, ou collez son adresse.", en: "No wallet found in this browser. Install your wallet's extension, or paste its address." },
   "sell.connectFailed": { fr: "Connexion refusée ou adresse d'un autre réseau. Réessayez, ou collez l'adresse.", en: "Connection declined or address on another network. Try again, or paste the address." },
-  "sell.whichPlatform": { fr: "Quelle plateforme ?", en: "Which exchange?" },
-  "sell.otherPlatform": { fr: "Autre", en: "Other" },
-  "sell.platformHelp": { fr: "Envoyez exactement le montant affiché à l'étape suivante, frais de retrait de la plateforme en plus : votre vente est reconnue à ce montant.", en: "Send exactly the amount shown in the next step, with the exchange's withdrawal fee on top: your sale is recognised by that amount." },
 
   // ── Activity ──
   "act.title": { fr: "Activité", en: "Activity" },

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { familyOf, useDepositAddresses } from "@/lib/depositAddresses";
 import { Link } from "react-router-dom";
-import { ArrowRight, Building2, Check, ClipboardPaste, Link2, Mail, AlertTriangle, MessageSquare, Wallet, Lock } from "lucide-react";
+import { ArrowRight, Check, ClipboardPaste, Link2, Mail, AlertTriangle, MessageSquare, Wallet, Lock } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
@@ -18,12 +18,12 @@ import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useOtcVisible } from "@/lib/otc";
 import { cancelUnsentSell, declareSellSent, isSenderAddress } from "@/lib/sellProof";
-import { PLATFORMS, WALLET_NAMES, walletChoices, type WalletChoice } from "@/lib/walletLink";
+import { WALLET_NAMES, walletChoices, type WalletChoice } from "@/lib/walletLink";
 import { forgetWalletConnect } from "@/lib/reown";
 import { cn } from "@/lib/utils";
 
 type Step = "amount" | "reception" | "network" | "from" | "deposit" | "done";
-type SenderHow = "connect" | "paste" | "platform";
+type SenderHow = "connect" | "paste";
 const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
 
 
@@ -62,7 +62,6 @@ const AppVendreForm = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [sender, setSender] = useState("");
   const [how, setHow] = useState<SenderHow | null>(null);
-  const [platform, setPlatform] = useState("");
   const [linking, setLinking] = useState<string | null>(null);
   const [linkErr, setLinkErr] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -117,13 +116,12 @@ const AppVendreForm = () => {
   const depositAddr = net && deposit ? deposit[familyOf(net)] ?? "" : "";
   const family = net ? familyOf(net) : null;
   const senderOk = !!family && isSenderAddress(family, sender);
-  // D'où partent les USDT : portefeuille connecté, adresse collée, ou plateforme d'échange (la vente
-  // est alors reconnue par le montant).
-  const fromOk = how === "platform" ? !!platform : senderOk;
+  // D'où partent les USDT : portefeuille connecté (WalletConnect ou extension) ou adresse collée.
+  const fromOk = senderOk;
 
   const resetAll = () => {
     setStep("amount"); setAmount(""); setNet(null); setSavedRef(""); setErr(null);
-    setOrderId(null); setSender(""); setHow(null); setPlatform("");
+    setOrderId(null); setSender(""); setHow(null);
   };
 
   // La vente est créée avant l'envoi : l'adresse de dépôt ne s'affiche qu'ensuite. Un dépôt n'est
@@ -141,8 +139,7 @@ const AppVendreForm = () => {
       network: net ?? undefined,
       address: depositAddr,
       interacEmail: email,
-      senderAddress: how === "platform" ? undefined : sender.trim(),
-      senderPlatform: how === "platform" ? platform : undefined,
+      senderAddress: sender.trim(),
     });
     setSaving(false);
     if ("error" in res) {
@@ -296,11 +293,10 @@ const AppVendreForm = () => {
       } catch { setLinkErr(true); }
       setLinking(null);
     };
-    const pick = (h: SenderHow) => { setHow(h); setSender(""); setPlatform(""); setLinkErr(false); };
+    const pick = (h: SenderHow) => { setHow(h); setSender(""); setLinkErr(false); };
     const ways: { id: SenderHow; icon: React.ElementType; name: string; desc: string }[] = [
       { id: "connect", icon: Link2, name: t("sell.howConnect"), desc: family ? WALLET_NAMES[family] : "" },
       { id: "paste", icon: ClipboardPaste, name: t("sell.howPaste"), desc: t("sell.howPasteSub") },
-      { id: "platform", icon: Building2, name: t("sell.howPlatform"), desc: "Binance, Coinbase, Kraken…" },
     ];
     return (
       <AppShell center>
@@ -374,18 +370,6 @@ const AppVendreForm = () => {
           </div>
         )}
 
-        {how === "platform" && (
-          <div className="mt-8">
-            <p className="ac-k">{t("sell.whichPlatform")}</p>
-            <div className="ac-opts mt-2 flex-wrap" style={{ rowGap: 6 }} role="group" aria-label={t("sell.whichPlatform")}>
-              {[...PLATFORMS, t("sell.otherPlatform")].map((p) => (
-                <button key={p} type="button" aria-pressed={platform === p} onClick={() => setPlatform(p)}>{p}</button>
-              ))}
-            </div>
-            <p className="ac-help">{t("sell.platformHelp")}</p>
-          </div>
-        )}
-
         {err && <p className="ac-note">{err}</p>}
 
         {next(openSale, !fromOk || saving)}
@@ -447,7 +431,7 @@ const AppVendreForm = () => {
         { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
         { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
         { label: t("sell.receivedByInterac"), value: email, mono: true },
-        { label: t("sell.sentFrom"), value: how === "platform" ? platform : short(sender), mono: how !== "platform" },
+        { label: t("sell.sentFrom"), value: short(sender), mono: true },
       ]} />
 
       <p className="ac-k mt-10">{t("sell.orderDetail")}</p>
