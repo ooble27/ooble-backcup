@@ -32,7 +32,7 @@ const InAppMessage = () => {
   const close = () => { messageEvent(m.id, "dismiss"); setM(null); };
 
   return (
-    <div className="mb-4 flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-4">
+    <div className="mb-10 flex items-start gap-3">
       <div
         className={m.url ? "min-w-0 flex-1 cursor-pointer" : "min-w-0 flex-1"}
         role={m.url ? "link" : undefined}
@@ -40,15 +40,15 @@ const InAppMessage = () => {
         onClick={open}
         onKeyDown={(e) => { if (e.key === "Enter") open(); }}
       >
-        <p className="text-[14px] font-semibold">{m.title}</p>
-        {m.body && <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{m.body}</p>}
+        <p className="text-[17px] font-semibold tracking-tight">{m.title}</p>
+        {m.body && <p className="mt-1 max-w-[620px] text-[14px] leading-relaxed text-muted-foreground">{m.body}</p>}
         {m.url && (
-          <p className="mt-2 inline-flex items-center gap-0.5 text-[13px] font-medium">
+          <p className="mt-2 inline-flex items-center gap-1 text-[14px] font-medium underline decoration-[1.5px] underline-offset-[5px]">
             {m.cta || t("msg.open")} <ChevronRight className="h-3.5 w-3.5" />
           </p>
         )}
       </div>
-      <button type="button" onClick={close} aria-label={t("msg.close")} className="-mr-1 -mt-1 rounded-lg p-1.5 text-muted-foreground transition-opacity hover:opacity-70">
+      <button type="button" onClick={close} aria-label={t("msg.close")} className="-mr-1 -mt-1 p-1.5 text-muted-foreground transition-opacity hover:opacity-70">
         <X className="h-4 w-4" />
       </button>
     </div>

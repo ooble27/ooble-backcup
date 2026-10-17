@@ -54,13 +54,11 @@ export const ActivityRow = ({ o, onClick }: { o: OrderRow; onClick?: () => void 
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 py-3.5 text-left transition-colors",
-        onClick && "transition-opacity hover:opacity-80 active:opacity-60",
+        "flex w-full items-center gap-4 py-3.5 text-left",
+        onClick && "ac-row",
       )}
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground/70">
-        {buy ? <Coins className="h-[18px] w-[18px]" strokeWidth={1.7} /> : <HandCoins className="h-[18px] w-[18px]" strokeWidth={1.7} />}
-      </span>
+      {buy ? <Coins className="ac-ico h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} /> : <HandCoins className="ac-ico h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />}
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14px] font-medium">
           {buy ? t("act.buyLabel") : t("act.sellLabel")}
@@ -75,7 +73,7 @@ export const ActivityRow = ({ o, onClick }: { o: OrderRow; onClick?: () => void 
           {dateShort(new Date(o.created_at))}
         </p>
       </div>
-      {onClick && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />}
+      {onClick && <ChevronRight className="ac-go h-4 w-4 shrink-0 text-muted-foreground/50" />}
     </button>
   );
 };
