@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, Building2, ChevronRight, Copy, Gauge, Globe, Handshake, LayoutGrid, Lock, LogOut, Mail, ShieldCheck, SunMoon, Trash2,
+  ArrowLeft, ArrowRight, Building2, ChevronRight, Copy, Gauge, Globe, Handshake, LayoutGrid, Lock, LogOut, Mail, ShieldCheck, SunMoon, Trash2,
 } from "lucide-react";
 import { useOtcVisible } from "@/lib/otc";
 import { useAppSettings } from "@/lib/settings";
@@ -132,10 +132,10 @@ const Compte = () => {
       wide
       wider
       header={
-        <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{t("acct.title")}</h1>
-          <p className="mt-1 text-[15px] text-muted-foreground">{t("acct.sub")}</p>
-        </div>
+        // Pas de menu du bas sur cette page : le retour vers l'accueil prend la place du titre.
+        <Link to="/app" className="ac-back" style={{ margin: 0, fontSize: 15 }}>
+          <ArrowLeft className="h-4 w-4" />{t("misc.back")}
+        </Link>
       }
     >
 

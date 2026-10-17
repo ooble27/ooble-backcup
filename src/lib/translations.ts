@@ -227,8 +227,6 @@ const dict = {
   },
 
   // ── Compte (My Account) ──
-  "acct.title": { fr: "Mon compte", en: "My account" },
-  "acct.sub": { fr: "Profil et sécurité", en: "Profile & security" },
   "acct.appearance": { fr: "Apparence", en: "Appearance" },
   "acct.light": { fr: "Clair", en: "Light" },
   "acct.dark": { fr: "Sombre", en: "Dark" },
