@@ -10,6 +10,8 @@ import RecipientBook from "@/components/app/RecipientBook";
 import { Action, Actions, AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
+import { PromoField, useBonus } from "@/components/app/Promo";
+import { withBonus } from "@/lib/growth";
 import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance } from "@/lib/orders";
 import { amountText, parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
 import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
@@ -87,7 +89,10 @@ const AppVendreForm = () => {
   const maxCad = isStaff ? Infinity : Math.floor(Math.min(tradeDailyMaxCad, allowance?.remaining ?? tradeDailyMaxCad));
   const blocked = !isStaff && allowance !== null && maxCad < tradeMinCad;
 
-  const sellRate = rate.sell;
+  // Avantage (parrainage ou code promo) : le taux affiché en tient compte ; la base l'applique.
+  const bonusState = useBonus("sell");
+  const baseRate = rate.sell;
+  const sellRate = withBonus(baseRate, "sell", bonusState.bonus.bps);
   const value = parseAmount(amount);
   const usdt = toUsdt(value, unit, sellRate);
   const cad = toCad(usdt, "USDT", sellRate);
@@ -131,11 +136,12 @@ const AppVendreForm = () => {
       side: "sell",
       cad,
       usdt,
-      rate: sellRate,
+      rate: baseRate,
       network: net ?? undefined,
       address: depositAddr,
       interacEmail: email,
       senderAddress: sender.trim(),
+      promoCode: bonusState.codeForOrder,
     });
     setSaving(false);
     if ("error" in res) {
@@ -226,6 +232,7 @@ const AppVendreForm = () => {
             { label: unit === "USDT" ? t("sell.youReceive") : t("sell.youSend"), value: unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} USDT`, usdt: unit !== "USDT" },
             { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
           ]} />
+          <PromoField state={bonusState} />
         </div>
 
         {next(() => setStep("reception"), value <= 0 || belowMin || blocked)}

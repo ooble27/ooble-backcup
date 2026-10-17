@@ -52,6 +52,7 @@ export interface CreateOrderInput {
   interacEmail?: string;  // vente : e-mail Interac du client
   senderAddress?: string;  // vente : adresse d'où le client envoie ses USDT
   senderPlatform?: string; // vente : plateforme d'échange utilisée à la place
+  promoCode?: string;      // code promo saisi (la base l'applique, ou refuse la commande)
 }
 
 export interface TradeAllowance {
@@ -144,6 +145,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
       interac_email: input.side === "sell" ? (input.interacEmail ?? null) : null,
       sender_address: input.side === "sell" ? (input.senderAddress?.trim() || null) : null,
       sender_platform: input.side === "sell" ? (input.senderPlatform?.trim() || null) : null,
+      promo_code: input.promoCode?.trim() || null,
       status: "created",
       rate_locked_until: rateLockedUntil,
     })

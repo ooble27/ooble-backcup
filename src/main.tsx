@@ -4,12 +4,14 @@ import "./index.css";
 import { initTheme } from "./lib/theme";
 import { initLang } from "./lib/i18n";
 import { captureSource } from "./lib/origin";
+import { captureReferral } from "./lib/growth";
 import { registerServiceWorker, dropOrphanPush } from "./lib/pushNotifications";
 import { supabase } from "./integrations/supabase/client";
 import { startFreshnessCheck } from "./lib/freshness";
 
 initTheme();
 captureSource();
+captureReferral();
 
 // App installée sur iPhone / iPad : le contenu commence sous la barre d'état (voir --ios-top dans index.css).
 {

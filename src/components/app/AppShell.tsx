@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { warmAppData } from "@/lib/warm";
 import { ensurePush } from "@/lib/pushNotifications";
 import { recordOrigin, syncLang } from "@/lib/origin";
+import { claimStoredReferral } from "@/lib/growth";
 import { useNoZoom } from "@/lib/noZoom";
 import { trackPushOpen } from "@/lib/appMessages";
 import { FLAT_CSS } from "./flat";
@@ -79,6 +80,7 @@ const AppShell = ({ children, header, wide, wider, center, className }: AppShell
   useEffect(() => { warmAppData(user?.id); }, [user?.id]);
   // Lieu et source de l'inscription, enregistrés une fois.
   useEffect(() => { void recordOrigin(user?.id); }, [user?.id]);
+  useEffect(() => { void claimStoredReferral(user?.id); }, [user?.id]);
   // Langue du client (profil ↔ app) : c'est aussi la langue de ses courriels.
   useEffect(() => { void syncLang(user?.id, lang); }, [user?.id, lang]);
   // Notifications actives pour tout le monde, sans bouton à activer.

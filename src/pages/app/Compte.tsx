@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, Building2, ChevronRight, Copy, Gauge, Globe, Handshake, LayoutGrid, Lock, LogOut, Mail, ShieldCheck, SunMoon, Trash2,
+  ArrowLeft, ArrowRight, Building2, ChevronRight, Copy, Gauge, Gift, Globe, Handshake, LayoutGrid, Lock, LogOut, Mail, Share2, ShieldCheck, SunMoon, Trash2,
 } from "lucide-react";
 import { useOtcVisible } from "@/lib/otc";
 import { useAppSettings } from "@/lib/settings";
@@ -12,6 +12,7 @@ import { getMyKyc, peekMyKyc, type KycDbStatus } from "@/lib/kyc";
 import { useLang, useT } from "@/lib/i18n";
 import { getTheme, onThemeChange, setTheme, type Theme } from "@/lib/theme";
 import type { TKey } from "@/lib/translations";
+import { bpsText, myReferral, referralLink, type MyReferral } from "@/lib/growth";
 
 /*
  * Mon compte, dans l'esprit des Réglages du back-office : rien n'est encadré, la typographie fait
@@ -101,6 +102,8 @@ const Compte = () => {
     const k = peekMyKyc(user?.id);
     return k === undefined ? null : k?.status ?? "not_started";
   });
+  const [ref, setRef] = useState<MyReferral | null>(null);
+  useEffect(() => { myReferral().then(setRef); }, []);
   useEffect(() => {
     getMyProfile().then(setProfile);
     getMyKyc().then((k) => setKyc(k?.status ?? "not_started"));
@@ -188,6 +191,19 @@ const Compte = () => {
             {profile.businessNumber && <Row icon={Building2} name="NEQ / BN" value={profile.businessNumber} />}
             {profile.businessAddress && <Row icon={Building2} name={t("regb.address")} desc={profile.businessAddress} />}
             {profile.businessPhone && <Row icon={Building2} name={t("regb.phone")} value={profile.businessPhone} />}
+          </Group>
+        )}
+
+        {ref?.enabled && ref.code && (
+          <Group title={t("acct.refTitle")} sub={t("acct.refSub").replace("{pct}", bpsText(ref.bonusBps, lang))}>
+            <CopyLine name={t("acct.refLink")} value={referralLink(ref.code)} />
+            {typeof navigator !== "undefined" && "share" in navigator && (
+              <Row icon={Share2} name={t("acct.refShare")} onClick={() => {
+                void navigator.share({ title: "Ooble", text: t("acct.refShareText"), url: referralLink(ref.code!) }).catch(() => {});
+              }} />
+            )}
+            <Row icon={Gift} name={t("acct.refInvited")} value={String(ref.invited)}
+              desc={ref.available > 0 ? t("acct.refAvailable").replace("{n}", String(ref.available)) : ref.invited > 0 ? t("acct.refQualified").replace("{n}", String(ref.qualified)) : undefined} />
           </Group>
         )}
 

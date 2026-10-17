@@ -1976,6 +1976,9 @@ export type Database = {
           usdt_amount: number
           user_id: string
           wallet_address: string
+          promo_code: string | null
+          bonus_bps: number
+          bonus_reason: string | null
         }
         Insert: {
           assigned_at?: string | null
@@ -1998,6 +2001,9 @@ export type Database = {
           usdt_amount: number
           user_id: string
           wallet_address: string
+          promo_code?: string | null
+          bonus_bps?: number
+          bonus_reason?: string | null
         }
         Update: {
           assigned_at?: string | null
@@ -2020,6 +2026,9 @@ export type Database = {
           usdt_amount?: number
           user_id?: string
           wallet_address?: string
+          promo_code?: string | null
+          bonus_bps?: number
+          bonus_reason?: string | null
         }
         Relationships: [
           {
@@ -2346,6 +2355,18 @@ export type Database = {
           p256dh?: string
           user_id?: string
         }
+        Relationships: []
+      }
+      growth_settings: {
+        Row: { id: number; referral_enabled: boolean; referral_bonus_bps: number; max_bonus_bps: number; updated_at: string; updated_by: string | null }
+        Insert: { id?: number; referral_enabled?: boolean; referral_bonus_bps?: number; max_bonus_bps?: number; updated_at?: string; updated_by?: string | null }
+        Update: { id?: number; referral_enabled?: boolean; referral_bonus_bps?: number; max_bonus_bps?: number; updated_at?: string; updated_by?: string | null }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: { id: string; code: string; bonus_bps: number; side: string; first_order_only: boolean; max_uses: number | null; ends_at: string | null; active: boolean; note: string | null; created_by: string | null; created_at: string }
+        Insert: { id?: string; code: string; bonus_bps: number; side?: string; first_order_only?: boolean; max_uses?: number | null; ends_at?: string | null; active?: boolean; note?: string | null; created_by?: string | null; created_at?: string }
+        Update: { id?: string; code?: string; bonus_bps?: number; side?: string; first_order_only?: boolean; max_uses?: number | null; ends_at?: string | null; active?: boolean; note?: string | null; created_by?: string | null; created_at?: string }
         Relationships: []
       }
       saved_recipients: {
@@ -2911,6 +2932,12 @@ export type Database = {
         Returns: string
       }
       marketing_overview: { Args: { _since: string }; Returns: Json }
+      preview_bonus: { Args: { _side: string; _code?: string | null }; Returns: Json }
+      my_referral: { Args: never; Returns: Json }
+      claim_referral: { Args: { _code: string }; Returns: string }
+      promo_stats: { Args: never; Returns: { code_id: string; uses: number; completed: number; volume: number }[] }
+      referral_stats: { Args: never; Returns: { referrer_id: string; name: string; invited: number; ordered: number; qualified: number; volume: number }[] }
+      link_stats: { Args: { _since: string }; Returns: { source: string; campaign: string | null; signups: number; verified: number; buyers: number; volume: number }[] }
       marketing_daily: { Args: { _since: string }; Returns: { day: string; sent: number; opened: number; clicked: number; orders: number; volume: number }[] }
       match_sell_deposits: {
         Args: never

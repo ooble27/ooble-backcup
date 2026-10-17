@@ -45,11 +45,12 @@ import { ScaledFrame } from "./EmailFrame";
 import { CampaignList, ControlCenter, MarketingOverview } from "./MarketingPanels";
 import { JourneysPanel } from "./JourneysPanel";
 import { NotificationsPanel } from "./NotificationsPanel";
+import { GrowthPanel } from "./GrowthPanel";
 import { loadMarketingSettings, queueCampaign, type MarketingSettings, type PreparedSend } from "@/lib/marketing";
 
 // ─── Types ──────────────────────────────────────────────────
 
-type SubTab = "overview" | "templates" | "history" | "journeys" | "notifications" | "control";
+type SubTab = "overview" | "templates" | "history" | "journeys" | "notifications" | "growth" | "control";
 
 interface Recipient {
   id?: string;
@@ -496,6 +497,7 @@ const CampaignsPanel = () => {
         { id: "history", label: "Campagnes envoyées" },
         { id: "journeys", label: "Parcours" },
         { id: "notifications", label: "Notifications" },
+        { id: "growth", label: "Croissance" },
         { id: "control", label: "Centre de contrôle" },
       ]} />
       <div key={tab} style={{ marginTop: 34 }}>
@@ -548,6 +550,7 @@ const CampaignsPanel = () => {
         )}
         {tab === "journeys" && <JourneysPanel onControl={() => setTab("control")} />}
         {tab === "notifications" && <NotificationsPanel onControl={() => setTab("control")} />}
+        {tab === "growth" && <GrowthPanel />}
         {tab === "control" && <ControlCenter />}
       </div>
       {studio && (

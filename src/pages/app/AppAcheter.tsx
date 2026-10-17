@@ -8,6 +8,8 @@ import RecipientBook from "@/components/app/RecipientBook";
 import { Action, Actions, AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
+import { PromoField, useBonus } from "@/components/app/Promo";
+import { withBonus } from "@/lib/growth";
 import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance } from "@/lib/orders";
 import { amountText, parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
 import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
@@ -62,7 +64,10 @@ const AppAcheterForm = () => {
   const minCad = isStaff ? STAFF_TEST_MIN_CAD : tradeMinCad;
   const blocked = allowance !== null && maxCad < minCad;
 
-  const buyRate = rate.buy;
+  // Avantage (parrainage ou code promo) : le taux affiché en tient compte ; la base l'applique.
+  const bonusState = useBonus("buy");
+  const baseRate = rate.buy;
+  const buyRate = withBonus(baseRate, "buy", bonusState.bonus.bps);
   const value = parseAmount(amount);
   const cad = toCad(value, unit, buyRate);
   const usdt = toUsdt(value, unit, buyRate);
@@ -96,9 +101,10 @@ const AppAcheterForm = () => {
       side: "buy",
       cad,
       usdt,
-      rate: buyRate,
+      rate: baseRate,
       network: net ?? undefined,
       address,
+      promoCode: bonusState.codeForOrder,
     });
     setSaving(false);
     if ("error" in res) {
@@ -163,6 +169,7 @@ const AppAcheterForm = () => {
             { label: unit === "CAD" ? t("buy.youReceive") : t("buy.youPay"), value: unit === "CAD" ? `${nfUsdt.format(usdt)} USDT` : `${nfCad.format(cad)} CAD`, usdt: unit === "CAD" },
             { label: t("buy.rate"), value: `1 USDT = ${nfCad.format(buyRate)} CAD` },
           ]} />
+          <PromoField state={bonusState} />
         </div>
 
         {next(() => setStep("network"), value <= 0 || belowMin || blocked)}
