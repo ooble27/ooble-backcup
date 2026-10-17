@@ -165,7 +165,7 @@ const Compte = () => {
 
         <Group title={t("acct.security")} sub={t("acct.gSecSub")}>
           <Row to="/app/changer-email" icon={Mail} name={t("acct.email")} desc={email} />
-          <Row to="/reinitialiser" icon={Lock} name={t("acct.password")} desc="••••••••" />
+          <Row to="/app/mot-de-passe" icon={Lock} name={t("acct.password")} desc="••••••••" />
           {!isStaff && <Row to="/app/supprimer-compte" icon={Trash2} name={t("del.row")} desc={t("del.rowSub")} />}
         </Group>
 
