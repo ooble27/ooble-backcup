@@ -29,8 +29,8 @@
 // diffusion. Une issue incertaine passe l'envoi en « review » : personne ne
 // le relance sans vérification humaine.
 //
-// Secrets : PAYOUT_TRON_KEY, PAYOUT_EVM_KEY (clés privées du portefeuille
-// chaud), TRONGRID_API_KEY et RPC_* (facultatifs).
+// Secrets : PAYOUT_TRON_KEY, PAYOUT_EVM_KEY, PAYOUT_SOL_KEY (clés privées du portefeuille
+// chaud), TRONGRID_API_KEY et RPC_* (facultatifs, dont RPC_SOLANA).
 // Déployée sans vérification JWT (--no-verify-jwt) : l'authentification est
 // faite ici.
 
@@ -57,7 +57,7 @@ const NET_LABEL: Record<string, string> = {
   trc20: "Tron · TRC20", bep20: "BNB Chain · BEP20", polygon: "Polygon", avalanche: "Avalanche · C-Chain", erc20: "Ethereum · ERC20", spl: "Solana",
 };
 const EXPLORER_NAME: Record<string, string> = {
-  trc20: "Tronscan", bep20: "BscScan", polygon: "PolygonScan", avalanche: "Snowtrace", erc20: "Etherscan",
+  trc20: "Tronscan", bep20: "BscScan", polygon: "PolygonScan", avalanche: "Snowtrace", erc20: "Etherscan", spl: "Solscan",
 };
 /** Lien vers la transaction pour le courriel (le hash seul, en repli). */
 const txLinkHtml = (network: string, hash: string) => {

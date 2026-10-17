@@ -33,8 +33,8 @@ const EVENT_LABEL: Record<string, string> = {
   settling: "Prise en charge", completed: "Terminée", cancelled: "Annulée", expired: "Expirée", refunded: "Remboursée",
 };
 
-/** Réseaux où l'envoi des USDT part du portefeuille d'envoi (Solana : à la main). */
-const AUTO_NETWORKS = new Set(["trx", "bnb", "matic", "avax", "eth"]);
+/** Réseaux où l'envoi des USDT part du portefeuille d'envoi. */
+const AUTO_NETWORKS = new Set(["trx", "bnb", "matic", "avax", "eth", "sol"]);
 
 function useCopy() {
   const [copied, setCopied] = useState<string | null>(null);

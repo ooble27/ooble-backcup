@@ -301,8 +301,8 @@ const SettlementPanel = () => {
                 !w.configured ? <Pill>Clé absente</Pill> : w.error ? <Pill tone="danger">Erreur</Pill> : lowGas(w) ? <Pill tone="warn">Frais bas</Pill> : <Pill tone="ok">Prêt</Pill>)}
             />
             <p style={{ margin: "14px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 640 }}>
-              Solana reste manuel pour l'instant. Approvisionnez chaque adresse en USDT et en jeton de frais (TRX, BNB ou POL)
-              depuis votre réserve. Gardez-y seulement le nécessaire aux envois du moment.
+              Approvisionnez chaque adresse en USDT et en jeton de frais (TRX, BNB, POL, AVAX, ETH ou SOL)
+              depuis votre réserve. Sur Solana, chaque envoi vers un nouveau portefeuille coûte environ 0,002 SOL de plus. Gardez-y seulement le nécessaire aux envois du moment.
             </p>
           </div>
 
@@ -383,7 +383,7 @@ const SettlementPanel = () => {
         <>
           <Toolbar right={canAct && <Button size="sm" variant="ghost" onClick={scanNow} icon={<RefreshCw style={{ width: 14, height: 14 }} />}>Lire maintenant</Button>}>
             <span style={{ fontSize: 12.5, color: C.t3 }}>
-              {scanMsg ?? <>Lu toutes les 2 minutes sur Tron, BNB Chain et Polygon (Solana : à la main).{lastScan && <> Dernière lecture : {dateFmt.format(new Date(lastScan))}.</>}</>}
+              {scanMsg ?? <>Lu toutes les 2 minutes sur Tron, BNB Chain, Polygon et Solana.{lastScan && <> Dernière lecture : {dateFmt.format(new Date(lastScan))}.</>}</>}
             </span>
           </Toolbar>
           <DataTable

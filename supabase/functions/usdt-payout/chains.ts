@@ -3,8 +3,10 @@
 // Deux familles de réseaux :
 //   • Tron (TRC20) — API HTTP TronGrid, transaction signée ici avec la clé
 //     PAYOUT_TRON_KEY (secp256k1, la même courbe qu'Ethereum) ;
-//   • EVM (BEP20, Polygon, Avalanche, ERC20) — ethers, clé PAYOUT_EVM_KEY.
-// Solana n'est pas encore pris en charge : ces ordres restent manuels.
+//   • EVM (BEP20, Polygon, Avalanche, ERC20) — ethers, clé PAYOUT_EVM_KEY ;
+//   • Solana (SPL) — @solana/web3.js pour construire et signer, RPC JSON
+//     appelé ici, clé PAYOUT_SOL_KEY (ed25519, base58 ou tableau JSON).
+//     Le compte USDT du destinataire est créé au besoin (≈ 0,002 SOL).
 //
 // Chaque envoi se fait en deux temps : `prepare` construit et signe la
 // transaction et renvoie son hash AVANT diffusion (on l'enregistre en base),
@@ -16,6 +18,11 @@ import {
   computeAddress, concat, decodeBase58, encodeBase58, formatUnits,
   getBytes, hexlify, keccak256, parseUnits, sha256, toBeHex, zeroPadValue,
 } from "npm:ethers@6.13.4";
+import { Buffer } from "node:buffer";
+// Version fixée : les 1.95.6 et 1.95.7 de cette bibliothèque ont été compromises (vol de clés).
+import {
+  ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction,
+} from "npm:@solana/web3.js@1.98.0";
 
 export type Net = "trc20" | "bep20" | "polygon" | "avalanche" | "erc20" | "spl";
 
@@ -38,10 +45,21 @@ const TRON = {
   minTrx: 20,
 };
 
-export const SUPPORTED: Net[] = ["trc20", "bep20", "polygon", "avalanche", "erc20"];
+const SOL = {
+  rpc: "https://api.mainnet-beta.solana.com",
+  env: "RPC_SOLANA",
+  usdt: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+  tokenProgram: "TokenkegQfeYN9rKRbNkVJBQ1ehn5ZGfTU9QH3ZpBfhzRP2pS5Xdd",
+  ataProgram: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+  explorer: "https://solscan.io/tx/",
+  // Frais d'une transaction + création éventuelle du compte USDT du destinataire.
+  minSol: 0.01,
+};
+
+export const SUPPORTED: Net[] = ["trc20", "bep20", "polygon", "avalanche", "erc20", "spl"];
 
 export const explorerUrl = (net: Net, hash: string) =>
-  net === "trc20" ? TRON.explorer + hash : net in EVM ? EVM[net as EvmNet].explorer + hash : "";
+  net === "trc20" ? TRON.explorer + hash : net === "spl" ? SOL.explorer + hash : net in EVM ? EVM[net as EvmNet].explorer + hash : "";
 
 const ERC20_ABI = [
   "function transfer(address to, uint256 value)",
@@ -54,8 +72,10 @@ export class SafeError extends Error {}
 
 function keyFor(net: Net, override?: string): string {
   if (override) return override;
-  const k = (Deno.env.get(net === "trc20" ? "PAYOUT_TRON_KEY" : "PAYOUT_EVM_KEY") ?? "").trim();
-  if (!k) throw new SafeError(net === "trc20" ? "Clé PAYOUT_TRON_KEY absente." : "Clé PAYOUT_EVM_KEY absente.");
+  const name = net === "trc20" ? "PAYOUT_TRON_KEY" : net === "spl" ? "PAYOUT_SOL_KEY" : "PAYOUT_EVM_KEY";
+  const k = (Deno.env.get(name) ?? "").trim();
+  if (!k) throw new SafeError(`Clé ${name} absente.`);
+  if (net === "spl") return k;
   return k.startsWith("0x") ? k : `0x${k}`;
 }
 
@@ -119,16 +139,69 @@ function evmProvider(net: EvmNet) {
   return new JsonRpcProvider(Deno.env.get(c.env) || c.rpc, c.chainId, { staticNetwork: true });
 }
 
+// ───────────────────────── Solana ─────────────────────────
+
+/** Clé Solana : base58 (export Phantom, 64 octets) ou tableau JSON (fichier solana-keygen). */
+function solKeypair(key: string): Keypair {
+  let bytes: Uint8Array;
+  try {
+    bytes = key.startsWith("[") ? Uint8Array.from(JSON.parse(key)) : getBytes(toBeHex(decodeBase58(key), key.length <= 44 ? 32 : 64));
+  } catch { throw new SafeError("Clé PAYOUT_SOL_KEY illisible."); }
+  try { return bytes.length === 32 ? Keypair.fromSeed(bytes) : Keypair.fromSecretKey(bytes); }
+  catch { throw new SafeError("Clé PAYOUT_SOL_KEY invalide."); }
+}
+
+async function sol(method: string, params: unknown[]) {
+  const res = await fetch(Deno.env.get(SOL.env) || SOL.rpc, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
+  if (!res.ok) throw new Error(`Solana ${method} → HTTP ${res.status}`);
+  return await res.json() as { result?: any; error?: { code?: number; message?: string } };
+}
+
+async function solCall(method: string, params: unknown[]) {
+  const r = await sol(method, params);
+  if (r.error) throw new Error(`Solana ${method} : ${r.error.message ?? r.error.code}`);
+  return r.result;
+}
+
+/** Compte USDT associé (ATA) d'un portefeuille. */
+const solAta = (owner: PublicKey) => PublicKey.findProgramAddressSync(
+  [owner.toBuffer(), new PublicKey(SOL.tokenProgram).toBuffer(), new PublicKey(SOL.usdt).toBuffer()],
+  new PublicKey(SOL.ataProgram),
+)[0];
+
+async function solUsdtBalance(owner: string): Promise<number> {
+  const r = await solCall("getTokenAccountsByOwner", [owner, { mint: SOL.usdt }, { encoding: "jsonParsed", commitment: "confirmed" }]);
+  return (r?.value ?? []).reduce((t: number, a: any) => t + Number(a?.account?.data?.parsed?.info?.tokenAmount?.uiAmount ?? 0), 0);
+}
+
+async function solBalance(owner: string): Promise<number> {
+  const r = await solCall("getBalance", [owner, { commitment: "confirmed" }]);
+  return Number(r?.value ?? 0) / 1e9;
+}
+
 // ───────────────────────── API commune ─────────────────────────
 
 export function fromAddress(net: Net, keyOverride?: string): string {
-  if (net === "spl") throw new SafeError("Solana n'est pas encore pris en charge.");
   const key = keyFor(net, keyOverride);
+  if (net === "spl") return solKeypair(key).publicKey.toBase58();
   return net === "trc20" ? tronFromKey(key) : computeAddress(key);
 }
 
 export function validateAddress(net: Net, addr: string): void {
   if (net === "trc20") { tronToBytes(addr); return; }
+  if (net === "spl") {
+    let pk: PublicKey;
+    try { pk = new PublicKey(addr); } catch { throw new SafeError("Adresse Solana invalide."); }
+    if (pk.toBase58() !== addr) throw new SafeError("Adresse Solana invalide.");
+    // Une adresse hors courbe est un compte de programme (souvent un compte USDT et non le portefeuille) :
+    // on n'y envoie rien, l'équipe vérifie avec le client.
+    if (!PublicKey.isOnCurve(pk.toBytes())) throw new SafeError("Adresse Solana qui n'est pas un portefeuille (compte de jeton ?) : à vérifier avec le client.");
+    return;
+  }
   if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) throw new SafeError("Adresse de réception invalide pour ce réseau.");
 }
 
@@ -137,6 +210,10 @@ export async function balances(net: Net): Promise<{ address: string; usdt: numbe
   if (net === "trc20") {
     const [usdt, gas] = await Promise.all([tronUsdtBalance(address), tronTrxBalance(address)]);
     return { address, usdt, gas, gasSymbol: "TRX", minGas: TRON.minTrx };
+  }
+  if (net === "spl") {
+    const [usdt, gas] = await Promise.all([solUsdtBalance(address), solBalance(address)]);
+    return { address, usdt, gas, gasSymbol: "SOL", minGas: SOL.minSol };
   }
   const c = EVM[net as EvmNet];
   const p = evmProvider(net as EvmNet);
@@ -153,6 +230,77 @@ export async function prepare(net: Net, to: string, amount: number, keyOverride?
   const key = keyFor(net, keyOverride);
   const from = fromAddress(net, key);
   if (to.toLowerCase() === from.toLowerCase()) throw new SafeError("L'adresse de réception est celle du portefeuille d'Ooble.");
+
+  if (net === "spl") {
+    const kp = solKeypair(key);
+    const owner = new PublicKey(to), mint = new PublicKey(SOL.usdt), tokenProgram = new PublicKey(SOL.tokenProgram);
+    const fromAta = solAta(kp.publicKey), toAta = solAta(owner);
+    const units = parseUnits(amount.toFixed(6), 6);
+    let blockhash: string, lastValidBlockHeight: number;
+    try {
+      const [bh, src] = await Promise.all([
+        solCall("getLatestBlockhash", [{ commitment: "finalized" }]),
+        solCall("getTokenAccountBalance", [fromAta.toBase58(), { commitment: "confirmed" }]),
+      ]);
+      ({ blockhash, lastValidBlockHeight } = bh.value);
+      if (BigInt(src?.value?.amount ?? "0") < units) throw new SafeError("Solana : solde USDT insuffisant sur le compte d'envoi.");
+    } catch (e) {
+      if (e instanceof SafeError) throw e;
+      throw new SafeError(`Préparation impossible : ${(e as Error).message?.slice(0, 180)}`);
+    }
+    const amountLe = new Uint8Array(8);
+    new DataView(amountLe.buffer).setBigUint64(0, units, true);
+    const tx = new Transaction({ feePayer: kp.publicKey, blockhash, lastValidBlockHeight }).add(
+      // Petite priorité : la transaction passe même quand le réseau est chargé (quelques millièmes de cent).
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 80_000 }),
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }),
+      // Crée le compte USDT du destinataire s'il n'existe pas (sans effet sinon).
+      new TransactionInstruction({
+        programId: new PublicKey(SOL.ataProgram),
+        keys: [
+          { pubkey: kp.publicKey, isSigner: true, isWritable: true },
+          { pubkey: toAta, isSigner: false, isWritable: true },
+          { pubkey: owner, isSigner: false, isWritable: false },
+          { pubkey: mint, isSigner: false, isWritable: false },
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          { pubkey: tokenProgram, isSigner: false, isWritable: false },
+        ],
+        data: Buffer.from([1]),
+      }),
+      // TransferChecked : le montant et les 6 décimales de l'USDT sont vérifiés par le programme.
+      new TransactionInstruction({
+        programId: tokenProgram,
+        keys: [
+          { pubkey: fromAta, isSigner: false, isWritable: true },
+          { pubkey: mint, isSigner: false, isWritable: false },
+          { pubkey: toAta, isSigner: false, isWritable: true },
+          { pubkey: kp.publicKey, isSigner: true, isWritable: false },
+        ],
+        data: Buffer.from([12, ...amountLe, 6]),
+      }),
+    );
+    tx.sign(kp);
+    const raw = tx.serialize();
+    const b64 = btoa(String.fromCharCode(...raw));
+    return {
+      // La signature est l'identifiant de la transaction, connue avant diffusion.
+      hash: encodeBase58(tx.signature!),
+      broadcast: async () => {
+        let r;
+        try {
+          r = await sol("sendTransaction", [b64, { encoding: "base64", preflightCommitment: "confirmed", maxRetries: 5 }]);
+        } catch (e) {
+          throw new Error(`Solana : diffusion incertaine (${(e as Error).message?.slice(0, 180)}).`);
+        }
+        // Simulation refusée par le nœud (solde, blockhash, signature…) : la transaction n'est pas transmise.
+        if (r.error) {
+          const msg = `${r.error.code ?? ""} ${r.error.message ?? ""}`.trim();
+          if ([-32002, -32003, -32602].includes(Number(r.error.code))) throw new SafeError(`Solana : ${msg.slice(0, 200)}`);
+          throw new Error(`Solana : diffusion incertaine (${msg.slice(0, 200)}).`);
+        }
+      },
+    };
+  }
 
   if (net === "trc20") {
     const units = parseUnits(amount.toFixed(6), 6);
@@ -221,6 +369,13 @@ export async function txState(net: Net, hash: string): Promise<"success" | "reve
     if (!r?.blockNumber) return "pending";
     return r?.receipt?.result === "SUCCESS" ? "success" : "reverted";
   }
+  if (net === "spl") {
+    const r = await solCall("getSignatureStatuses", [[hash], { searchTransactionHistory: true }]);
+    const st = r?.value?.[0];
+    if (!st) return "pending";
+    if (st.err) return "reverted";
+    return st.confirmationStatus === "confirmed" || st.confirmationStatus === "finalized" ? "success" : "pending";
+  }
   const rc = await evmProvider(net as EvmNet).getTransactionReceipt(hash);
   if (!rc) return "pending";
   return rc.status === 1 ? "success" : "reverted";
@@ -242,6 +397,13 @@ export async function health(): Promise<Record<string, unknown>> {
         try { const t = await prepare(net, TRON.usdt, 1, temp); build = `signée ${t.hash.slice(0, 10)}…`; }
         catch (e) { build = (e as Error).message; }
         out[net] = { ok: true, block: b?.block_header?.raw_data?.number, build };
+      } else if (net === "spl") {
+        const [slot, supply] = await Promise.all([solCall("getSlot", []), solCall("getTokenSupply", [SOL.usdt])]);
+        const temp = Keypair.generate();
+        const t = new Transaction({ feePayer: temp.publicKey, blockhash: temp.publicKey.toBase58(), lastValidBlockHeight: 0 })
+          .add(SystemProgram.transfer({ fromPubkey: temp.publicKey, toPubkey: temp.publicKey, lamports: 1 }));
+        t.sign(temp);
+        out[net] = { ok: true, slot, usdtDecimals: supply?.value?.decimals, build: `signée ${encodeBase58(t.signature!).slice(0, 10)}…` };
       } else {
         const c = EVM[net as EvmNet];
         const p = evmProvider(net as EvmNet);
