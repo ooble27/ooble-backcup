@@ -19,6 +19,7 @@ import { useT } from "@/lib/i18n";
 import { useOtcVisible } from "@/lib/otc";
 import { cancelUnsentSell, declareSellSent, isSenderAddress } from "@/lib/sellProof";
 import { PLATFORMS, WALLET_NAMES, walletChoices, type WalletChoice } from "@/lib/walletLink";
+import { forgetWalletConnect } from "@/lib/reown";
 import { cn } from "@/lib/utils";
 
 type Step = "amount" | "reception" | "network" | "from" | "deposit" | "done";
@@ -325,7 +326,7 @@ const AppVendreForm = () => {
               <>
                 <p className="ac-k">{t("sell.connected")}</p>
                 <p className="ac-kv mono" style={{ borderBottom: "none" }}><span>{short(sender)}</span>
-                  <button type="button" className="ac-link" onClick={() => setSender("")}>{t("sell.change")}</button></p>
+                  <button type="button" className="ac-link" onClick={() => { setSender(""); void forgetWalletConnect(); }}>{t("sell.change")}</button></p>
               </>
             ) : wallets.length ? (
               <>
@@ -333,7 +334,7 @@ const AppVendreForm = () => {
                   {wallets.map((c) => (
                     <button key={c.id} type="button" className="ac-row" disabled={!!linking} onClick={() => void link(c)}>
                       {c.icon ? <img src={c.icon} alt="" className="h-6 w-6 shrink-0 rounded-md" /> : <Wallet className="ac-ico" strokeWidth={1.7} />}
-                      <span className="ac-txt"><span className="ac-n">{c.name}</span></span>
+                      <span className="ac-txt"><span className="ac-n">{c.name}</span>{c.desc && <span className="ac-d">{c.desc}</span>}</span>
                       <span className="ac-v">{c.openUrl ? t("sell.openIn") : t("sell.connect")}</span>
                     </button>
                   ))}

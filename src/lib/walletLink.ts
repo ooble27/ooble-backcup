@@ -1,10 +1,10 @@
 /**
  * « Connecter mon portefeuille » (vente) : on lit l'adresse du portefeuille du client, sans saisie.
  *
- * Seulement les portefeuilles présents dans le navigateur : extensions sur ordinateur, ou navigateur
- * intégré de l'app du portefeuille sur téléphone. Sur un téléphone sans portefeuille dans le
- * navigateur, on propose d'ouvrir Ooble dans l'app du portefeuille (lien profond). Rien n'est signé
- * ni envoyé : la connexion donne uniquement l'adresse publique.
+ * WalletConnect d'abord (EVM et Solana, téléphone et ordinateur), puis les portefeuilles présents
+ * dans le navigateur (extensions). Phantom et TronLink, mal servis par WalletConnect, gardent sur
+ * téléphone le lien qui ouvre Ooble dans leur app. Rien n'est signé ni envoyé : la connexion donne
+ * uniquement l'adresse publique.
  */
 import type { AddressFamily } from "@/lib/depositAddresses";
 
@@ -15,6 +15,7 @@ export interface WalletChoice {
   id: string;
   name: string;
   icon?: string;
+  desc?: string;
   /** Présent dans ce navigateur : on peut se connecter tout de suite. */
   connect?: () => Promise<string>;
   /** Sinon, sur téléphone : ouvre Ooble dans le navigateur de l'app du portefeuille. */
@@ -22,6 +23,13 @@ export interface WalletChoice {
 }
 
 const w = () => window as any;
+
+const walletConnect = (family: "evm" | "solana"): WalletChoice => ({
+  id: "walletconnect",
+  name: "WalletConnect",
+  desc: family === "evm" ? "MetaMask, Trust, Coinbase Wallet… (QR code sur ordinateur)" : "Solflare, Trust… (QR code sur ordinateur)",
+  connect: async () => (await import("@/lib/reown")).connectViaWalletConnect(family),
+});
 export const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const here = () => window.location.href;
 
@@ -45,11 +53,7 @@ function evm(): WalletChoice[] {
   window.dispatchEvent(new Event("eip6963:requestProvider"));
   const list: WalletChoice[] = [...announced.values()].map((d) => ({ id: d.info.rdns, name: d.info.name, icon: d.info.icon, connect: evmConnect(d.provider) }));
   if (!list.length && w().ethereum) list.push({ id: "injected", name: w().ethereum.isTrust ? "Trust Wallet" : w().ethereum.isMetaMask ? "MetaMask" : "Portefeuille", connect: evmConnect(w().ethereum) });
-  if (list.length || !isMobile()) return list;
-  return [
-    { id: "metamask", name: "MetaMask", openUrl: `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}` },
-    { id: "trust", name: "Trust Wallet", openUrl: `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(here())}` },
-  ];
+  return [walletConnect("evm"), ...list];
 }
 
 function solana(): WalletChoice[] {
@@ -59,12 +63,11 @@ function solana(): WalletChoice[] {
   const solflare = w().solflare;
   if (solflare?.isSolflare) list.push({ id: "solflare", name: "Solflare", connect: async () => { await solflare.connect(); return solflare.publicKey.toString(); } });
   if (!list.length && w().solana?.connect) list.push({ id: "injected", name: "Portefeuille Solana", connect: async () => (await w().solana.connect()).publicKey.toString() });
-  if (list.length || !isMobile()) return list;
-  const url = encodeURIComponent(here()), ref = encodeURIComponent(window.location.origin);
-  return [
-    { id: "phantom", name: "Phantom", openUrl: `https://phantom.app/ul/browse/${url}?ref=${ref}` },
-    { id: "solflare", name: "Solflare", openUrl: `https://solflare.com/ul/v1/browse/${url}?ref=${ref}` },
-  ];
+  if (!list.length && isMobile()) {
+    const url = encodeURIComponent(here()), ref = encodeURIComponent(window.location.origin);
+    list.push({ id: "phantom", name: "Phantom", openUrl: `https://phantom.app/ul/browse/${url}?ref=${ref}` });
+  }
+  return [walletConnect("solana"), ...list];
 }
 
 function tron(): WalletChoice[] {
