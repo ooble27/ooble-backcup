@@ -297,7 +297,7 @@ const AppVendreForm = () => {
           <>
             <p className="ac-k">{t("sell.connected")}</p>
             <div className="ac-kv mono">
-              <span style={{ wordBreak: "break-all", textAlign: "left" }}>{sender}</span>
+              <span>{`${sender.slice(0, 6)}…${sender.slice(-6)}`}</span>
               <button type="button" className="ac-link" onClick={() => { setSender(""); setConnected(false); }}>{t("sell.change")}</button>
             </div>
           </>
