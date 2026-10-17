@@ -99,7 +99,7 @@ const dict = {
   },
 
   // ── Landing — Networks ──
-  "net.kicker": { fr: "Recevez sur 4 blockchains", en: "Receive on 4 blockchains" },
+  "net.kicker": { fr: "Recevez sur {n} blockchains", en: "Receive on {n} blockchains" },
   "net.title": { fr: "La chaîne de votre choix", en: "The chain of your choice" },
   "net.sub": {
     fr: "Le réseau se choisit à la création de l'ordre. Les frais de réseau varient, le taux ne change pas.",

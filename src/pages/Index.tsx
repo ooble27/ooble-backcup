@@ -255,7 +255,7 @@ const Index = () => {
             <Reveal>
               <div className="mb-10 flex flex-col justify-between gap-6 sm:flex-row sm:items-end sm:gap-12">
                 <div>
-                  <Kicker>{t("net.kicker")}</Kicker>
+                  <Kicker>{t("net.kicker").replace("{n}", String(networks.length))}</Kicker>
                   <H2 className="mt-4">{t("net.title")}</H2>
                 </div>
                 <p className="max-w-[300px] text-[15px] leading-[1.6] text-muted-foreground">
