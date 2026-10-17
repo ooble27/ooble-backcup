@@ -49,7 +49,7 @@ const SOL = {
   rpc: "https://api.mainnet-beta.solana.com",
   env: "RPC_SOLANA",
   usdt: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-  tokenProgram: "TokenkegQfeYN9rKRbNkVJBQ1ehn5ZGfTU9QH3ZpBfhzRP2pS5Xdd",
+  tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   ataProgram: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   explorer: "https://solscan.io/tx/",
   // Frais d'une transaction + création éventuelle du compte USDT du destinataire.
