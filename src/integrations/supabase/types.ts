@@ -2128,6 +2128,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          test_account: boolean
           account_type: Database["public"]["Enums"]["account_type"]
           business_address: string | null
           business_name: string | null
@@ -2149,6 +2150,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          test_account?: boolean
           account_type?: Database["public"]["Enums"]["account_type"]
           business_address?: string | null
           business_name?: string | null
@@ -2170,6 +2172,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          test_account?: boolean
           account_type?: Database["public"]["Enums"]["account_type"]
           business_address?: string | null
           business_name?: string | null

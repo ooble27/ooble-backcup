@@ -14,6 +14,7 @@ import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance
 import { amountText, parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
 import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
 import { useAuth } from "@/lib/auth";
+import { useTestAccount } from "@/lib/profile";
 import { getLang, useT } from "@/lib/i18n";
 import { STAFF_TEST_MIN_CAD } from "@/lib/config";
 import { useOtcVisible } from "@/lib/otc";
@@ -26,11 +27,13 @@ const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}
 /* Commandes fermées aux clients : la page d'attente. Composant à part, pour que les rôles de
    l'équipe, chargés après le premier affichage, ne changent jamais le nombre de hooks du formulaire. */
 const AppAcheter = () => {
-  const { isStaff, rolesLoading } = useAuth();
+  const { user, isStaff, rolesLoading } = useAuth();
   const { tradingEnabled } = useAppSettings();
   const t = useT();
-  if (!tradingEnabled && !isStaff) {
-    if (rolesLoading) return null;
+  // Compte de test (activé par un admin) : ouvert même quand les commandes sont fermées.
+  const test = useTestAccount(user?.id);
+  if (!tradingEnabled && !isStaff && !test) {
+    if (rolesLoading || test === null) return null;
     return <ClosedPage title={t("buy.title")} message={t("buy.comingSoonMsg")} />;
   }
   return <AppAcheterForm />;
@@ -59,9 +62,11 @@ const AppAcheterForm = () => {
   // en base). Même taux quel que soit le montant.
   const [allowance, setAllowance] = useState<TradeAllowance | null>(() => peekAllowance(user?.id, "buy") ?? null);
   useEffect(() => { getAllowance("buy").then(setAllowance); }, []);
-  const maxCad = Math.floor(Math.min(tradeDailyMaxCad, allowance?.remaining ?? tradeDailyMaxCad));
+  // Compte de test : de 2 $ à 200 $ par jour (même règle en base).
+  const test = !!useTestAccount(user?.id);
+  const maxCad = Math.floor(Math.min(test ? 200 : tradeDailyMaxCad, allowance?.remaining ?? tradeDailyMaxCad));
   // L'équipe peut faire de petits achats de test (dès 2 $).
-  const minCad = isStaff ? STAFF_TEST_MIN_CAD : tradeMinCad;
+  const minCad = isStaff || test ? STAFF_TEST_MIN_CAD : tradeMinCad;
   const blocked = allowance !== null && maxCad < minCad;
 
   // Avantage (parrainage ou code promo) : le taux affiché en tient compte ; la base l'applique.

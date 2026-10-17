@@ -18,6 +18,7 @@ import ClientNotes from "./ClientNotes";
 import ClientTimeline from "./ClientTimeline";
 import RiskScoreCard from "./RiskScoreCard";
 import ClientAccess from "./ClientAccess";
+import ClientTestAccount from "./ClientTestAccount";
 import ClientLimit from "./ClientLimit";
 import ClientWallets from "./ClientWallets";
 
@@ -172,6 +173,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   const access_ = (
     <>
       {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /></Block>}
+      {can("accounts.suspend") && <Block title="Compte de test"><ClientTestAccount userId={userId} /></Block>}
       {profile && can("clients.limit") && (
         <Block title="Limite quotidienne">
           <ClientLimit userId={userId} limit={profile.dailyLimitCad} onChange={(v) => setProfile({ ...profile, dailyLimitCad: v })} />

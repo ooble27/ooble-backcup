@@ -16,6 +16,7 @@ import { createOrder, getAllowance, orderRef, peekAllowance, type TradeAllowance
 import { amountText, parseAmount, toCad, toUsdt, type Unit } from "@/lib/tradeAmounts";
 import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
 import { getMyProfile, peekMyProfile } from "@/lib/profile";
+import { useTestAccount } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useOtcVisible } from "@/lib/otc";
@@ -32,11 +33,13 @@ const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
 /* Commandes fermées aux clients : la page d'attente. Composant à part, pour que les rôles de
    l'équipe, chargés après le premier affichage, ne changent jamais le nombre de hooks du formulaire. */
 const AppVendre = () => {
-  const { isStaff, rolesLoading } = useAuth();
+  const { user, isStaff, rolesLoading } = useAuth();
   const { tradingEnabled } = useAppSettings();
   const t = useT();
-  if (!tradingEnabled && !isStaff) {
-    if (rolesLoading) return null;
+  // Compte de test (activé par un admin) : ouvert même quand les commandes sont fermées.
+  const test = useTestAccount(user?.id);
+  if (!tradingEnabled && !isStaff && !test) {
+    if (rolesLoading || test === null) return null;
     return <ClosedPage title={t("sell.title")} message={t("sell.comingSoonMsg")} />;
   }
   return <AppVendreForm />;
@@ -85,9 +88,11 @@ const AppVendreForm = () => {
   useEffect(() => { getAllowance("sell").then(setAllowance); }, []);
   // L'équipe Ooble (tous les rôles) vend n'importe quel montant, pour les
   // tests : ni minimum, ni plafond (la base les exempte aussi).
-  const minCad = isStaff ? 0 : tradeMinCad;
-  const maxCad = isStaff ? Infinity : Math.floor(Math.min(tradeDailyMaxCad, allowance?.remaining ?? tradeDailyMaxCad));
-  const blocked = !isStaff && allowance !== null && maxCad < tradeMinCad;
+  // Compte de test : de 2 $ à 200 $ par jour (même règle en base).
+  const test = !!useTestAccount(user?.id);
+  const minCad = isStaff ? 0 : test ? 2 : tradeMinCad;
+  const maxCad = isStaff ? Infinity : Math.floor(Math.min(test ? 200 : tradeDailyMaxCad, allowance?.remaining ?? tradeDailyMaxCad));
+  const blocked = !isStaff && allowance !== null && maxCad < minCad;
 
   // Avantage (parrainage ou code promo) : le taux affiché en tient compte ; la base l'applique.
   const bonusState = useBonus("sell");

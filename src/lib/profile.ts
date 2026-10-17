@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -16,6 +17,8 @@ export interface MyProfile {
   businessAddress: string | null;
   businessPhone: string | null;
   businessStatus: KycDbStatus;
+  /** Compte de test (activé par un admin) : achats et ventes ouverts, de 2 $ à 200 $ par jour. */
+  testAccount: boolean;
 }
 
 /**
@@ -42,7 +45,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
 async function fetchMyProfile(uid: string): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name, email, sell_ref, interac_question, interac_answer, account_type, business_name, business_number, business_address, business_phone, business_status")
+    .select("full_name, email, sell_ref, interac_question, interac_answer, account_type, business_name, business_number, business_address, business_phone, business_status, test_account")
     .eq("id", uid)
     .maybeSingle();
   if (error || !data) return null;
@@ -72,6 +75,7 @@ async function fetchMyProfile(uid: string): Promise<MyProfile | null> {
     businessAddress: data.business_address,
     businessPhone: data.business_phone,
     businessStatus: data.business_status,
+    testAccount: !!data.test_account,
   };
 }
 
@@ -81,4 +85,15 @@ function generateInteracQA(uid: string) {
     question: "Code Ooble ?",
     answer: `OB${code}`,
   };
+}
+
+/** Compte de test ? Lu dans le profil déjà chargé, puis relu en arrière-plan (null : pas encore connu). */
+export function useTestAccount(uid: string | null | undefined): boolean | null {
+  const [on, setOn] = useState<boolean | null>(() => { const p = peekMyProfile(uid); return p ? p.testAccount : null; });
+  useEffect(() => {
+    let live = true;
+    if (uid) getMyProfile().then((p) => { if (live) setOn(!!p?.testAccount); });
+    return () => { live = false; };
+  }, [uid]);
+  return on;
 }

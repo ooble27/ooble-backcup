@@ -148,10 +148,10 @@ const Dashboard = () => {
         {/* Acheter, vendre et blockchains — col droite sur desktop, juste après le taux sur mobile */}
         <div className="md:row-span-2">
           <div className="ac-lines">
-            <Trade to="/app/acheter" icon={Coins} name={t("dash.buy")} desc={t("dash.buySub")} open={tradingEnabled || isStaff} />
-            <Trade to="/app/vendre" icon={HandCoins} name={t("dash.sell")} desc={t("dash.sellSub")} open={tradingEnabled || isStaff} />
+            <Trade to="/app/acheter" icon={Coins} name={t("dash.buy")} desc={t("dash.buySub")} open={tradingEnabled || isStaff || !!profile?.testAccount} />
+            <Trade to="/app/vendre" icon={HandCoins} name={t("dash.sell")} desc={t("dash.sellSub")} open={tradingEnabled || isStaff || !!profile?.testAccount} />
           </div>
-          {!tradingEnabled && !isStaff && (
+          {!tradingEnabled && !isStaff && !profile?.testAccount && (
             <p className="mt-2 text-[12.5px] text-muted-foreground">{t("dash.tradingSuspended")}</p>
           )}
 
