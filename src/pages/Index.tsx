@@ -12,6 +12,7 @@ import { InteracLogo } from "@/components/marks";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
+import { useAppSettings } from "@/lib/settings";
 import type { TKey } from "@/lib/translations";
 
 const Wrap = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -57,12 +58,17 @@ const Index = () => {
     if (user) navigate("/app", { replace: true });
   }, [user, navigate]);
 
-  const networks = [
-    { id: "trx", tick: "TRC20", name: "Tron", note: t("net.trx") },
-    { id: "bnb", tick: "BEP20", name: "BNB Chain", note: t("net.bnb") },
-    { id: "matic", tick: "POL", name: "Polygon", note: t("net.matic") },
-    { id: "sol", tick: "SOL", name: "Solana", note: t("net.sol") },
-  ];
+  // Les réseaux ouverts dans Back-office › Réglages › Réseaux (Avalanche, Ethereum… s'ajoutent tout seuls).
+  const { networks: switches } = useAppSettings();
+  const ALL_NETWORKS = [
+    { id: "trx", db: "trc20", tick: "TRC20", name: "Tron", note: t("net.trx") },
+    { id: "bnb", db: "bep20", tick: "BEP20", name: "BNB Chain", note: t("net.bnb") },
+    { id: "matic", db: "polygon", tick: "POL", name: "Polygon", note: t("net.matic") },
+    { id: "sol", db: "spl", tick: "SOL", name: "Solana", note: t("net.sol") },
+    { id: "avax", db: "avalanche", tick: "C-Chain", name: "Avalanche", note: t("net.avax") },
+    { id: "eth", db: "erc20", tick: "ERC20", name: "Ethereum", note: t("net.eth") },
+  ] as const;
+  const networks = ALL_NETWORKS.filter((n) => switches[n.db]?.buy || switches[n.db]?.sell);
 
   const essentials: { tKey: TKey; dKey: TKey }[] = [
     { tKey: "ess.1t", dKey: "ess.1d" },

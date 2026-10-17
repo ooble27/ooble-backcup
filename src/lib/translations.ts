@@ -110,7 +110,7 @@ const dict = {
   "net.bnb": { fr: "rapide et économique", en: "fast and affordable" },
   "net.matic": { fr: "frais très bas", en: "very low fees" },
   "net.sol": { fr: "règlement quasi instantané", en: "near-instant settlement" },
-  "net.avax": { fr: "C-Chain", en: "C-Chain" },
+  "net.avax": { fr: "rapide, frais bas", en: "fast, low fees" },
 
   // ── Landing — Non-custodial ──
   "nc.kicker": { fr: "Non-custodial", en: "Non-custodial" },
