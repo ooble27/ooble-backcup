@@ -4,9 +4,9 @@
  * adresse prouvée (envoi reçu ou paiement fait) d'un seul client lui est attribué automatiquement.
  * Une adresse aussi utilisée par un autre client est signalée : elle ne prouve plus rien.
  *
- * Fermée par défaut (une ligne) ; ouverte, la liste défile dans une hauteur fixe pour ne pas allonger la fiche.
+ * Une seule ligne dans la fiche ; la liste s'ouvre par-dessus la page, sans rien décaler en dessous.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { fetchCached, peek } from "@/lib/adminCache";
 import { fetchClientWallets, type KnownWallet } from "@/lib/settlement";
@@ -21,6 +21,16 @@ export default function ClientWallets({ userId }: { userId: string }) {
   const [rows, setRows] = useState<KnownWallet[] | null>(() => peek<KnownWallet[]>(key)?.value ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // Clic ailleurs ou Échap : la liste se ferme.
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
   useEffect(() => {
     let on = true;
     fetchCached(key, () => fetchClientWallets(userId)).then((v) => { if (on) setRows(v); }).catch((e) => { if (on) setErr((e as Error).message); });
@@ -33,7 +43,7 @@ export default function ClientWallets({ userId }: { userId: string }) {
 
   const shared = rows.filter((w) => w.sharedWith > 0).length;
   return (
-    <div style={{ fontFamily: FONT, borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>
+    <div ref={box} style={{ position: "relative", fontFamily: FONT, borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}` }}>
       <button
         type="button"
         aria-expanded={open}
@@ -47,7 +57,11 @@ export default function ClientWallets({ userId }: { userId: string }) {
         <ChevronDown style={{ width: 14, height: 14, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
       </button>
       {open && (
-    <div style={{ display: "grid", gap: 14, maxHeight: 320, overflowY: "auto", padding: "4px 0 14px", overscrollBehavior: "contain" }}>
+    <div style={{
+      position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 30,
+      display: "grid", gap: 14, maxHeight: 340, overflowY: "auto", overscrollBehavior: "contain",
+      padding: "14px 16px", background: C.l1, border: `1px solid ${C.bd}`, borderRadius: 10, boxShadow: C.shadowHeavy,
+    }}>
       {rows.map((w) => {
         const what = [
           w.deposits ? `a envoyé ${times(w.deposits)}` : null,
