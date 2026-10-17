@@ -11,6 +11,22 @@ const PROJECT_ID = "8f69e2582bb6f88b871623bb21683c26";
 const isDark = () => document.documentElement.classList.contains("dark");
 
 /**
+ * La fenêtre aux couleurs d'Ooble : police Poppins, fond teinté comme la page, accent neutre (noir
+ * en clair, gris en sombre) au lieu du bleu de Reown, arrondis discrets. La structure de la fenêtre
+ * (liste, recherche, pied de page) reste celle de Reown.
+ */
+const oobleTheme = () => {
+  const dark = isDark();
+  return {
+    "--w3m-font-family": '"Poppins", system-ui, sans-serif',
+    "--w3m-accent": dark ? "#8a8a8a" : "#141414",
+    "--w3m-color-mix": dark ? "#171717" : "#f5f5f3",
+    "--w3m-color-mix-strength": 40,
+    "--w3m-border-radius-master": "2px",
+  };
+};
+
+/**
  * La fenêtre de WalletConnect pose sur toute la page un voile fixé en haut de l'écran, qui reste dans
  * la page (invisible) une fois fermée. Sur iPhone, la barre d'état prend la couleur de ce voile : une
  * bande claire ou sombre apparaît en haut. On retire le voile et on sort la fenêtre de la page quand
@@ -49,6 +65,7 @@ function load(): Promise<AppKit> {
         icons: [`${window.location.origin}/icons/icon-192.png`],
       },
       themeMode: isDark() ? "dark" : "light",
+      themeVariables: oobleTheme(),
       features: { analytics: false, email: false, socials: false, swaps: false, onramp: false, send: false, receive: false, history: false },
     });
   })().catch((e) => { kit = null; throw e; });
@@ -63,6 +80,7 @@ export async function connectViaWalletConnect(family: "evm" | "solana"): Promise
   if (k.getAddress(ns)) await k.disconnect(ns).catch(() => {});
   // La fenêtre suit le thème choisi dans Ooble au moment où on l'ouvre.
   k.setThemeMode(isDark() ? "dark" : "light");
+  k.setThemeVariables(oobleTheme());
   return new Promise<string>((resolve, reject) => {
     let opened = false, done = false;
     let stopAccount = () => {}, stopState = () => {};
