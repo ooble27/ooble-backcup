@@ -263,6 +263,7 @@ const dict = {
 
   // ── KYC statuses ──
   "kyc.notStarted": { fr: "À faire", en: "Not started" },
+  "kyc.retake": { fr: "Reprendre", en: "Retake" },
   "kyc.pending": { fr: "En cours", en: "Pending" },
   "kyc.approved": { fr: "Vérifié", en: "Verified" },
   "kyc.rejected": { fr: "Refusé", en: "Rejected" },

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock, FileText, Lock, Plus, Upload, Users } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Clock, FileText, Lock, Plus, Upload, Users } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
-import BusinessMark, { BuildingGlyph } from "@/components/app/BusinessMark";
-import { Button } from "@/components/ui/button";
+import { BuildingGlyph } from "@/components/app/BusinessMark";
+import { Action, Actions, StepHeader } from "@/components/app/Flat";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { getMyKyc, peekMyKyc, type KycDbStatus } from "@/lib/kyc";
 import {
@@ -46,11 +46,11 @@ const DOC_KEYS: Record<KybDocKey, { title: TKey; sub: TKey }> = {
   registry: { title: "kyb.docRegistry", sub: "kyb.docRegistrySub" },
   address_proof: { title: "kyb.docAddress", sub: "kyb.docAddressSub" },
 };
-const STATUS_PILL: Record<KybStatus, { key: TKey; cls: string; icon?: React.ElementType }> = {
-  not_started: { key: "kyb.pillTodo", cls: "bg-secondary text-muted-foreground" },
-  pending: { key: "kyb.pillPending", cls: "bg-secondary text-foreground", icon: Clock },
-  approved: { key: "kyb.pillApproved", cls: "bg-primary/10 text-primary", icon: Check },
-  rejected: { key: "kyb.pillRejected", cls: "bg-destructive/10 text-destructive", icon: AlertCircle },
+const STATUS_PILL: Record<KybStatus, { key: TKey; icon?: React.ElementType }> = {
+  not_started: { key: "kyb.pillTodo" },
+  pending: { key: "kyb.pillPending", icon: Clock },
+  approved: { key: "kyb.pillApproved", icon: Check },
+  rejected: { key: "kyb.pillRejected", icon: AlertCircle },
 };
 
 const emptyOwner = (): BusinessOwner => ({ name: "", role: "both", ownership: 100, birthDate: "", country: "Canada" });
@@ -67,43 +67,35 @@ const Row = ({ label, children, last, group }: { label: string; children: React.
     <Tag
       role={group ? "group" : undefined}
       aria-label={group ? label : undefined}
-      className={cn("block px-4 py-3 transition-colors focus-within:bg-secondary/40", !last && "border-b border-border/60")}
+      className="block py-3.5"
+      data-last={last ? "" : undefined}
     >
-      <span className="block text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/70">{label}</span>
+      <span className="ac-k block">{label}</span>
       <div className="mt-1">{children}</div>
     </Tag>
   );
 };
-const bare = "w-full bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground/35";
+const bare = "w-full bg-transparent text-[16px] text-foreground outline-none placeholder:text-muted-foreground/40";
 
+/** Choix en mots soulignés. */
 const Segmented = <V extends string>({ value, options, onChange }: { value: V; options: { v: V; label: string }[]; onChange: (v: V) => void }) => (
-  <div className="flex flex-wrap gap-1.5 pt-0.5">
+  <div className="ac-opts flex-wrap pt-1" style={{ gap: "6px 18px" }}>
     {options.map((o) => (
-      <button
-        key={o.v}
-        type="button"
-        onClick={() => onChange(o.v)}
-        className={cn(
-          "rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors",
-          value === o.v ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
-        )}
-      >
-        {o.label}
-      </button>
+      <button key={o.v} type="button" aria-pressed={value === o.v} onClick={() => onChange(o.v)} style={{ fontSize: 15 }}>{o.label}</button>
     ))}
   </div>
 );
 
 const SectionTitle = ({ title, sub }: { title: string; sub?: string }) => (
-  <div className="mb-4">
-    <h2 className="font-display text-[20px] font-semibold tracking-tight">{title}</h2>
-    {sub && <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{sub}</p>}
+  <div className="mb-6">
+    <h2 className="ac-title">{title}</h2>
+    {sub && <p className="ac-sub">{sub}</p>}
   </div>
 );
 
 const ErrorLine = ({ msg }: { msg: string | null }) =>
   msg ? (
-    <p role="alert" className="mt-3 flex items-start gap-2 text-[13px] text-destructive">
+    <p role="alert" className="ac-note flex items-start gap-2">
       <AlertCircle className="mt-[1px] h-4 w-4 shrink-0" /> {msg}
     </p>
   ) : null;
@@ -207,24 +199,12 @@ const Entreprise = () => {
 
   /* ─── En-tête ─── */
   const back = view === "hub" || view === "done" ? () => navigate("/app/compte") : view === "person" ? () => go("people") : () => go("hub");
-  const header = (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={back}
-        aria-label={t("misc.back")}
-        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-secondary/70 active:scale-95"
-      >
-        <ArrowLeft className="h-[18px] w-[18px]" />
-      </button>
-      <h1 className="font-display text-[22px] font-semibold tracking-tight">{t("kyb.headerTitle")}</h1>
-    </div>
-  );
+  const header = <StepHeader title={t("kyb.headerTitle")} onBack={back} />;
 
   if (loading) {
     return (
       <AppShell header={header}>
-        <div className="py-16 text-center text-[13px] text-muted-foreground">{t("kyc.loading")}</div>
+        {null}
       </AppShell>
     );
   }
@@ -232,9 +212,9 @@ const Entreprise = () => {
   if (profile && profile.accountType !== "business") {
     return (
       <AppShell header={header}>
-        <div className="rounded-2xl border border-border bg-card px-5 py-8 text-center">
-          <p className="text-[14px] text-muted-foreground">{t("kyb.notBusiness")}</p>
-          <Link to="/app/verification" className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground hover:underline">
+        <div>
+          <p className="text-[15px] text-muted-foreground">{t("kyb.notBusiness")}</p>
+          <Link to="/app/verification" className="ac-link mt-4">
             {t("kyb.goKyc")} <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
@@ -254,7 +234,7 @@ const Entreprise = () => {
     return (
       <AppShell header={header}>
         <SectionTitle title={t("kyb.secCompany")} sub={t("kyb.infoSub")} />
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="ac-lines">
           <Row label={t("kyb.legalName")}>
             <input className={bare} value={draftInfo.legalName} onChange={set("legalName")} maxLength={200} autoComplete="organization" placeholder="Ooble Technologies inc." />
           </Row>
@@ -277,7 +257,7 @@ const Entreprise = () => {
                 aria-label={t("kyb.chooseProvince")}
                 value={draftInfo.jurisdiction}
                 onChange={(e) => { setError(null); setDraftInfo((i) => ({ ...i, jurisdiction: e.target.value })); }}
-                className="mt-2.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-[14.5px] text-foreground outline-none focus-visible:border-foreground/50"
+                className="ac-in mt-2.5"
               >
                 <option value="" disabled>{t("kyb.chooseProvince")}</option>
                 {OTHER_PROVINCES.map((p) => <option key={p.fr} value={p.fr}>{p[lang]}</option>)}
@@ -301,9 +281,7 @@ const Entreprise = () => {
           </Row>
         </div>
         <ErrorLine msg={error} />
-        <div className="mt-5 flex justify-end">
-          <Button variant="appSolid" shape="rounded" size="lg" className="px-7" onClick={save}>{t("kyb.save")}</Button>
-        </div>
+        <Actions><Action onClick={save}>{t("kyb.save")}</Action></Actions>
       </AppShell>
     );
   }
@@ -314,7 +292,7 @@ const Entreprise = () => {
     return (
       <AppShell header={header}>
         <SectionTitle title={t("kyb.secPeople")} sub={t("kyb.peopleSub")} />
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="ac-lines">
           {owners.map((o, i) => {
             const incomplete = !!ownerError(o);
             return (
@@ -322,18 +300,16 @@ const Entreprise = () => {
                 key={i}
                 type="button"
                 onClick={() => { setEditIdx(i); setDraftOwner(o); go("person"); }}
-                className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3.5 text-left transition-colors hover:bg-secondary/40"
+                className="ac-row"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-[13px] font-semibold text-foreground/75">
-                  {initials(o.name)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14.5px] font-medium">{o.name || t("kyb.newPerson")}</span>
-                  <span className={cn("block truncate text-[12.5px]", incomplete ? "text-destructive" : "text-muted-foreground")}>
+                <span className="w-8 shrink-0 text-[14px] font-semibold text-muted-foreground">{initials(o.name)}</span>
+                <span className="ac-txt">
+                  <span className="ac-n">{o.name || t("kyb.newPerson")}</span>
+                  <span className={cn("ac-d", incomplete && "font-medium text-foreground")}>
                     {incomplete ? t("kyb.personIncomplete") : `${t(ROLE_FULL[o.role])}${o.role !== "director" ? ` · ${o.ownership} %` : ""}`}
                   </span>
                 </span>
-                <ChevronRight className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
+                <ChevronRight className="ac-go" />
               </button>
             );
           })}
@@ -341,21 +317,17 @@ const Entreprise = () => {
             <button
               type="button"
               onClick={() => { setEditIdx(-1); setDraftOwner({ ...emptyOwner(), role: owners.length ? "director" : "both", ownership: owners.length ? 0 : 100 }); go("person"); }}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-[14px] font-medium transition-colors hover:bg-secondary/40"
+              className="ac-row"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
-                <Plus className="h-4 w-4" />
-              </span>
-              {t("kyb.addPerson")}
+              <Plus className="ac-ico" strokeWidth={1.8} />
+              <span className="ac-txt"><span className="ac-n">{t("kyb.addPerson")}</span></span>
             </button>
           )}
         </div>
-        <p className={cn("mt-3 px-1 text-[12.5px]", owned > 100 ? "text-destructive" : "text-muted-foreground")}>
+        <p className={owned > 100 ? "ac-note" : "ac-help"}>
           {t("kyb.ownedTotal")} {owned} %
         </p>
-        <div className="mt-5 flex justify-end">
-          <Button variant="appSolid" shape="rounded" size="lg" className="px-7" onClick={() => go("hub")}>{t("kyb.done")}</Button>
-        </div>
+        <Actions><Action onClick={() => go("hub")}>{t("kyb.done")}</Action></Actions>
       </AppShell>
     );
   }
@@ -375,7 +347,7 @@ const Entreprise = () => {
     return (
       <AppShell header={header}>
         <SectionTitle title={editIdx >= 0 ? o.name || t("kyb.newPerson") : t("kyb.newPerson")} />
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="ac-lines">
           <Row label={t("kyb.personName")}>
             <input className={bare} value={o.name} onChange={(e) => setO({ name: e.target.value })} maxLength={120} autoComplete="off" />
           </Row>
@@ -410,18 +382,12 @@ const Entreprise = () => {
           </Row>
         </div>
         <ErrorLine msg={error} />
-        <div className="mt-5 flex items-center justify-between">
-          {editIdx >= 0 ? (
-            <button
-              type="button"
-              onClick={() => { setOwners((os) => os.filter((_, i) => i !== editIdx)); go("people"); }}
-              className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-destructive"
-            >
-              {t("kyb.deletePerson")}
-            </button>
-          ) : <span />}
-          <Button variant="appSolid" shape="rounded" size="lg" className="px-7" onClick={save}>{t("kyb.save")}</Button>
-        </div>
+        <Actions>
+          <Action onClick={save}>{t("kyb.save")}</Action>
+          {editIdx >= 0 && (
+            <Action quiet onClick={() => { setOwners((os) => os.filter((_, i) => i !== editIdx)); go("people"); }}>{t("kyb.deletePerson")}</Action>
+          )}
+        </Actions>
       </AppShell>
     );
   }
@@ -431,7 +397,7 @@ const Entreprise = () => {
     return (
       <AppShell header={header}>
         <SectionTitle title={t("kyb.secDocs")} sub={t("kyb.docsSub")} />
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="ac-lines">
           {KYB_DOCS.map((d, i) => (
             <DocRow
               key={d.key}
@@ -450,13 +416,10 @@ const Entreprise = () => {
           ))}
         </div>
         <ErrorLine msg={error} />
-        <div className="mt-4 flex items-start gap-2.5 px-1">
-          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/60" strokeWidth={1.9} />
-          <p className="text-[12px] leading-relaxed text-muted-foreground/80">{t("kyb.privacy")}</p>
-        </div>
-        <div className="mt-5 flex justify-end">
-          <Button variant="appSolid" shape="rounded" size="lg" className="px-7" onClick={() => go("hub")}>{t("kyb.done")}</Button>
-        </div>
+        <p className="ac-help flex items-start gap-2.5">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.9} /> {t("kyb.privacy")}
+        </p>
+        <Actions><Action onClick={() => go("hub")}>{t("kyb.done")}</Action></Actions>
       </AppShell>
     );
   }
@@ -465,16 +428,10 @@ const Entreprise = () => {
   if (view === "done") {
     return (
       <AppShell header={header}>
-        <div className="flex flex-col items-center pt-8 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Check className="h-7 w-7 text-primary" strokeWidth={2.2} />
-          </span>
-          <h2 className="mt-5 font-display text-[22px] font-semibold tracking-tight">{t("kyb.doneTitle")}</h2>
-          <p className="mt-2 max-w-[320px] text-[14px] leading-relaxed text-muted-foreground">{t("kyb.doneSub")}</p>
-          <Button variant="appSolid" shape="rounded" size="lg" className="mt-8 w-full" onClick={() => navigate("/app")}>
-            {t("kyb.backHome")}
-          </Button>
-        </div>
+        <Check className="h-8 w-8 text-foreground" strokeWidth={2} />
+        <h2 className="ac-title mt-4">{t("kyb.doneTitle")}</h2>
+        <p className="ac-sub">{t("kyb.doneSub")}</p>
+        <Actions><Action to="/app">{t("kyb.backHome")}</Action></Actions>
       </AppShell>
     );
   }
@@ -512,16 +469,11 @@ const Entreprise = () => {
   return (
     <AppShell header={header}>
       {/* Identité de l'entreprise */}
-      <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-4 py-4">
-        <BusinessMark name={companyName} size="lg" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-[18px] font-semibold tracking-tight">{companyName || t("acct.business")}</p>
-          <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{t("kyb.accountBusiness")}</p>
-          <span className={cn("mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-[3px] text-[11.5px] font-semibold", pill.cls)}>
-            {pill.icon && <pill.icon className="h-3 w-3" strokeWidth={2.4} />} {t(pill.key)}
-          </span>
-        </div>
-      </div>
+      <p className="ac-name">{companyName || t("acct.business")}</p>
+      <p className="ac-meta flex flex-wrap items-center gap-x-1.5">
+        {t("kyb.accountBusiness")} ·
+        <span className="inline-flex items-center gap-1 text-foreground">{pill.icon && <pill.icon className="h-3.5 w-3.5" strokeWidth={2.2} />} {t(pill.key)}</span>
+      </p>
 
       {/* Message selon le statut */}
       {status === "pending" && <Notice tone="neutral" text={t("kyb.stPendingSub")} />}
@@ -529,69 +481,51 @@ const Entreprise = () => {
       {status === "rejected" && (
         <Notice tone="error" title={t("kyb.reviewNote")} text={kyb?.reviewNote || t("kyb.stRejectedSub")} />
       )}
-      {status === "not_started" && <p className="mt-4 px-1 text-[13.5px] leading-relaxed text-muted-foreground">{t("kyb.stNoneSub")}</p>}
+      {status === "not_started" && <p className="ac-help mt-5">{t("kyb.stNoneSub")}</p>}
 
       {/* Les trois sections */}
-      <div className="mt-5 flex items-baseline justify-between px-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{t("kyb.fileTitle")}</p>
-        {editable && <p className="text-[12px] tabular-nums text-muted-foreground">{doneCount} / 3</p>}
+      <div className="mt-10 flex items-baseline justify-between">
+        <p className="ac-k">{t("kyb.fileTitle")}</p>
+        {editable && <p className="text-[12.5px] tabular-nums text-muted-foreground">{doneCount} / 3</p>}
       </div>
-      {editable && (
-        <div className="mt-2 flex gap-1 px-1">
-          {[0, 1, 2].map((i) => <span key={i} className={cn("h-[3px] flex-1 rounded-full transition-colors", i < doneCount ? "bg-foreground" : "bg-border")} />)}
-        </div>
-      )}
-      <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card">
-        {sections.map((s, i) => {
+      <div className="ac-lines mt-1">
+        {sections.map((s) => {
           const Content = (
             <>
-              <span
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  s.done ? "bg-foreground text-background" : "bg-secondary text-foreground/60",
-                )}
-              >
-                {s.done ? <Check className="h-[18px] w-[18px]" strokeWidth={2.4} /> : s.icon ? <s.icon className="h-[18px] w-[18px]" strokeWidth={1.7} /> : <BuildingGlyph className="h-[18px] w-[18px]" />}
+              {s.done
+                ? <Check className="ac-ico" strokeWidth={2.2} style={{ color: "hsl(var(--foreground))" }} />
+                : s.icon ? <s.icon className="ac-ico" strokeWidth={1.7} /> : <BuildingGlyph className="ac-ico" />}
+              <span className="ac-txt">
+                <span className="ac-n">{s.title}</span>
+                <span className="ac-d">{s.summary}</span>
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14.5px] font-medium">{s.title}</span>
-                <span className="block truncate text-[12.5px] text-muted-foreground">{s.summary}</span>
-              </span>
-              {editable && <ChevronRight className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />}
+              {editable && <ChevronRight className="ac-go" />}
             </>
           );
-          const cls = cn("flex w-full items-center gap-3.5 px-4 py-3.5 text-left", i < sections.length - 1 && "border-b border-border/60");
           return editable ? (
-            <button key={s.id} type="button" onClick={s.open} className={cn(cls, "transition-colors hover:bg-secondary/40")}>{Content}</button>
+            <button key={s.id} type="button" onClick={s.open} className="ac-row">{Content}</button>
           ) : (
-            <div key={s.id} className={cls}>{Content}</div>
+            <div key={s.id} className="ac-row static">{Content}</div>
           );
         })}
       </div>
 
       {/* Identité du responsable (requise, vérifiée à part) */}
       {kyc !== "approved" && (
-        <Link to="/app/verification" className="mt-3 flex items-center gap-3.5 rounded-2xl border border-border bg-card px-4 py-3.5 transition-colors hover:bg-secondary/40">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-[13px] font-semibold text-foreground/75">
-            {initials(profile?.fullName ?? user?.name ?? "")}
+        <Link to="/app/verification" className="ac-row mt-2" style={{ borderTop: "1px solid hsl(var(--border))" }}>
+          <span className="w-[21px] shrink-0 text-[13px] font-semibold text-muted-foreground">{initials(profile?.fullName ?? user?.name ?? "")}</span>
+          <span className="ac-txt">
+            <span className="ac-n">{t("kyb.repTitle")}</span>
+            <span className="ac-d" style={{ whiteSpace: "normal" }}>{kyc === "pending" ? t("kyb.repPending") : t("kyb.repTodo")}</span>
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-medium">{t("kyb.repTitle")}</span>
-            <span className="block text-[12.5px] leading-snug text-muted-foreground">{kyc === "pending" ? t("kyb.repPending") : t("kyb.repTodo")}</span>
-          </span>
-          <ChevronRight className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
+          <ChevronRight className="ac-go" />
         </Link>
       )}
 
       {/* Envoi */}
       {editable && (
-        <div className="mt-6">
-          <label
-            className={cn(
-              "flex items-start gap-3 rounded-2xl border px-4 py-3.5 transition-colors",
-              doneCount === 3 ? "cursor-pointer border-border bg-card" : "border-border/60 opacity-50",
-            )}
-          >
+        <div className="mt-10">
+          <label className={cn("flex items-start gap-3", doneCount === 3 ? "cursor-pointer" : "opacity-50")}>
             <input
               type="checkbox"
               disabled={doneCount < 3}
@@ -599,33 +533,17 @@ const Entreprise = () => {
               checked={attest}
               onChange={(e) => setAttest(e.target.checked)}
             />
-            <span className="text-[12.5px] leading-relaxed text-muted-foreground">{t("kyb.attest")}</span>
+            <span className="text-[13.5px] leading-relaxed text-muted-foreground">{t("kyb.attest")}</span>
           </label>
           <ErrorLine msg={error} />
-          <Button
-            variant="appSolid"
-            shape="rounded"
-            size="lg"
-            className="mt-4 w-full gap-2"
-            disabled={doneCount < 3 || sending}
-            onClick={submit}
-          >
-            {sending ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
-                {t("kyc.wait")}
-              </span>
-            ) : doneCount < 3 ? (
-              t("kyb.completeToSend")
-            ) : (
-              t("kyb.submit")
-            )}
-          </Button>
+          <Actions>
+            <Action disabled={doneCount < 3 || sending} onClick={submit}>{doneCount < 3 ? t("kyb.completeToSend") : t("kyb.submit")}</Action>
+          </Actions>
         </div>
       )}
 
       {!kybOpen && (status === "not_started" || status === "rejected") && (
-        <p className="mt-6 flex items-center justify-center gap-2 text-center text-[13px] text-muted-foreground">
+        <p className="ac-help mt-8 flex items-center gap-2">
           <Clock className="h-4 w-4" /> {t("kyb.notOpenYet")}
         </p>
       )}
@@ -637,14 +555,9 @@ const Entreprise = () => {
 
 function Notice({ tone, title, text }: { tone: "neutral" | "ok" | "error"; title?: string; text: string }) {
   return (
-    <div
-      className={cn(
-        "mt-4 rounded-2xl px-4 py-3.5",
-        tone === "error" ? "bg-destructive/10 text-destructive" : tone === "ok" ? "bg-primary/10 text-primary" : "bg-secondary text-foreground/80",
-      )}
-    >
-      {title && <p className="text-[11px] font-semibold uppercase tracking-[0.08em]">{title}</p>}
-      <p className={cn("whitespace-pre-wrap text-[13.5px] leading-relaxed", title && "mt-1")}>{text}</p>
+    <div className="mt-6">
+      {title && <p className="ac-k">{title}</p>}
+      <p className={cn("whitespace-pre-wrap", tone === "error" ? "ac-note" : "ac-help")} style={title ? { marginTop: 6 } : undefined}>{text}</p>
     </div>
   );
 }
@@ -659,14 +572,15 @@ function DocRow({
   const [drag, setDrag] = useState(false);
   return (
     <div
-      className={cn("flex items-start gap-3.5 px-4 py-4 transition-colors", !last && "border-b border-border/60", drag && "bg-secondary/60")}
+      className={cn("flex items-start gap-3.5 py-4 transition-opacity", drag && "opacity-60")}
+      data-last={last ? "" : undefined}
       onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
       onDragLeave={() => setDrag(false)}
       onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}
     >
-      <span className={cn("mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", file ? "bg-foreground text-background" : "bg-secondary text-foreground/60")}>
-        {file ? <Check className="h-[18px] w-[18px]" strokeWidth={2.4} /> : <FileText className="h-[18px] w-[18px]" strokeWidth={1.7} />}
-      </span>
+      {file
+        ? <Check className="mt-0.5 h-5 w-5 shrink-0 text-foreground" strokeWidth={2.2} />
+        : <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />}
       <div className="min-w-0 flex-1">
         <p className="text-[14.5px] font-medium">
           {title}
@@ -686,10 +600,7 @@ function DocRow({
       <button
         type="button"
         onClick={() => ref.current?.click()}
-        className={cn(
-          "mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
-          file ? "text-muted-foreground hover:text-foreground" : "bg-secondary text-foreground hover:bg-secondary/70",
-        )}
+        className={file ? "ac-act quiet shrink-0" : "ac-link mt-0.5 shrink-0"}
       >
         {!file && <Upload className="h-3.5 w-3.5" />}
         {file ? t("kyb.replace") : t("kyb.add")}
