@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { peek, put } from "@/lib/adminCache";
 import {
   APP_LINKS, AUDIENCES, audienceLabel, cancelPush, countAudience, createMessage, createPush, linkLabel, loadNotifications, setMessageActive,
-  type Audience, type AudienceCount, type MessageRow, type NotifStats, type PushRow,
+  type Audience, type AudienceCount, type MessageRow, type NotifStats, type PushRow, type Target,
 } from "@/lib/notifications";
 import { C } from "./adminTheme";
 import { Button, SidePanel } from "./ui";
@@ -18,6 +18,14 @@ import { ST_CSS } from "./settingsUi";
 import { MS_CSS, Opts } from "./SettingsMailStudio";
 import { MESSAGE_TEMPLATES, PUSH_TEMPLATES, archiveOwnTemplate, loadOwnTemplates, saveOwnTemplate, type NotifTemplate } from "@/lib/notifTemplates";
 import { ControlLine, MK_CSS, useMarketingSettings } from "./MarketingPanels";
+import { listAudiences, type SavedAudience } from "@/lib/audiences";
+
+/** Audiences enregistrées (Marketing › Audiences), pour les choisir et les nommer. */
+function useSavedAudiences(): SavedAudience[] {
+  const [list, setList] = useState<SavedAudience[]>(() => peek<SavedAudience[]>("mk.audiences")?.value ?? []);
+  useEffect(() => { listAudiences().then((v) => { setList(v); put("mk.audiences", v); }).catch(() => {}); }, []);
+  return list;
+}
 
 const nf = new Intl.NumberFormat("fr-CA");
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
@@ -128,6 +136,7 @@ const msgState = (m: MessageRow): [string, string] => {
 
 function PushItem({ p, taps, automatic, onErr, onChanged }: { p: PushRow; taps: number; automatic: boolean; onErr: (e: string) => void; onChanged: () => void }) {
   const [label, color] = pushState(p, automatic);
+  const saved = useSavedAudiences();
   const future = p.status === "scheduled" && new Date(p.scheduledAt).getTime() > Date.now();
   return (
     <div className="mk-item" style={{ cursor: "default", alignItems: "flex-start" }}>
@@ -135,7 +144,7 @@ function PushItem({ p, taps, automatic, onErr, onChanged }: { p: PushRow; taps: 
         <span className="n">{p.titleFr}</span>
         <span className="d">{p.bodyFr}</span>
         <span className="d" style={{ marginTop: 6 }}>
-          {when(p.scheduledAt)} · {audienceLabel(p.audience)} · vers {linkLabel(p.url)}
+          {when(p.scheduledAt)} · {audienceLabel(p.audience, saved)} · vers {linkLabel(p.url)}
           {p.status === "sent" && <> · <span style={{ color: C.t1 }}>{plural(p.sent, "téléphone")}</span>{p.sent > 0 && <>, <span style={{ color: C.sage }}>{plural(taps, "touchée", "touchées")}</span> ({pct(taps, p.people)} %)</>}</>}
           {p.status === "sent" && p.blocked > 0 && <> · <span style={{ color: C.coral }}>{nf.format(p.blocked)} retenus</span></>}
           {p.status === "sent" && p.failed > 0 && <> · {nf.format(p.failed)} en échec</>}
@@ -156,6 +165,7 @@ function MessageItem({ m, st = { seen: 0, click: 0, dismiss: 0 }, onErr, onChang
   m: MessageRow; st?: { seen: number; click: number; dismiss: number }; onErr: (e: string) => void; onChanged: () => void;
 }) {
   const [label, color] = msgState(m);
+  const saved = useSavedAudiences();
   const ended = !!m.endsAt && new Date(m.endsAt).getTime() <= Date.now();
   return (
     <div className="mk-item" style={{ cursor: "default", alignItems: "flex-start" }}>
@@ -163,7 +173,7 @@ function MessageItem({ m, st = { seen: 0, click: 0, dismiss: 0 }, onErr, onChang
         <span className="n">{m.titleFr}</span>
         {m.bodyFr && <span className="d">{m.bodyFr}</span>}
         <span className="d" style={{ marginTop: 6 }}>
-          {audienceLabel(m.audience)}{m.url ? ` · vers ${linkLabel(m.url)}` : ""} · {m.endsAt ? `jusqu'au ${when(m.endsAt)}` : "sans fin"}
+          {audienceLabel(m.audience, saved)}{m.url ? ` · vers ${linkLabel(m.url)}` : ""} · {m.endsAt ? `jusqu'au ${when(m.endsAt)}` : "sans fin"}
           {" · "}<span style={{ color: C.t1 }}>vu par {nf.format(st.seen)}</span>
           {m.url && <>, <span style={{ color: C.sage }}>{nf.format(st.click)} touché{st.click > 1 ? "s" : ""}</span></>}
           , {nf.format(st.dismiss)} fermé{st.dismiss > 1 ? "s" : ""}
@@ -246,20 +256,27 @@ function Line({ id, label, value, onChange, max, big, optional }: {
   );
 }
 
-function AudiencePick({ value, onPick }: { value: Audience; onPick: (a: Audience) => void }) {
+function AudiencePick({ value, onPick }: { value: Target; onPick: (a: Target) => void }) {
+  const saved = useSavedAudiences();
   const [n, setN] = useState<AudienceCount | null>(null);
   useEffect(() => { setN(null); countAudience(value).then(setN).catch(() => {}); }, [value]);
   return (
     <div>
       <p className="ms-k" style={{ marginBottom: 8 }}>Pour qui</p>
       <Opts label="Public" value={value} onPick={onPick} options={AUDIENCES} />
+      {saved.length > 0 && (
+        <>
+          <p className="ms-k" style={{ margin: "14px 0 8px" }}>Ou une audience enregistrée</p>
+          <Opts<Target> label="Audience enregistrée" value={value} onPick={onPick} options={saved.map((a) => ({ id: `aud:${a.id}` as Target, label: a.name }))} />
+        </>
+      )}
       <p className="st-hint">{n ? <>{plural(n.people, "personne")}, dont {nf.format(n.reachable)} avec les notifications activées.</> : "…"}</p>
     </div>
   );
 }
 
 /** Le verrou en une phrase : à qui ça part vraiment, maintenant. */
-function Reach({ clientSends, audience }: { clientSends: boolean; audience: Audience }) {
+function Reach({ clientSends, audience }: { clientSends: boolean; audience: Target }) {
   if (audience === "staff") return <p style={{ margin: 0, fontSize: 14, color: C.t2 }}>Un essai : seule l'équipe le reçoit.</p>;
   return clientSends
     ? <p style={{ margin: 0, fontSize: 14, color: C.sage }}>Les envois aux clients sont ouverts : tout le public choisi le recevra.</p>
@@ -274,7 +291,8 @@ function PushComposer({ from, own, onOwnChanged, clientSends, automatic, onClose
   const [tpl, setTpl] = useState<string | null>(from?.id ?? null);
   const [t, setT] = useState(() => fill(from));
   const [url, setUrl] = useState<string>(from?.url ?? "/app");
-  const [aud, setAud] = useState<Audience>(from?.audience ?? "staff");
+  const [aud, setAud] = useState<Target>(from?.audience ?? "staff");
+  const savedList = useSavedAudiences();
   const [note, setNote] = useState<string | null>(null);
   const use = (x: NotifTemplate | null) => { setTpl(x?.id ?? null); setT(fill(x)); setUrl(x?.url ?? "/app"); setAud(x?.audience ?? "staff"); setNote(null); };
   const dirty = !!(t.titleFr || t.bodyFr || t.titleEn || t.bodyEn);
@@ -288,7 +306,7 @@ function PushComposer({ from, own, onOwnChanged, clientSends, automatic, onClose
   const ok = t.titleFr.trim() && t.bodyFr.trim() && !tooLong && !enHalf && (!later || (!isNaN(later.getTime()) && later.getTime() > Date.now()));
 
   const send = async () => {
-    const who = aud === "staff" || !clientSends ? "l'équipe seulement" : audienceLabel(aud).toLowerCase();
+    const who = aud === "staff" || !clientSends ? "l'équipe seulement" : audienceLabel(aud, savedList).toLowerCase();
     const whenTxt = later ? `le ${when(later.toISOString())}${automatic ? "" : " (quand les envois automatiques seront allumés)"}` : "maintenant";
     if (!confirm(`Envoyer cette notification à ${who}, ${whenTxt} ?`)) return;
     setBusy(true); setMsg(null);
@@ -307,7 +325,7 @@ function PushComposer({ from, own, onOwnChanged, clientSends, automatic, onClose
       <style>{ST_CSS + MS_CSS + MK_CSS}</style>
       <div style={{ display: "grid", gap: 28 }}>
         <TemplateBar kind="push" current={tpl} own={own} dirty={dirty} onPick={use} onOwnChanged={onOwnChanged}
-          onSave={async () => { if (!t.titleFr.trim()) { setNote("Écrivez au moins un titre."); return; } setNote(await askAndSave({ kind: "push", ...t, url, audience: aud }, user?.email ?? "équipe", onOwnChanged)); }} />
+          onSave={async () => { if (!t.titleFr.trim()) { setNote("Écrivez au moins un titre."); return; } setNote(await askAndSave({ kind: "push", ...t, url, audience: aud.startsWith("aud:") ? "all" : (aud as Audience) }, user?.email ?? "équipe", onOwnChanged)); }} />
         {note && <p style={{ margin: 0, fontSize: 13.5, color: C.t2 }}>{note}</p>}
         <Line id="pt-title" label="Titre" value={t.titleFr} onChange={(v) => setT({ ...t, titleFr: v })} max={80} big />
         <Line id="pt-body" label="Texte" value={t.bodyFr} onChange={(v) => setT({ ...t, bodyFr: v })} max={240} />
@@ -354,7 +372,8 @@ function MessageComposer({ from, own, onOwnChanged, clientSends, onClose, onDone
   const [tpl, setTpl] = useState<string | null>(from?.id ?? null);
   const [t, setT] = useState(() => fill(from));
   const [url, setUrl] = useState<string>(from?.url ?? "none");
-  const [aud, setAud] = useState<Audience>(from?.audience ?? "staff");
+  const [aud, setAud] = useState<Target>(from?.audience ?? "staff");
+  const savedList = useSavedAudiences();
   const [note, setNote] = useState<string | null>(null);
   const use = (x: NotifTemplate | null) => { setTpl(x?.id ?? null); setT(fill(x)); setUrl(x?.url ?? "none"); setAud(x?.audience ?? "staff"); setNote(null); };
   const dirty = !!(t.titleFr || t.bodyFr || t.ctaFr || t.titleEn || t.bodyEn || t.ctaEn);
@@ -366,7 +385,7 @@ function MessageComposer({ from, own, onOwnChanged, clientSends, onClose, onDone
   const ok = t.titleFr.trim() && !tooLong && (!end || (!isNaN(end.getTime()) && end.getTime() > Date.now()));
 
   const save = async () => {
-    const who = aud === "staff" || !clientSends ? "l'équipe seulement" : audienceLabel(aud).toLowerCase();
+    const who = aud === "staff" || !clientSends ? "l'équipe seulement" : audienceLabel(aud, savedList).toLowerCase();
     if (!confirm(`Mettre ce message en ligne pour ${who} ?`)) return;
     setBusy(true); setMsg(null);
     const e = await createMessage({ ...t, url: url === "none" ? null : url, audience: aud, endsAt: end, byName: user?.email ?? "équipe" });
@@ -384,7 +403,7 @@ function MessageComposer({ from, own, onOwnChanged, clientSends, onClose, onDone
       <style>{ST_CSS + MS_CSS + MK_CSS}</style>
       <div style={{ display: "grid", gap: 28 }}>
         <TemplateBar kind="message" current={tpl} own={own} dirty={dirty} onPick={use} onOwnChanged={onOwnChanged}
-          onSave={async () => { if (!t.titleFr.trim()) { setNote("Écrivez au moins un titre."); return; } setNote(await askAndSave({ kind: "message", ...t, url: url === "none" ? null : url, audience: aud }, user?.email ?? "équipe", onOwnChanged)); }} />
+          onSave={async () => { if (!t.titleFr.trim()) { setNote("Écrivez au moins un titre."); return; } setNote(await askAndSave({ kind: "message", ...t, url: url === "none" ? null : url, audience: aud.startsWith("aud:") ? "all" : (aud as Audience) }, user?.email ?? "équipe", onOwnChanged)); }} />
         {note && <p style={{ margin: 0, fontSize: 13.5, color: C.t2 }}>{note}</p>}
         <Line id="am-title" label="Titre" value={t.titleFr} onChange={(v) => setT({ ...t, titleFr: v })} max={80} big />
         <Line id="am-body" label="Texte" value={t.bodyFr} onChange={(v) => setT({ ...t, bodyFr: v })} max={280} optional />

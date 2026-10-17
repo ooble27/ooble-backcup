@@ -46,11 +46,13 @@ import { CampaignList, ControlCenter, MarketingOverview } from "./MarketingPanel
 import { JourneysPanel } from "./JourneysPanel";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { GrowthPanel } from "./GrowthPanel";
+import { AudiencesPanel } from "./AudiencesPanel";
+import { audienceMembers, describeRules, listAudiences, previewAudience, type SavedAudience } from "@/lib/audiences";
 import { loadMarketingSettings, queueCampaign, type MarketingSettings, type PreparedSend } from "@/lib/marketing";
 
 // ─── Types ──────────────────────────────────────────────────
 
-type SubTab = "overview" | "templates" | "history" | "journeys" | "notifications" | "growth" | "control";
+type SubTab = "overview" | "templates" | "history" | "journeys" | "notifications" | "growth" | "audiences" | "control";
 
 interface Recipient {
   id?: string;
@@ -497,6 +499,7 @@ const CampaignsPanel = () => {
         { id: "history", label: "Campagnes envoyées" },
         { id: "journeys", label: "Parcours" },
         { id: "notifications", label: "Notifications" },
+        { id: "audiences", label: "Audiences" },
         { id: "growth", label: "Croissance" },
         { id: "control", label: "Centre de contrôle" },
       ]} />
@@ -550,6 +553,7 @@ const CampaignsPanel = () => {
         )}
         {tab === "journeys" && <JourneysPanel onControl={() => setTab("control")} />}
         {tab === "notifications" && <NotificationsPanel onControl={() => setTab("control")} />}
+        {tab === "audiences" && <AudiencesPanel />}
         {tab === "growth" && <GrowthPanel />}
         {tab === "control" && <ControlCenter />}
       </div>
@@ -878,6 +882,24 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
       return [...prev, ...filtered.filter((c) => !existing.has(c.email.toLowerCase())).map(recipientFromClient)];
     });
   }, [clients]);
+  // Audiences enregistrées (Marketing › Audiences) : leurs membres sont calculés au moment de l'ajout.
+  const [savedAud, setSavedAud] = useState<SavedAudience[]>(() => peek<SavedAudience[]>("mk.audiences")?.value ?? []);
+  const [audN, setAudN] = useState<Record<string, number>>(() => peek<Record<string, number>>("mk.audiences.n")?.value ?? {});
+  useEffect(() => {
+    listAudiences().then((v) => {
+      setSavedAud(v);
+      Promise.all(v.map((a) => previewAudience(a.rules).then((p) => [a.id, p.people] as const).catch(() => [a.id, 0] as const)))
+        .then((x) => setAudN(Object.fromEntries(x)));
+    }).catch(() => {});
+  }, []);
+  const addSaved = useCallback(async (id: string) => {
+    const ids = await audienceMembers(id).catch(() => new Set<string>());
+    const filtered = clients.filter((c) => ids.has(c.id));
+    setRecipients((prev) => {
+      const existing = new Set(prev.map((r) => r.email.toLowerCase()));
+      return [...prev, ...filtered.filter((c) => !existing.has(c.email.toLowerCase())).map(recipientFromClient)];
+    });
+  }, [clients]);
 
   const [sendLang, setSendLang] = useState<SendLang>("client");
   const [unknownLang, setUnknownLang] = useState<UnknownLang>("fr");
@@ -1189,6 +1211,23 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
           })}
         </div>
       </StudioSection>
+      {savedAud.length > 0 && (
+        <StudioSection title="Ou une audience enregistrée" hint="Recalculée maintenant." flush>
+          <div style={{ display: "grid", gap: 2 }}>
+            {savedAud.map((a) => (
+              <button key={a.id} type="button" className="ui-row" onClick={() => void addSaved(a.id)} disabled={clientsLoading || audN[a.id] === 0}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 8px", borderRadius: 10, border: "none", background: "transparent", color: C.t1, fontFamily: FONT, textAlign: "left", cursor: "pointer", opacity: audN[a.id] === 0 ? 0.5 : 1 }}>
+                <span style={{ width: 44, flexShrink: 0, fontSize: 18, fontWeight: 600, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{audN[a.id] ?? "…"}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5 }}>{a.name}</span>
+                  <span style={{ display: "block", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{describeRules(a.rules)}</span>
+                </span>
+                <Plus style={{ width: 14, height: 14, color: C.t3, flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+        </StudioSection>
+      )}
       <StudioSection title="Langue d'envoi" flush>
         <div style={{ display: "grid", gap: 12 }}>
           <Segmented ariaLabel="Langue d'envoi" value={sendLang} onChange={setSendLang}

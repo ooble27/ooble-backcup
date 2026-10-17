@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
     const { data: claimed } = await db.from("push_campaigns").update({ status: "sending" }).eq("id", c.id).eq("status", "scheduled").select("id").maybeSingle();
     if (!claimed) continue;
 
-    const { data: people } = await db.rpc("notif_audience", { _aud: c.audience });
+    // Audience enregistrée (Marketing › Audiences) : « aud:<id> », recalculée maintenant.
+    const { data: people } = await db.rpc("notif_audience", { _aud: c.audience_id ? `aud:${c.audience_id}` : c.audience });
     const list = (people ?? []) as { user_id: string; lang: string; staff: boolean }[];
     const teamOnly = c.is_test || !s?.client_sends;
     const allowed = list.filter((p) => !teamOnly || p.staff);

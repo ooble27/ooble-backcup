@@ -24,7 +24,7 @@ const money = (n: number) => `${new Intl.NumberFormat("fr-CA", { maximumFraction
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const date = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" });
 
-const GR_CSS = `
+export const GR_CSS = `
 .gr-opts { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; vertical-align: baseline; }
 .gr-opts button { border: none; background: none; padding: 0; font: inherit; letter-spacing: inherit; color: var(--a-t3); cursor: pointer; text-decoration-thickness: .07em; text-underline-offset: .18em; transition: color .15s; }
 .gr-opts button[aria-pressed="true"] { color: var(--a-t1); text-decoration: underline; }
@@ -36,7 +36,7 @@ const GR_CSS = `
 `;
 
 /** Choix en mots soulignés, dans une phrase. */
-function Opts<V extends string | number>({ value, options, onChange, disabled }: { value: V; options: { v: V; label: string }[]; onChange: (v: V) => void; disabled?: boolean }) {
+export function Opts<V extends string | number>({ value, options, onChange, disabled }: { value: V; options: { v: V; label: string }[]; onChange: (v: V) => void; disabled?: boolean }) {
   return (
     <span className="gr-opts">
       {options.map((o) => (

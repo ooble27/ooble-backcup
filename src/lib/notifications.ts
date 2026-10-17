@@ -11,7 +11,11 @@ export type Audience = "all" | "verified" | "unverified" | "staff";
 export const AUDIENCES: { id: Audience; label: string }[] = [
   { id: "all", label: "Tout le monde" }, { id: "verified", label: "Vérifiés" }, { id: "unverified", label: "Pas encore vérifiés" }, { id: "staff", label: "L'équipe" },
 ];
-export const audienceLabel = (a: string) => AUDIENCES.find((x) => x.id === a)?.label ?? a;
+export const audienceLabel = (a: string, saved?: { id: string; name: string }[]) =>
+  a.startsWith("aud:") ? (saved?.find((x) => `aud:${x.id}` === a)?.name ?? "Audience enregistrée") : AUDIENCES.find((x) => x.id === a)?.label ?? a;
+/** Public d'une notification : une audience de base, ou une audience enregistrée (« aud:<id> »). */
+export type Target = Audience | `aud:${string}`;
+const toColumns = (t: Target) => (t.startsWith("aud:") ? { audience: "all", audience_id: t.slice(4) } : { audience: t, audience_id: null });
 
 /** Pages de l'app où une notification ou un message peut mener. */
 export const APP_LINKS = [
@@ -21,7 +25,7 @@ export const APP_LINKS = [
 export const linkLabel = (u: string | null) => APP_LINKS.find((x) => x.id === u)?.label ?? u ?? "";
 
 export interface AudienceCount { people: number; reachable: number; devices: number; staff: number }
-export async function countAudience(a: Audience): Promise<AudienceCount> {
+export async function countAudience(a: Target): Promise<AudienceCount> {
   const { data, error } = await supabase.rpc("notif_audience_count", { _aud: a });
   if (error) throw new Error(error.message);
   return data as unknown as AudienceCount;
@@ -48,13 +52,13 @@ export async function loadNotifications(): Promise<{ push: PushRow[]; messages: 
   if (error) throw new Error(error.message);
   return {
     push: (p.data ?? []).map((r) => ({
-      id: r.id, titleFr: r.title_fr, bodyFr: r.body_fr, titleEn: r.title_en, bodyEn: r.body_en, url: r.url, audience: r.audience,
+      id: r.id, titleFr: r.title_fr, bodyFr: r.body_fr, titleEn: r.title_en, bodyEn: r.body_en, url: r.url, audience: r.audience_id ? `aud:${r.audience_id}` : r.audience,
       status: r.status as PushRow["status"], scheduledAt: r.scheduled_at, createdAt: r.created_at, isTest: r.is_test,
       people: r.people, devices: r.devices, sent: r.sent, failed: r.failed, blocked: r.blocked, createdByName: r.created_by_name,
     })),
     messages: (m.data ?? []).map((r) => ({
       id: r.id, titleFr: r.title_fr, bodyFr: r.body_fr, ctaFr: r.cta_fr, titleEn: r.title_en, bodyEn: r.body_en, ctaEn: r.cta_en,
-      url: r.url, audience: r.audience, active: r.active, startsAt: r.starts_at, endsAt: r.ends_at, createdByName: r.created_by_name,
+      url: r.url, audience: r.audience_id ? `aud:${r.audience_id}` : r.audience, active: r.active, startsAt: r.starts_at, endsAt: r.ends_at, createdByName: r.created_by_name,
     })),
     stats: (st.data as unknown as NotifStats) ?? { push: {}, messages: {} },
   };
@@ -63,12 +67,12 @@ export async function loadNotifications(): Promise<{ push: PushRow[]; messages: 
 const clean = (s: string) => s.trim() || null;
 
 export async function createPush(input: {
-  titleFr: string; bodyFr: string; titleEn: string; bodyEn: string; url: string; audience: Audience; scheduledAt: Date | null; byName: string;
+  titleFr: string; bodyFr: string; titleEn: string; bodyEn: string; url: string; audience: Target; scheduledAt: Date | null; byName: string;
 }): Promise<string | null> {
   const { data: auth } = await supabase.auth.getSession();
   const { data, error } = await supabase.from("push_campaigns").insert({
     title_fr: input.titleFr.trim(), body_fr: input.bodyFr.trim(), title_en: clean(input.titleEn), body_en: clean(input.bodyEn),
-    url: input.url, audience: input.audience, scheduled_at: (input.scheduledAt ?? new Date()).toISOString(),
+    url: input.url, ...toColumns(input.audience), scheduled_at: (input.scheduledAt ?? new Date()).toISOString(),
     is_test: input.audience === "staff", created_by: auth.session?.user?.id ?? null, created_by_name: input.byName,
   }).select("id").single();
   if (error || !data) return error?.message.includes("check") ? "Un texte est trop long ou le lien n'est pas valide." : (error?.message ?? "Non enregistrée.");
@@ -86,13 +90,13 @@ export async function cancelPush(id: string): Promise<string | null> {
 
 export async function createMessage(input: {
   titleFr: string; bodyFr: string; ctaFr: string; titleEn: string; bodyEn: string; ctaEn: string; url: string | null;
-  audience: Audience; endsAt: Date | null; byName: string;
+  audience: Target; endsAt: Date | null; byName: string;
 }): Promise<string | null> {
   const { data: auth } = await supabase.auth.getSession();
   const { data, error } = await supabase.from("app_messages").insert({
     title_fr: input.titleFr.trim(), body_fr: clean(input.bodyFr), cta_fr: clean(input.ctaFr),
     title_en: clean(input.titleEn), body_en: clean(input.bodyEn), cta_en: clean(input.ctaEn),
-    url: input.url, audience: input.audience, ends_at: input.endsAt?.toISOString() ?? null,
+    url: input.url, ...toColumns(input.audience), ends_at: input.endsAt?.toISOString() ?? null,
     created_by: auth.session?.user?.id ?? null, created_by_name: input.byName,
   }).select("id").single();
   if (error || !data) return error?.message.includes("check") ? "Un texte est trop long, ou la date de fin est passée." : (error?.message ?? "Non enregistré.");

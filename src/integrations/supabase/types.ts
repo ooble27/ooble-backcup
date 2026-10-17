@@ -304,6 +304,7 @@ export type Database = {
       }
       app_messages: {
         Row: {
+          audience_id: string | null
           id: string
           title_fr: string
           body_fr: string | null
@@ -321,6 +322,7 @@ export type Database = {
           created_by_name: string | null
         }
         Insert: {
+          audience_id?: string | null
           id?: string
           title_fr: string
           body_fr?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           created_by_name?: string | null
         }
         Update: {
+          audience_id?: string | null
           id?: string
           title_fr?: string
           body_fr?: string | null
@@ -2245,6 +2248,7 @@ export type Database = {
       }
       push_campaigns: {
         Row: {
+          audience_id: string | null
           id: string
           title_fr: string
           body_fr: string
@@ -2266,6 +2270,7 @@ export type Database = {
           finished_at: string | null
         }
         Insert: {
+          audience_id?: string | null
           id?: string
           title_fr: string
           body_fr: string
@@ -2287,6 +2292,7 @@ export type Database = {
           finished_at?: string | null
         }
         Update: {
+          audience_id?: string | null
           id?: string
           title_fr?: string
           body_fr?: string
@@ -2355,6 +2361,12 @@ export type Database = {
           p256dh?: string
           user_id?: string
         }
+        Relationships: []
+      }
+      audiences: {
+        Row: { id: string; name: string; rules: Json; archived: boolean; created_by: string | null; created_by_name: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; name: string; rules?: Json; archived?: boolean; created_by?: string | null; created_by_name?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; name?: string; rules?: Json; archived?: boolean; created_by?: string | null; created_by_name?: string | null; created_at?: string; updated_at?: string }
         Relationships: []
       }
       growth_settings: {
@@ -2938,6 +2950,8 @@ export type Database = {
       promo_stats: { Args: never; Returns: { code_id: string; uses: number; completed: number; volume: number }[] }
       referral_stats: { Args: never; Returns: { referrer_id: string; name: string; invited: number; ordered: number; qualified: number; volume: number }[] }
       link_stats: { Args: { _since: string }; Returns: { source: string; campaign: string | null; signups: number; verified: number; buyers: number; volume: number }[] }
+      audience_preview: { Args: { _rules: Json }; Returns: Json }
+      audience_members: { Args: { _id: string }; Returns: { user_id: string }[] }
       marketing_daily: { Args: { _since: string }; Returns: { day: string; sent: number; opened: number; clicked: number; orders: number; volume: number }[] }
       match_sell_deposits: {
         Args: never
