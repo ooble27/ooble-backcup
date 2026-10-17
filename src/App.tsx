@@ -8,6 +8,7 @@ import FAQCategory from "./pages/FAQCategory";
 import Guide from "./pages/Guide";
 import GuideDetail from "./pages/GuideDetail";
 import Contact from "./pages/Contact";
+import Invitation from "./pages/Invitation";
 import OTC from "./pages/OTC";
 import Entreprises from "./pages/Entreprises";
 import Connexion from "./pages/Connexion";
@@ -81,6 +82,8 @@ export const AppRoutes = () => (
         <Route path="/guide" element={<Guide />} />
         <Route path="/guide/:slug" element={<GuideDetail />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/i/:code" element={<Invitation />} />
+        <Route path="/invitation" element={<Invitation />} />
         <Route path="/otc" element={<OTC />} />
         <Route path="/entreprises" element={<Entreprises />} />
         <Route path="/connexion" element={<Connexion />} />

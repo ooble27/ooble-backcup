@@ -134,6 +134,13 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
     { title: "Privacy Policy | Ooble", description: "How Ooble protects and uses your personal information." },
   ),
   "/reinitialiser": { ...page({ title: "Nouveau mot de passe | Ooble", description: "" }, { title: "New password | Ooble", description: "" }), noindex: true },
+  "/invitation": {
+    ...page(
+      { title: "Vous êtes invité sur Ooble", description: "Achetez et vendez des USDT en dollars canadiens, par Interac. Avec cette invitation, votre première commande a un meilleur taux." },
+      { title: "You're invited to Ooble", description: "Buy and sell USDT with Canadian dollars, by Interac. With this invitation, your first order gets a better rate." },
+    ),
+    noindex: true,
+  },
   "/au-revoir": { ...page({ title: "Au revoir | Ooble", description: "" }, { title: "Goodbye | Ooble", description: "" }), noindex: true },
   "/desabonnement": { ...page({ title: "Désabonnement | Ooble", description: "" }, { title: "Unsubscribe | Ooble", description: "" }), noindex: true },
 };

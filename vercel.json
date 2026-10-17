@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/i/:code",
+      "destination": "/invitation"
+    },
+    {
+      "source": "/en/i/:code",
+      "destination": "/en/invitation"
+    },
+    {
       "source": "/app",
       "destination": "/app-shell.html"
     },

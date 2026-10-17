@@ -37,16 +37,26 @@ export async function myReferral(): Promise<MyReferral | null> {
   };
 }
 
-export const referralLink = (code: string) => `${window.location.origin}/?parrain=${encodeURIComponent(code)}`;
+/** Lien court à partager : il ouvre la page d'invitation (ooble.ca/i/CODE). */
+export const referralLink = (code: string) => `${window.location.origin}/i/${encodeURIComponent(code)}`;
 
 const REF_KEY = "ooble.parrain";
 
-/** Au démarrage, sur toutes les pages : retient le code du lien ?parrain=CODE (le premier vu). */
+/** Retient le code de parrainage sur l'appareil (le premier vu). */
+export function rememberReferral(code: string) {
+  try {
+    if (/^[A-Za-z0-9]{4,12}$/.test(code) && !localStorage.getItem(REF_KEY)) localStorage.setItem(REF_KEY, code.toUpperCase());
+  } catch { /* stockage indisponible */ }
+}
+
+/** Au démarrage, sur toutes les pages : lien d'invitation /i/CODE, ou ancien format ?parrain=CODE. */
 export function captureReferral() {
   try {
-    const c = new URL(window.location.href).searchParams.get("parrain");
-    if (c && /^[A-Za-z0-9]{4,12}$/.test(c) && !localStorage.getItem(REF_KEY)) localStorage.setItem(REF_KEY, c.toUpperCase());
-  } catch { /* stockage indisponible */ }
+    const url = new URL(window.location.href);
+    const fromPath = url.pathname.match(/^(?:\/en)?\/i\/([A-Za-z0-9]{4,12})\/?$/)?.[1];
+    const c = fromPath ?? url.searchParams.get("parrain");
+    if (c) rememberReferral(c);
+  } catch { /* adresse illisible */ }
 }
 
 /** Une fois connecté : rattache le compte à son parrain (la base vérifie les conditions). */
