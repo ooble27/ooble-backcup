@@ -9,7 +9,6 @@ import type { AppKit } from "@reown/appkit";
 const PROJECT_ID = "8f69e2582bb6f88b871623bb21683c26";
 
 const isDark = () => document.documentElement.classList.contains("dark");
-};
 
 /**
  * La fenêtre de WalletConnect pose sur toute la page un voile fixé en haut de l'écran, qui reste dans
