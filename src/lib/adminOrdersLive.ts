@@ -67,6 +67,7 @@ function toAdminOrder(row: RowWithProfile, currentUid: string | null): AdminOrde
     createdMinsAgo: minsAgo(row.created_at),
     updatedAt: row.updated_at,
     assignedTo: assigned,
+    isTest: !!row.is_test,
   };
 }
 

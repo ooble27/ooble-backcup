@@ -75,7 +75,8 @@ function PayoutStep({ order, list, onChanged, readOnly }: { order: AdminOrder; l
   const [msg, setMsg] = useState<{ ok: boolean; text: string; url?: string } | null>(null);
   const active = (list ?? []).find((p) => p.status !== "failed");
   const last = list?.[0];
-  const canSend = !readOnly && order.status === "recu" && !active && list !== null && AUTO_NETWORKS.has(order.network ?? "");
+  // Essai (compte de test) : jamais de vrai envoi, l'équipe le termine à blanc.
+  const canSend = !readOnly && !order.isTest && order.status === "recu" && !active && list !== null && AUTO_NETWORKS.has(order.network ?? "");
   if (!last && !canSend) return null;
 
   const go = async () => {
@@ -243,7 +244,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
     return () => { on = false; };
   }, [isSell, order.id, order.status]);
   const sellMatched = (sellDeps ?? []).some((d) => d.status === "matched");
-  const sellBlocked = isSell && !sellMatched;
+  const sellBlocked = isSell && !sellMatched && !order.isTest;
   const [confirmDel, setConfirmDel] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
   const [refunding, setRefunding] = useState(false);
@@ -317,9 +318,12 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
           {order.type === "buy" ? "Marquer le paiement reçu" : "Marquer les USDT reçus"}
         </Button>
       )}
-      {!locked && order.status === "recu" && (order.type === "sell" || !AUTO_NETWORKS.has(order.network ?? "")) && (
-        <Button variant="primary" icon={<Check style={{ width: 15, height: 15 }} />} onClick={() => onPatch(order.id, { status: "termine" })}>
-          {order.type === "sell" ? "Virement Interac envoyé" : "Marquer terminé (envoi à la main)"}
+      {!locked && order.status === "recu" && (order.isTest || order.type === "sell" || !AUTO_NETWORKS.has(order.network ?? "")) && (
+        <Button variant="primary" icon={<Check style={{ width: 15, height: 15 }} />} onClick={() => {
+          if (order.isTest && !confirm("Terminer cet essai ? Aucun USDT ni virement ne part : la commande passe à « Terminée » comme pour un vrai client (courriel, parrainage).")) return;
+          onPatch(order.id, { status: "termine" });
+        }}>
+          {order.isTest ? "Terminer l'essai (aucun envoi)" : order.type === "sell" ? "Virement Interac envoyé" : "Marquer terminé (envoi à la main)"}
         </Button>
       )}
     </>
@@ -342,6 +346,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
           </div>
           <p style={{ margin: "10px 0 0", fontSize: 13.5, color: C.t3, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <OrderStatusPill status={order.status} />
+            {order.isTest && <span style={{ color: C.sun }} title="Compte de test : aucun vrai envoi, hors comptabilité et registres">Essai</span>}
             <CopyValue value={order.ref} k="ref" copy={copy} copied={copied} />
             <span>·</span><span>{createdAt}</span><span>·</span><span>{order.clientName}</span>
           </p>

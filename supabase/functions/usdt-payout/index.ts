@@ -114,8 +114,10 @@ async function review(db: SupabaseClient, payoutId: string, msg: string) {
 async function send(db: SupabaseClient, orderId: string, trigger: "auto" | "staff", by: string | null, wait = true) {
   const { data: settings } = await db.from("settlement_settings").select("*").eq("id", 1).single();
   const { data: o } = await db.from("orders")
-    .select("id, user_id, side, status, network, wallet_address, usdt_amount, cad_amount").eq("id", orderId).maybeSingle();
+    .select("id, user_id, side, status, network, wallet_address, usdt_amount, cad_amount, is_test").eq("id", orderId).maybeSingle();
   if (!o) return { ok: false, error: "Ordre introuvable." };
+  // Essai d'un compte de test : jamais de vrai envoi (l'équipe le termine à blanc).
+  if (o.is_test) return { ok: false, error: "Commande d'essai : aucun vrai envoi. Utilisez « Terminer l'essai »." };
   if (o.side !== "buy") return { ok: false, error: "Seuls les achats donnent lieu à un envoi d'USDT." };
   if (o.status !== "payment_received") return { ok: false, error: `L'ordre doit être « paiement reçu » (statut actuel : ${o.status}).` };
   const net = o.network as Net;
@@ -299,7 +301,7 @@ async function drain(db: SupabaseClient) {
   if (!settings?.auto_payout) return { ok: true, skipped: "Envoi automatique désactivé." };
 
   const { data: orders } = await db.from("orders").select("id, network, updated_at")
-    .eq("side", "buy").eq("status", "payment_received").lte("cad_amount", Number(settings.auto_payout_max_cad))
+    .eq("side", "buy").eq("status", "payment_received").eq("is_test", false).lte("cad_amount", Number(settings.auto_payout_max_cad))
     .order("updated_at", { ascending: true }).limit(200);
   if (!orders?.length) return { ok: true, sent: {} };
   const ids = orders.map((o) => o.id);

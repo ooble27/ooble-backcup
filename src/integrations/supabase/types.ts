@@ -1959,6 +1959,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          is_test: boolean
           assigned_at: string | null
           assigned_to: string | null
           cad_amount: number
@@ -1984,6 +1985,7 @@ export type Database = {
           bonus_reason: string | null
         }
         Insert: {
+          is_test?: boolean
           assigned_at?: string | null
           assigned_to?: string | null
           cad_amount: number
@@ -2009,6 +2011,7 @@ export type Database = {
           bonus_reason?: string | null
         }
         Update: {
+          is_test?: boolean
           assigned_at?: string | null
           assigned_to?: string | null
           cad_amount?: number

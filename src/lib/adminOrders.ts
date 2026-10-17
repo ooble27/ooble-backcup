@@ -40,6 +40,8 @@ export interface AdminOrder {
   updatedAt?: string;
   /** Le système envoie les USDT tout seul : personne ne peut la prendre. */
   autoSending?: boolean;
+  /** Commande d'un compte de test : un essai, sans vrai envoi ni argent réel. */
+  isTest?: boolean;
 }
 
 /** Statut = texte coloré (sans pastille ni point), façon Terex. */
