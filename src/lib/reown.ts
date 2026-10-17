@@ -11,20 +11,26 @@ const PROJECT_ID = "8f69e2582bb6f88b871623bb21683c26";
 const isDark = () => document.documentElement.classList.contains("dark");
 
 /**
- * Sur iPhone (app installée surtout), la barre d'état prend la couleur de la fenêtre de WalletConnect
- * et la garde après sa fermeture : on redonne à la barre la couleur de la page.
+ * La fenêtre de WalletConnect pose sur toute la page un voile fixé en haut de l'écran, qui reste dans
+ * la page (invisible) une fois fermée. Sur iPhone, la barre d'état prend la couleur de ce voile : une
+ * bande claire ou sombre apparaît en haut. On retire le voile et on sort la fenêtre de la page quand
+ * elle est fermée.
  */
-function restoreStatusBar() {
-  const meta = document.querySelector('meta[name="theme-color"]');
-  const color = meta?.getAttribute("content");
-  if (!meta || !color) return;
-  meta.setAttribute("content", isDark() ? "#000000" : "#ffffff");
-  requestAnimationFrame(() => meta.setAttribute("content", color));
+function fixOverlay() {
+  if (document.getElementById("ooble-w3m")) return;
+  const style = document.createElement("style");
+  style.id = "ooble-w3m";
+  style.textContent = `
+    w3m-modal { background-color: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+    w3m-modal:not(.open) { display: none !important; }
+  `;
+  document.head.appendChild(style);
 }
 
 let kit: Promise<AppKit> | null = null;
 
 function load(): Promise<AppKit> {
+  fixOverlay();
   kit ??= (async () => {
     const [{ createAppKit }, nets, { EthersAdapter }, { SolanaAdapter }] = await Promise.all([
       import("@reown/appkit"),
@@ -60,7 +66,7 @@ export async function connectViaWalletConnect(family: "evm" | "solana"): Promise
   return new Promise<string>((resolve, reject) => {
     let opened = false, done = false;
     let stopAccount = () => {}, stopState = () => {};
-    const finish = (fn: () => void) => { if (done) return; done = true; stopAccount(); stopState(); fn(); setTimeout(restoreStatusBar, 300); };
+    const finish = (fn: () => void) => { if (done) return; done = true; stopAccount(); stopState(); fn(); };
     stopAccount = k.subscribeAccount((a) => {
       if (a.isConnected && a.address) finish(() => { void k.close(); resolve(a.address as string); });
     }, ns);
