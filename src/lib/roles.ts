@@ -10,16 +10,16 @@ import { useAuth } from "@/lib/auth";
 
 export type Role = "admin" | "operator" | "kyc_reviewer" | "support" | "marketing" | "compliance" | "accounting";
 
-export type TabId = "dashboard" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
+export type TabId = "me" | "dashboard" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
 
-export const ALL_TABS: TabId[] = ["dashboard", "notes", "tasks", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
+export const ALL_TABS: TabId[] = ["me", "dashboard", "notes", "tasks", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
 const HELP: TabId[] = ["kb", "manual"];
 /** Espace de l'équipe : ouvert à tous les membres. */
-const TEAM: TabId[] = ["notes", "tasks"];
+const TEAM: TabId[] = ["me", "notes", "tasks"];
 
 /** Nom des pages, pour dire à un membre ce qu'il verra. */
 export const TAB_LABEL: Record<TabId, string> = {
-  dashboard: "Tableau de bord", notes: "Notes à l'équipe", tasks: "Tâches", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
+  me: "Mon espace", dashboard: "Tableau de bord", notes: "Notes à l'équipe", tasks: "Tâches", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
   accounting: "Comptabilité", treasury: "Trésorerie", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
   team: "Équipe", platform: "Réglages", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
 };
@@ -64,8 +64,8 @@ export function tabsFor(roles: readonly string[]): Set<TabId> {
   return set;
 }
 
-/** Page d'accueil : celle du rôle le plus large. */
-export const homeFor = (roles: readonly string[]): TabId => ROLE_BY_ID.get(sortRoles(roles)[0] as Role)?.home ?? "kb";
+/** Page d'accueil : « Mon espace » pour tout membre de l'équipe. */
+export const homeFor = (roles: readonly string[]): TabId => (sortRoles(roles).length ? "me" : "kb");
 
 /** Actions sensibles et qui peut les faire (même règle que la base). */
 const CAPS = {

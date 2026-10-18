@@ -4,7 +4,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -40,6 +40,7 @@ import { HERO_CSS } from "@/components/admin/heroes";
 import ThemeToggle from "@/components/app/ThemeToggle";
 import { AutoSettle } from "@/components/admin/icons";
 import { TeamNotesView, TeamTasksView, useTeamLive } from "@/components/admin/TeamViews";
+import { MySpace } from "@/components/admin/MySpace";
 import { loadCounts, type TeamCounts } from "@/lib/teamSpace";
 import { prefetchAdmin } from "@/lib/adminData";
 import { fetchCached, peek, put } from "@/lib/adminCache";
@@ -55,6 +56,7 @@ interface NavGroup { label: string | null; items: NavItem[]; menu?: { label: str
 
 const GROUPS: NavGroup[] = [
   { label: null, items: [
+    { id: "me", label: "Mon espace", desc: "Vos tâches, les notes de l'équipe, vos commandes en cours et votre bloc-notes.", icon: House },
     { id: "dashboard", label: "Tableau de bord", desc: "Volumes, marge, alertes et actions à traiter.", icon: LayoutDashboard },
   ] },
   { label: "Équipe", items: [
@@ -202,9 +204,9 @@ const AdminPortal = () => {
   );
   const visibleNav = useMemo(() => NAV.filter((n) => allowedTabs.has(n.id)), [allowedTabs]);
 
-  const [tab, setTabState] = useState<TabId>(() => readTab() ?? "dashboard");
+  const [tab, setTabState] = useState<TabId>(() => readTab() ?? "me");
   // Menu « Ressources » : ouvert d'office quand on est sur une de ses pages.
-  const [menuOpen, setMenuOpen] = useState(() => GROUP_OF.get(readTab() ?? "dashboard") === "Ressources");
+  const [menuOpen, setMenuOpen] = useState(() => GROUP_OF.get(readTab() ?? "me") === "Ressources");
   useEffect(() => { if (GROUP_OF.get(tab) === "Ressources") setMenuOpen(true); }, [tab]);
   useEffect(() => {
     // Page interdite ou absente : on arrive sur la page d'accueil du rôle principal.
@@ -528,12 +530,14 @@ const AdminPortal = () => {
             <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
           ) : (
             <>
-              {tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}
+              {tab !== "me" && tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}
               {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
                 <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
               ) : (
                 <>
                   {tab === "dashboard" && <KpiDashboard orders={orders} onNavigate={navigateTab} />}
+                  {tab === "me" && <MySpace orders={orders} canOrders={allowedTabs.has("queue")} onOpenOrder={openOrder} onChanged={refreshTeam}
+                    onGo={(t) => { if (allowedTabs.has(t)) setTab(t); }} />}
                   {tab === "notes" && <TeamNotesView onChanged={refreshTeam} />}
                   {tab === "tasks" && <TeamTasksView onChanged={refreshTeam} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClientById : undefined} />}
                   {tab === "queue" && <OrdersQueue orders={orders} onOpen={openOrder} onPatch={patch} />}
