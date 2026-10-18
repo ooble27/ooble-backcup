@@ -227,7 +227,7 @@ function SendCalendar({ days, upcoming }: { days: MarketingDay[]; upcoming: Camp
   })();
 
   return (
-    <div style={{ width: W, maxWidth: "100%" }}>
+    <div style={{ width: "100%", maxWidth: W }}>
       <div style={{ overflowX: "auto", scrollbarWidth: "none" }}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: W, height: "auto", display: "block" }} role="img"
           aria-label="Calendrier des envois de campagnes" onMouseLeave={() => setHover(null)}>
@@ -296,7 +296,7 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
       </div>
 
       {/* La phrase à gauche, le calendrier des envois à droite (en dessous sur petit écran). */}
-      <div style={{ display: "grid", gap: 32, marginTop: 14 }} className="xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+      <div style={{ display: "grid", gap: 32, marginTop: 14 }} className="grid-cols-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div style={{ minWidth: 0 }}>
           <h1 className="mk-hero">
             {!o ? <span className="mute">Marketing</span> : o.sent === 0 ? (
