@@ -4,12 +4,13 @@ import { useAuth } from "@/lib/auth";
 import { nfCad, nfUsdt, STATUS_META, type AdminOrder } from "@/lib/adminOrders";
 import { roleLabel, sortRoles } from "@/lib/roles";
 import {
-  audienceLabel, isLate, isMine, loadNotes, loadPrivateNote, loadTasks, savePrivateNote, setTaskStatus, todayToronto,
-  type TeamNote, type TeamTask,
+  audienceLabel, isLate, isMine, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, savePrivateNote, setTaskStatus, todayToronto,
+  type TeamNote, type TeamTask, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
 import { Notice } from "./ui";
-import { TeamAvatar, TeamFaces, TV_CSS, plural, useMembers, useTeamLive } from "./TeamViews";
+import { TeamAvatar, TeamFaces, TeamName, TV_CSS, nameColor, plural, presenceText, useMembers, useTeamLive } from "./TeamViews";
+import { ProfilePanel } from "./TeamProfile";
 
 /**
  * Mon espace : la page d'accueil de chaque membre, dans le style du back-office (grande phrase,
@@ -39,6 +40,8 @@ const CSS = `
 .ms-paper { width: 100%; box-sizing: border-box; border: none; outline: none; resize: vertical; min-height: 270px; padding: 0; margin-top: 2px; font: inherit; font-size: 15px; line-height: 30px; color: var(--a-t1);
   background: repeating-linear-gradient(transparent 0 29px, var(--a-bds) 29px 30px); background-attachment: local; }
 .ms-paper::placeholder { color: var(--a-t3); }
+.ms-due-in { display: none; }
+@media (max-width: 600px) { .ms-due { display: none; } .ms-due-in { display: inline; } }
 @media (prefers-reduced-motion: reduce) { .ms-row { transition: none; } }
 `;
 
@@ -59,12 +62,15 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const members = useMembers();
   const [tasks, setTasks] = useState<TeamTask[] | null>(null);
   const [notes, setNotes] = useState<TeamNote[] | null>(null);
+  const [unreadInfo, setUnreadInfo] = useState<Unread | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<Set<string>>(new Set());
+  const [profile, setProfile] = useState(false);
 
   const load = useCallback(() => {
     loadTasks(false).then(setTasks).catch((e: Error) => setErr(e.message));
-    loadNotes(false).then(setNotes).catch((e: Error) => setErr(e.message));
+    loadRecentNotes(5).then(setNotes).catch((e: Error) => setErr(e.message));
+    loadUnread().then(setUnreadInfo).catch(() => undefined);
   }, []);
   useEffect(() => { load(); }, [load]);
   useTeamLive(load, ["team_tasks", "team_notes", "team_note_replies"]);
@@ -74,7 +80,9 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const late = mine.filter(isLate).length;
   const today = todayToronto();
   const unread = (notes ?? []).filter((n) => n.authorId !== me && !n.readBy.some((r) => r.userId === me));
-  const feed = (notes ?? []).slice(0, 5);
+  const unreadCount = unreadInfo ? Object.values(unreadInfo.channels).reduce((a, b) => a + (b ?? 0), 0) : unread.length;
+  const feed = notes ?? [];
+  const myself = memberById(me);
   const myOrders = canOrders ? orders.filter((o) => o.assignedTo === me && (o.status === "recu" || o.status === "cours")) : [];
   const first = (user?.name ?? "").split(/\s+/)[0];
   const ready = !!tasks && !!notes;
@@ -97,12 +105,12 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   // L'équipe aujourd'hui : chacun avec ce qu'il a en cours.
   const faces = members.map((m) => {
     const n = (tasks ?? []).filter((t) => t.status !== "done" && isMine(t, m.userId, m.roles)).length;
-    return { id: m.userId, name: m.name, you: m.userId === me, text: n ? `${n} ${plural(n, "tâche")}` : "rien en attente", strong: false, n };
+    return { id: m.userId, name: m.name, you: m.userId === me, text: presenceText(m, n ? `${n} ${plural(n, "tâche")}` : "rien en attente"), strong: false, n };
   }).sort((a, b) => Number(b.you) - Number(a.you) || b.n - a.n).slice(0, 6);
 
   const stats = [
     { label: "Mes tâches", n: mine.length, color: mine.length ? C.t1 : C.t3, note: late ? `${late} en retard` : "à jour", go: "tasks" as const },
-    { label: "Notes à lire", n: unread.length, color: unread.length ? C.coral : C.t3, note: unread.length ? "de l'équipe" : "tout est lu", go: "notes" as const },
+    { label: "Notes à lire", n: unreadCount, color: unreadCount ? C.coral : C.t3, note: unreadInfo?.mentions ? `dont ${unreadInfo.mentions} ${plural(unreadInfo.mentions, "mention")}` : unreadCount ? "de l'équipe" : "tout est lu", go: "notes" as const },
     ...(canOrders ? [{ label: "Mes commandes", n: myOrders.length, color: myOrders.length ? C.sage : C.t3, note: "prises en charge", go: "queue" as const }] : []),
   ];
 
@@ -113,14 +121,17 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
       <section className="hz" style={{ marginBottom: 0 }}>
         <div style={{ minWidth: 0 }}>
           <div className="tv-rise" style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-            <TeamAvatar id={me} name={user?.name ?? "Vous"} size={56} />
-            <span>
+            <button type="button" onClick={() => setProfile(true)} title="Modifier mon profil" aria-label="Modifier mon profil" style={{ all: "unset", cursor: "pointer", borderRadius: 99 }}>
+              <TeamAvatar id={me} name={user?.name ?? "Vous"} size={60} presence />
+            </button>
+            <span style={{ minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 14, color: C.t1 }}>{dateText}</span>
-              <span style={{ display: "block", fontSize: 13, color: C.t3, marginTop: 2 }}>{sortRoles(roles).map(roleLabel).join(" · ")}</span>
+              <span style={{ display: "block", fontSize: 13, color: C.t3, marginTop: 2 }}>{presenceText(myself, sortRoles(roles).map(roleLabel).join(" · "))}</span>
+              <button type="button" className="tv-link" style={{ marginTop: 3 }} onClick={() => setProfile(true)}>Modifier mon profil</button>
             </span>
           </div>
           <h2 className="hz-title tv-rise" style={{ animationDelay: "60ms" }}>
-            {hello()}{first ? `, ${first}` : ""}.{" "}
+            {hello()}{first ? <>, <span style={{ color: nameColor(myself?.color) }}>{first}</span></> : ""}.{" "}
             {!ready ? <span className="mute">…</span>
               : mine.length ? <><span className="mute">Vous avez</span> <span style={{ color: C.coral }}>{mine.length}</span> <span className="mute">{plural(mine.length, "tâche")}{late ? `, dont ${late} en retard.` : "."}</span></>
                 : <span className="mute">Rien ne vous attend aujourd'hui.</span>}
@@ -139,9 +150,10 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
       </section>
 
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
+      {profile && <ProfilePanel onClose={() => setProfile(false)} />}
 
       <div className="ms-grid">
-        <div style={{ display: "grid", gap: 48, alignContent: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 48, alignContent: "start", minWidth: 0 }}>
           {/* Mes tâches et ma semaine */}
           <section className="tv-rise" style={{ animationDelay: "200ms" }}>
             <Head title="Mes tâches" action={<button type="button" className="ms-link" onClick={() => onGo("tasks")}>Toutes les tâches <ArrowRight style={{ width: 14, height: 14 }} /></button>} />
@@ -163,11 +175,12 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
                 <button type="button" onClick={() => onGo("tasks")} style={{ all: "unset", cursor: "pointer", flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 15, color: leaving.has(t.id) ? C.t3 : C.t1, textDecoration: leaving.has(t.id) ? "line-through" : undefined, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
                   <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>
-                    {t.assigneeRole ? `Poste ${roleLabel(t.assigneeRole)}` : !t.assigneeId ? "Toute l'équipe" : t.createdBy !== me ? `De ${t.createdByName}` : "Pour moi"}{t.status === "doing" ? " · en cours" : ""}
+                    {t.assigneeRole ? `Poste ${roleLabel(t.assigneeRole)}` : !t.assigneeId ? "Toute l'équipe" : t.createdBy !== me ? <>De <TeamName id={t.createdBy} name={t.createdByName} style={{ fontWeight: 500 }} /></> : "Pour moi"}{t.status === "doing" ? " · en cours" : ""}
+                    {t.dueOn && <span className="ms-due-in" style={{ color: isLate(t) || t.dueOn === today ? C.t1 : C.t3, fontWeight: isLate(t) ? 600 : 400 }}> · {isLate(t) ? `En retard · ${shortDue(t.dueOn)}` : shortDue(t.dueOn)}</span>}
                   </span>
                 </button>
-                {t.dueOn && <span style={{ fontSize: 13, whiteSpace: "nowrap", color: isLate(t) || t.dueOn === today ? C.t1 : C.t3, fontWeight: isLate(t) ? 600 : 400 }}>{isLate(t) ? `En retard · ${shortDue(t.dueOn)}` : shortDue(t.dueOn)}</span>}
-                {t.createdBy !== me && <TeamAvatar id={t.createdBy} name={t.createdByName} size={24} />}
+                {t.dueOn && <span className="ms-due" style={{ fontSize: 13, whiteSpace: "nowrap", color: isLate(t) || t.dueOn === today ? C.t1 : C.t3, fontWeight: isLate(t) ? 600 : 400 }}>{isLate(t) ? `En retard · ${shortDue(t.dueOn)}` : shortDue(t.dueOn)}</span>}
+                {t.createdBy !== me && <TeamAvatar id={t.createdBy} name={t.createdByName} size={26} />}
               </div>
             ))}
             {mine.length > 6 && <p style={{ margin: "10px 0 0", fontSize: 13, color: C.t3 }}>Et {mine.length - 6} de plus.</p>}
@@ -194,10 +207,10 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
           )}
         </div>
 
-        <div style={{ display: "grid", gap: 48, alignContent: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 48, alignContent: "start", minWidth: 0 }}>
           {/* Le fil de l'équipe */}
           <section className="tv-rise" style={{ animationDelay: "230ms" }}>
-            <Head title="Le fil de l'équipe" action={<button type="button" className="ms-link" onClick={() => onGo("notes")}>{unread.length ? `Lire (${unread.length})` : "Ouvrir"} <ArrowRight style={{ width: 14, height: 14 }} /></button>} />
+            <Head title="Le fil de l'équipe" action={<button type="button" className="ms-link" onClick={() => onGo("notes")}>{unreadCount ? `Lire (${unreadCount})` : "Ouvrir"} <ArrowRight style={{ width: 14, height: 14 }} /></button>} />
             {notes && feed.length === 0 && <p style={{ margin: 0, padding: "16px 0", fontSize: 14, color: C.t3 }}>Personne n'a encore écrit.</p>}
             {feed.map((n) => {
               const isNew = unread.includes(n);
@@ -207,12 +220,13 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
                   <TeamAvatar id={n.authorId} name={n.authorName} size={34} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap", fontSize: 12.5, color: C.t3 }}>
-                      <span style={{ color: C.t1, fontWeight: 600, fontSize: 13.5 }}>{n.authorId === me ? "Vous" : n.authorName.split(" ")[0]}</span>
+                      <TeamName id={n.authorId} name={n.authorName.split(" ")[0]} you={n.authorId === me} style={{ fontSize: 13.5 }} />
                       <span># {n.audience === "all" ? "Toute l'équipe" : audienceLabel(n.audience)} · {agoIso(n.at)}</span>
                       {n.pinned && <Pin style={{ width: 12, height: 12, color: C.t2, alignSelf: "center" }} />}
-                      {isNew && <span className="tv-badge" style={{ height: 18, fontSize: 11 }}>nouvelle</span>}
+                      {n.mentions.includes(me) && isNew && <span className="tv-badge" style={{ height: 18, fontSize: 11 }}>@vous</span>}
+                      {isNew && !n.mentions.includes(me) && <span className="tv-badge" style={{ height: 18, fontSize: 11 }}>nouvelle</span>}
                     </span>
-                    <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", marginTop: 3, fontSize: 14.5, lineHeight: 1.5, color: isNew ? C.t1 : C.t2 }}>{n.body}</span>
+                    <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", marginTop: 3, fontSize: 14.5, lineHeight: 1.5, color: isNew ? C.t1 : C.t2, overflowWrap: "anywhere" }}>{n.body}</span>
                   </span>
                 </button>
               );

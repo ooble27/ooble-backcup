@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { roleLabel } from "@/lib/roles";
-import { STATUS_LABEL, isLate, isMine, loadTasks, setTaskStatus, type TaskStatus, type TeamTask } from "@/lib/teamSpace";
+import { STATUS_LABEL, isLate, isMine, loadTasks, setTaskStatus, tidyDoneTasks, type TaskStatus, type TeamTask } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
-import { TaskForm, TaskPanel, TeamAvatar, TeamFaces, TV_CSS, dueLabel, plural, useMembers, useTeamLive, when } from "./TeamViews";
+import { TaskForm, TaskPanel, TeamAvatar, TeamFaces, TV_CSS, dueLabel, memberLabel, plural, presenceText, useMembers, useTeamLive, when } from "./TeamViews";
 
 /**
  * Équipe › Tâches : trois colonnes (À faire, En cours, Fait), à plat comme le reste du back-office.
@@ -50,6 +50,8 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
   const [openId, setOpenId] = useState<string | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatus | null>(null);
+  const [limit, setLimit] = useState<Record<TaskStatus, number>>({ todo: 20, doing: 20, done: 20 });
+  const [note, setNote] = useState<string | null>(null);
 
   const showArchived = scope === "archived";
   const load = useCallback(() => {
@@ -75,11 +77,11 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
   const faces = members.map((m) => {
     const n = (tasks ?? []).filter((t) => t.status !== "done" && isMine(t, m.userId, m.roles)).length;
     const late = (tasks ?? []).filter((t) => isLate(t) && isMine(t, m.userId, m.roles)).length;
-    return { id: m.userId, name: m.name, you: m.userId === me, text: n ? `${n} ${plural(n, "tâche")}${late ? ` · ${late} en retard` : ""}` : "rien en attente", strong: late > 0, n };
+    return { id: m.userId, name: m.name, you: m.userId === me, text: presenceText(m, n ? `${n} ${plural(n, "tâche")}${late ? ` · ${late} en retard` : ""}` : "rien en attente"), strong: late > 0, n };
   }).sort((a, b) => b.n - a.n).slice(0, 6);
-  const who = (t: TeamTask) => t.assigneeId ? (t.assigneeId === me ? "Vous" : members.find((m) => m.userId === t.assigneeId)?.name ?? "Un membre") : t.assigneeRole ? roleLabel(t.assigneeRole) : "Toute l'équipe";
+  const who = (t: TeamTask) => t.assigneeId ? memberLabel(members, t.assigneeId, me) : t.assigneeRole ? roleLabel(t.assigneeRole) : "Toute l'équipe";
   const avatar = (t: TeamTask, size: number) => t.assigneeId
-    ? <TeamAvatar id={t.assigneeId} name={members.find((m) => m.userId === t.assigneeId)?.name ?? who(t)} size={size} />
+    ? <TeamAvatar id={t.assigneeId} name={members.find((m) => m.userId === t.assigneeId)?.name ?? who(t)} size={size} presence />
     : <TeamAvatar group name={who(t)} size={size} />;
 
   const move = async (t: TeamTask, s: TaskStatus) => {
@@ -89,6 +91,12 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
     const r = await setTaskStatus(t.id, s);
     if (r.error) setErr(r.error);
     changed();
+  };
+
+  const tidy = async () => {
+    if (!window.confirm("Ranger les tâches faites dans les archives ? Elles restent consultables dans « Archivées ».")) return;
+    const r = await tidyDoneTasks();
+    if (r.error) setErr(r.error); else { setNote(`${r.count ?? 0} ${plural(r.count ?? 0, "tâche rangée", "tâches rangées")} dans les archives.`); changed(); }
   };
 
   const meta = (t: TeamTask) => [
@@ -135,8 +143,14 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
               <span style={{ fontSize: 13, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{rows.length}</span>
               <span style={{ flex: 1 }} />
               {c.id === "todo" && <button type="button" className="tv-icon" aria-label="Nouvelle tâche" title="Nouvelle tâche" onClick={() => setEditing("new")}><Plus style={{ width: 16, height: 16 }} /></button>}
+              {c.id === "done" && rows.length > 0 && <button type="button" className="tv-link" onClick={tidy}>Ranger</button>}
             </header>
-            {rows.map(item)}
+            {rows.slice(0, limit[c.id]).map(item)}
+            {rows.length > limit[c.id] && (
+              <button type="button" className="tv-link" style={{ display: "block", margin: "12px 0 0", fontSize: 13 }} onClick={() => setLimit((l) => ({ ...l, [c.id]: l[c.id] + 20 }))}>
+                Voir plus ({rows.length - limit[c.id]})
+              </button>
+            )}
             {tasks && rows.length === 0 && <p style={{ margin: 0, padding: "18px 0", fontSize: 13, color: C.t3 }}>{drag ? "Déposez ici." : c.empty}</p>}
           </section>
         );
@@ -148,7 +162,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
   const list = (
     <div style={{ maxWidth: 860 }}>
       {listRows.length === 0 && <p style={{ fontSize: 14, color: C.t3 }}>{showArchived ? "Aucune tâche archivée." : "Aucune tâche."}</p>}
-      {listRows.map((t, i) => (
+      {listRows.slice(0, limit.todo + limit.doing).map((t, i) => (
         <div key={t.id} className="tb-item tv-rise" style={{ animationDelay: `${Math.min(i, 10) * 30}ms`, alignItems: "center" }} onClick={() => setOpenId(t.id)} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === "Enter") setOpenId(t.id); }}>
           {canStatus(t) && !t.archived ? (
@@ -162,6 +176,11 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
           {avatar(t, 28)}
         </div>
       ))}
+      {listRows.length > limit.todo + limit.doing && (
+        <button type="button" className="tv-link" style={{ display: "block", margin: "14px 0 0", fontSize: 13 }} onClick={() => setLimit((l) => ({ ...l, todo: l.todo + 20, doing: l.doing + 20 }))}>
+          Voir plus ({listRows.length - limit.todo - limit.doing})
+        </button>
+      )}
     </div>
   );
 
@@ -195,6 +214,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
         )}
       </div>
       {err && <div style={{ marginBottom: 14 }}><Notice tone="err">{err}</Notice></div>}
+      {note && <p style={{ margin: "0 0 14px", fontSize: 13.5, color: C.t2 }}>{note}</p>}
       {!tasks && <p style={{ fontSize: 13, color: C.t3 }}>Chargement des tâches…</p>}
       {tasks && (view === "board" && !showArchived ? board : list)}
 

@@ -43,7 +43,7 @@ import { useTeamLive } from "@/components/admin/TeamViews";
 import { TeamNotesView } from "@/components/admin/TeamNotes";
 import { TeamTasksView } from "@/components/admin/TeamTasks";
 import { MySpace } from "@/components/admin/MySpace";
-import { loadCounts, type TeamCounts } from "@/lib/teamSpace";
+import { loadCounts, loadMembers, type TeamCounts } from "@/lib/teamSpace";
 import { prefetchAdmin } from "@/lib/adminData";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { prefetchClient } from "@/lib/clientProfileCache";
@@ -300,6 +300,8 @@ const AdminPortal = () => {
   const refreshTeam = useCallback(() => { loadCounts().then(setTeam).catch(() => undefined); }, []);
   useEffect(() => { if (roles.length) refreshTeam(); }, [roles.length, refreshTeam]);
   useTeamLive(refreshTeam, ["team_notes", "team_note_replies", "team_tasks"]);
+  // Profils de l'équipe (avatar, couleur, statut) : l'annuaire se met à jour quand l'un change.
+  useTeamLive(() => { if (roles.length) void loadMembers().catch(() => undefined); }, ["team_profiles"]);
 
   const refresh = () => fetchCached("orders", fetchAdminOrders).then((rows) => {
     setOrders(rows);

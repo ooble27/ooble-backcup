@@ -25,7 +25,7 @@ const ago = (iso: string) => {
 };
 
 export const HERO_CSS = `
-.hz { display: grid; gap: 22px; margin-bottom: 30px; font-family: inherit; }
+.hz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; margin-bottom: 30px; font-family: inherit; }
 @media (min-width: 1024px) { .hz { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); align-items: center; gap: 40px; } }
 .hz-title { margin: 0; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; }
 .hz-title .mute { color: var(--a-t3); }

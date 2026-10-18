@@ -6,10 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  STATUS_LABEL, archiveTask, commentTask, findOrder, isLate, loadMembers, notifyAssignees, peekMembers, saveTask, searchClients, setTaskStatus, todayToronto,
-  type Audience, type TaskInput, type TaskStatus, type TeamTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, commentTask, findOrder, isLate, loadMembers, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
+  searchClients, setTaskStatus, todayToronto,
+  type AvatarBg, type Audience, type TaskInput, type TaskStatus, type TeamColor, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
-import type { LiveTeamMember } from "@/lib/adminTeam";
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
@@ -41,6 +41,11 @@ export const TV_CSS = `
 .tv-check:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 .tv-face { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--a-bds); font-size: 14px; }
 .tv-face:last-child { border-bottom: none; }
+.tv-face-b { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 2px 12px; }
+.tv-face-n, .tv-face-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-face-n { flex: 1; }
+.tv-face-t { max-width: 55%; font-size: 13px; }
+@media (max-width: 600px) { .tv-face-b { flex-direction: column; align-items: stretch; } .tv-face-t { max-width: none; } }
 /* Pages de l'équipe : apparition en cascade à l'ouverture, coche qui rebondit ; le reste à plat. */
 @keyframes tv-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes tv-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -56,18 +61,36 @@ export const TV_CSS = `
 .tv-stack > * { margin-left: -7px; box-shadow: 0 0 0 2px var(--a-bg); border-radius: 99px; }
 .tv-stack > *:first-child { margin-left: 0; }
 @media (prefers-reduced-motion: reduce) { .tv-rise, .tv-in, .tv-check[data-done="true"] svg { animation: none; } }
+/* Couleur du nom de chaque membre : une teinte lisible sur fond sombre, une autre sur fond clair. */
+.admin-scope { --tm-coral: #ff8a6b; --tm-orange: #ffa552; --tm-sun: #ffcf5c; --tm-sage: #7cc4a6; --tm-teal: #4fc8c0; --tm-indigo: #a3a9f5; --tm-blue: #6fb4ff; --tm-pink: #f48bbb; }
+:root:not(.dark) .admin-scope { --tm-coral: #c8401d; --tm-orange: #ad5600; --tm-sun: #8a6200; --tm-sage: #1b7350; --tm-teal: #0a7069; --tm-indigo: #4a52c0; --tm-blue: #1b66b8; --tm-pink: #ad2d67; }
+.tv-name { font-weight: 600; }
+.tv-mention { font-weight: 600; border-radius: 4px; padding: 0 2px; }
 `;
 
-/** Avatar illustré de chaque membre (style « Notionists », licence CC0), le même partout, tiré de son identifiant. */
+/** Fonds d'avatar : le clair d'origine, puis des tons pastel (le dessin reste lisible sur chacun). */
+export const AVATAR_BG: Record<AvatarBg, string> = {
+  light: "#ecebe7", coral: "#ffd2c4", orange: "#ffdcb5", sun: "#fff0bd", sage: "#c9ecdc", teal: "#c4ece9", indigo: "#dadcf7", blue: "#d0e5fb", pink: "#f9d3e4",
+};
+export const nameColor = (c: TeamColor | undefined) => (c ? `var(--tm-${c})` : C.t1);
+const PRESENCE_DOT: Record<string, string> = { available: "var(--a-sage)", busy: "var(--a-sun)", away: "var(--a-t3)" };
+
+/** Avatar illustré (style « Notionists », licence CC0) : dessin choisi par le membre, ou sa photo. */
 const AVATARS = new Map<string, string>();
-const avatarUri = (seed: string) => {
+export const avatarUri = (seed: string) => {
   let uri = AVATARS.get(seed);
   if (!uri) { uri = createAvatar(notionists, { seed, size: 96 }).toDataUri(); AVATARS.set(seed, uri); }
   return uri;
 };
 
-/** `id` : l'identifiant du membre (même dessin partout). `group` : un poste ou toute l'équipe. */
-export function TeamAvatar({ name, id, size = 30, group }: { name: string; id?: string | null; size?: number; group?: boolean }) {
+/**
+ * `id` : le membre (son dessin, sa photo, son fond). `group` : un poste ou toute l'équipe.
+ * `presence` : petit point de statut (disponible, occupé, absent). `preview` : réglages en cours d'édition.
+ */
+export function TeamAvatar({ name, id, size = 30, group, presence, preview }: {
+  name: string; id?: string | null; size?: number; group?: boolean; presence?: boolean;
+  preview?: { seed: string | null; photo: string | null; bg: AvatarBg };
+}) {
   if (group) {
     return (
       <span title={name} aria-hidden style={{ width: size, height: size, borderRadius: 99, flexShrink: 0, background: C.l3, color: C.t2, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
@@ -75,24 +98,51 @@ export function TeamAvatar({ name, id, size = 30, group }: { name: string; id?: 
       </span>
     );
   }
-  return <img src={avatarUri(id || name)} alt="" title={name} width={size} height={size} style={{ width: size, height: size, borderRadius: 99, flexShrink: 0, background: "#ecebe7", boxShadow: "0 0 0 1px var(--a-bds)", display: "block" }} />;
+  const m = memberById(id);
+  const look = preview ?? { seed: m?.seed ?? null, photo: m?.photo ?? null, bg: m?.bg ?? "light" };
+  const src = look.photo || avatarUri(look.seed || id || name);
+  const dot = presence && m ? PRESENCE_DOT[m.status] : null;
+  return (
+    <span title={m && m.status !== "available" ? `${name} · ${PRESENCE_LABEL[m.status]}` : name} style={{ position: "relative", display: "inline-flex", flexShrink: 0, width: size, height: size }}>
+      <img src={src} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: 99, objectFit: "cover", background: AVATAR_BG[look.bg] ?? AVATAR_BG.light, boxShadow: "0 0 0 1px var(--a-bds)", display: "block" }} />
+      {dot && <span aria-hidden style={{ position: "absolute", right: -1, bottom: -1, width: Math.max(8, size * 0.28), height: Math.max(8, size * 0.28), borderRadius: 99, background: dot, boxShadow: "0 0 0 2px var(--a-bg)" }} />}
+    </span>
+  );
+}
+
+/** Nom d'un membre, dans sa couleur (comme dans les groupes de messagerie). */
+export function TeamName({ id, name, you, style }: { id?: string | null; name: string; you?: boolean; style?: React.CSSProperties }) {
+  const m = memberById(id);
+  return <span className="tv-name" style={{ color: nameColor(m?.color), ...style }}>{you ? "Vous" : name}</span>;
 }
 
 /** L'équipe, une personne par ligne, avec ce qui la concerne (à droite des en-têtes). */
-export function TeamFaces({ title, rows }: { title: string; rows: { id: string; name: string; you?: boolean; text: string; strong?: boolean }[] }) {
+export function TeamFaces({ title, rows, onPick }: { title: string; rows: { id: string; name: string; you?: boolean; text: string; strong?: boolean }[]; onPick?: (id: string) => void }) {
   if (!rows.length) return null;
   return (
     <div>
       <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>{title}</p>
       {rows.map((r) => (
-        <div key={r.id} className="tv-face">
-          <TeamAvatar name={r.name} id={r.id} size={30} />
-          <span style={{ flex: 1, minWidth: 0, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}{r.you && <span style={{ color: C.t3 }}> (vous)</span>}</span>
-          <span style={{ fontSize: 13, color: r.strong ? C.t1 : C.t3, fontWeight: r.strong ? 600 : 400, whiteSpace: "nowrap" }}>{r.text}</span>
+        <div key={r.id} className="tv-face" onClick={onPick ? () => onPick(r.id) : undefined} style={onPick ? { cursor: "pointer" } : undefined}>
+          <TeamAvatar name={r.name} id={r.id} size={32} presence />
+          <span className="tv-face-b">
+            <span className="tv-face-n" title={r.name}><TeamName id={r.id} name={r.name} />{r.you && <span style={{ color: C.t3 }}> (vous)</span>}</span>
+            <span className="tv-face-t" title={r.text} style={{ color: r.strong ? C.t1 : C.t3, fontWeight: r.strong ? 600 : 400 }}>{r.text}</span>
+          </span>
         </div>
       ))}
     </div>
   );
+}
+
+/** Nom d'un membre pour les textes (« Vous » pour soi). */
+export const memberLabel = (members: TeamMember[], id: string, me: string) => (id === me ? "Vous" : members.find((m) => m.userId === id)?.name ?? "Un membre");
+
+/** Ce qu'on dit d'un membre absent ou occupé, sinon `fallback`. */
+export function presenceText(m: TeamMember | undefined, fallback: string) {
+  if (!m || m.status === "available") return fallback;
+  const until = m.status === "away" && m.statusUntil ? ` jusqu'au ${new Date(`${m.statusUntil}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "short" })}` : "";
+  return `${PRESENCE_LABEL[m.status]}${until}${m.statusNote ? ` · ${m.statusNote}` : ""}`;
 }
 
 export const plural = (n: number, one: string, many = `${one}s`) => (n > 1 ? many : one);
@@ -130,9 +180,14 @@ export function useTeamLive(onChange: () => void, tables: string[]) {
   }, [key]);
 }
 
+/** L'annuaire de l'équipe, tenu à jour quand un profil change (le sien ou celui d'un autre). */
 export function useMembers() {
-  const [m, setM] = useState<LiveTeamMember[]>(peekMembers);
-  useEffect(() => { loadMembers().then((l) => { if (l.length) setM(l); }).catch(() => undefined); }, []);
+  const [m, setM] = useState<TeamMember[]>(peekMembers);
+  useEffect(() => {
+    const off = onMembersChange(() => { const l = peekMembers(); if (l.length) setM(l); });
+    loadMembers().then((l) => { if (l.length) setM(l); }).catch(() => undefined);
+    return off;
+  }, []);
   return m;
 }
 
@@ -149,7 +204,7 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
     </div>
   );
   return (
-    <SidePanel title={t.title} subtitle={`Créée par ${t.createdBy === me ? "vous" : t.createdByName} · ${when(t.at)}`} onClose={onClose} width={560}>
+    <SidePanel title={t.title} subtitle={<>Créée par <TeamName id={t.createdBy} name={t.createdByName} you={t.createdBy === me} style={{ fontWeight: 500 }} /> · {when(t.at)}</>} onClose={onClose} width={560}>
       <style>{TV_CSS + GR_CSS}</style>
       {!t.archived && canStatus && (
         <p style={{ margin: 0, fontSize: 15.5, lineHeight: 2, color: C.t2 }}>
@@ -169,7 +224,7 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
       {t.comments.length === 0 && <p style={{ margin: "4px 0 0", fontSize: 13, color: C.t3 }}>Aucun commentaire.</p>}
       {t.comments.map((c) => (
         <div key={c.id} style={{ padding: "9px 0", borderBottom: `1px solid ${C.bds}` }}>
-          <span style={{ fontSize: 13, color: C.t1, fontWeight: 500 }}>{c.authorName}</span><span style={{ fontSize: 12, color: C.t3 }}> · {when(c.at)}</span>
+          <TeamName id={c.authorId} name={c.authorName} you={c.authorId === me} style={{ fontSize: 13 }} /><span style={{ fontSize: 12, color: C.t3 }}> · {when(c.at)}</span>
           <p style={{ margin: "3px 0 0", fontSize: 14, lineHeight: 1.55, color: C.t2, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{c.body}</p>
         </div>
       ))}
@@ -183,8 +238,14 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
       {!t.archived && (
         <div style={{ display: "flex", gap: 22, marginTop: 28, flexWrap: "wrap" }}>
           {(admin || t.createdBy === me) && <button type="button" className="tv-go" onClick={onEdit}>Modifier <ArrowRight style={{ width: 15, height: 15 }} /></button>}
-          {(admin || t.createdBy === me) && <button type="button" className="tv-link" style={{ fontSize: 14 }} onClick={() => act(archiveTask(t.id), onClose)}>Archiver la tâche</button>}
+          {(admin || t.createdBy === me) && <button type="button" className="tv-link" style={{ fontSize: 14 }} onClick={() => act(archiveTask(t.id), onClose)}>Archiver</button>}
         </div>
+      )}
+      {(admin || t.createdBy === me) && (
+        <p style={{ margin: "18px 0 0" }}>
+          <button type="button" className="tv-link" style={{ fontSize: 13.5 }}
+            onClick={() => { if (window.confirm("Retirer cette tâche ? Elle disparaîtra pour toute l'équipe.")) act(removeTask(t.id), onClose); }}>Retirer la tâche</button>
+        </p>
       )}
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
     </SidePanel>
@@ -193,7 +254,7 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
 
 type Who = "me" | "person" | "role" | "all";
 
-export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTask | null; members: LiveTeamMember[]; me: string; onClose: () => void; onSaved: (id?: string) => void }) {
+export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTask | null; members: TeamMember[]; me: string; onClose: () => void; onSaved: (id?: string) => void }) {
   const { user } = useAuth();
   const [title, setTitle] = useState(task?.title ?? "");
   const [details, setDetails] = useState(task?.details ?? "");
