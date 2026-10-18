@@ -69,8 +69,11 @@ export const EXPENSE_CATS: { v: string; label: string }[] = [
 ];
 export const catLabel = (v: string) => EXPENSE_CATS.find((c) => c.v === v)?.label ?? v;
 
+export type Funding = "bank" | "loan" | "capital" | "payable";
+/** Qui a payé la recharge : la banque, un prêt (stock prêté par un tiers), un apport, ou un fournisseur payé plus tard. */
+export const FUNDING_LABEL: Record<Funding, string> = { bank: "Ma banque", loan: "Un prêt", capital: "Mon apport", payable: "À payer plus tard" };
 export interface Purchase {
-  id: string; kind: "purchase" | "opening"; at: string; supplier: string; network: string; usdt: number; cad: number; fee: number;
+  id: string; kind: "purchase" | "opening"; funding: Funding; at: string; supplier: string; network: string; usdt: number; cad: number; fee: number;
   tx: string | null; note: string | null; receipt: string | null; voided: boolean; voidReason: string | null; by: string | null;
 }
 export interface Expense {
@@ -78,7 +81,7 @@ export interface Expense {
   receipt: string | null; note: string | null; voided: boolean; voidReason: string | null; by: string | null;
 }
 const toPurchase = (r: Record<string, unknown>): Purchase => ({
-  id: String(r.id), kind: r.kind as Purchase["kind"], at: String(r.purchased_at), supplier: String(r.supplier), network: String(r.network),
+  id: String(r.id), kind: r.kind as Purchase["kind"], funding: ((r.funded_by as Funding) ?? "bank"), at: String(r.purchased_at), supplier: String(r.supplier), network: String(r.network),
   usdt: num(r.usdt), cad: num(r.cad), fee: num(r.fee_cad), tx: (r.tx_hash as string) ?? null, note: (r.note as string) ?? null,
   receipt: (r.receipt_path as string) ?? null, voided: !!r.voided, voidReason: (r.void_reason as string) ?? null, by: (r.created_by_name as string) ?? null,
 });
@@ -117,9 +120,9 @@ export async function receiptUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
-export async function addPurchase(p: { kind: "purchase" | "opening"; at: string; supplier: string; network: string; usdt: number; cad: number; fee: number; tx?: string; note?: string; receipt?: string | null }) {
+export async function addPurchase(p: { kind: "purchase" | "opening"; funding: Funding; at: string; supplier: string; network: string; usdt: number; cad: number; fee: number; tx?: string; note?: string; receipt?: string | null }) {
   const { error } = await table("supplier_purchases").insert({
-    kind: p.kind, purchased_at: p.at, supplier: p.supplier.trim(), network: p.network, usdt: p.usdt, cad: p.cad, fee_cad: p.fee,
+    kind: p.kind, funded_by: p.funding, purchased_at: p.at, supplier: p.supplier.trim(), network: p.network, usdt: p.usdt, cad: p.cad, fee_cad: p.fee,
     tx_hash: p.tx?.trim() || null, note: p.note?.trim() || null, receipt_path: p.receipt ?? null,
   });
   return error ? { error: error.message } : {};
@@ -211,4 +214,20 @@ export async function loadAccountLedger(code: string, from: string, to: string):
   const d = (data ?? {}) as Record<string, unknown>;
   return { opening: num(d.opening), closing: num(d.closing),
     lines: ((d.lines as Record<string, unknown>[]) ?? []).map((l) => ({ at: String(l.at), piece: String(l.piece), source: String(l.source), memo: String(l.memo ?? ""), debit: num(l.debit), credit: num(l.credit), balance: num(l.balance) })) };
+}
+
+/* ─── À faire ─── */
+export interface AcctTodo {
+  lastStatementOn: string | null; lastImportAt: string | null; openLines: number; unexplained: number | null;
+  prevMonth: string; prevMonthClosed: boolean; prevMonthHasOrders: boolean; expensesWithoutReceipt: number; hasOrders: boolean; purchases: number;
+}
+export async function loadTodo(): Promise<AcctTodo> {
+  const { data, error } = await rpc("accounting_todo");
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  return {
+    lastStatementOn: (d.last_statement_on as string) ?? null, lastImportAt: (d.last_import_at as string) ?? null, openLines: num(d.open_lines),
+    unexplained: numOrNull(d.unexplained), prevMonth: String(d.prev_month ?? ""), prevMonthClosed: !!d.prev_month_closed,
+    prevMonthHasOrders: !!d.prev_month_has_orders, expensesWithoutReceipt: num(d.expenses_without_receipt), hasOrders: !!d.has_orders, purchases: num(d.purchases),
+  };
 }

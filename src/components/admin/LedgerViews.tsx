@@ -3,8 +3,8 @@ import { Paperclip, Plus } from "lucide-react";
 import { nfCad, nfUsdt } from "@/lib/adminOrders";
 import { NET_LOGO, NET_NAME, monthLabel } from "@/lib/accounting";
 import {
-  EXPENSE_CATS, addExpense, addPurchase, catLabel, listExpenses, listPurchases, receiptUrl, stopRecurring, uploadReceipt, voidEntry,
-  type Expense, type Pnl, type Purchase,
+  EXPENSE_CATS, FUNDING_LABEL, addExpense, addPurchase, catLabel, listExpenses, listPurchases, receiptUrl, stopRecurring, uploadReceipt, voidEntry,
+  type Expense, type Funding, type Pnl, type Purchase,
 } from "@/lib/ledger";
 import { useCan } from "@/lib/roles";
 import { C, FONT } from "./adminTheme";
@@ -165,7 +165,7 @@ export function PurchasesView({ from, to, onChanged }: { from: string; to: strin
       {adding && <PurchaseForm onClose={() => setAdding(false)} onSaved={() => { setAdding(false); changed(); }} />}
       {open && (
         <SidePanel title={open.kind === "opening" ? "Stock d'ouverture" : `Recharge · ${open.supplier}`} subtitle={`${day(open.at)}${open.by ? ` · saisie par ${open.by}` : ""}`} onClose={() => setOpen(null)}>
-          {[["Réseau", NET_NAME[open.network] ?? open.network], ["USDT reçus", `${nfUsdt.format(open.usdt)} USDT`], ["Payé", money(open.cad)], ["Frais", money(open.fee)],
+          {[["Réseau", NET_NAME[open.network] ?? open.network], ["USDT reçus", `${nfUsdt.format(open.usdt)} USDT`], ["Payé", money(open.cad)], ["Payé par", FUNDING_LABEL[open.funding]], ["Frais", money(open.fee)],
             ["Coût par USDT", `${((open.cad + open.fee) / open.usdt).toLocaleString("fr-CA", { maximumFractionDigits: 6 })} $`], ["Transaction", open.tx ?? "–"], ["Note", open.note ?? "–"]].map(([k, v]) => (
             <div key={k} style={{ display: "flex", gap: 16, padding: "9px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 14 }}>
               <span style={{ width: 120, color: C.t3, flexShrink: 0 }}>{k}</span><span style={{ color: C.t1, wordBreak: "break-all" }}>{v}</span>
@@ -183,6 +183,7 @@ export function PurchasesView({ from, to, onChanged }: { from: string; to: strin
 
 function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [kind, setKind] = useState<"purchase" | "opening">("purchase");
+  const [funding, setFunding] = useState<Funding>("bank");
   const [date, setDate] = useState(today());
   const [supplier, setSupplier] = useState("");
   const [net, setNet] = useState("trc20");
@@ -197,7 +198,7 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
     setBusy(true); setErr(null);
     try {
       const receipt = file ? await uploadReceipt(file, "purchases") : null;
-      const r = await addPurchase({ kind, at: new Date(`${date}T12:00:00`).toISOString(), supplier: kind === "opening" ? "Stock d'ouverture" : supplier, network: net, usdt: q, cad: c, fee: f, tx, note, receipt });
+      const r = await addPurchase({ kind, funding, at: new Date(`${date}T12:00:00`).toISOString(), supplier: kind === "opening" ? "Stock d'ouverture" : supplier, network: net, usdt: q, cad: c, fee: f, tx, note, receipt });
       if (r.error) setErr(r.error); else onSaved();
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
@@ -207,7 +208,16 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
       footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={save} disabled={busy || !ok}>{busy ? "Enregistrement…" : "Enregistrer"}</Button></>}>
       <style>{GR_CSS}</style>
       <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: C.t2 }}>
-        <Opts value={kind} options={[{ v: "purchase", label: "Recharge" }, { v: "opening", label: "Stock d'ouverture" }]} onChange={setKind} />
+        <Opts value={kind} options={[{ v: "purchase", label: "Recharge" }, { v: "opening", label: "Stock d'ouverture" }]} onChange={(v) => { setKind(v); setFunding(v === "opening" ? "loan" : "bank"); }} />
+      </p>
+      <p style={{ margin: "16px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
+        Payé par <Opts value={funding} options={(Object.keys(FUNDING_LABEL) as Funding[]).map((f) => ({ v: f, label: FUNDING_LABEL[f] }))} onChange={setFunding} />
+      </p>
+      <p style={{ margin: "4px 0 0", fontSize: 13, lineHeight: 1.6, color: C.t3 }}>
+        {funding === "bank" ? "L'argent est sorti de ton compte bancaire : la ligne apparaîtra dans le rapprochement."
+          : funding === "loan" ? "Quelqu'un t'a prêté ces USDT (ou l'argent pour les acheter) : c'est une dette à rembourser, rien ne sort de ta banque."
+            : funding === "capital" ? "Tu as mis ces USDT dans l'entreprise de ta poche : c'est ton apport, rien ne sort de la banque de l'entreprise."
+              : "Le fournisseur t'a livré et tu le paieras plus tard : c'est une dette envers lui."}
       </p>
       <p style={{ margin: "16px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
         Réseau <Opts value={net} options={NETS.map((n) => ({ v: n, label: NET_NAME[n] ?? n }))} onChange={setNet} />

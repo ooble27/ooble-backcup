@@ -9,6 +9,7 @@ import { DataTable, Section, Tabs, type Column } from "./layout";
 import { ExpensesView, ProfitStatement, PurchasesView } from "./LedgerViews";
 import { JournalView, StatementsView } from "./JournalViews";
 import { BankReconView } from "./BankReconView";
+import { AccountingTodo } from "./AccountingTodo";
 import AccountingMonth from "./AccountingMonth";
 import { replayRise } from "@/lib/pageMotion";
 
@@ -130,6 +131,9 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       {view === "purchases" && <div style={{ marginTop: 24 }}><PurchasesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
       {view === "expenses" && <div style={{ marginTop: 24 }}><ExpensesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
       {view === "overview" && <>
+
+      <AccountingTodo tick={tick} toCheck={t?.to_check ?? 0} onGo={setView} onOpenMonth={(m) => openMonth(m)}
+        onCheck={() => { const first = data?.months.find((m) => m.to_check > 0); if (first) openMonth(first.month, true); }} />
 
       <div style={{ marginTop: 26 }}>
         <p className="vz-head" style={{ fontSize: "clamp(34px, 4.4vw, 58px)" }}>
