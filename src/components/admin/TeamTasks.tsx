@@ -15,12 +15,23 @@ import { TaskForm, TaskPanel, TeamAvatar, TeamFaces, TV_CSS, dueLabel, memberLab
  */
 
 const CSS = `
-.tb-board { display: grid; gap: 0 36px; grid-template-columns: repeat(3, minmax(250px, 1fr)); overflow-x: auto; }
-@media (max-width: 860px) { .tb-board { grid-template-columns: repeat(3, minmax(270px, 84vw)); scroll-snap-type: x mandatory; gap: 0 24px; } .tb-col { scroll-snap-align: start; } }
-.tb-col { min-height: 300px; border-radius: 12px; transition: background .15s, box-shadow .15s; }
+/* Les trois colonnes se partagent la largeur ; quand la place manque (téléphone, iPad avec la barre
+   latérale), elles défilent de côté et la suivante dépasse un peu. Rien ne déborde du bord de l'écran. */
+.tb-wrap { container-type: inline-size; }
+.tb-board { display: grid; gap: 0 28px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tb-col { min-height: 220px; border-radius: 12px; transition: background .15s, box-shadow .15s; }
 .tb-col[data-over="true"] { background: var(--a-hover2); box-shadow: 0 0 0 1px var(--a-bd); }
 .tb-head { display: flex; align-items: center; gap: 10px; height: 40px; border-bottom: 1px solid var(--a-bd); }
-.tb-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 6px; margin: 0 -6px; border-bottom: 1px solid var(--a-bds); border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tb-item { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid var(--a-bds); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tb-title { display: block; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+@container (max-width: 640px) {
+  .tb-board { grid-template-columns: repeat(3, 80%); gap: 0 18px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .tb-board::-webkit-scrollbar { display: none; }
+  .tb-col { min-height: 0; scroll-snap-align: start; }
+  .tb-head { height: 34px; }
+  .tb-item { gap: 10px; padding: 10px 0; }
+  .tb-title { font-size: 14.5px; }
+}
 .tb-item[draggable="true"] { cursor: grab; }
 .tb-item[data-dragging="true"] { opacity: .3; }
 .tb-item:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }
@@ -117,7 +128,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
           </button>
         ) : <span style={{ width: 22, flexShrink: 0 }} />}
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span className="tb-title" style={{ display: "block", fontSize: 15, lineHeight: 1.4, color: done ? C.t3 : C.t1, textDecoration: done ? "line-through" : undefined, overflowWrap: "anywhere" }}>{t.title}</span>
+          <span className="tb-title" style={{ color: done ? C.t3 : C.t1, textDecoration: done ? "line-through" : undefined }}>{t.title}</span>
           {t.dueOn && !done && (
             <span style={{ display: "block", marginTop: 4, fontSize: 12.5, color: late ? C.t1 : C.t2, fontWeight: late ? 600 : 400 }}>{late ? `En retard · ${dueLabel(t.dueOn)}` : `Pour ${dueLabel(t.dueOn)}`}</span>
           )}
@@ -129,6 +140,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
   };
 
   const board = (
+    <div className="tb-wrap">
     <div className="tb-board">
       {COLS.map((c) => {
         const rows = byCol(c.id);
@@ -155,6 +167,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
         );
       })}
     </div>
+    </div>
   );
 
   const listRows = showArchived ? archived ?? [] : shown.slice().sort((a, b) => Number(a.status === "done") - Number(b.status === "done") || Number(isLate(b)) - Number(isLate(a)));
@@ -168,7 +181,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
             <button type="button" className="tv-check" data-done={t.status === "done"} onClick={(e) => { e.stopPropagation(); move(t, t.status === "done" ? "todo" : "done"); }} aria-label="Marquer fait"><Check style={{ width: 13, height: 13 }} strokeWidth={3} /></button>
           ) : <span style={{ width: 22, flexShrink: 0 }} />}
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span className="tb-title" style={{ display: "block", fontSize: 15, color: t.status === "done" ? C.t3 : C.t1, textDecoration: t.status === "done" ? "line-through" : undefined }}>{t.title}</span>
+            <span className="tb-title" style={{ color: t.status === "done" ? C.t3 : C.t1, textDecoration: t.status === "done" ? "line-through" : undefined }}>{t.title}</span>
             <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 3 }}>{who(t)} · {STATUS_LABEL[t.status]}{t.clientName ? ` · ${t.clientName}` : ""}{t.orderRef ? ` · ${t.orderRef}` : ""}</span>
           </span>
           <span style={{ fontSize: 13, color: isLate(t) ? C.t1 : C.t3, fontWeight: isLate(t) ? 600 : 400, whiteSpace: "nowrap" }}>{t.dueOn && t.status !== "done" ? (isLate(t) ? `En retard · ${dueLabel(t.dueOn)}` : dueLabel(t.dueOn)) : ""}</span>

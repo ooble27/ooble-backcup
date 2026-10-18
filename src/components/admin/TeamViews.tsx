@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Users } from "lucide-react";
+import { ArrowRight, Check, Users } from "lucide-react";
 import { createAvatar } from "@dicebear/core";
 import * as notionists from "@dicebear/notionists";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,10 @@ export const TV_CSS = `
 .tv-ta { width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--a-bd); background: transparent; padding: 8px 0 9px; font: inherit; font-size: 15px; line-height: 1.55; color: var(--a-t1); outline: none; resize: vertical; min-height: 44px; }
 .tv-ta:focus { border-bottom-color: var(--a-t1); }
 .tv-ta::placeholder { color: var(--a-t3); }
+.tv-pick { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--a-bds); -webkit-tap-highlight-color: transparent; }
+.tv-pick:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+/* Date : sur iPhone et iPad, le champ natif ignore sa largeur et peut dépasser du panneau. */
+.gr-in[type="date"] { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .tv-sel { width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--a-bd); background: transparent; padding: 8px 0 9px; font: inherit; font-size: 15px; color: var(--a-t1); outline: none; color-scheme: light dark; }
 .tv-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; gap: 14px; width: 100%; padding: 13px 0; border-bottom: 1px solid var(--a-bds); }
 @media (hover: hover) { .tv-row:hover .tv-title { text-decoration: underline; text-underline-offset: 3px; } }
@@ -323,9 +327,19 @@ export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTa
         <Opts value={whoKind} onChange={setWhoKind} options={[{ v: "me", label: "Moi" }, ...(others.length ? [{ v: "person" as Who, label: "Une personne" }] : []), { v: "role", label: "Un poste" }, { v: "all", label: "Toute l'équipe" }]} />
       </p>
       {whoKind === "person" && (
-        <select className="tv-sel" value={person} onChange={(e) => setPerson(e.target.value)}>
-          {others.map((m) => <option key={m.userId} value={m.userId}>{m.name} · {m.roles.map(roleLabel).join(", ")}</option>)}
-        </select>
+        // Une ligne par membre (avatar, nom, poste) : rien ne déborde, même sur téléphone.
+        <div role="radiogroup" aria-label="Personne" style={{ marginTop: 4 }}>
+          {others.map((m) => (
+            <button key={m.userId} type="button" role="radio" aria-checked={person === m.userId} className="tv-pick" onClick={() => setPerson(m.userId)}>
+              <TeamAvatar id={m.userId} name={m.name} size={30} presence />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <TeamName id={m.userId} name={m.name} full style={{ display: "block", fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} />
+                <span style={{ display: "block", marginTop: 1, fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.roles.map(roleLabel).join(", ")}</span>
+              </span>
+              {person === m.userId && <Check style={{ width: 16, height: 16, color: C.t1, flexShrink: 0 }} strokeWidth={2.4} />}
+            </button>
+          ))}
+        </div>
       )}
       {whoKind === "role" && (
         <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: C.t2 }}><Opts value={role} onChange={setRole} options={ROLES.map((r) => ({ v: r.id, label: r.label }))} /></p>
