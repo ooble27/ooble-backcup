@@ -3,9 +3,10 @@ import { ArrowRight, Check, Pin } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { CURRENT_OPERATOR, nfCad, nfUsdt, STATUS_META, type AdminOrder } from "@/lib/adminOrders";
 import { roleLabel, sortRoles } from "@/lib/roles";
+import { orderRef } from "@/lib/orders";
 import {
-  audienceLabel, isLate, isMine, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, savePrivateNote, setTaskStatus, todayToronto,
-  type TeamNote, type TeamTask, type Unread,
+  ackHandoff, audienceLabel, firstName, isLate, isMine, loadHandoffs, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, postHandoff, savePrivateNote,
+  setTaskStatus, todayToronto, type Handoff, type TeamNote, type TeamTask, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
 import { Notice } from "./ui";
@@ -15,7 +16,8 @@ import { ProfilePanel } from "./TeamProfile";
 /**
  * Mon espace : la page d'accueil de chaque membre, dans le style du back-office (grande phrase,
  * chiffres posés sur la page, listes à traits fins). Mes tâches et ma semaine, le fil de l'équipe,
- * mes commandes prises en charge et mon bloc-notes privé (personne d'autre ne le voit).
+ * mes commandes prises en charge, la passation de fin de journée et mon bloc-notes privé (personne
+ * d'autre ne le voit).
  */
 
 const CSS = `
@@ -65,14 +67,16 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const [err, setErr] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<Set<string>>(new Set());
   const [profile, setProfile] = useState(false);
+  const [handoffs, setHandoffs] = useState<Handoff[]>([]);
 
   const load = useCallback(() => {
+    loadHandoffs().then(setHandoffs).catch(() => undefined);
     loadTasks(false).then(setTasks).catch((e: Error) => setErr(e.message));
     loadRecentNotes(5).then(setNotes).catch((e: Error) => setErr(e.message));
     loadUnread().then(setUnreadInfo).catch(() => undefined);
   }, []);
   useEffect(() => { load(); }, [load]);
-  useTeamLive(load, ["team_tasks", "team_notes", "team_note_replies"]);
+  useTeamLive(load, ["team_tasks", "team_notes", "team_note_replies", "team_handoffs", "team_handoff_reads"]);
 
   const mine = (tasks ?? []).filter((t) => isMine(t, me, roles) && t.status !== "done")
     .sort((a, b) => Number(isLate(b)) - Number(isLate(a)) || (a.dueOn ?? "9999").localeCompare(b.dueOn ?? "9999") || b.at.localeCompare(a.at));
@@ -85,6 +89,11 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   // Les commandes que je traite (la liste marque les miennes « Vous », pas par mon identifiant).
   const myOrders = canOrders ? orders.filter((o) => o.assignedTo === CURRENT_OPERATOR && (o.status === "recu" || o.status === "cours")) : [];
   const first = (user?.name ?? "").split(/\s+/)[0];
+  // Passations des autres que je n'ai pas encore lues, et ce que je peux rattacher à la mienne.
+  const incoming = handoffs.filter((h) => h.authorId !== me && !h.reads.some((r) => r.userId === me)).slice(0, 3);
+  const myLast = handoffs.find((h) => h.authorId === me) ?? null;
+  const myDoing = (tasks ?? []).filter((t) => t.assigneeId === me && t.status === "doing");
+  const handoffOrders = orders.filter((o) => o.assignedTo === CURRENT_OPERATOR && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
   const ready = !!tasks && !!notes;
   const dateText = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Toronto" }).replace(/^./, (c) => c.toUpperCase());
 
@@ -152,6 +161,11 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
       {profile && <ProfilePanel onClose={() => setProfile(false)} />}
 
+      {incoming.map((h) => (
+        <IncomingHandoff key={h.id} h={h} orders={orders} tasks={tasks ?? []} onOpenOrder={onOpenOrder} onGo={onGo}
+          onAck={async () => { const r = await ackHandoff(h.id); if (r.error) setErr(r.error); else load(); }} />
+      ))}
+
       <div className="ms-grid">
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 48, alignContent: "start", minWidth: 0 }}>
           {/* Mes tâches et ma semaine */}
@@ -185,6 +199,9 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
             ))}
             {mine.length > 6 && <p style={{ margin: "10px 0 0", fontSize: 13, color: C.t3 }}>Et {mine.length - 6} de plus.</p>}
           </section>
+
+          {/* Ma passation de fin de journée */}
+          <MyHandoff last={myLast} orderIds={handoffOrders.map((o) => o.id)} taskIds={myDoing.map((t) => t.id)} onSent={load} onError={setErr} />
 
           {/* Mes commandes en cours */}
           {canOrders && (
@@ -268,6 +285,87 @@ function PrivatePad({ me }: { me: string }) {
       </span>} />
       <textarea className="ms-paper" value={body ?? ""} disabled={body == null} maxLength={20000} onChange={(e) => onChange(e.target.value)}
         placeholder={"Vos notes à vous : rappels, idées, numéros utiles…\nPersonne d'autre ne les voit."} />
+    </section>
+  );
+}
+
+/** La passation d'un collègue : son mot, ses commandes et tâches en cours, et « Bien reçu ». */
+function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck }: {
+  h: Handoff; orders: AdminOrder[]; tasks: TeamTask[]; onOpenOrder: (o: AdminOrder) => void; onGo: (tab: "tasks" | "notes" | "queue") => void; onAck: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const rowStyle: React.CSSProperties = { all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 6px", margin: "0 -6px", borderBottom: `1px solid ${C.bds}`, borderRadius: 10, width: "calc(100% + 12px)", boxSizing: "border-box" };
+  return (
+    <section className="tv-rise" style={{ marginTop: 44 }}>
+      <Head title={`Passation de ${firstName(h.authorName)}`} action={
+        <button type="button" className="ms-link" disabled={busy} onClick={async () => { setBusy(true); await onAck(); setBusy(false); }}>Bien reçu <ArrowRight style={{ width: 14, height: 14 }} /></button>
+      } />
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "16px 0 6px" }}>
+        <TeamAvatar id={h.authorId} name={h.authorName} size={38} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}><TeamName id={h.authorId} name={firstName(h.authorName)} style={{ fontSize: 13.5 }} /> · {agoIso(h.at)}</p>
+          {h.body && <p style={{ margin: "6px 0 0", fontSize: 15.5, lineHeight: 1.6, color: C.t1, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{h.body}</p>}
+        </div>
+      </div>
+      {h.orderIds.map((id) => {
+        const o = orders.find((x) => x.id === id);
+        return o ? (
+          <button key={id} type="button" style={rowStyle} onClick={() => onOpenOrder(o)}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 14.5, color: C.t1 }}>{o.type === "buy" ? "Achat" : "Vente"} · {o.clientName}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>{o.ref} · {STATUS_META[o.status].label}</span>
+            </span>
+            <span style={{ fontSize: 14.5, color: C.t1, fontVariantNumeric: "tabular-nums" }}>{nfCad.format(o.cad)} $</span>
+          </button>
+        ) : (
+          <p key={id} style={{ margin: 0, padding: "11px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 13.5, color: C.t3 }}>{orderRef(id)} · plus dans la file</p>
+        );
+      })}
+      {h.taskIds.map((id) => {
+        const t = tasks.find((x) => x.id === id);
+        if (!t) return null;
+        return (
+          <button key={id} type="button" style={rowStyle} onClick={() => onGo("tasks")}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 14.5, color: t.status === "done" ? C.t3 : C.t1, textDecoration: t.status === "done" ? "line-through" : "none", overflowWrap: "anywhere" }}>{t.title}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>Tâche · {t.status === "done" ? "faite" : t.status === "doing" ? "en cours" : "à faire"}{t.steps.length ? ` · ${t.steps.filter((x) => x.done).length} sur ${t.steps.length} étapes` : ""}</span>
+            </span>
+          </button>
+        );
+      })}
+    </section>
+  );
+}
+
+/** Ma passation : un mot pour la suite, mes commandes ouvertes et tâches en cours rattachées toutes seules. */
+function MyHandoff({ last, orderIds, taskIds, onSent, onError }: {
+  last: Handoff | null; orderIds: string[]; taskIds: string[]; onSent: () => void; onError: (e: string) => void;
+}) {
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const parts = [orderIds.length ? `${orderIds.length} ${plural(orderIds.length, "commande ouverte", "commandes ouvertes")}` : null, taskIds.length ? `${taskIds.length} ${plural(taskIds.length, "tâche en cours", "tâches en cours")}` : null].filter(Boolean);
+  const send = async () => {
+    setBusy(true);
+    const r = await postHandoff(body, orderIds, taskIds);
+    setBusy(false);
+    if (r.error) { onError(r.error); return; }
+    setBody(""); onSent();
+  };
+  const readers = last?.reads.map((r) => firstName(r.name)) ?? [];
+  return (
+    <section className="tv-rise" style={{ animationDelay: "240ms" }}>
+      <Head title="Ma passation de fin de journée" />
+      <textarea className="tv-ta" rows={3} value={body} maxLength={2000} onChange={(e) => setBody(e.target.value)} style={{ marginTop: 12, fontSize: 15 }}
+        placeholder="Ce que je laisse en cours : où j'en suis, ce qui reste à faire, à qui s'adresser…" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 10 }}>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>{parts.length ? `Rattachées automatiquement : ${parts.join(" et ")}.` : "Aucune commande ni tâche en cours à rattacher."}</span>
+        <button type="button" className="tv-go" disabled={busy || (!body.trim() && !parts.length)} onClick={send}>{busy ? "Envoi…" : "Transmettre à l'équipe"} <ArrowRight style={{ width: 15, height: 15 }} /></button>
+      </div>
+      {last && (
+        <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.t3 }}>
+          Dernière passation transmise {agoIso(last.at)} · {readers.length ? `lue par ${readers.join(", ")}` : "pas encore lue"}.
+        </p>
+      )}
     </section>
   );
 }

@@ -311,3 +311,25 @@ export async function savePushPrefs(p: PushPrefs): Promise<{ error?: string }> {
   const { error } = await supabase.rpc("team_push_prefs_save" as never, { _mentions: p.mentions, _tasks: p.tasks, _orders: p.orders } as never);
   return error ? { error: error.message } : {};
 }
+
+/* ─── Passation de fin de journée ─── */
+export interface Handoff {
+  id: string; authorId: string; authorName: string; body: string; orderIds: string[]; taskIds: string[]; at: string;
+  reads: { userId: string; name: string; at: string }[];
+}
+/** Les passations des deux derniers jours, la plus récente d'abord. */
+export async function loadHandoffs(): Promise<Handoff[]> {
+  const since = new Date(Date.now() - 48 * 3600_000).toISOString();
+  const { data, error } = await table("team_handoffs")
+    .select("id, author_id, author_name, body, order_ids, task_ids, created_at, team_handoff_reads(user_id, user_name, read_at)")
+    .gte("created_at", since).order("created_at", { ascending: false }).limit(20);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: String(r.id), authorId: String(r.author_id), authorName: String(r.author_name), body: String(r.body ?? ""),
+    orderIds: ((r.order_ids as string[]) ?? []).map(String), taskIds: ((r.task_ids as string[]) ?? []).map(String), at: String(r.created_at),
+    reads: ((r.team_handoff_reads as Record<string, unknown>[]) ?? []).map((x) => ({ userId: String(x.user_id), name: String(x.user_name), at: String(x.read_at) })),
+  }));
+}
+export const postHandoff = (body: string, orderIds: string[], taskIds: string[]) =>
+  rpc("team_handoff_post", { _body: body, _orders: orderIds, _tasks: taskIds }).then(done);
+export const ackHandoff = (id: string) => rpc("team_handoff_ack", { _id: id }).then(done);
