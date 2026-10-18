@@ -50,6 +50,18 @@ async function check() {
 export function startFreshnessCheck() {
   if (import.meta.env.DEV || typeof window === "undefined") return;
 
+  // Fichier de l'ancienne version introuvable après une publication (page gardée en mémoire) : on
+  // recharge une fois sur la nouvelle version au lieu de laisser un écran vide.
+  window.addEventListener("vite:preloadError", (e) => {
+    const KEY = "ooble.freshness.preload";
+    let done: string | null = null;
+    try { done = sessionStorage.getItem(KEY); } catch { /* stockage indisponible */ }
+    if (done === __BUILD_ID__) return;
+    try { sessionStorage.setItem(KEY, __BUILD_ID__); } catch { /* stockage indisponible */ }
+    e.preventDefault();
+    window.location.reload();
+  });
+
   // Retour sur l'app : on vérifie, et on recharge tout de suite si une version attend (rien n'est en cours de saisie).
   // Après une longue absence, le back-office reste masqué le temps de cette vérification : on ne revoit jamais
   // une ancienne version s'afficher une seconde avant le rechargement.
@@ -57,7 +69,12 @@ export function startFreshnessCheck() {
   const onVisible = async () => {
     if (document.visibilityState !== "visible") { hiddenAt = Date.now(); return; }
     const veil = hiddenAt > 0 && Date.now() - hiddenAt > LONG_AWAY && location.pathname.startsWith("/admin");
-    if (veil) document.documentElement.style.visibility = "hidden";
+    // Le voile ne reste jamais : si le rechargement n'aboutit pas (app installée sur iPhone qui l'ignore,
+    // service worker qui recharge en même temps), l'écran réapparaît au bout de 3 secondes.
+    if (veil) {
+      document.documentElement.style.visibility = "hidden";
+      window.setTimeout(() => { document.documentElement.style.visibility = ""; }, 3000);
+    }
     // Le navigateur revérifie aussi le service worker : s'il a changé, il recharge les vieilles fenêtres du back-office.
     void navigator.serviceWorker?.getRegistration().then((r) => r?.update()).catch(() => undefined);
     await Promise.race([check(), new Promise((r) => window.setTimeout(r, 2500))]);

@@ -15,22 +15,18 @@ import { TaskForm, TaskPanel, TeamAvatar, TeamFaces, TV_CSS, dueLabel, memberLab
  */
 
 const CSS = `
-/* Les trois colonnes se partagent la largeur ; quand la place manque (téléphone, iPad avec la barre
-   latérale), elles défilent de côté et la suivante dépasse un peu. Rien ne déborde du bord de l'écran. */
+/* Les trois colonnes se partagent la largeur (aucune n'est coupée par le bord de l'écran) ; quand la
+   place manque (téléphone), elles se placent les unes sous les autres. */
 .tb-wrap { container-type: inline-size; }
-.tb-board { display: grid; gap: 0 28px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.tb-col { min-height: 220px; border-radius: 12px; transition: background .15s, box-shadow .15s; }
+.tb-board { display: grid; gap: 0 36px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tb-col { min-height: 300px; border-radius: 12px; transition: background .15s, box-shadow .15s; }
 .tb-col[data-over="true"] { background: var(--a-hover2); box-shadow: 0 0 0 1px var(--a-bd); }
 .tb-head { display: flex; align-items: center; gap: 10px; height: 40px; border-bottom: 1px solid var(--a-bd); }
-.tb-item { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid var(--a-bds); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tb-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 6px; margin: 0 -6px; border-bottom: 1px solid var(--a-bds); border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .tb-title { display: block; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
 @container (max-width: 640px) {
-  .tb-board { grid-template-columns: repeat(3, 80%); gap: 0 18px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
-  .tb-board::-webkit-scrollbar { display: none; }
-  .tb-col { min-height: 0; scroll-snap-align: start; }
-  .tb-head { height: 34px; }
-  .tb-item { gap: 10px; padding: 10px 0; }
-  .tb-title { font-size: 14.5px; }
+  .tb-board { grid-template-columns: minmax(0, 1fr); gap: 28px 0; }
+  .tb-col { min-height: 0; }
 }
 .tb-item[draggable="true"] { cursor: grab; }
 .tb-item[data-dragging="true"] { opacity: .3; }
