@@ -494,7 +494,7 @@ const lancement: CampaignTemplate = {
       </td></tr></table></td></tr>`,
       P("40px 32px 8px", `${eyebrow(tr("Comment ça marche", "How it works"), K.forest)}${gap(8)}${h2(rich(v.stepsTitle, ctx), K.ink, 26)}${gap(22)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
       P("20px 32px 8px", box(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td valign="middle" style="font-family:${FONT};font-size:14px;font-weight:500;line-height:1.4;color:${K.ink};">${tr("Recevez vos USDT<br>sur 4 réseaux", "Receive your USDT<br>on 4 networks")}</td>
+        <td valign="middle" style="font-family:${FONT};font-size:14px;font-weight:500;line-height:1.4;color:${K.ink};">${tr("Recevez vos USDT<br>sur 6 blockchains", "Receive your USDT<br>on 6 blockchains")}</td>
         <td align="right" valign="middle" style="white-space:nowrap;">${networksRow(36)}</td></tr></table>`, "#ffffff", { border: K.line, pad: "18px 20px" })),
       `<tr><td class="px" align="center" style="padding:32px;">${para(`<strong style="color:${K.ink};font-size:18px;">${rich(v.closing, ctx)}</strong>`, K.ink, 18, "0 0 18px")}${btn(v.cta2 || v.cta, v.ctaUrl, K.ink, "#ffffff")}</td></tr>`,
       footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
@@ -662,7 +662,7 @@ const relanceKyc: CampaignTemplate = {
 const reseaux: CampaignTemplate = {
   id: "reseaux",
   name: "Réseaux",
-  description: "En-tête jaune soleil, colonnes des 4 réseaux. Pour un « bon à savoir » produit.",
+  description: "En-tête jaune soleil, colonnes des 6 blockchains. Pour un « bon à savoir » produit.",
   category: "Éducation",
   swatch: [K.sun, K.ink],
   fields: [
@@ -677,11 +677,11 @@ const reseaux: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Vos USDT, sur le réseau de votre choix",
-      preheader: "Tron, BNB Chain, Polygon ou Solana : choisissez au moment de l'ordre.",
+      preheader: "Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche : choisissez au moment de l'ordre.",
       badge: "Bon à savoir",
       headline: "Vos USDT,\nsur le réseau\nde votre choix.",
       intro: "Choisissez le réseau au moment de l'ordre. Le taux ne change pas : seuls les frais du réseau varient.",
-      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi : une adresse Tron commence par T, une adresse BNB Chain ou Polygon par 0x. Une transaction blockchain ne peut pas être annulée.",
+      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi : une adresse Tron commence par T, une adresse BNB Chain, Ethereum, Polygon ou Avalanche par 0x. Une transaction blockchain ne peut pas être annulée.",
       cta: "Acheter des USDT",
       ctaUrl: "/app/acheter",
       link: "Quel réseau choisir ?",
@@ -689,11 +689,11 @@ const reseaux: CampaignTemplate = {
     },
     en: {
       subject: "Your USDT, on the network of your choice",
-      preheader: "Tron, BNB Chain, Polygon or Solana: choose when you place your order.",
+      preheader: "Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche: choose when you place your order.",
       badge: "Good to know",
       headline: "Your USDT,\non the network\nyou choose.",
       intro: "Pick the network when you place your order. The rate stays the same: only the network fees vary.",
-      tip: "Check that your wallet address matches the network you chose: a Tron address starts with T, a BNB Chain or Polygon address with 0x. A blockchain transaction can't be reversed.",
+      tip: "Check that your wallet address matches the network you chose: a Tron address starts with T, a BNB Chain, Ethereum, Polygon or Avalanche address with 0x. A blockchain transaction can't be reversed.",
       cta: "Buy USDT",
       ctaUrl: "/app/acheter",
       link: "Which network should I pick?",
@@ -847,7 +847,7 @@ const entreprises: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Payez vos fournisseurs en USDT, au nom de votre société",
-      preheader: "Le compte entreprise Ooble : Interac en dollars canadiens, 4 réseaux, desk OTC.",
+      preheader: "Le compte entreprise Ooble : Interac en dollars canadiens, 6 blockchains, desk OTC.",
       badge: "Pour les entreprises",
       headline: "Payez vos fournisseurs en USDT, au nom de votre société.",
       cta: "Ouvrir un compte entreprise",
@@ -857,7 +857,7 @@ const entreprises: CampaignTemplate = {
       benefits: [
         "Au nom de la société | Chaque achat et chaque vente sont faits au nom de votre entreprise.",
         "Interac en dollars canadiens | Payez depuis le compte bancaire de l'entreprise, sans carte.",
-        "4 réseaux | Tron, BNB Chain, Polygon et Solana, au choix pour chaque ordre.",
+        "6 blockchains | Tron, BNB Chain, Ethereum, Polygon, Solana et Avalanche, au choix pour chaque ordre.",
         "Gros montants | Au-delà de 10 000 $, le desk OTC vous donne un prix ferme.",
       ].join("\n"),
       stepsTitle: "L'ouverture, en trois temps",
@@ -871,7 +871,7 @@ const entreprises: CampaignTemplate = {
     },
     en: {
       subject: "Pay your suppliers in USDT, in your company's name",
-      preheader: "The Ooble business account: Interac in Canadian dollars, 4 networks, OTC desk.",
+      preheader: "The Ooble business account: Interac in Canadian dollars, 6 blockchains, OTC desk.",
       badge: "For businesses",
       headline: "Pay your suppliers in USDT, in your company's name.",
       cta: "Open a business account",
@@ -881,7 +881,7 @@ const entreprises: CampaignTemplate = {
       benefits: [
         "In the company's name | Every purchase and sale is made in your business's name.",
         "Interac in Canadian dollars | Pay from the company's bank account, no card needed.",
-        "4 networks | Tron, BNB Chain, Polygon and Solana, your pick for each order.",
+        "6 blockchains | Tron, BNB Chain, Ethereum, Polygon, Solana and Avalanche, your pick for each order.",
         "Large amounts | Above $10,000, the OTC desk gives you a firm price.",
       ].join("\n"),
       stepsTitle: "Opening your account, in three steps",
@@ -973,7 +973,7 @@ const lettre: CampaignTemplate = {
       card2Image: "guide:vendre-usdt",
       card2: "Guide · 42 s | Vendre des USDT | Envoyez vos USDT et recevez des dollars canadiens par Interac.",
       brief: [
-        "4 | réseaux pour recevoir vos USDT : **Tron, BNB Chain, Polygon et Solana**.",
+        "6 | blockchains pour recevoir vos USDT : **Tron, BNB Chain, Ethereum, Polygon, Solana et Avalanche**.",
         "9 999 $ | par période de 24 heures, directement dans l'app.",
         "10 000 $ | et plus : le desk OTC vous donne un prix ferme, en une fois.",
       ].join("\n"),
@@ -995,7 +995,7 @@ const lettre: CampaignTemplate = {
       card2Image: "guide:vendre-usdt",
       card2: "Guide · 43 s | Sell USDT | Send your USDT and receive Canadian dollars by Interac.",
       brief: [
-        "4 | networks to receive your USDT: **Tron, BNB Chain, Polygon and Solana**.",
+        "6 | blockchains to receive your USDT: **Tron, BNB Chain, Ethereum, Polygon, Solana and Avalanche**.",
         "$9,999 | per 24-hour period, right in the app.",
         "$10,000 | and up: the OTC desk gives you a firm price, in one go.",
       ].join("\n"),
@@ -1302,7 +1302,7 @@ const nouveaute: CampaignTemplate = {
       message: "Dans l'onglet Vendre, entrez le montant, choisissez le réseau et l'adresse courriel Interac où recevoir votre virement. Dès confirmation sur la blockchain, vos dollars partent.",
       points: [
         "À partir de 100 $ par vente",
-        "Sur Tron, BNB Chain, Polygon ou Solana",
+        "Sur Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche",
         "Virement Interac e-Transfer en dollars canadiens",
       ].join("\n"),
       cta: "Vendre des USDT",
@@ -1317,7 +1317,7 @@ const nouveaute: CampaignTemplate = {
       message: "In the Sell tab, enter the amount, pick the network and the Interac email where you want your transfer. As soon as it's confirmed on the blockchain, your dollars are on their way.",
       points: [
         "From $100 per sale",
-        "On Tron, BNB Chain, Polygon or Solana",
+        "On Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche",
         "Interac e-Transfer in Canadian dollars",
       ].join("\n"),
       cta: "Sell USDT",
@@ -1356,14 +1356,14 @@ const retour: CampaignTemplate = {
   copy: {
     fr: {
       subject: "{{prenom}}, voici ce qui a changé sur Ooble",
-      preheader: "Guides vidéo, 4 réseaux, desk OTC : tout ce qui est nouveau depuis votre dernière visite.",
+      preheader: "Guides vidéo, 6 blockchains, desk OTC : tout ce qui est nouveau depuis votre dernière visite.",
       headline: "Ça fait un moment, {{prenom}}.",
       intro: "Depuis votre dernière visite, nous avons amélioré Ooble. Voici l'essentiel, en trente secondes.",
       image: "ill:login",
       newsTitle: "Ce qui a changé",
       news: [
         "Des guides vidéo | Sept vidéos de moins d'une minute pour tout faire sans erreur.",
-        "4 réseaux | Recevez vos USDT sur Tron, BNB Chain, Polygon ou Solana.",
+        "6 blockchains | Recevez vos USDT sur Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
         "Le desk OTC | À partir de 10 000 $, un prix ferme et un seul interlocuteur.",
       ].join("\n"),
       cta: "Revenir sur Ooble",
@@ -1371,14 +1371,14 @@ const retour: CampaignTemplate = {
     },
     en: {
       subject: "{{prenom}}, here's what's new at Ooble",
-      preheader: "Video guides, 4 networks, OTC desk: everything new since your last visit.",
+      preheader: "Video guides, 6 blockchains, OTC desk: everything new since your last visit.",
       headline: "It's been a while, {{prenom}}.",
       intro: "Since your last visit, we've improved Ooble. Here's the gist, in thirty seconds.",
       image: "ill:login",
       newsTitle: "What's changed",
       news: [
         "Video guides | Seven videos under a minute to get everything right.",
-        "4 networks | Receive your USDT on Tron, BNB Chain, Polygon or Solana.",
+        "6 blockchains | Receive your USDT on Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
         "The OTC desk | From $10,000, a firm price and a single point of contact.",
       ].join("\n"),
       cta: "Come back to Ooble",
@@ -1656,7 +1656,7 @@ const premierAchat: CampaignTemplate = {
       videoLabel: "Voir la vidéo · 46 s",
       steps: [
         "Entrez le montant | En dollars canadiens ou en USDT. Le taux s'affiche en temps réel.",
-        "Choisissez le réseau | Tron, BNB Chain, Polygon ou Solana.",
+        "Choisissez le réseau | Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
         "Collez votre adresse | Celle de votre wallet, sur le réseau choisi.",
         "Validez l'ordre | Vérifiez le montant, le taux, le réseau et l'adresse.",
         "Payez par Interac | À **interac@ooble.ca**, montant exact, référence en message.",
@@ -1675,7 +1675,7 @@ const premierAchat: CampaignTemplate = {
       videoLabel: "Watch the video · 44 s",
       steps: [
         "Enter the amount | In Canadian dollars or USDT. The rate updates in real time.",
-        "Choose the network | Tron, BNB Chain, Polygon or Solana.",
+        "Choose the network | Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
         "Paste your address | Your wallet's, on the network you chose.",
         "Confirm the order | Check the amount, rate, network and address.",
         "Pay by Interac | To **interac@ooble.ca**, exact amount, reference as the message.",
@@ -1862,7 +1862,7 @@ const quoiDeNeuf: CampaignTemplate = {
         "Nouveau | Guides vidéo | Sept vidéos de moins d'une minute, en français et en anglais.",
         "Nouveau | Desk OTC | À partir de 10 000 $, un prix ferme et un seul interlocuteur.",
         "Nouveau | Notifications | Suivez vos ordres en direct sur votre téléphone.",
-        "Amélioré | Réseaux | Vos USDT sur Tron, BNB Chain, Polygon ou Solana.",
+        "Amélioré | Réseaux | Vos USDT sur Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
       ].join("\n"),
       cta: "Ouvrir Ooble",
       ctaUrl: "/app",
@@ -1877,7 +1877,7 @@ const quoiDeNeuf: CampaignTemplate = {
         "New | Video guides | Seven videos under a minute each, in English and French.",
         "New | OTC desk | From $10,000, a firm price and a single point of contact.",
         "New | Notifications | Follow your orders live on your phone.",
-        "Improved | Networks | Your USDT on Tron, BNB Chain, Polygon or Solana.",
+        "Improved | Networks | Your USDT on Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
       ].join("\n"),
       cta: "Open Ooble",
       ctaUrl: "/app",
@@ -2408,7 +2408,7 @@ const portefeuille: CampaignTemplate = {
       points: [
         "Aucun solde chez Ooble | Pas de portefeuille interne, rien qui dort sur la plateforme.",
         "Votre wallet, vos clés | Vous seul avez la phrase de récupération. Ne la partagez jamais.",
-        "Le bon réseau | L'adresse doit correspondre au réseau choisi : Tron, BNB Chain, Polygon ou Solana.",
+        "Le bon réseau | L'adresse doit correspondre au réseau choisi : Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
       ].join("\n"),
       cta: "Acheter des USDT",
       ctaUrl: "/app/acheter",
@@ -2422,7 +2422,7 @@ const portefeuille: CampaignTemplate = {
       points: [
         "No balance at Ooble | No internal wallet, nothing sitting on the platform.",
         "Your wallet, your keys | Only you have the recovery phrase. Never share it.",
-        "The right network | The address must match the network you chose: Tron, BNB Chain, Polygon or Solana.",
+        "The right network | The address must match the network you chose: Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
       ].join("\n"),
       cta: "Buy USDT",
       ctaUrl: "/app/acheter",
@@ -2735,7 +2735,7 @@ const reseau: CampaignTemplate = {
       image: "ill:coins",
       points: [
         "Quasi instantané | Le règlement sur Solana prend quelques instants.",
-        "Au choix, à chaque ordre | Tron, BNB Chain, Polygon ou Solana.",
+        "Au choix, à chaque ordre | Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
         "Même taux | Seuls les frais du réseau changent.",
       ].join("\n"),
       tip: "Une adresse Solana ne commence ni par T ni par 0x. Vérifiez-la avant de valider : une transaction blockchain est définitive.",
@@ -2751,7 +2751,7 @@ const reseau: CampaignTemplate = {
       image: "ill:coins",
       points: [
         "Near-instant | Settlement on Solana takes moments.",
-        "Your pick, every order | Tron, BNB Chain, Polygon or Solana.",
+        "Your pick, every order | Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
         "Same rate | Only the network fees change.",
       ].join("\n"),
       tip: "A Solana address starts with neither T nor 0x. Check it before confirming: a blockchain transaction is final.",
@@ -3005,7 +3005,7 @@ const mobile: CampaignTemplate = {
       headline: "Vos USDT,\ndans la poche.",
       intro: "Tout se fait depuis votre téléphone : l'ordre, le virement Interac et le suivi.",
       image: "ill:phone",
-      stats: ["100 $ | minimum par ordre", "15 min | taux garanti", "4 | réseaux au choix"].join("\n"),
+      stats: ["100 $ | minimum par ordre", "15 min | taux garanti", "6 | blockchains au choix"].join("\n"),
       steps: [
         "Entrez le montant | En dollars canadiens ou en USDT.",
         "Payez par Interac | Depuis l'app de votre banque.",
@@ -3020,7 +3020,7 @@ const mobile: CampaignTemplate = {
       headline: "Your USDT,\nin your pocket.",
       intro: "Everything happens on your phone: the order, the Interac transfer and the tracking.",
       image: "ill:phone",
-      stats: ["$100 | minimum per order", "15 min | locked rate", "4 | networks to choose from"].join("\n"),
+      stats: ["$100 | minimum per order", "15 min | locked rate", "6 | blockchains to choose from"].join("\n"),
       steps: [
         "Enter the amount | In Canadian dollars or USDT.",
         "Pay by Interac | From your banking app.",

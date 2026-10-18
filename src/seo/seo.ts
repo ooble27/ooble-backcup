@@ -37,12 +37,12 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
     {
       title: "Acheter et vendre des USDT au Canada par Interac | Ooble",
       description:
-        "Achetez et vendez des USDT (Tether) en dollars canadiens par virement Interac. Taux garanti 15 minutes, envoi direct dans votre wallet sur 4 réseaux. Ooble ne garde aucun solde.",
+        "Achetez et vendez des USDT (Tether) en dollars canadiens par virement Interac. Taux garanti 15 minutes, envoi direct dans votre wallet sur 6 blockchains. Ooble ne garde aucun solde.",
     },
     {
       title: "Buy and Sell USDT in Canada with Interac e-Transfer | Ooble",
       description:
-        "Buy and sell USDT (Tether) with Canadian dollars via Interac e-Transfer. Rate locked for 15 minutes, sent straight to your wallet on 4 networks. Ooble never holds a balance.",
+        "Buy and sell USDT (Tether) with Canadian dollars via Interac e-Transfer. Rate locked for 15 minutes, sent straight to your wallet on 6 blockchains. Ooble never holds a balance.",
     },
   ),
   "/otc": page(
@@ -61,12 +61,12 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
     {
       title: "Compte entreprise pour acheter des USDT au Canada | Ooble",
       description:
-        "Achetez et vendez des USDT au nom de votre société : compte entreprise vérifié, paiement par Interac en dollars canadiens, réception sur 4 réseaux.",
+        "Achetez et vendez des USDT au nom de votre société : compte entreprise vérifié, paiement par Interac en dollars canadiens, réception sur 6 blockchains.",
     },
     {
       title: "Business Account to Buy USDT in Canada | Ooble",
       description:
-        "Buy and sell USDT on behalf of your company: verified business account, Interac payments in Canadian dollars, delivery on 4 networks.",
+        "Buy and sell USDT on behalf of your company: verified business account, Interac payments in Canadian dollars, delivery on 6 blockchains.",
     },
   ),
   "/faq": page(
