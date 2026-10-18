@@ -324,6 +324,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
     const late = (tasks ?? []).filter((t) => isLate(t) && isMine(t, m.userId, m.roles)).length;
     return { id: m.userId, name: m.name, you: m.userId === me, text: n ? `${n} ${plural(n, "tâche")}${late ? ` · ${late} en retard` : ""}` : "rien en attente", strong: late > 0, n };
   }).sort((a, b) => b.n - a.n);
+  const admin = roles.includes("admin");
   const toggleDone = async (t: TeamTask) => { const r = await setTaskStatus(t.id, t.status === "done" ? "todo" : "done"); if (r.error) setErr(r.error); else changed(); };
   const who = (t: TeamTask) => t.assigneeId ? (t.assigneeId === me ? "Vous" : members.find((m) => m.userId === t.assigneeId)?.name ?? "Un membre") : t.assigneeRole ? roleLabel(t.assigneeRole) : "Toute l'équipe";
 
@@ -363,7 +364,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
             {g.label && <p style={{ margin: "0 0 2px", fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: g.label === "En retard" ? C.t1 : C.t3, fontWeight: g.label === "En retard" ? 600 : 400 }}>{g.label} · {g.rows.length}</p>}
             {g.rows.map((t) => (
               <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 14, borderBottom: `1px solid ${C.bds}` }}>
-                {!t.archived && (
+                {!t.archived && (admin || t.createdBy === me || isMine(t, me, roles)) && (
                   <button type="button" className="tv-check" data-done={t.status === "done"} onClick={() => toggleDone(t)}
                     aria-label={t.status === "done" ? "Remettre à faire" : "Marquer fait"} title={t.status === "done" ? "Remettre à faire" : "Marquer fait"}>
                     <Check style={{ width: 13, height: 13 }} strokeWidth={3} />
@@ -388,14 +389,14 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
         ))}
       </div>
       {editing && <TaskForm task={editing === "new" ? null : editing} members={members} me={me} onClose={() => setEditing(null)} onSaved={(id) => { setEditing(null); changed(); if (id) setOpenId(id); }} />}
-      {open && !editing && <TaskPanel task={open} me={me} admin={roles.includes("admin")} who={who(open)} onClose={() => setOpenId(null)} onEdit={() => setEditing(open)} onChanged={changed}
+      {open && !editing && <TaskPanel task={open} me={me} admin={admin} canStatus={admin || open.createdBy === me || isMine(open, me, roles)} who={who(open)} onClose={() => setOpenId(null)} onEdit={() => setEditing(open)} onChanged={changed}
         onOpenOrder={onOpenOrder} onShowClient={onShowClient} />}
     </div>
   );
 }
 
-function TaskPanel({ task: t, me, admin, who, onClose, onEdit, onChanged, onOpenOrder, onShowClient }: {
-  task: TeamTask; me: string; admin: boolean; who: string; onClose: () => void; onEdit: () => void; onChanged: () => void;
+function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit, onChanged, onOpenOrder, onShowClient }: {
+  task: TeamTask; me: string; admin: boolean; canStatus: boolean; who: string; onClose: () => void; onEdit: () => void; onChanged: () => void;
   onOpenOrder?: (id: string) => void; onShowClient?: (id: string) => void;
 }) {
   const [comment, setComment] = useState("");
@@ -409,7 +410,7 @@ function TaskPanel({ task: t, me, admin, who, onClose, onEdit, onChanged, onOpen
   return (
     <SidePanel title={t.title} subtitle={`Créée par ${t.createdBy === me ? "vous" : t.createdByName} · ${when(t.at)}`} onClose={onClose} width={560}>
       <style>{TV_CSS + GR_CSS}</style>
-      {!t.archived && (
+      {!t.archived && canStatus && (
         <p style={{ margin: 0, fontSize: 15.5, lineHeight: 2, color: C.t2 }}>
           <Opts value={t.status} onChange={(s: TaskStatus) => act(setTaskStatus(t.id, s))} options={(["todo", "doing", "done"] as TaskStatus[]).map((s) => ({ v: s, label: STATUS_LABEL[s] }))} />
         </p>
@@ -440,7 +441,7 @@ function TaskPanel({ task: t, me, admin, who, onClose, onEdit, onChanged, onOpen
 
       {!t.archived && (
         <div style={{ display: "flex", gap: 22, marginTop: 28, flexWrap: "wrap" }}>
-          <button type="button" className="tv-go" onClick={onEdit}>Modifier <ArrowRight style={{ width: 15, height: 15 }} /></button>
+          {(admin || t.createdBy === me) && <button type="button" className="tv-go" onClick={onEdit}>Modifier <ArrowRight style={{ width: 15, height: 15 }} /></button>}
           {(admin || t.createdBy === me) && <button type="button" className="tv-link" style={{ fontSize: 14 }} onClick={() => act(archiveTask(t.id), onClose)}>Archiver la tâche</button>}
         </div>
       )}
