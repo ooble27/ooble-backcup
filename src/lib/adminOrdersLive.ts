@@ -15,6 +15,7 @@ import { sendEmail } from "@/lib/email";
 import { NETWORKS } from "@/components/app/networks";
 import { logAdminAction } from "@/lib/audit";
 import { EXPLORER_NAME, fetchOutboundTx, txUrl } from "@/lib/settlement";
+import { firstName, loadMembers, peekMembers } from "@/lib/teamSpace";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
@@ -46,9 +47,10 @@ const minsAgo = (iso: string) =>
   Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 
 /** Convertit une ligne base (+ profil) vers le modèle du back-office. */
-function toAdminOrder(row: RowWithProfile, currentUid: string | null): AdminOrder {
+function toAdminOrder(row: RowWithProfile, currentUid: string | null, team: Map<string, string>): AdminOrder {
+  // Prise en charge : « Vous », ou le prénom du membre qui s'en occupe.
   const assigned = row.assigned_to
-    ? (row.assigned_to === currentUid ? CURRENT_OPERATOR : "Équipe")
+    ? (row.assigned_to === currentUid ? CURRENT_OPERATOR : team.get(row.assigned_to) ?? "Un membre de l'équipe")
     : null;
   return {
     id: row.id,
@@ -113,7 +115,10 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
     .range(a, b)).catch(() => null);
 
   if (!data) return [];
-  const rows = (data as RowWithProfile[]).map((r) => toAdminOrder(r, uid));
+  const known = peekMembers();
+  const members = known.length ? known : await loadMembers().catch(() => []);
+  const team = new Map(members.map((m) => [m.userId, firstName(m.name)]));
+  const rows = (data as RowWithProfile[]).map((r) => toAdminOrder(r, uid, team));
   // Commandes que le système est en train d'envoyer tout seul (envoi USDT non échoué).
   const live = rows.filter((o) => o.status === "recu" || o.status === "cours").map((o) => o.id);
   if (live.length) {

@@ -249,7 +249,10 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
   const [confirmRefund, setConfirmRefund] = useState(false);
   const [refunding, setRefunding] = useState(false);
   const [refundError, setRefundError] = useState<string | null>(null);
-  const lockedByOther = !!order.assignedTo && order.assignedTo !== CURRENT_OPERATOR;
+  // Prise en charge par un collègue : bloque seulement une commande encore à traiter (terminée, annulée
+  // ou remboursée, elle est finie pour toute l'équipe).
+  const stillOpen = order.status === "attente" || order.status === "recu" || order.status === "cours";
+  const lockedByOther = stillOpen && !!order.assignedTo && order.assignedTo !== CURRENT_OPERATOR;
 
   useEffect(() => {
     let active = true;

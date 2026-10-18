@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Pin } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { nfCad, nfUsdt, STATUS_META, type AdminOrder } from "@/lib/adminOrders";
+import { CURRENT_OPERATOR, nfCad, nfUsdt, STATUS_META, type AdminOrder } from "@/lib/adminOrders";
 import { roleLabel, sortRoles } from "@/lib/roles";
 import {
   audienceLabel, isLate, isMine, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, savePrivateNote, setTaskStatus, todayToronto,
@@ -82,7 +82,8 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const unreadCount = unreadInfo ? Object.values(unreadInfo.channels).reduce((a, b) => a + (b ?? 0), 0) : unread.length;
   const feed = notes ?? [];
   const myself = memberById(me);
-  const myOrders = canOrders ? orders.filter((o) => o.assignedTo === me && (o.status === "recu" || o.status === "cours")) : [];
+  // Les commandes que je traite (la liste marque les miennes « Vous », pas par mon identifiant).
+  const myOrders = canOrders ? orders.filter((o) => o.assignedTo === CURRENT_OPERATOR && (o.status === "recu" || o.status === "cours")) : [];
   const first = (user?.name ?? "").split(/\s+/)[0];
   const ready = !!tasks && !!notes;
   const dateText = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Toronto" }).replace(/^./, (c) => c.toUpperCase());

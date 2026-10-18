@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, archiveTask, commentTask, findOrder, isLate, loadMembers, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, firstName, commentTask, findOrder, isLate, loadMembers, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
   type AvatarBg, type Audience, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
@@ -111,9 +111,10 @@ export function TeamAvatar({ name, id, size = 30, group, presence, preview }: {
 }
 
 /** Nom d'un membre, dans sa couleur (comme dans les groupes de messagerie). */
-export function TeamName({ id, name, you, style }: { id?: string | null; name: string; you?: boolean; style?: React.CSSProperties }) {
+export function TeamName({ id, name, you, full, style }: { id?: string | null; name: string; you?: boolean; full?: boolean; style?: React.CSSProperties }) {
   const m = memberById(id);
-  return <span className="tv-name" style={{ color: nameColor(m?.color), ...style }}>{you ? "Vous" : name}</span>;
+  // Le prénom seulement (le nom complet au survol) ; `full` pour choisir quelqu'un dans une liste.
+  return <span className="tv-name" title={full ? undefined : name} style={{ color: nameColor(m?.color), ...style }}>{you ? "Vous" : full ? name : firstName(name)}</span>;
 }
 
 /** L'équipe, une personne par ligne, avec ce qui la concerne (à droite des en-têtes). */
@@ -136,7 +137,10 @@ export function TeamFaces({ title, rows, onPick }: { title: string; rows: { id: 
 }
 
 /** Nom d'un membre pour les textes (« Vous » pour soi). */
-export const memberLabel = (members: TeamMember[], id: string, me: string) => (id === me ? "Vous" : members.find((m) => m.userId === id)?.name ?? "Un membre");
+export const memberLabel = (members: TeamMember[], id: string, me: string) => {
+  const name = members.find((m) => m.userId === id)?.name;
+  return id === me ? "Vous" : name ? firstName(name) : "Un membre";
+};
 
 /** Ce qu'on dit d'un membre absent ou occupé, sinon `fallback`. */
 export function presenceText(m: TeamMember | undefined, fallback: string) {
@@ -217,7 +221,7 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
         {row("Échéance", t.dueOn ? `${dueLabel(t.dueOn)}${isLate(t) ? " · en retard" : ""}` : "Aucune")}
         {t.clientId && row("Client", onShowClient ? <button type="button" className="tv-link" style={{ fontSize: 14, color: C.t1, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={() => onShowClient(t.clientId!)}>{t.clientName}</button> : t.clientName)}
         {t.orderId && row("Commande", onOpenOrder ? <button type="button" className="tv-link" style={{ fontSize: 14, color: C.t1, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={() => onOpenOrder(t.orderId!)}>{t.orderRef}</button> : t.orderRef)}
-        {t.status === "done" && t.doneByName && row("Fait par", `${t.doneByName}${t.doneAt ? ` · ${when(t.doneAt)}` : ""}`)}
+        {t.status === "done" && t.doneByName && row("Fait par", `${firstName(t.doneByName)}${t.doneAt ? ` · ${when(t.doneAt)}` : ""}`)}
       </div>
 
       <p style={{ margin: "24px 0 4px", fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: C.t3 }}>Commentaires</p>

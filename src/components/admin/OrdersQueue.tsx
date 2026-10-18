@@ -53,7 +53,10 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
         <Button size="sm" variant="ghost" onClick={() => onPatch(o.id, { assignedTo: null })}>Libérer</Button>
         <Button size="sm" variant="primary" onClick={() => onOpen(o)}>Traiter</Button>
       </>}
-      {tab === "others" && <Button size="sm" onClick={() => onOpen(o)}>Ouvrir</Button>}
+      {tab === "others" && <>
+        <span style={{ display: "inline-flex", alignItems: "center", fontSize: 12.5, color: C.t2, whiteSpace: "nowrap" }}>Prise par {o.assignedTo}</span>
+        <Button size="sm" onClick={() => onOpen(o)}>Ouvrir</Button>
+      </>}
     </span>
   );
 

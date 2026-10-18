@@ -57,6 +57,8 @@ export function onMembersChange(fn: () => void) {
   return () => window.removeEventListener(DIR_EVENT, fn);
 }
 export const memberById = (id: string | null | undefined) => (id ? peekMembers().find((m) => m.userId === id) : undefined);
+/** Prénom d'un membre : c'est ainsi que l'équipe se nomme partout dans le back-office. */
+export const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
 
 export interface ProfileInput { seed: string | null; photo: string | null; bg: AvatarBg; color: NameColor; status: Presence; statusUntil: string | null; statusNote: string }
 export async function saveProfile(p: ProfileInput) {

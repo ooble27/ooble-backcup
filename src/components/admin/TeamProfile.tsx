@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ArrowRight, Check, ImagePlus, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { NAME_COLORS, PRESENCE_LABEL, TEAM_COLORS, memberById, resizePhoto, saveProfile, type AvatarBg, type NameColor, type Presence } from "@/lib/teamSpace";
+import { NAME_COLORS, PRESENCE_LABEL, TEAM_COLORS, firstName, memberById, resizePhoto, saveProfile, type AvatarBg, type NameColor, type Presence } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
@@ -98,7 +98,7 @@ export function ProfilePanel({ onClose }: { onClose: () => void }) {
       <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
         <TeamAvatar id={me} name={name} size={84} preview={{ seed, photo, bg }} />
         <div style={{ minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", color: nameColor(color), overflowWrap: "anywhere" }}>{name}</p>
+          <p style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", color: nameColor(color), overflowWrap: "anywhere" }} title={name}>{firstName(name)}</p>
           <p style={{ margin: "4px 0 0", fontSize: 13.5, color: C.t2 }}>
             <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, marginRight: 7, background: status === "available" ? "var(--a-sage)" : status === "busy" ? "var(--a-sun)" : "var(--a-t3)" }} />
             {PRESENCE_LABEL[status]}{status === "away" && until ? ` jusqu'au ${new Date(`${until}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long" })}` : ""}{status !== "available" && note.trim() ? ` · ${note.trim()}` : ""}

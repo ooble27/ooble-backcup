@@ -3,7 +3,7 @@ import { Archive, ArrowDown, ArrowRight, Hash, MessageSquare, Pencil, Pin, PinOf
 import { useAuth } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import {
-  NOTE_PAGE, audienceLabel, audienceMembers, editNote, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
+  NOTE_PAGE, audienceLabel, audienceMembers, editNote, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
   removeNote, removeReply, replyNote, setNote, type Audience, type NoteReply, type TeamMember, type TeamNote, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
@@ -86,7 +86,6 @@ const dayTitle = (key: string) => {
   return new Date(`${key}T12:00:00`).toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long", year: key.slice(0, 4) === today.slice(0, 4) ? undefined : "numeric" });
 };
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" });
-const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
 const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const isLong = (s: string) => s.length > 700 || s.split("\n").length > 9;
@@ -456,7 +455,7 @@ function Composer({ channel, chLabel, me, meName, admin, audience, onSent, onErr
           {suggestions.map((m, i) => (
             <button key={m.userId} type="button" role="option" aria-selected={i === sel} className="tn-sg" onMouseDown={(e) => { e.preventDefault(); insert(m); }}>
               <TeamAvatar id={m.userId} name={m.name} size={26} presence />
-              <TeamName id={m.userId} name={m.name} />
+              <TeamName id={m.userId} name={m.name} full />
             </button>
           ))}
         </div>
@@ -546,7 +545,7 @@ function Message({ note: n, me, admin, members, fresh, archivedView, onChanged, 
         </div>
         {readers && (
           <p style={{ margin: "6px 0 0", fontSize: 12.5, lineHeight: 1.8, color: C.t3 }}>
-            {audience.map((m, i) => <span key={m.userId}>{i ? " · " : ""}{readIds.has(m.userId) ? <><TeamName id={m.userId} name={m.name} style={{ fontWeight: 500 }} /> ✓</> : m.name}</span>)}
+            {audience.map((m, i) => <span key={m.userId}>{i ? " · " : ""}{readIds.has(m.userId) ? <><TeamName id={m.userId} name={m.name} style={{ fontWeight: 500 }} /> ✓</> : firstName(m.name)}</span>)}
           </p>
         )}
         {thread && (
