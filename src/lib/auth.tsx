@@ -107,6 +107,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Charge les rôles d'équipe de l'utilisateur connecté (RLS : chacun voit les
   // siens). Un client sans rôle obtient un tableau vide → pas de back-office.
+  // Une erreur de lecture (réseau, jeton en cours de renouvellement) n'est pas
+  // « aucun rôle » : on réessaie, puis on garde les derniers rôles connus sur
+  // cet appareil. Les rôles sont relus régulièrement et au retour sur l'app,
+  // pour qu'un membre retiré de l'équipe perde l'accès sans recharger.
   useEffect(() => {
     const uid = user?.id;
     if (!uid) {
@@ -115,16 +119,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     let active = true;
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", uid)
-      .then(({ data }) => {
-        if (!active) return;
-        setRoles((data ?? []).map((r) => r.role));
-        setRolesFor(uid);
-      });
-    return () => { active = false; };
+    let timer: number | undefined;
+    const KEY = `ooble.roles.${uid}`;
+    const same = (a: AppRole[], b: AppRole[]) => a.length === b.length && a.every((r) => b.includes(r));
+    let got = false;
+    const apply = (next: AppRole[]) => {
+      got = true;
+      setRoles((prev) => (same(prev, next) ? prev : next));
+      setRolesFor(uid);
+    };
+    const load = async (attempt: number) => {
+      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      if (!active) return;
+      if (!error) {
+        const next = (data ?? []).map((r) => r.role);
+        try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* stockage indisponible */ }
+        apply(next);
+        return;
+      }
+      if (attempt < 5) { timer = window.setTimeout(() => void load(attempt + 1), Math.min(1000 * 2 ** attempt, 8000)); return; }
+      // Toujours en échec : si rien n'est encore chargé, derniers rôles connus (sinon aucun) ;
+      // sinon on garde les rôles actuels. On reprendra au prochain passage.
+      if (got) return;
+      let known: AppRole[] = [];
+      try { known = JSON.parse(localStorage.getItem(KEY) ?? "[]") as AppRole[]; } catch { /* rien de connu */ }
+      apply(known);
+    };
+    void load(0);
+    const every = window.setInterval(() => void load(5), 5 * 60_000);
+    const onVisible = () => { if (document.visibilityState === "visible") void load(5); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+      window.clearInterval(every);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [user?.id]);
 
   const rolesLoading = !!user && rolesFor !== user.id;
