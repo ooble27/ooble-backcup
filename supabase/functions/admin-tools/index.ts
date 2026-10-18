@@ -114,7 +114,13 @@ async function emailUsage() {
   let today = 0, month = 0, after: string | null = null;
   for (let page = 0; page < 40; page++) {
     const url = `https://api.resend.com/emails?limit=100${after ? `&after=${after}` : ""}`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${RESEND}` } });
+    // Resend accepte quelques lectures par seconde : petite pause entre les pages, et on patiente si on va trop vite.
+    if (page > 0) await new Promise((ok) => setTimeout(ok, 300));
+    let r = await fetch(url, { headers: { Authorization: `Bearer ${RESEND}` } });
+    for (let wait = 1; r.status === 429 && wait <= 3; wait++) {
+      await new Promise((ok) => setTimeout(ok, 1000 * wait));
+      r = await fetch(url, { headers: { Authorization: `Bearer ${RESEND}` } });
+    }
     if (!r.ok) throw new Error(`Resend : ${r.status}`);
     const d = await r.json() as { data?: { id: string; created_at: string }[]; has_more?: boolean };
     const rows = d.data ?? [];

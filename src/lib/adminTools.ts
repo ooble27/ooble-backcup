@@ -16,7 +16,16 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 export interface EmailUsage { today: number; dayLimit: number; month: number; monthLimit: number; resetsAt: string; monthResetsAt: string }
-export const fetchEmailUsage = () => call<EmailUsage>({ action: "email_usage" });
+// La liste des Réglages et la page Courriels le demandent au même moment : un seul appel à la fois,
+// et le résultat sert une minute (Resend limite le nombre de lectures par seconde).
+let usage: { at: number; p: Promise<EmailUsage> } | null = null;
+export const fetchEmailUsage = () => {
+  if (usage && Date.now() - usage.at < 60_000) return usage.p;
+  const p = call<EmailUsage>({ action: "email_usage" });
+  usage = { at: Date.now(), p };
+  p.catch(() => { if (usage?.p === p) usage = null; });
+  return p;
+};
 
 export interface AccountAccess { email: string | null; createdAt: string; emailConfirmedAt: string | null; lastSignInAt: string | null; suspended: boolean }
 export const fetchAccountAccess = (userId: string) => call<AccountAccess>({ action: "account", userId });
