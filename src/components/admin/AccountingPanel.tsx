@@ -8,6 +8,7 @@ import { Button, Notice } from "./ui";
 import { DataTable, Section, Tabs, type Column } from "./layout";
 import { ExpensesView, ProfitStatement, PurchasesView } from "./LedgerViews";
 import { JournalView, StatementsView } from "./JournalViews";
+import { BankReconView } from "./BankReconView";
 import AccountingMonth from "./AccountingMonth";
 import { replayRise } from "@/lib/pageMotion";
 
@@ -17,7 +18,7 @@ import { replayRise } from "@/lib/pageMotion";
  * Une période au choix, le détail mois par mois sur sa propre page, un classeur Excel pour le comptable.
  */
 
-type View = "overview" | "journal" | "statements" | "purchases" | "expenses";
+type View = "overview" | "journal" | "statements" | "bank" | "purchases" | "expenses";
 
 const money = (n: number) => `${nfCad.format(n)} $`;
 const pct = (m: number, v: number) => (v > 0 ? `${((m / v) * 100).toLocaleString("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 })} %` : "–");
@@ -120,11 +121,12 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       </nav>
 
       <Tabs<View> style={{ marginTop: 22 }} value={view} onChange={setView}
-        items={[{ id: "overview", label: "Vue d'ensemble" }, { id: "journal", label: "Journal" }, { id: "statements", label: "États financiers" }, { id: "purchases", label: "Recharges" }, { id: "expenses", label: "Dépenses" }]} />
+        items={[{ id: "overview", label: "Vue d'ensemble" }, { id: "journal", label: "Journal" }, { id: "statements", label: "États financiers" }, { id: "bank", label: "Rapprochement" }, { id: "purchases", label: "Recharges" }, { id: "expenses", label: "Dépenses" }]} />
 
       {view === "journal" && <div style={{ marginTop: 24 }}><JournalView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
       {view === "statements" && <div style={{ marginTop: 24 }}><StatementsView key={tick} from={from} to={to} toLabel={new Date(new Date(to).getTime() - 1).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })} /></div>}
 
+      {view === "bank" && <div style={{ marginTop: 24 }}><BankReconView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
       {view === "purchases" && <div style={{ marginTop: 24 }}><PurchasesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
       {view === "expenses" && <div style={{ marginTop: 24 }}><ExpensesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
       {view === "overview" && <>
