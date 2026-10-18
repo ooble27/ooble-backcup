@@ -5,7 +5,7 @@ import { PRESENCE_LABEL, TEAM_COLORS, memberById, resizePhoto, saveProfile, type
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
-import { AVATAR_BG, TV_CSS, TeamAvatar, avatarUri, nameColor } from "./TeamViews";
+import { AVATAR_BG, TV_CSS, TeamAvatar, TeamName, avatarUri, nameColor, useMembers } from "./TeamViews";
 
 /**
  * Mon profil d'équipe : le dessin (ou une photo), le fond de l'avatar, la couleur de mon nom et mon
@@ -21,6 +21,39 @@ const CSS = `
 .tp-sw { width: 34px; height: 34px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px var(--a-bds); }
 .tp-h { margin: 26px 0 10px; font-size: 10.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--a-t3); }
 `;
+
+const SIDE_CSS = `
+.sb-me { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 6px 8px 6px 6px; margin-left: -6px; border-radius: 12px; transition: background .15s; }
+.sb-me[data-compact="true"] { flex: none; padding: 4px; margin: 0; border-radius: 99px; }
+.sb-me:hover { background: var(--a-hover2); }
+.sb-me:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+`;
+
+/** En haut de la barre latérale : la personne connectée (avatar, nom, poste). Un clic ouvre son profil. */
+export function SideIdentity({ compact, role, hint }: { compact: boolean; role: string; hint?: string }) {
+  const { user } = useAuth();
+  useMembers(); // se redessine quand le profil change
+  const [open, setOpen] = useState(false);
+  const me = user?.id ?? "";
+  const name = memberById(me)?.name || user?.name || user?.email || "Vous";
+  const tip = [`${name} · ${role}`, hint, "Modifier mon profil"].filter(Boolean).join("\n");
+  const line: React.CSSProperties = { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+  return (
+    <>
+      <style>{TV_CSS + SIDE_CSS}</style>
+      <button type="button" className="sb-me" data-compact={compact} title={tip} aria-label="Modifier mon profil" onClick={() => setOpen(true)}>
+        <span style={{ display: "inline-flex", pointerEvents: "none" }}><TeamAvatar id={me} name={name} size={compact ? 38 : 36} presence /></span>
+        {!compact && (
+          <span style={{ flex: 1, minWidth: 0, pointerEvents: "none" }}>
+            <TeamName id={me} name={name} style={{ ...line, fontSize: 14.5, lineHeight: 1.25 }} />
+            <span style={{ ...line, marginTop: 2, fontSize: 12.5, lineHeight: 1.3, color: C.t3 }}>{role}</span>
+          </span>
+        )}
+      </button>
+      {open && <ProfilePanel onClose={() => setOpen(false)} />}
+    </>
+  );
+}
 
 const BGS: { v: AvatarBg; label: string }[] = [{ v: "light", label: "Clair (d'origine)" }, ...TEAM_COLORS.map((c) => ({ v: c.v as AvatarBg, label: c.label }))];
 

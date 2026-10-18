@@ -42,6 +42,7 @@ import { AutoSettle } from "@/components/admin/icons";
 import { useTeamLive } from "@/components/admin/TeamViews";
 import { TeamNotesView } from "@/components/admin/TeamNotes";
 import { TeamTasksView } from "@/components/admin/TeamTasks";
+import { SideIdentity } from "@/components/admin/TeamProfile";
 import { MySpace } from "@/components/admin/MySpace";
 import { loadCounts, loadMembers, type TeamCounts } from "@/lib/teamSpace";
 import { prefetchAdmin } from "@/lib/adminData";
@@ -400,13 +401,8 @@ const AdminPortal = () => {
     return (
       <nav aria-label="Navigation du back-office" style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: FONT }}>
         <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: compact ? "center" : "flex-start", gap: 12, padding: compact ? 0 : "0 12px 0 18px", flexShrink: 0 }}>
-          <img src="/icons/icon-192.png" alt="Ooble" width={compact ? 36 : 32} height={compact ? 36 : 32} style={{ borderRadius: 9, flexShrink: 0 }} />
-          {!compact && (
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: C.t1, lineHeight: 1.2 }}>Ooble</p>
-              <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3, lineHeight: 1.3 }}>Administration</p>
-            </div>
-          )}
+          {/* La personne connectée : son avatar, son nom dans sa couleur, son poste. */}
+          <SideIdentity compact={compact} role={roleText} hint={compact ? `${user?.email ?? ""}\nVersion du ${versionLabel()}` : user?.email} />
           {!compact && (
             <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
               style={{ width: 34, height: 34, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t3, flexShrink: 0 }}>
@@ -495,9 +491,6 @@ const AdminPortal = () => {
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
               <ThemeToggle />
               {namesToggle}
-              <span title={`${user?.email ?? ""}\n${roleText}\nVersion du ${versionLabel()}`} style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {(user?.email ?? "?")[0].toUpperCase()}
-              </span>
               <Link to="/app" className="sh-icon" title="Retour à l'app" aria-label="Retour à l'app"
                 style={{ width: 40, height: 40, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", color: C.t2 }}>
                 <ArrowLeft style={{ width: 18, height: 18 }} />
@@ -505,12 +498,8 @@ const AdminPortal = () => {
             </div>
           ) : (
             <>
-              <span title={user?.email ?? ""} style={{ width: 32, height: 32, borderRadius: 99, background: C.bg, boxShadow: `0 0 0 1px ${C.bds}`, color: C.t1, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {(user?.email ?? "?")[0].toUpperCase()}
-              </span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
-                <p title={roleText} style={{ margin: "1px 0 0", fontSize: 12, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{roleText}</p>
+              <div style={{ minWidth: 0, flex: 1, paddingLeft: 6 }}>
+                <p title={user?.email ?? ""} style={{ margin: 0, fontSize: 12.5, color: C.t2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
                 {/* Version en cours : en cas de doute, un coup d'œil suffit (voir lib/freshness.ts). */}
                 <p style={{ margin: "1px 0 0", fontSize: 11, color: C.t3, opacity: 0.75, whiteSpace: "nowrap" }}>Version du {versionLabel()}</p>
               </div>
