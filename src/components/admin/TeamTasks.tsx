@@ -6,7 +6,7 @@ import { STATUS_LABEL, isLate, isMine, loadTasks, setTaskStatus, tidyDoneTasks, 
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
-import { TaskForm, TaskPanel, TeamAvatar, TeamFaces, TV_CSS, dueLabel, memberLabel, plural, presenceText, useMembers, useTeamLive, when } from "./TeamViews";
+import { MenuSelect, TaskForm, TaskPanel, TeamAvatar, TeamFaces, TV_CSS, dueLabel, memberLabel, plural, presenceText, useMembers, useTeamLive, when } from "./TeamViews";
 
 /**
  * Équipe › Tâches : trois colonnes (À faire, En cours, Fait), à plat comme le reste du back-office.
@@ -218,16 +218,13 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
         <TeamFaces title="Qui a quoi" rows={faces} />
       </section>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 24, flexWrap: "wrap", marginBottom: 22 }}>
-        <p style={{ margin: 0, flex: 1, fontSize: 15, lineHeight: 2, color: C.t2, minWidth: 240 }}>
-          <Opts value={scope} onChange={(v: Scope) => { setScope(v); if (v === "archived") pickView("list"); }}
+      {/* Deux menus déroulants : quelles tâches, et comment les voir. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 22 }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <MenuSelect label="Tâches affichées" value={scope} onChange={(v: Scope) => { setScope(v); if (v === "archived") pickView("list"); }}
             options={[{ v: "mine", label: `Pour moi${tasks ? ` (${mineOpen.length})` : ""}` }, { v: "all", label: "Toute l'équipe" }, { v: "created", label: "Créées par moi" }, { v: "archived", label: "Archivées" }]} />
-        </p>
-        {!showArchived && (
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 2, color: C.t2 }}>
-            <Opts value={view} onChange={pickView} options={[{ v: "board", label: "Colonnes" }, { v: "list", label: "Liste" }]} />
-          </p>
-        )}
+        </span>
+        {!showArchived && <MenuSelect label="Affichage" align="right" value={view} onChange={pickView} options={[{ v: "board", label: "Colonnes" }, { v: "list", label: "Liste" }]} />}
       </div>
       {err && <div style={{ marginBottom: 14 }}><Notice tone="err">{err}</Notice></div>}
       {note && <p style={{ margin: "0 0 14px", fontSize: 13.5, color: C.t2 }}>{note}</p>}

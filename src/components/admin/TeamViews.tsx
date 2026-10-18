@@ -39,6 +39,10 @@ export const TV_CSS = `
 .tv-dd-menu { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); max-height: 300px; overflow-y: auto; padding: 6px; border-radius: 14px; background: var(--a-l1); box-shadow: 0 0 0 1px var(--a-bd), 0 18px 40px -16px rgba(0,0,0,.45); }
 .tv-dd-opt { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; -webkit-tap-highlight-color: transparent; }
 .tv-dd-opt:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }
+.tv-ms { position: relative; display: inline-block; }
+.tv-ms-btn { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0 5px; font-size: 15px; font-weight: 500; color: var(--a-t1); white-space: nowrap; border-bottom: 1px solid var(--a-bd); -webkit-tap-highlight-color: transparent; }
+.tv-ms-btn[aria-expanded="true"] { border-bottom-color: var(--a-t1); }
+.tv-ms-btn:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
 /* Date : sur iPhone et iPad, le champ natif peut ignorer sa largeur et dépasser du panneau. */
 .gr-in[type="date"] { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .tv-sel { width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--a-bd); background: transparent; padding: 8px 0 9px; font: inherit; font-size: 15px; color: var(--a-t1); outline: none; color-scheme: light dark; }
@@ -272,17 +276,52 @@ type Who = "me" | "person" | "role" | "all";
  * Choix d'un membre : fermé, seule la personne choisie (avatar, nom, poste) ; ouvert, la liste de
  * l'équipe flotte par-dessus la page. Rien ne dépasse de la case, sur ordinateur comme sur téléphone.
  */
-function PersonPicker({ members, value, onChange }: { members: TeamMember[]; value: string; onChange: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
+/** Un menu ouvert se referme en touchant ailleurs ou avec Échap. */
+function useDismiss(open: boolean, close: () => void, box: React.RefObject<HTMLElement>) {
+  const cb = useRef(close);
+  cb.current = close;
   useEffect(() => {
     if (!open) return;
-    const away = (e: Event) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const away = (e: Event) => { if (!box.current?.contains(e.target as Node)) cb.current(); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") cb.current(); };
     document.addEventListener("pointerdown", away);
     document.addEventListener("keydown", esc);
     return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc); };
-  }, [open]);
+  }, [open, box]);
+}
+
+/** Menu déroulant compact : fermé, seul le choix en cours ; ouvert, les choix flottent par-dessus la page. */
+export function MenuSelect<V extends string>({ value, options, onChange, label, align = "left" }: {
+  value: V; options: { v: V; label: string }[]; onChange: (v: V) => void; label: string; align?: "left" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useDismiss(open, () => setOpen(false), box);
+  const cur = options.find((o) => o.v === value);
+  return (
+    <div ref={box} className="tv-ms">
+      <button type="button" className="tv-ms-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={`${label} : ${cur?.label ?? ""}`} onClick={() => setOpen((v) => !v)}>
+        {cur?.label}
+        <ChevronDown style={{ width: 15, height: 15, color: C.t3, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      </button>
+      {open && (
+        <div className="tv-dd-menu tv-in" role="listbox" aria-label={label} style={{ right: align === "right" ? 0 : "auto", left: align === "left" ? 0 : "auto", minWidth: 210 }}>
+          {options.map((o) => (
+            <button key={o.v} type="button" role="option" aria-selected={o.v === value} className="tv-dd-opt" style={{ fontSize: 14.5, color: o.v === value ? C.t1 : C.t2 }} onClick={() => { onChange(o.v); setOpen(false); }}>
+              <span style={{ flex: 1, whiteSpace: "nowrap" }}>{o.label}</span>
+              {o.v === value && <Check style={{ width: 16, height: 16, color: C.t1, flexShrink: 0 }} strokeWidth={2.4} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PersonPicker({ members, value, onChange }: { members: TeamMember[]; value: string; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useDismiss(open, () => setOpen(false), box);
   const line = (m: TeamMember) => (
     <>
       <TeamAvatar id={m.userId} name={m.name} size={30} presence />
