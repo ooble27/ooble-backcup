@@ -165,7 +165,10 @@ export function audienceMembers<T extends LiveTeamMember>(members: T[], audience
 export type TaskStatus = "todo" | "doing" | "done";
 export const STATUS_LABEL: Record<TaskStatus, string> = { todo: "À faire", doing: "En cours", done: "Fait" };
 export interface TaskComment { id: string; body: string; authorId: string | null; authorName: string; at: string }
+/** Une étape de la liste de contrôle d'une tâche. */
+export interface TaskStep { text: string; done: boolean; by: string | null; at: string | null }
 export interface TeamTask {
+  steps: TaskStep[];
   id: string; title: string; details: string | null; assigneeId: string | null; assigneeRole: Role | null; dueOn: string | null; status: TaskStatus;
   clientId: string | null; clientName: string | null; orderId: string | null; orderRef: string | null; archived: boolean;
   createdBy: string; createdByName: string; at: string; updatedAt: string; doneAt: string | null; doneByName: string | null; comments: TaskComment[];
@@ -188,6 +191,7 @@ export async function loadTasks(archived = false, link?: { clientId?: string; or
       orderId: (r.order_id as string) ?? null, orderRef: r.order_id ? orderRef(String(r.order_id)) : null, archived: !!r.archived,
       createdBy: String(r.created_by), createdByName: String(r.created_by_name ?? "Membre"), at: String(r.created_at), updatedAt: String(r.updated_at),
       doneAt: (r.done_at as string) ?? null, doneByName: (r.done_by_name as string) ?? null,
+      steps: (Array.isArray(r.steps) ? (r.steps as Record<string, unknown>[]) : []).map((x) => ({ text: String(x.text ?? ""), done: !!x.done, by: (x.by as string) ?? null, at: (x.at as string) ?? null })),
       comments: ((r.team_task_comments as Record<string, unknown>[]) ?? [])
         .map((x) => ({ id: String(x.id), body: String(x.body), authorId: (x.author_id as string) ?? null, authorName: String(x.author_name ?? "Membre"), at: String(x.created_at) }))
         .sort((a, b) => a.at.localeCompare(b.at)),
@@ -209,6 +213,31 @@ export async function tidyDoneTasks(): Promise<{ count?: number; error?: string 
   return error ? { error: error.message } : { count: Number(data ?? 0) };
 }
 export const commentTask = (id: string, body: string) => rpc("team_task_comment", { _task: id, _body: body }).then(done);
+
+/* ─── Listes de contrôle ─── */
+export const setTaskSteps = (id: string, steps: string[]) => rpc("team_task_set_steps", { _id: id, _steps: steps }).then(done);
+export const checkTaskStep = (id: string, index: number, isDone: boolean) => rpc("team_task_check", { _id: id, _index: index, _done: isDone }).then(done);
+export interface ChecklistTemplate { id: string; name: string; steps: string[]; mine?: boolean; builtIn?: boolean }
+/** Modèles fournis : les vérifications qui reviennent chez Ooble. */
+export const BUILTIN_CHECKLISTS: ChecklistTemplate[] = [
+  { id: "b-entreprise", builtIn: true, name: "Vérifier un dossier entreprise", steps: [
+    "Vérifier le numéro d'entreprise au registre", "Vérifier l'identité du représentant", "Vérifier les bénéficiaires effectifs (25 % et plus)",
+    "Vérifier l'adresse de l'entreprise", "Consigner la décision dans la fiche du client"] },
+  { id: "b-desjardins", builtIn: true, name: "Rapprochement bancaire Desjardins", steps: [
+    "Importer le relevé Desjardins", "Rapprocher les dépôts Interac avec les commandes", "Rapprocher les virements envoyés",
+    "Expliquer les lignes restantes", "Clôturer la période"] },
+  { id: "b-stock", builtIn: true, name: "Vérifier le stock USDT", steps: [
+    "Vérifier les soldes du portefeuille d'envoi par réseau", "Comparer avec la Trésorerie", "Prévoir une recharge si un réseau est bas"] },
+];
+export async function loadChecklistTemplates(me: string): Promise<ChecklistTemplate[]> {
+  const { data, error } = await table("team_checklist_templates").select("id, name, steps, created_by").order("created_at", { ascending: false }).limit(100);
+  if (error) return BUILTIN_CHECKLISTS;
+  const saved = ((data ?? []) as Record<string, unknown>[]).map((r) => ({ id: String(r.id), name: String(r.name), steps: ((r.steps as string[]) ?? []).map(String), mine: r.created_by === me }));
+  return [...BUILTIN_CHECKLISTS, ...saved];
+}
+export const saveChecklistTemplate = (name: string, steps: string[]) => rpc("team_checklist_template_save", { _name: name, _steps: steps }).then(done);
+export const hideChecklistTemplate = (id: string) => rpc("team_checklist_template_hide", { _id: id }).then(done);
+
 
 /** La tâche me concerne : confiée à moi, à un de mes postes, ou à toute l'équipe. */
 export const isMine = (t: TeamTask, me: string, roles: readonly string[]) =>

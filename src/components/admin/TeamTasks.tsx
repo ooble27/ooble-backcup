@@ -118,6 +118,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
 
   const meta = (t: TeamTask) => [
     t.status === "done" ? (t.doneByName ? `fait par ${t.doneByName.split(" ")[0]}${t.doneAt ? `, ${when(t.doneAt)}` : ""}` : "fait") : null,
+    t.steps.length ? `${t.steps.filter((x) => x.done).length} sur ${t.steps.length} ${plural(t.steps.length, "étape")}` : null,
     t.clientName, t.orderRef, t.comments.length ? `${t.comments.length} ${plural(t.comments.length, "commentaire")}` : null,
   ].filter(Boolean).join(" · ");
 

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, ChevronDown, Plus, Users } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Plus, Users, X } from "lucide-react";
 import { createAvatar } from "@dicebear/core";
 import * as notionists from "@dicebear/notionists";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, archiveTask, firstName, commentTask, findOrder, isLate, isMine, loadMembers, loadTasks, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
-  type AvatarBg, type Audience, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
+  type AvatarBg, type Audience, type ChecklistTemplate, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
@@ -21,6 +21,11 @@ import { GR_CSS, Opts } from "./GrowthPanel";
  */
 
 export const TV_CSS = `
+.tv-step { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--a-bds); -webkit-tap-highlight-color: transparent; }
+.tv-step:disabled { cursor: default; }
+.tv-step:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+.tv-box { flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px var(--a-t3); display: inline-flex; align-items: center; justify-content: center; transition: background .15s, box-shadow .15s; }
+.tv-step[aria-checked="true"] .tv-box { background: var(--a-t1); box-shadow: none; color: var(--a-bg); }
 .tv-go { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--a-t1); text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
 .tv-go:disabled { cursor: default; opacity: .45; }
 .tv-go:focus-visible, .tv-link:focus-visible, .tv-row:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
@@ -230,6 +235,23 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
         </p>
       )}
       {t.details && <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.6, color: C.t1, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{t.details}</p>}
+      {t.steps.length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <p style={{ margin: "0 0 2px", fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: C.t3 }}>
+            Étapes · {t.steps.filter((x) => x.done).length} sur {t.steps.length}
+          </p>
+          {t.steps.map((st, i) => (
+            <button key={i} type="button" className="tv-step" role="checkbox" aria-checked={st.done} disabled={t.archived || !canStatus}
+              onClick={() => act(checkTaskStep(t.id, i, !st.done))}>
+              <span className="tv-box">{st.done && <Check style={{ width: 13, height: 13 }} strokeWidth={3} />}</span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14.5, lineHeight: 1.4, color: st.done ? C.t3 : C.t1, textDecoration: st.done ? "line-through" : "none", overflowWrap: "anywhere" }}>{st.text}</span>
+                {st.done && st.by && <span style={{ display: "block", marginTop: 1, fontSize: 12, color: C.t3 }}>{firstName(st.by)}{st.at ? ` · ${when(st.at)}` : ""}</span>}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       <div style={{ marginTop: 16 }}>
         {row("Pour", who)}
         {row("Échéance", t.dueOn ? `${dueLabel(t.dueOn)}${isLate(t) ? " · en retard" : ""}` : "Aucune")}
@@ -373,8 +395,42 @@ export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
   const [looking, setLooking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const firstSteps = useRef((task?.steps ?? []).map((x) => x.text));
+  const [steps, setSteps] = useState<string[]>(firstSteps.current);
+  const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
+  const [tplNote, setTplNote] = useState<string | null>(null);
+  const stepBox = useRef<HTMLDivElement>(null);
 
+  useEffect(() => { void loadChecklistTemplates(me).then(setTemplates); }, [me]);
   useEffect(() => { if (!person && others[0]) setPerson(others[0].userId); }, [others, person]);
+  const addStep = (after?: number) => {
+    setSteps((l) => { const n = [...l]; n.splice(after === undefined ? n.length : after + 1, 0, ""); return n; });
+    window.setTimeout(() => {
+      const inputs = stepBox.current?.querySelectorAll("input");
+      const el = inputs?.[after === undefined ? inputs.length - 1 : after + 1] as HTMLInputElement | undefined;
+      el?.focus();
+    }, 0);
+  };
+  const pickTemplate = (id: string) => {
+    const tpl = templates.find((x) => x.id === id);
+    if (!tpl) return;
+    setSteps(tpl.steps);
+    if (!title.trim()) setTitle(tpl.name);
+  };
+  const keepAsTemplate = async () => {
+    const clean = steps.map((x) => x.trim()).filter(Boolean);
+    const name = window.prompt("Nom du modèle", title.trim() || "Ma liste");
+    if (!name?.trim()) return;
+    const r = await saveChecklistTemplate(name, clean);
+    if (r.error) { setTplNote(r.error); return; }
+    setTplNote(`Modèle « ${name.trim()} » enregistré : il sera proposé à toute l'équipe.`);
+    void loadChecklistTemplates(me).then(setTemplates);
+  };
+  const dropTemplate = async (tpl: ChecklistTemplate) => {
+    if (!window.confirm(`Ne plus proposer le modèle « ${tpl.name} » ?`)) return;
+    const r = await hideChecklistTemplate(tpl.id);
+    if (r.error) setTplNote(r.error); else { setTplNote(null); void loadChecklistTemplates(me).then(setTemplates); }
+  };
   useEffect(() => {
     if (client || q.trim().length < 2) { setFound([]); return; }
     const t = window.setTimeout(() => { searchClients(q).then(setFound).catch(() => setFound([])); }, 250);
@@ -401,6 +457,11 @@ export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
     setBusy(true); setErr(null);
     const r = await saveTask(task?.id ?? null, input);
     if (r.error) { setBusy(false); setErr(r.error); return; }
+    const clean = steps.map((x) => x.trim()).filter(Boolean);
+    if (r.id && JSON.stringify(clean) !== JSON.stringify(firstSteps.current)) {
+      const st = await setTaskSteps(r.id, clean);
+      if (st.error) { setBusy(false); setErr(st.error); return; }
+    }
     const by = members.find((m) => m.userId === me)?.name || user?.email || "Un membre";
     if (assigneeChanged) await notifyAssignees(input, by, me).catch(() => undefined);
     setBusy(false);
@@ -415,6 +476,42 @@ export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
         <input className="gr-in" value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder="Ex. Rappeler le client au sujet de son virement" autoFocus /></label>
       <label style={{ display: "block", marginTop: 18 }}><span style={{ fontSize: 12.5, color: C.t3 }}>Détails (facultatif)</span>
         <textarea className="tv-ta" rows={3} value={details} maxLength={4000} onChange={(e) => setDetails(e.target.value)} /></label>
+
+      <div style={{ marginTop: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12.5, color: C.t3 }}>Étapes à cocher (facultatif)</span>
+          {templates.length > 0 && (
+            <MenuSelect label="Partir d'un modèle" align="right" value={"" as string} onChange={pickTemplate}
+              options={[{ v: "", label: "Partir d'un modèle" }, ...templates.map((x) => ({ v: x.id, label: x.name }))]} />
+          )}
+        </div>
+        <div ref={stepBox}>
+          {steps.map((st, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 18, fontSize: 12.5, color: C.t3, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{i + 1}.</span>
+              <input className="gr-in" value={st} maxLength={200} placeholder="Ex. Vérifier la pièce d'identité" style={{ flex: 1, minWidth: 0 }}
+                onChange={(e) => setSteps((l) => l.map((x, j) => (j === i ? e.target.value : x)))}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addStep(i); } }} />
+              <button type="button" className="tv-icon" title="Retirer l'étape" aria-label="Retirer l'étape" onClick={() => setSteps((l) => l.filter((_, j) => j !== i))}
+                style={{ all: "unset", cursor: "pointer", color: C.t3, display: "inline-flex", padding: 4 }}><X style={{ width: 15, height: 15 }} /></button>
+            </div>
+          ))}
+        </div>
+        <p style={{ margin: "10px 0 0", display: "flex", gap: 20, flexWrap: "wrap" }}>
+          <button type="button" className="tv-link" style={{ fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 6 }} onClick={() => addStep()}>
+            <Plus style={{ width: 14, height: 14 }} />Ajouter une étape
+          </button>
+          {steps.some((x) => x.trim()) && <button type="button" className="tv-link" style={{ fontSize: 13.5 }} onClick={keepAsTemplate}>Enregistrer comme modèle</button>}
+        </p>
+        {templates.some((x) => x.mine) && (
+          <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t3 }}>
+            Mes modèles : {templates.filter((x) => x.mine).map((x, i) => (
+              <span key={x.id}>{i > 0 && ", "}{x.name} <button type="button" className="tv-link" style={{ fontSize: 12.5 }} onClick={() => dropTemplate(x)}>(ne plus proposer)</button></span>
+            ))}
+          </p>
+        )}
+        {tplNote && <p style={{ margin: "6px 0 0", fontSize: 12.5, color: C.t3 }}>{tplNote}</p>}
+      </div>
 
       <p style={{ margin: "20px 0 0", fontSize: 12.5, color: C.t3 }}>Pour qui</p>
       <p style={{ margin: "2px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
