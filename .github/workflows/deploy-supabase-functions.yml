@@ -45,5 +45,6 @@ jobs:
           supabase functions deploy mail-events --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
           supabase functions deploy journeys --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
           supabase functions deploy push-campaign --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
+          supabase functions deploy team-notify --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
