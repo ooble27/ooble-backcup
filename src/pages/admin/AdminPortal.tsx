@@ -523,7 +523,8 @@ const AdminPortal = () => {
             <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
           ) : (
             <>
-              {tab !== "me" && tab !== "dashboard" && tab !== "campaigns" && <PageHeader title={active.label} description={active.desc} />}
+              {/* Téléphone : la messagerie prend toute la hauteur (le nom de la page est déjà dans la barre du haut). */}
+              {tab !== "me" && tab !== "dashboard" && tab !== "campaigns" && !(tab === "notes" && !panel) && <PageHeader title={active.label} description={active.desc} />}
               {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
                 <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
               ) : (

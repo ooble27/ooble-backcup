@@ -22,22 +22,25 @@ export const audienceLabel = (a: string) => (a === "all" ? "Toute l'équipe" : r
 
 /* ─── Profils et annuaire ─── */
 export type TeamColor = "coral" | "orange" | "sun" | "sage" | "teal" | "indigo" | "blue" | "pink";
+/** Couleur du nom : « white » est la couleur du texte d'origine (blanc en sombre, noir en clair). */
+export type NameColor = "white" | TeamColor;
 export type AvatarBg = "light" | TeamColor;
 export type Presence = "available" | "busy" | "away";
 export const TEAM_COLORS: { v: TeamColor; label: string }[] = [
   { v: "coral", label: "Corail" }, { v: "orange", label: "Orange" }, { v: "sun", label: "Soleil" }, { v: "sage", label: "Sauge" },
   { v: "teal", label: "Lagon" }, { v: "indigo", label: "Indigo" }, { v: "blue", label: "Bleu" }, { v: "pink", label: "Rose" },
 ];
+export const NAME_COLORS: { v: NameColor; label: string }[] = [{ v: "white", label: "Blanc (d'origine)" }, ...TEAM_COLORS];
 export const PRESENCE_LABEL: Record<Presence, string> = { available: "Disponible", busy: "Occupé", away: "Absent" };
 export interface TeamMember extends LiveTeamMember {
-  seed: string | null; photo: string | null; bg: AvatarBg; color: TeamColor; status: Presence; statusUntil: string | null; statusNote: string | null;
+  seed: string | null; photo: string | null; bg: AvatarBg; color: NameColor; status: Presence; statusUntil: string | null; statusNote: string | null;
 }
 
 /** Annuaire de l'équipe, lisible par tout membre (team_directory), avec le profil de chacun. */
 const DIR_EVENT = "ooble:team-dir";
 const toMember = (m: Record<string, unknown>): TeamMember => ({
   userId: String(m.id), name: String(m.name ?? "Membre"), email: String(m.email ?? ""), roles: sortRoles((m.roles as string[]) ?? []) as Role[],
-  seed: (m.seed as string) ?? null, photo: (m.photo as string) ?? null, bg: ((m.bg as AvatarBg) ?? "light"), color: ((m.color as TeamColor) ?? "coral"),
+  seed: (m.seed as string) ?? null, photo: (m.photo as string) ?? null, bg: ((m.bg as AvatarBg) ?? "light"), color: ((m.color as NameColor) ?? "coral"),
   status: ((m.status as Presence) ?? "available"), statusUntil: (m.status_until as string) ?? null, statusNote: (m.status_note as string) ?? null,
 });
 export const peekMembers = () => (peek<TeamMember[]>("team.dir")?.value ?? []).filter((m) => typeof m.color === "string");
@@ -55,7 +58,7 @@ export function onMembersChange(fn: () => void) {
 }
 export const memberById = (id: string | null | undefined) => (id ? peekMembers().find((m) => m.userId === id) : undefined);
 
-export interface ProfileInput { seed: string | null; photo: string | null; bg: AvatarBg; color: TeamColor; status: Presence; statusUntil: string | null; statusNote: string }
+export interface ProfileInput { seed: string | null; photo: string | null; bg: AvatarBg; color: NameColor; status: Presence; statusUntil: string | null; statusNote: string }
 export async function saveProfile(p: ProfileInput) {
   const { error } = await rpc("team_profile_save", { _seed: p.seed, _photo: p.photo, _bg: p.bg, _color: p.color, _status: p.status, _until: p.statusUntil, _note: p.statusNote });
   if (error) return { error: error.message };

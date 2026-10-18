@@ -22,7 +22,7 @@ const CSS = `
 .tn-wrap { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; }
 @media (max-width: 860px) { .tn-wrap { grid-template-columns: minmax(0, 1fr); gap: 16px; } .tn-side { display: none; } .tn-tabs { display: block !important; } }
 .tn-grp { font-size: 10.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--a-t3); }
-.tn-ch { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 10px; height: 36px; font-size: 14.5px; color: var(--a-t2); transition: color .15s; }
+.tn-ch { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 10px; height: 36px; font-size: 14.5px; color: var(--a-t2); transition: color .15s; -webkit-tap-highlight-color: transparent; }
 .tn-ch:hover { color: var(--a-t1); }
 .tn-ch .tn-name { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 100%; background-size: 0 1.5px; padding-bottom: 3px; transition: background-size .35s cubic-bezier(.22,1,.36,1); }
 .tn-ch:hover .tn-name, .tn-ch[aria-current="true"] .tn-name { background-size: 100% 1.5px; }
@@ -30,11 +30,24 @@ const CSS = `
 .tn-ch:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; border-radius: 6px; }
 .tn-main { position: relative; display: flex; flex-direction: column; min-width: 0; height: max(540px, calc(100dvh - 260px)); }
 @media (max-width: 860px) { .tn-main { height: calc(100dvh - 200px); min-height: 480px; } }
-.tn-feed { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 4px 16px 0; overscroll-behavior: contain; }
+/* Téléphone : la messagerie tient dans l'écran (hauteur posée par usePhoneChat) ; clavier ouvert, elle
+   occupe la partie visible au-dessus du clavier, la zone d'écriture collée au clavier. */
+@media (max-width: 767px) {
+  .tn-slot { height: calc(var(--tn-fit, calc(100dvh - 200px)) - env(safe-area-inset-bottom, 0px)); }
+  .tn-main { height: 100%; min-height: 0; }
+}
+/* Une fois la page arrivée, ses blocs n'ont plus d'animation : sinon l'animation terminée (gardée par
+   « both ») empêcherait la messagerie de se caler sur l'écran quand le clavier s'ouvre. */
+.sh-page .tn-root[data-settled="true"] > * { animation: none; }
+.tn-main[data-kb="true"] { position: fixed; z-index: 95; left: 0; right: 0; top: var(--kb-top, 0px); height: var(--kb-h, 100%); box-sizing: border-box;
+  padding: calc(var(--a-top, env(safe-area-inset-top, 0px)) + 4px) 16px 6px; background: var(--a-bg); }
+/* Les messages se posent en bas, au-dessus de la zone d'écriture, comme dans une messagerie. */
+.tn-feed { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 4px 16px 0; overscroll-behavior: contain; display: flex; flex-direction: column; }
+.tn-fill { flex: 1 0 0; }
 .tn-day { display: flex; align-items: center; gap: 14px; margin: 22px 0 6px; font-size: 11.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--a-t3); }
 .tn-day::after { content: ""; flex: 1; height: 1px; background: var(--a-bds); }
-.tn-msg { position: relative; display: flex; gap: 14px; padding: 10px 8px; margin: 0 -8px; border-radius: 10px; transition: background .15s; }
-.tn-msg:hover { background: var(--a-hover2); }
+.tn-msg { position: relative; display: flex; gap: 14px; padding: 10px 0; -webkit-tap-highlight-color: transparent; }
+.tn-msg * { -webkit-tap-highlight-color: transparent; }
 .tn-head { display: flex; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; padding-right: 150px; }
 .tn-who { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tn-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; padding: 2px; border-radius: 99px; background: var(--a-bg); opacity: 0; transition: opacity .15s; }
@@ -78,6 +91,65 @@ const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const isLong = (s: string) => s.length > 700 || s.split("\n").length > 9;
 
+/**
+ * Téléphone : la messagerie tient dans l'écran, zone d'écriture visible sans défiler. Quand le clavier
+ * s'ouvre sur une zone de texte du fil, la messagerie occupe la partie visible au-dessus du clavier
+ * (visualViewport), et reprend sa place à sa fermeture.
+ */
+function usePhoneChat(slot: React.RefObject<HTMLDivElement>, main: React.RefObject<HTMLElement>) {
+  const [kb, setKb] = useState(false);
+  useEffect(() => {
+    const s = slot.current, el = main.current;
+    if (!s || !el) return;
+    const vv = window.visualViewport;
+    const phone = window.matchMedia("(max-width: 767px)");
+    let full = 0, width = 0, on = false, raf = 0;
+    const apply = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const vh = vv ? vv.height : window.innerHeight;
+        if (window.innerWidth !== width) { width = window.innerWidth; full = 0; }
+        full = Math.max(full, vh, window.innerHeight);
+        const a = document.activeElement;
+        const typing = phone.matches && !!a && a.tagName === "TEXTAREA" && el.contains(a) && full - vh > 120;
+        if (!phone.matches) s.style.removeProperty("--tn-fit");
+        else if (typing) {
+          el.style.setProperty("--kb-top", `${Math.round(vv?.offsetTop ?? 0)}px`);
+          el.style.setProperty("--kb-h", `${Math.round(vh)}px`);
+        } else {
+          // Du haut de la messagerie jusqu'au bas de l'écran (position dans la page, animations d'entrée ignorées).
+          let top = 0;
+          for (let n: HTMLElement | null = s; n; n = n.offsetParent as HTMLElement | null) top += n.offsetTop;
+          s.style.setProperty("--tn-fit", `${Math.max(360, Math.round(window.innerHeight - top - 10))}px`);
+        }
+        if (typing !== on) {
+          on = typing;
+          setKb(typing);
+          if (!typing && phone.matches) window.scrollTo({ top: 0 });
+        }
+      });
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(document.body);
+    vv?.addEventListener("resize", apply);
+    vv?.addEventListener("scroll", apply);
+    window.addEventListener("resize", apply);
+    document.addEventListener("focusin", apply);
+    document.addEventListener("focusout", apply);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      vv?.removeEventListener("resize", apply);
+      vv?.removeEventListener("scroll", apply);
+      window.removeEventListener("resize", apply);
+      document.removeEventListener("focusin", apply);
+      document.removeEventListener("focusout", apply);
+    };
+  }, [slot, main]);
+  return kb;
+}
+
 /** Texte d'un message : liens cliquables, @mentions dans la couleur de la personne. */
 function RichText({ text, mentions, members, folded }: { text: string; mentions: string[]; members: TeamMember[]; folded?: boolean }) {
   const parts = useMemo(() => {
@@ -115,6 +187,11 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [newBelow, setNewBelow] = useState(false);
   const feed = useRef<HTMLDivElement>(null);
+  const slot = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const kb = usePhoneChat(slot, mainRef);
+  const [settled, setSettled] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setSettled(true), 1200); return () => window.clearTimeout(t); }, []);
   const atBottom = useRef(true);
   const lastSeen = useRef<string | undefined>(undefined);
   const keepScroll = useRef<number | null>(null);
@@ -184,6 +261,14 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
     atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     if (atBottom.current) setNewBelow(false);
   };
+  // Le fil change de hauteur (clavier, rotation, fenêtre) : on reste sur les derniers messages si on y était.
+  useEffect(() => {
+    const el = feed.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => { if (atBottom.current) el.scrollTop = el.scrollHeight; });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const toBottom = () => { const el = feed.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); setNewBelow(false); };
 
   // Lu : les messages affichés du canal ouvert ; ils restent marqués « nouvelle » le temps de la visite.
@@ -210,7 +295,7 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
   let lastDay = "";
 
   return (
-    <div style={{ fontFamily: FONT }}>
+    <div className="tn-root" data-settled={settled || kb} style={{ fontFamily: FONT }}>
       <style>{TV_CSS + GR_CSS + CSS}</style>
       {err && <div style={{ marginBottom: 14 }}><Notice tone="err">{err}</Notice></div>}
 
@@ -261,7 +346,8 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
           )}
         </aside>
 
-        <section className="tn-main tv-rise" style={{ animationDelay: "60ms" }}>
+        <div className="tn-slot" ref={slot} style={{ minWidth: 0 }}>
+        <section ref={mainRef} className="tn-main tv-rise" data-kb={kb} style={{ animationDelay: "60ms" }}>
           <header style={{ display: "flex", alignItems: "flex-end", gap: 16, paddingBottom: 14, borderBottom: `1px solid ${C.bd}` }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 26, fontWeight: 600, letterSpacing: "-0.035em", color: C.t1, lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -285,6 +371,7 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
           )}
 
           <div className="tn-feed" ref={feed} onScroll={onScroll}>
+            <div className="tn-fill" aria-hidden />
             {!msgs && <p style={{ fontSize: 13, color: C.t3, marginTop: 20 }}>Chargement…</p>}
             {msgs && hasMore && <button type="button" className="tn-more" disabled={older} onClick={loadOlder}>{older ? "Chargement…" : "Voir les messages précédents"}</button>}
             {msgs && !hasMore && msgs.length > 0 && <p style={{ margin: "10px 0 0", fontSize: 12.5, color: C.t3, textAlign: "center" }}>Début {archivedView ? "des archives" : "du canal"}</p>}
@@ -311,6 +398,7 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
 
           {!archivedView && <Composer channel={channel} chLabel={chLabel} me={me} meName={user?.name ?? "Vous"} admin={admin} audience={audience} onSent={() => { atBottom.current = true; refresh(); }} onError={setErr} />}
         </section>
+        </div>
       </div>
     </div>
   );
@@ -375,7 +463,7 @@ function Composer({ channel, chLabel, me, meName, admin, audience, onSent, onErr
       )}
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
         <span style={{ paddingTop: 2 }}><TeamAvatar id={me} name={meName} size={30} /></span>
-        <textarea ref={ta} className="tn-input" rows={1} value={body} maxLength={4000} placeholder={`Écrire à # ${chLabel}…`}
+        <textarea ref={ta} className="tn-input no-zoom" rows={1} value={body} maxLength={4000} placeholder={`Écrire à # ${chLabel}…`}
           onChange={(e) => onChange(e.currentTarget)}
           onBlur={() => window.setTimeout(() => setQuery(null), 150)}
           onKeyDown={(e) => {
@@ -430,7 +518,7 @@ function Message({ note: n, me, admin, members, fresh, archivedView, onChanged, 
         </div>
         {editing != null ? (
           <div style={{ marginTop: 4 }}>
-            <textarea className="tn-edit" value={editing} maxLength={4000} autoFocus onChange={(e) => setEditing(e.target.value)}
+            <textarea className="tn-edit no-zoom" value={editing} maxLength={4000} autoFocus onChange={(e) => setEditing(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (editing.trim()) act(editNote(n.id, editing), () => setEditing(null)); } }} />
             <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
               <button type="button" className="tv-go" style={{ fontSize: 13.5 }} disabled={!editing.trim()} onClick={() => act(editNote(n.id, editing), () => setEditing(null))}>Enregistrer <ArrowRight style={{ width: 14, height: 14 }} /></button>
@@ -466,7 +554,7 @@ function Message({ note: n, me, admin, members, fresh, archivedView, onChanged, 
             {n.replies.map((r) => <Reply key={r.id} reply={r} me={me} admin={admin} archived={archivedView} onChanged={onChanged} onError={onError} />)}
             {!archivedView && (
               <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginTop: 4 }}>
-                <textarea className="tv-ta" rows={1} value={reply} maxLength={2000} placeholder="Votre réponse…" onChange={(e) => setReply(e.target.value)} style={{ fontSize: 14, minHeight: 0 }}
+                <textarea className="tv-ta no-zoom" rows={1} value={reply} maxLength={2000} placeholder="Votre réponse…" onChange={(e) => setReply(e.target.value)} style={{ fontSize: 14, minHeight: 0 }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }} />
                 <button type="button" className="tv-go" disabled={!reply.trim()} onClick={sendReply}>Répondre <ArrowRight style={{ width: 15, height: 15 }} /></button>
               </div>
@@ -520,7 +608,7 @@ function Reply({ reply: r, me, admin, archived, onChanged, onError }: { reply: N
         </div>
         {editing != null ? (
           <div style={{ marginTop: 4 }}>
-            <textarea className="tn-edit" style={{ minHeight: 44, fontSize: 14 }} value={editing} maxLength={2000} autoFocus onChange={(e) => setEditing(e.target.value)}
+            <textarea className="tn-edit no-zoom" style={{ minHeight: 44, fontSize: 14 }} value={editing} maxLength={2000} autoFocus onChange={(e) => setEditing(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (editing.trim()) act(editReply(r.id, editing), () => setEditing(null)); } }} />
             <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
               <button type="button" className="tv-go" style={{ fontSize: 13 }} disabled={!editing.trim()} onClick={() => act(editReply(r.id, editing), () => setEditing(null))}>Enregistrer <ArrowRight style={{ width: 13, height: 13 }} /></button>

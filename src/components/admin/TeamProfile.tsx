@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ArrowRight, Check, ImagePlus, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { PRESENCE_LABEL, TEAM_COLORS, memberById, resizePhoto, saveProfile, type AvatarBg, type Presence, type TeamColor } from "@/lib/teamSpace";
+import { NAME_COLORS, PRESENCE_LABEL, TEAM_COLORS, memberById, resizePhoto, saveProfile, type AvatarBg, type NameColor, type Presence } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
@@ -23,9 +23,9 @@ const CSS = `
 `;
 
 const SIDE_CSS = `
-.sb-me { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 6px 8px 6px 6px; margin-left: -6px; border-radius: 12px; transition: background .15s; }
+.sb-me { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 6px 8px 6px 0; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
 .sb-me[data-compact="true"] { flex: none; padding: 4px; margin: 0; border-radius: 99px; }
-.sb-me:hover { background: var(--a-hover2); }
+@media (hover: hover) { .sb-me:hover .tv-name { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; } }
 .sb-me:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 `;
 
@@ -64,7 +64,7 @@ export function ProfilePanel({ onClose }: { onClose: () => void }) {
   const [seed, setSeed] = useState<string | null>(m?.seed ?? null);
   const [photo, setPhoto] = useState<string | null>(m?.photo ?? null);
   const [bg, setBg] = useState<AvatarBg>(m?.bg ?? "light");
-  const [color, setColor] = useState<TeamColor>(m?.color ?? "coral");
+  const [color, setColor] = useState<NameColor>(m?.color ?? "coral");
   const [status, setStatus] = useState<Presence>(m?.status ?? "available");
   const [until, setUntil] = useState(m?.statusUntil ?? "");
   const [note, setNote] = useState(m?.statusNote ?? "");
@@ -142,13 +142,17 @@ export function ProfilePanel({ onClose }: { onClose: () => void }) {
       {/* Couleur du nom */}
       <p className="tp-h">Couleur de mon nom</p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        {TEAM_COLORS.map((c) => (
+        {NAME_COLORS.map((c) => (
           <button key={c.v} type="button" className="tp-pick" aria-pressed={color === c.v} title={c.label} aria-label={c.label} onClick={() => setColor(c.v)}>
             <span className="tp-sw" style={{ background: nameColor(c.v), color: "var(--a-bg)" }}>{color === c.v && <Check style={{ width: 15, height: 15 }} strokeWidth={2.6} />}</span>
           </button>
         ))}
       </div>
-      <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t3 }}>Votre nom s'affiche dans cette couleur pour toute l'équipe.</p>
+      <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t3 }}>
+        {color === "white"
+          ? "Blanc (d'origine) : blanc en mode sombre, noir en mode clair pour rester lisible."
+          : `${NAME_COLORS.find((c) => c.v === color)?.label} : votre nom s'affiche dans cette couleur pour toute l'équipe.`}
+      </p>
 
       {/* Statut */}
       <p className="tp-h">Mon statut</p>

@@ -30,8 +30,7 @@ const CSS = `
 .ms-stat:hover .ms-l, .ms-stat:focus-visible .ms-l { background-size: 100% 1px; }
 .ms-stat:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 4px; border-radius: 4px; }
 .ms-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 14px 0 12px; border-bottom: 1px solid var(--a-bds); }
-.ms-row { display: flex; align-items: center; gap: 12px; padding: 12px 6px; margin: 0 -6px; border-bottom: 1px solid var(--a-bds); border-radius: 10px; transition: background .15s, opacity .4s, transform .4s; }
-.ms-row:hover { background: var(--a-hover2); }
+.ms-row { display: flex; align-items: center; gap: 12px; padding: 12px 6px; margin: 0 -6px; border-bottom: 1px solid var(--a-bds); border-radius: 10px; transition: opacity .4s, transform .4s; -webkit-tap-highlight-color: transparent; }
 .ms-row[data-leaving="true"] { opacity: 0; transform: translateX(12px); }
 .ms-link { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--a-t1); text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
 .ms-link svg { transition: transform .15s; }

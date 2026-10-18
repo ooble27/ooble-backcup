@@ -20,8 +20,7 @@ const CSS = `
 .tb-col { min-height: 300px; border-radius: 12px; transition: background .15s, box-shadow .15s; }
 .tb-col[data-over="true"] { background: var(--a-hover2); box-shadow: 0 0 0 1px var(--a-bd); }
 .tb-head { display: flex; align-items: center; gap: 10px; height: 40px; border-bottom: 1px solid var(--a-bd); }
-.tb-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 6px; margin: 0 -6px; border-bottom: 1px solid var(--a-bds); border-radius: 10px; cursor: pointer; transition: background .15s; }
-.tb-item:hover { background: var(--a-hover2); }
+.tb-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 6px; margin: 0 -6px; border-bottom: 1px solid var(--a-bds); border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .tb-item[draggable="true"] { cursor: grab; }
 .tb-item[data-dragging="true"] { opacity: .3; }
 .tb-item:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }

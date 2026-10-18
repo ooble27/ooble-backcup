@@ -8,7 +8,7 @@ import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
   PRESENCE_LABEL, STATUS_LABEL, archiveTask, commentTask, findOrder, isLate, loadMembers, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
-  type AvatarBg, type Audience, type TaskInput, type TaskStatus, type TeamColor, type TeamMember, type TeamTask,
+  type AvatarBg, type Audience, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
@@ -53,8 +53,8 @@ export const TV_CSS = `
 .tv-rise { animation: tv-rise .5s cubic-bezier(.22,1,.36,1) both; }
 .tv-in { animation: tv-in .4s cubic-bezier(.22,1,.36,1) both; }
 .tv-check[data-done="true"] svg { animation: tv-tick .35s cubic-bezier(.34,1.56,.64,1); }
-.tv-icon { all: unset; cursor: pointer; width: 30px; height: 30px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; color: var(--a-t3); transition: color .15s, background .15s; }
-.tv-icon:hover { color: var(--a-t1); background: var(--a-hover3); }
+.tv-icon { all: unset; cursor: pointer; width: 30px; height: 30px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; color: var(--a-t3); transition: color .15s; -webkit-tap-highlight-color: transparent; }
+.tv-icon:hover { color: var(--a-t1); }
 .tv-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 .tv-badge { min-width: 20px; height: 20px; padding: 0 7px; border-radius: 99px; background: rgba(242,97,61,.12); color: var(--a-coral); font-size: 11.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
 .tv-stack { display: inline-flex; }
@@ -72,7 +72,7 @@ export const TV_CSS = `
 export const AVATAR_BG: Record<AvatarBg, string> = {
   light: "#ecebe7", coral: "#ffd2c4", orange: "#ffdcb5", sun: "#fff0bd", sage: "#c9ecdc", teal: "#c4ece9", indigo: "#dadcf7", blue: "#d0e5fb", pink: "#f9d3e4",
 };
-export const nameColor = (c: TeamColor | undefined) => (c ? `var(--tm-${c})` : C.t1);
+export const nameColor = (c: NameColor | undefined) => (c && c !== "white" ? `var(--tm-${c})` : C.t1);
 const PRESENCE_DOT: Record<string, string> = { available: "var(--a-sage)", busy: "var(--a-sun)", away: "var(--a-t3)" };
 
 /** Avatar illustré (style « Notionists », licence CC0) : dessin choisi par le membre, ou sa photo. */
