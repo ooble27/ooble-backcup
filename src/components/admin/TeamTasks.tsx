@@ -19,6 +19,9 @@ const CSS = `
    place manque (téléphone), un onglet par colonne : on n'en voit qu'une à la fois. */
 .tb-wrap { container-type: inline-size; }
 .tb-tabs { display: none; }
+.tb-ctl-wide { display: flex; }
+.tb-ctl-narrow { display: none; }
+@media (max-width: 640px) { .tb-ctl-wide { display: none; } .tb-ctl-narrow { display: flex; } }
 .tb-board { display: grid; gap: 0 36px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tb-col { min-height: 300px; border-radius: 12px; transition: background .15s, box-shadow .15s; }
 .tb-col[data-over="true"] { background: var(--a-hover2); box-shadow: 0 0 0 1px var(--a-bd); }
@@ -73,6 +76,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
   useTeamLive(load, ["team_tasks", "team_task_comments"]);
   const changed = () => { load(); onChanged?.(); };
   const pickView = (v: "board" | "list") => { setView(v); try { localStorage.setItem("ooble.tasks.view", v); } catch { /* préférence facultative */ } };
+  const pickScope = (v: Scope) => { setScope(v); if (v === "archived") pickView("list"); };
 
   const canStatus = (t: TeamTask) => admin || t.createdBy === me || isMine(t, me, roles);
   const inScope = (t: TeamTask) => scope === "all" || (scope === "mine" ? isMine(t, me, roles) : t.createdBy === me);
@@ -83,6 +87,8 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
 
   const mineOpen = (tasks ?? []).filter((t) => isMine(t, me, roles) && t.status !== "done");
   const mineLate = mineOpen.filter(isLate).length;
+  const scopeOptions: { v: Scope; label: string }[] = [{ v: "mine", label: `Pour moi${tasks ? ` (${mineOpen.length})` : ""}` }, { v: "all", label: "Toute l'équipe" }, { v: "created", label: "Créées par moi" }, { v: "archived", label: "Archivées" }];
+  const viewOptions: { v: "board" | "list"; label: string }[] = [{ v: "board", label: "Colonnes" }, { v: "list", label: "Liste" }];
   const openAll = (tasks ?? []).filter((t) => t.status !== "done").length;
   const doneWeek = (tasks ?? []).filter((t) => t.status === "done" && t.doneAt && Date.now() - new Date(t.doneAt).getTime() < 7 * 86_400_000).length;
   const faces = members.map((m) => {
@@ -218,13 +224,23 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
         <TeamFaces title="Qui a quoi" rows={faces} />
       </section>
 
-      {/* Deux menus déroulants : quelles tâches, et comment les voir. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 22 }}>
+      {/* Quelles tâches, et comment les voir : en toutes lettres sur ordinateur et tablette,
+          en deux menus déroulants sur téléphone (au-dessus des tâches, pour rester cliquables). */}
+      <div className="tb-ctl-wide" style={{ alignItems: "baseline", gap: 24, flexWrap: "wrap", marginBottom: 22 }}>
+        <p style={{ margin: 0, flex: 1, fontSize: 15, lineHeight: 2, color: C.t2, minWidth: 240 }}>
+          <Opts value={scope} onChange={pickScope} options={scopeOptions} />
+        </p>
+        {!showArchived && (
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 2, color: C.t2 }}>
+            <Opts value={view} onChange={pickView} options={viewOptions} />
+          </p>
+        )}
+      </div>
+      <div className="tb-ctl-narrow" style={{ position: "relative", zIndex: 20, alignItems: "center", gap: 24, marginBottom: 22 }}>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <MenuSelect label="Tâches affichées" value={scope} onChange={(v: Scope) => { setScope(v); if (v === "archived") pickView("list"); }}
-            options={[{ v: "mine", label: `Pour moi${tasks ? ` (${mineOpen.length})` : ""}` }, { v: "all", label: "Toute l'équipe" }, { v: "created", label: "Créées par moi" }, { v: "archived", label: "Archivées" }]} />
+          <MenuSelect label="Tâches affichées" value={scope} onChange={pickScope} options={scopeOptions} />
         </span>
-        {!showArchived && <MenuSelect label="Affichage" align="right" value={view} onChange={pickView} options={[{ v: "board", label: "Colonnes" }, { v: "list", label: "Liste" }]} />}
+        {!showArchived && <MenuSelect label="Affichage" align="right" value={view} onChange={pickView} options={viewOptions} />}
       </div>
       {err && <div style={{ marginBottom: 14 }}><Notice tone="err">{err}</Notice></div>}
       {note && <p style={{ margin: "0 0 14px", fontSize: 13.5, color: C.t2 }}>{note}</p>}
