@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Users } from "lucide-react";
+import { createAvatar } from "@dicebear/core";
+import * as notionists from "@dicebear/notionists";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
@@ -8,7 +10,7 @@ import {
   type Audience, type TaskInput, type TaskStatus, type TeamTask,
 } from "@/lib/teamSpace";
 import type { LiveTeamMember } from "@/lib/adminTeam";
-import { C, FONT } from "./adminTheme";
+import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
 
@@ -39,43 +41,41 @@ export const TV_CSS = `
 .tv-check:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 .tv-face { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--a-bds); font-size: 14px; }
 .tv-face:last-child { border-bottom: none; }
-/* Pages vivantes de l'équipe : cartes douces, apparition en cascade, survol qui soulève. */
-@keyframes tv-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-@keyframes tv-pop { 0% { opacity: .3; transform: scale(.94); } 100% { opacity: 1; transform: none; } }
-@keyframes tv-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
-@keyframes tv-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+/* Pages de l'équipe : apparition en cascade à l'ouverture, coche qui rebondit ; le reste à plat. */
+@keyframes tv-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes tv-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes tv-tick { 0% { transform: scale(.4); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
-@keyframes tv-glow { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
-.tv-rise { animation: tv-rise .55s cubic-bezier(.22,1,.36,1) both; }
-.tv-pop { animation: tv-pop .35s cubic-bezier(.34,1.56,.64,1) both; }
-.tv-in { animation: tv-in .45s cubic-bezier(.22,1,.36,1) both; }
-.tv-float { animation: tv-float 6s ease-in-out infinite; transform-box: fill-box; }
-.tv-card { position: relative; background: var(--a-bg); border-radius: 16px; box-shadow: 0 0 0 1px var(--a-bds), 0 1px 2px rgba(0,0,0,.04);
-  transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s; }
-@media (hover: hover) { .tv-card.tv-lift:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px var(--a-bd), 0 12px 28px -10px rgba(0,0,0,.28); } }
-.tv-panel { border-radius: 22px; background: color-mix(in srgb, var(--a-t1) 3.5%, var(--a-bg)); padding: 20px; }
-.tv-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 99px; font-size: 12px; font-weight: 500; white-space: nowrap;
-  background: color-mix(in srgb, var(--a-t1) 6%, transparent); color: var(--a-t2); }
+.tv-rise { animation: tv-rise .5s cubic-bezier(.22,1,.36,1) both; }
+.tv-in { animation: tv-in .4s cubic-bezier(.22,1,.36,1) both; }
 .tv-check[data-done="true"] svg { animation: tv-tick .35s cubic-bezier(.34,1.56,.64,1); }
-.tv-icon { all: unset; cursor: pointer; width: 30px; height: 30px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; color: var(--a-t3); transition: background .15s, color .15s; }
-.tv-icon:hover { background: color-mix(in srgb, var(--a-t1) 8%, transparent); color: var(--a-t1); }
+.tv-icon { all: unset; cursor: pointer; width: 30px; height: 30px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; color: var(--a-t3); transition: color .15s, background .15s; }
+.tv-icon:hover { color: var(--a-t1); background: var(--a-hover3); }
 .tv-icon:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .tv-rise, .tv-pop, .tv-in, .tv-float, .tv-check[data-done="true"] svg { animation: none; } .tv-card { transition: none; } }
+.tv-badge { min-width: 20px; height: 20px; padding: 0 7px; border-radius: 99px; background: rgba(242,97,61,.12); color: var(--a-coral); font-size: 11.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.tv-stack { display: inline-flex; }
+.tv-stack > * { margin-left: -7px; box-shadow: 0 0 0 2px var(--a-bg); border-radius: 99px; }
+.tv-stack > *:first-child { margin-left: 0; }
+@media (prefers-reduced-motion: reduce) { .tv-rise, .tv-in, .tv-check[data-done="true"] svg { animation: none; } }
 `;
 
-/** Couleur stable par personne : la même partout (notes, tâches, Mon espace). */
-const HUES = ["var(--a-vzGreen)", "var(--a-vzIndigo)", "var(--a-vzCoral)", "var(--a-sun)", "var(--a-sage)"];
-export const hueOf = (name: string) => HUES[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % HUES.length];
+/** Avatar illustré de chaque membre (style « Notionists », licence CC0), le même partout, tiré de son identifiant. */
+const AVATARS = new Map<string, string>();
+const avatarUri = (seed: string) => {
+  let uri = AVATARS.get(seed);
+  if (!uri) { uri = createAvatar(notionists, { seed, size: 96 }).toDataUri(); AVATARS.set(seed, uri); }
+  return uri;
+};
 
-export function TeamAvatar({ name, size = 30 }: { name: string; size?: number }) {
-  const initials = name.split(/[\s@.]+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
-  const hue = hueOf(name);
-  return (
-    <span aria-hidden style={{
-      width: size, height: size, borderRadius: 99, flexShrink: 0, background: `color-mix(in srgb, ${hue} 22%, transparent)`, color: hue,
-      fontSize: size * 0.38, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, letterSpacing: "-0.02em",
-    }}>{initials}</span>
-  );
+/** `id` : l'identifiant du membre (même dessin partout). `group` : un poste ou toute l'équipe. */
+export function TeamAvatar({ name, id, size = 30, group }: { name: string; id?: string | null; size?: number; group?: boolean }) {
+  if (group) {
+    return (
+      <span title={name} aria-hidden style={{ width: size, height: size, borderRadius: 99, flexShrink: 0, background: C.l3, color: C.t2, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <Users style={{ width: size * 0.5, height: size * 0.5 }} strokeWidth={1.8} />
+      </span>
+    );
+  }
+  return <img src={avatarUri(id || name)} alt="" title={name} width={size} height={size} style={{ width: size, height: size, borderRadius: 99, flexShrink: 0, background: "#ecebe7", boxShadow: "0 0 0 1px var(--a-bds)", display: "block" }} />;
 }
 
 /** L'équipe, une personne par ligne, avec ce qui la concerne (à droite des en-têtes). */
@@ -86,7 +86,7 @@ export function TeamFaces({ title, rows }: { title: string; rows: { id: string; 
       <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>{title}</p>
       {rows.map((r) => (
         <div key={r.id} className="tv-face">
-          <TeamAvatar name={r.name} size={28} />
+          <TeamAvatar name={r.name} id={r.id} size={30} />
           <span style={{ flex: 1, minWidth: 0, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}{r.you && <span style={{ color: C.t3 }}> (vous)</span>}</span>
           <span style={{ fontSize: 13, color: r.strong ? C.t1 : C.t3, fontWeight: r.strong ? 600 : 400, whiteSpace: "nowrap" }}>{r.text}</span>
         </div>
