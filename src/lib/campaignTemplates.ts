@@ -121,8 +121,10 @@ function guideUrlFor(imageId: string): string {
 const NETWORKS = [
   { name: "Tron", std: "TRC20", note: ["Le plus utilisé pour les USDT", "The most used for USDT"], icon: `${SITE}/email-assets/coin-trx.png` },
   { name: "BNB Chain", std: "BEP20", note: ["Rapide et économique", "Fast and low-cost"], icon: `${SITE}/email-assets/coin-bnb.png` },
+  { name: "Ethereum", std: "ERC20", note: ["Le réseau historique, frais plus élevés", "The original network, higher fees"], icon: `${SITE}/email-assets/coin-eth.png` },
   { name: "Polygon", std: "POL", note: ["Frais très bas", "Very low fees"], icon: `${SITE}/email-assets/coin-matic.png` },
   { name: "Solana", std: "SOL", note: ["Règlement quasi instantané", "Near-instant settlement"], icon: `${SITE}/email-assets/coin-sol.png` },
+  { name: "Avalanche", std: "C-Chain", note: ["Rapide, frais modérés", "Fast, moderate fees"], icon: `${SITE}/email-assets/coin-avax.png` },
 ];
 
 // ─── Types ──────────────────────────────────────────────────
@@ -167,7 +169,11 @@ export interface CampaignTemplate {
   body: (v: TemplateValues, ctx: RenderCtx) => string;
   /** Fond de la carte (600 px). */
   cardBg?: string;
+  /** Autres angles d'écriture : textes qui remplacent ceux par défaut. */
+  variants?: TemplateVariant[];
 }
+
+export interface TemplateVariant { id: string; label: string; copy: Record<EmailLang, TemplateValues> }
 
 // ─── Texte ──────────────────────────────────────────────────
 
@@ -701,14 +707,12 @@ const reseaux: CampaignTemplate = {
     },
   },
   body: (v, ctx) => {
-    const bars = [
-      [K.ink, 120, NETWORKS[0]], ["#ffffff", 92, NETWORKS[1]], [K.coral, 104, NETWORKS[2]], [K.forest, 80, NETWORKS[3]],
-    ] as const;
-    const barCells = bars.map(([bg, h, n], i) =>
-      `<td width="25%" valign="bottom" style="padding:0 ${i === 3 ? 0 : 7}px 0 ${i === 0 ? 0 : 7}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" valign="middle" height="${h}" bgcolor="${bg}" style="height:${h}px;background:${bg};border-radius:22px 22px 0 0;"><img src="${n.icon}" width="48" height="48" alt="${n.name}" style="display:block;width:48px;height:48px;border:0;"></td></tr></table></td>`,
+    const bars = [[K.ink, 120], ["#ffffff", 92], ["#627eea", 108], [K.coral, 100], [K.forest, 80], ["#ffffff", 70]] as const;
+    const barCells = NETWORKS.map((n, i) =>
+      `<td width="16%" valign="bottom" style="padding:0 ${i === NETWORKS.length - 1 ? 0 : 4}px 0 ${i === 0 ? 0 : 4}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" valign="middle" height="${bars[i][1]}" bgcolor="${bars[i][0]}" style="height:${bars[i][1]}px;background:${bars[i][0]};border-radius:18px 18px 0 0;"><img src="${n.icon}" width="40" height="40" alt="${n.name}" style="display:block;width:40px;height:40px;border:0;"></td></tr></table></td>`,
     ).join("");
     const list = NETWORKS.map((n, i) =>
-      `<tr><td style="padding:14px 0;${i < 3 ? `border-bottom:1px solid ${K.line};` : ""}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      `<tr><td style="padding:14px 0;${i < NETWORKS.length - 1 ? `border-bottom:1px solid ${K.line};` : ""}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
         <td width="40"><img src="${n.icon}" width="40" height="40" alt="" style="display:block;border:0;"></td>
         <td style="padding-left:16px;"><p style="margin:0;font-family:${FONT};font-size:16px;font-weight:600;color:${K.ink};">${n.name}</p><p style="margin:2px 0 0;font-family:${FONT};font-size:13.5px;color:${K.body};">${tr(n.note[0], n.note[1])}</p></td>
         <td align="right" style="font-family:${FONT};font-size:12px;font-weight:600;letter-spacing:0.08em;color:#8a8379;">${n.std}</td>
@@ -2012,7 +2016,9 @@ const conditions: CampaignTemplate = {
       intro: "Nos conditions d'utilisation et notre politique de confidentialité évoluent. Voici un résumé clair de ce qui change.",
       effective: "1er novembre 2026",
       changes: [
-        "Ethereum et Avalanche ne sont plus proposés : vos USDT sont envoyés sur Tron, BNB Chain, Polygon ou Solana.",
+        "Vos USDT peuvent être envoyés sur 6 blockchains : Tron, BNB Chain, Ethereum, Polygon, Solana et Avalanche.",
+        "Pour une vente, vous indiquez le portefeuille depuis lequel vous envoyez vos USDT : il est enregistré dans votre carnet d'adresses.",
+        "Codes promotionnels et parrainage : leurs conditions sont précisées dans les conditions d'utilisation.",
         "Nous conservons la province et la ville d'inscription de chaque compte, pour nos obligations de conformité.",
         "Les courriels d'information contiennent un lien pour vous désabonner en un clic.",
       ].join("\n"),
@@ -2025,7 +2031,9 @@ const conditions: CampaignTemplate = {
       intro: "Our terms of use and privacy policy are changing. Here's a clear summary of what's different.",
       effective: "November 1, 2026",
       changes: [
-        "Ethereum and Avalanche are no longer offered: your USDT are sent on Tron, BNB Chain, Polygon or Solana.",
+        "Your USDT can be sent on 6 blockchains: Tron, BNB Chain, Ethereum, Polygon, Solana and Avalanche.",
+        "When you sell, you tell us the wallet you send your USDT from: it is saved in your address book.",
+        "Promo codes and referral: their conditions are set out in the terms of use.",
         "We keep the province and city where each account signed up, for our compliance obligations.",
         "Newsletter emails include a one-click unsubscribe link.",
       ].join("\n"),
@@ -3159,17 +3167,470 @@ const enLigne: CampaignTemplate = {
   },
 };
 
+// ─── Série 4 : parrainage, codes promo, réseaux, fidélité ───
+
+const parrainage: CampaignTemplate = {
+  id: "parrainage",
+  name: "Parrainage",
+  description: "Illustration cadeau sur fond menthe, deux avantages côte à côte, trois étapes. Pour faire connaître le lien d'invitation.",
+  category: "Offre",
+  swatch: [K.mint, K.forest],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "friend", label: "Avantage du filleul", kind: "text" },
+    { key: "you", label: "Votre avantage", kind: "text" },
+    { key: "steps", label: "Étapes", kind: "lines", hint: STEPS_HINT },
+    F.cta, F.ctaUrl, { key: "small", label: "Petite ligne", kind: "textarea" }],
+  copy: {
+    fr: {
+      subject: "{{prenom}}, invitez un proche : vous y gagnez tous les deux",
+      preheader: "Un meilleur taux pour lui sur sa première commande, puis pour vous sur la suivante.",
+      headline: "Invitez un proche.\nVous y gagnez tous les deux.",
+      intro: "Partagez votre lien d'invitation depuis **Mon compte**. Votre proche profite d'un meilleur taux, et vous aussi.",
+      image: "ill:gift",
+      friend: "Un meilleur taux sur sa première commande",
+      you: "Un meilleur taux sur votre commande suivante",
+      steps: [
+        "Copiez votre lien | Dans Mon compte, votre lien et votre code d'invitation sont prêts.",
+        "Votre proche s'inscrit | Avec votre lien ou votre code, au plus tard 3 jours après la création de son compte.",
+        "Vous en profitez tous les deux | Dès que sa première commande est terminée, votre avantage vous attend.",
+      ].join("\n"),
+      cta: "Copier mon lien d'invitation",
+      ctaUrl: "/app/compte",
+      small: "Un seul avantage par commande : le plus intéressant s'applique. Le parrainage peut être modifié ou arrêté à tout moment.",
+    },
+    en: {
+      subject: "{{prenom}}, invite someone close: you both win",
+      preheader: "A better rate for them on their first order, then for you on your next one.",
+      headline: "Invite someone close.\nYou both win.",
+      intro: "Share your invite link from **My account**. The person you invite gets a better rate, and so do you.",
+      image: "ill:gift",
+      friend: "A better rate on their first order",
+      you: "A better rate on your next order",
+      steps: [
+        "Copy your link | In My account, your invite link and code are ready.",
+        "They sign up | With your link or code, within 3 days of creating their account.",
+        "You both benefit | As soon as their first order is completed, your advantage is waiting.",
+      ].join("\n"),
+      cta: "Copy my invite link",
+      ctaUrl: "/app/compte",
+      small: "One advantage per order: the best one applies. Referral can be changed or stopped at any time.",
+    },
+  },
+  body: (v, ctx) => {
+    const half = (eyebrowText: string, text: string, bg: string, fg: string) =>
+      box(`${eyebrow(eyebrowText, fg)}${gap(8)}${para(`<strong style="color:${fg};">${rich(text, ctx)}</strong>`, fg, 16)}`, bg, { pad: "18px 20px" });
+    const steps = lines(v.steps).map(([t, d], i) =>
+      `<tr><td style="padding-bottom:14px;">${numbered(String(i + 1), esc(t ?? ""), rich(d, ctx), { dotBg: K.forest, dotFg: K.mint })}</td></tr>`).join("");
+    return [
+      `<tr><td class="px" bgcolor="${K.mint}" style="background:${K.mint};padding:26px 32px 0;">${brand(K.forest, tr("PARRAINAGE", "REFERRAL"), K.forest, "font-weight:600;letter-spacing:0.12em;")}</td></tr>`,
+      splitHero(K.mint, `${h1(rich(v.headline, ctx), K.forest, 34, 700)}${para(rich(v.intro, ctx), K.forest, 15.5, "14px 0 0")}`, image(v.image), { imgW: 250 }),
+      P("26px 32px 0", grid([half(tr("Pour votre proche", "For them"), v.friend, K.forest, K.cream), half(tr("Pour vous", "For you"), v.you, K.sun, K.ink)], 2)),
+      P("18px 32px 0", `${eyebrow(tr("Comment ça marche", "How it works"), K.forest)}${gap(14)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
+      `<tr><td class="px" style="padding:10px 32px 0;">${btn(v.cta, v.ctaUrl, K.forest, K.cream)}</td></tr>`,
+      P("18px 32px 40px", para(rich(v.small, ctx), K.mute, 12.5)),
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const codePromo: CampaignTemplate = {
+  id: "code-promo",
+  name: "Code promo",
+  description: "Grand code en pointillés façon coupon, conditions en clair. Pour une offre limitée dans le temps.",
+  category: "Offre",
+  swatch: [K.coral, K.ink],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro,
+    { key: "code", label: "Code", kind: "text" },
+    { key: "offer", label: "Avantage (sous le code)", kind: "text" },
+    { key: "until", label: "Valable jusqu'au", kind: "text" },
+    { key: "terms", label: "Conditions", kind: "lines", hint: "Une condition par ligne" },
+    F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "{{prenom}}, un meilleur taux avec le code BIENVENUE",
+      preheader: "Entrez-le à l'étape du montant : le taux avantageux s'affiche aussitôt.",
+      headline: "Un meilleur taux,\nrien que pour vous.",
+      intro: "Entrez ce code à l'étape du montant, sous le taux : le taux avantageux s'affiche aussitôt, avant de valider.",
+      code: "BIENVENUE",
+      offer: "Taux amélioré sur votre prochain achat",
+      until: "30 novembre 2026",
+      terms: [
+        "Une seule utilisation par compte.",
+        "Ne se cumule pas avec un autre avantage : le plus intéressant s'applique.",
+        "Valable sur les achats de USDT, sur les 6 blockchains.",
+      ].join("\n"),
+      cta: "Utiliser mon code",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "{{prenom}}, a better rate with code WELCOME",
+      preheader: "Enter it at the amount step: the better rate shows right away.",
+      headline: "A better rate,\njust for you.",
+      intro: "Enter this code at the amount step, below the rate: the better rate shows right away, before you confirm.",
+      code: "WELCOME",
+      offer: "Improved rate on your next purchase",
+      until: "November 30, 2026",
+      terms: [
+        "One use per account.",
+        "Can't be combined with another advantage: the best one applies.",
+        "Valid on USDT purchases, on all 6 blockchains.",
+      ].join("\n"),
+      cta: "Use my code",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  body: (v, ctx) => [
+    `<tr><td class="px" bgcolor="${K.coral}" style="background:${K.coral};padding:26px 32px 0;">${brand(K.ink, pill(tr("Offre limitée", "Limited offer"), K.ink, K.coral))}</td></tr>`,
+    `<tr><td class="px" bgcolor="${K.coral}" style="background:${K.coral};padding:26px 32px 30px;">${h1(rich(v.headline, ctx), K.ink, 40, 800)}${para(rich(v.intro, ctx), K.ink, 15.5, "16px 0 0")}</td></tr>`,
+    P("30px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="border:2px dashed ${K.ink};border-radius:18px;padding:26px 18px;">
+      ${eyebrow(tr("Votre code", "Your code"), K.mute)}${gap(10)}
+      <p style="margin:0;font-family:${FONT};font-size:40px;font-weight:800;letter-spacing:0.08em;color:${K.ink};">${esc(v.code)}</p>
+      ${para(`<strong>${rich(v.offer, ctx)}</strong>`, K.ink, 15, "10px 0 0")}
+      ${para(`${tr("Valable jusqu'au", "Valid until")} ${esc(v.until)}`, K.mute, 13, "6px 0 0")}
+    </td></tr></table>`),
+    `<tr><td class="px" align="center" style="padding:24px 32px 0;">${btn(v.cta, v.ctaUrl, K.ink, "#ffffff", { radius: 99, size: 16 })}</td></tr>`,
+    P("28px 32px 40px", `${eyebrow(tr("Conditions", "Conditions"), K.ink)}${gap(12)}${bullets(lines(v.terms).map(([t]) => rich(t, ctx)), "&#8212;", K.mute, K.body, 13.5)}`),
+    footer(ctx, { bg: K.cream, color: K.mute, link: K.coralDeep }),
+  ].join(""),
+};
+
+const sixReseaux: CampaignTemplate = {
+  id: "six-reseaux",
+  name: "6 blockchains",
+  description: "Fond encre, les six pièces en rangée, une ligne par réseau. Pour annoncer Ethereum et Avalanche ou rappeler le choix du réseau.",
+  category: "Lancement",
+  swatch: [K.ink, K.sun],
+  isNew: true,
+  cardBg: K.ink,
+  fields: [F.subject, F.preheader, { key: "eyebrow", label: "Surtitre", kind: "text" }, F.headline, F.intro,
+    { key: "tip", label: "Encadré", kind: "textarea" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Ethereum et Avalanche sont disponibles sur Ooble",
+      preheader: "Vos USDT sur 6 blockchains : choisissez au moment de l'ordre.",
+      eyebrow: "Nouveau",
+      headline: "Ethereum et Avalanche\nsont disponibles.",
+      intro: "Vos USDT partent maintenant sur **6 blockchains**. Choisissez le réseau au moment de l'ordre : le taux ne change pas, seuls les frais du réseau varient.",
+      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi. Une adresse Ethereum, BNB Chain, Polygon ou Avalanche commence par 0x, une adresse Tron par T. Une transaction blockchain ne peut pas être annulée.",
+      cta: "Acheter des USDT",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "Ethereum and Avalanche are now available on Ooble",
+      preheader: "Your USDT on 6 blockchains: choose when you place your order.",
+      eyebrow: "New",
+      headline: "Ethereum and Avalanche\nare now available.",
+      intro: "Your USDT now go out on **6 blockchains**. Pick the network when you place your order: the rate stays the same, only network fees vary.",
+      tip: "Check that your wallet address matches the network you chose. An Ethereum, BNB Chain, Polygon or Avalanche address starts with 0x, a Tron address with T. A blockchain transaction can't be reversed.",
+      cta: "Buy USDT",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  body: (v, ctx) => {
+    const list = NETWORKS.map((n, i) =>
+      `<tr><td style="padding:12px 0;${i < NETWORKS.length - 1 ? "border-bottom:1px solid #2a2724;" : ""}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td width="36"><img src="${n.icon}" width="36" height="36" alt="" style="display:block;border:0;"></td>
+        <td style="padding-left:14px;"><p style="margin:0;font-family:${FONT};font-size:15px;font-weight:600;color:#ffffff;">${n.name}</p><p style="margin:2px 0 0;font-family:${FONT};font-size:13px;color:#a39d94;">${tr(n.note[0], n.note[1])}</p></td>
+        <td align="right" style="font-family:${FONT};font-size:11.5px;font-weight:600;letter-spacing:0.08em;color:#8a8379;">${n.std}</td>
+      </tr></table></td></tr>`).join("");
+    return [
+      `<tr><td class="px" style="padding:26px 32px 0;">${brand("#ffffff", pill(esc(v.eyebrow), K.sun, K.ink))}</td></tr>`,
+      P("34px 32px 0", `${h1(rich(v.headline, ctx, `color:${K.sun};`), "#ffffff", 40, 700)}${para(rich(v.intro, ctx, `color:${K.sun};`), "#d6d0c7", 16, "18px 0 0")}`),
+      `<tr><td class="px" align="left" style="padding:26px 32px 0;">${networksRow(40).replace(/margin-left:8px;/, "margin-left:0;")}</td></tr>`,
+      P("18px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${list}</table>`),
+      P("20px 32px 0", box(para(rich(v.tip, ctx), "#e9e4dc", 13.5), "#1f1c1a", { pad: "16px 20px" })),
+      `<tr><td class="px" style="padding:26px 32px 40px;">${btn(v.cta, v.ctaUrl, K.sun, K.ink)}</td></tr>`,
+      footer(ctx, { bg: "#1d1a18", color: "#8c867e", link: K.sun }),
+    ].join("");
+  },
+};
+
+const reactivation: CampaignTemplate = {
+  id: "reactivation",
+  name: "Réactivation",
+  description: "Lettre sobre et personnelle, une seule question, deux boutons. Pour les clients sans commande depuis longtemps.",
+  category: "Relance",
+  swatch: ["#ffffff", K.coral],
+  isNew: true,
+  fields: [F.subject, F.preheader, { key: "greeting", label: "Salutation", kind: "text" },
+    { key: "message", label: "Message", kind: "textarea", hint: "Une ligne vide sépare les paragraphes" },
+    F.cta, F.ctaUrl, { key: "cta2", label: "Second bouton", kind: "text" }, { key: "cta2Url", label: "Lien du second bouton", kind: "url" },
+    { key: "signature", label: "Signature", kind: "text" }],
+  copy: {
+    fr: {
+      subject: "{{prenom}}, on peut faire mieux ?",
+      preheader: "Une question, et un taux toujours garanti 15 minutes.",
+      greeting: "Bonjour {{prenom}},",
+      message: "Nous n'avons pas eu de vos nouvelles depuis un moment, et nous aimerions savoir pourquoi.\n\nSi quelque chose vous a freiné (un délai, un taux, une étape pas claire), répondez simplement à ce courriel : nous lisons chaque réponse.\n\nEt si vous avez besoin de USDT, Ooble est toujours là : Interac en dollars canadiens, taux garanti 15 minutes, 6 blockchains.",
+      cta: "Acheter des USDT",
+      ctaUrl: "/app/acheter",
+      cta2: "Vendre des USDT",
+      cta2Url: "/app/vendre",
+      signature: "L'équipe Ooble",
+    },
+    en: {
+      subject: "{{prenom}}, can we do better?",
+      preheader: "One question, and a rate still locked for 15 minutes.",
+      greeting: "Hi {{prenom}},",
+      message: "We haven't heard from you in a while, and we'd like to know why.\n\nIf something held you back (a delay, a rate, an unclear step), just reply to this email: we read every answer.\n\nAnd if you need USDT, Ooble is still here: Interac in Canadian dollars, rate locked for 15 minutes, 6 blockchains.",
+      cta: "Buy USDT",
+      ctaUrl: "/app/acheter",
+      cta2: "Sell USDT",
+      cta2Url: "/app/vendre",
+      signature: "The Ooble team",
+    },
+  },
+  body: (v, ctx) => [
+    `<tr><td class="px" style="padding:28px 40px 0;">${brand(K.ink)}</td></tr>`,
+    P("34px 40px 0", `${para(rich(v.greeting, ctx), K.ink, 17, "0 0 16px")}${paragraphs(v.message).map((p) => para(rich(p, ctx), K.body, 16, "0 0 16px")).join("")}`),
+    `<tr><td class="px" style="padding:8px 40px 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td>${btn(v.cta, v.ctaUrl, K.coral, K.ink)}</td>
+      ${v.cta2 ? `<td style="padding-left:10px;">${btn(v.cta2, v.cta2Url, "#ffffff", K.ink, { border: "#d8d1c4" })}</td>` : ""}
+    </tr></table></td></tr>`,
+    P("28px 40px 40px", para(`<strong style="color:${K.ink};">${rich(v.signature, ctx)}</strong>`, K.ink, 15)),
+    footer(ctx, { bg: K.cream, color: K.mute, link: K.coralDeep, top: K.line }),
+  ].join(""),
+};
+
+const anniversaire: CampaignTemplate = {
+  id: "anniversaire",
+  name: "Un an avec Ooble",
+  description: "Grand chiffre sur fond soleil, illustration de fête, mot de remerciement. Pour l'anniversaire d'un compte ou de la plateforme.",
+  category: "Saison",
+  swatch: [K.sun, K.forest],
+  isNew: true,
+  fields: [F.subject, F.preheader, { key: "big", label: "Grand chiffre", kind: "text" }, { key: "bigLabel", label: "Sous le chiffre", kind: "text" },
+    F.headline, F.intro, IMG_FIELD(), F.cta, F.ctaUrl, { key: "signature", label: "Signature", kind: "text" }],
+  copy: {
+    fr: {
+      subject: "{{prenom}}, ça fait un an !",
+      preheader: "Merci de faire confiance à Ooble depuis le début.",
+      big: "1",
+      bigLabel: "an ensemble",
+      headline: "Merci, {{prenom}}.",
+      intro: "Il y a un an, vous ouvriez votre compte Ooble. Merci pour votre confiance : chaque commande nous aide à rendre l'achat et la vente de USDT plus simples au Canada.",
+      image: "ill:celebrate",
+      cta: "Ouvrir Ooble",
+      ctaUrl: "/app",
+      signature: "Toute l'équipe Ooble",
+    },
+    en: {
+      subject: "{{prenom}}, it's been a year!",
+      preheader: "Thank you for trusting Ooble from the start.",
+      big: "1",
+      bigLabel: "year together",
+      headline: "Thank you, {{prenom}}.",
+      intro: "A year ago, you opened your Ooble account. Thank you for your trust: every order helps us make buying and selling USDT simpler in Canada.",
+      image: "ill:celebrate",
+      cta: "Open Ooble",
+      ctaUrl: "/app",
+      signature: "The whole Ooble team",
+    },
+  },
+  body: (v, ctx) => [
+    `<tr><td class="px" bgcolor="${K.sun}" style="background:${K.sun};padding:26px 32px 0;">${brand(K.ink)}</td></tr>`,
+    `<tr><td align="center" bgcolor="${K.sun}" style="background:${K.sun};padding:18px 32px 0;text-align:center;">
+      <p class="big" style="margin:0;font-family:${FONT};font-size:120px;line-height:1;font-weight:800;letter-spacing:-0.05em;color:${K.forest};">${esc(v.big)}</p>
+      ${para(`<strong>${rich(v.bigLabel, ctx)}</strong>`, K.forest, 18, "4px 0 0")}
+    </td></tr>`,
+    `<tr><td align="center" bgcolor="${K.sun}" style="background:${K.sun};padding:14px 32px 0;">${art(image(v.image), 300)}</td></tr>`,
+    `<tr><td class="px" align="center" style="padding:34px 44px 0;text-align:center;">${h1(rich(v.headline, ctx), K.ink, 32, 700)}${para(rich(v.intro, ctx), K.body, 16, "14px 0 0")}</td></tr>`,
+    `<tr><td class="px" align="center" style="padding:24px 44px 0;">${btn(v.cta, v.ctaUrl, K.forest, K.cream, { radius: 99 })}</td></tr>`,
+    `<tr><td class="px" align="center" style="padding:22px 44px 40px;text-align:center;">${para(`<strong style="color:${K.ink};">${rich(v.signature, ctx)}</strong>`, K.ink, 15)}</td></tr>`,
+    footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+  ].join(""),
+};
+
+const venteEnvoi: CampaignTemplate = {
+  id: "vente-envoi",
+  name: "Vente : portefeuille d'envoi",
+  description: "Fond forêt, schéma wallet → Ooble → Interac, rappel de l'adresse d'envoi. Pour expliquer la vente pas à pas.",
+  category: "Éducation",
+  swatch: [K.forest, K.peach],
+  isNew: true,
+  fields: [F.subject, F.preheader, F.headline, F.intro, IMG_FIELD(),
+    { key: "steps", label: "Étapes", kind: "lines", hint: STEPS_HINT },
+    { key: "tip", label: "Encadré", kind: "textarea" }, F.cta, F.ctaUrl],
+  copy: {
+    fr: {
+      subject: "Vendre vos USDT : indiquez le portefeuille d'envoi",
+      preheader: "Une étape qui permet de reconnaître votre envoi automatiquement.",
+      headline: "Vendre vos USDT,\nsans attente.",
+      intro: "Au moment de vendre, vous indiquez le portefeuille depuis lequel vous envoyez vos USDT. Votre envoi est alors reconnu automatiquement, et vos dollars partent par Interac.",
+      image: "ill:wallet",
+      steps: [
+        "Choisissez le montant et le réseau | Le taux affiché est garanti 15 minutes.",
+        "Indiquez votre portefeuille d'envoi | L'adresse d'où partiront vos USDT : collez-la ou connectez votre wallet. Elle est enregistrée dans votre carnet pour la prochaine fois.",
+        "Envoyez vos USDT | À l'adresse de dépôt affichée, depuis ce portefeuille.",
+        "Recevez vos dollars | Par virement Interac, sur le courriel de votre compte.",
+      ].join("\n"),
+      tip: "Envoyez toujours depuis l'adresse indiquée et sur le réseau choisi : un envoi depuis une autre adresse ne peut pas être reconnu automatiquement.",
+      cta: "Vendre des USDT",
+      ctaUrl: "/app/vendre",
+    },
+    en: {
+      subject: "Selling your USDT: tell us your sending wallet",
+      preheader: "One step that lets us recognize your transfer automatically.",
+      headline: "Sell your USDT,\nwithout waiting.",
+      intro: "When you sell, you tell us the wallet you're sending your USDT from. Your transfer is then recognized automatically, and your dollars go out by Interac.",
+      image: "ill:wallet",
+      steps: [
+        "Choose the amount and network | The rate shown is locked for 15 minutes.",
+        "Enter your sending wallet | The address your USDT will leave from: paste it or connect your wallet. It's saved in your address book for next time.",
+        "Send your USDT | To the deposit address shown, from that wallet.",
+        "Get your dollars | By Interac e-Transfer, to your account email.",
+      ].join("\n"),
+      tip: "Always send from the address you entered and on the network you chose: a transfer from another address can't be recognized automatically.",
+      cta: "Sell USDT",
+      ctaUrl: "/app/vendre",
+    },
+  },
+  body: (v, ctx) => {
+    const steps = lines(v.steps).map(([t, d], i) =>
+      `<tr><td style="padding-bottom:14px;">${numbered(String(i + 1), esc(t ?? ""), rich(d, ctx), { dotBg: K.peach, dotFg: K.ink, square: true })}</td></tr>`).join("");
+    return [
+      `<tr><td class="px" bgcolor="${K.forest}" style="background:${K.forest};padding:26px 32px 0;">${brand(K.cream, tr("VENDRE", "SELL"), K.mint, "font-weight:600;letter-spacing:0.12em;")}</td></tr>`,
+      splitHero(K.forest, `${h1(rich(v.headline, ctx), K.cream, 36, 700)}${para(rich(v.intro, ctx), "#d7eee3", 15.5, "14px 0 0")}`, image(v.image), { imgW: 250 }),
+      P("32px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
+      P("6px 32px 0", box(para(rich(v.tip, ctx), K.ink, 14), "#fff1ec", { pad: "16px 20px" })),
+      `<tr><td class="px" style="padding:24px 32px 40px;">${btn(v.cta, v.ctaUrl, K.forest, K.cream)}</td></tr>`,
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
+    ].join("");
+  },
+};
+
+const SERIE_4: CampaignTemplate[] = [parrainage, codePromo, sixReseaux, reactivation, anniversaire, venteEnvoi];
+
 const SERIE_3: CampaignTemplate[] = [
   notifications, portefeuille, pourquoi, virement, merci, support, relanceCourte, reseau,
   nouvelAn, compteSecurise, annonceCourte, pointDuMois, mobile, entreprisesVille, enLigne,
 ];
 
 export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
-  ...SERIE_3,
+  ...SERIE_4, ...SERIE_3,
   lancement, bienvenue, verifie, relanceKyc, retour, premierAchat, guideInterac, vendre,
   reseaux, otc, entreprises, affiche, quoiDeNeuf, nouveaute, lettre, fondateur,
   faq, appli, securite, alerte, avis, conditions, evenement, sondage, fetes,
 ];
+
+// ─── Variantes ──────────────────────────────────────────────
+// Autres angles d'écriture pour un même modèle : seuls les textes changent, la mise en page reste.
+
+const VARIANTS: Record<string, TemplateVariant[]> = {
+  lancement: [
+    { id: "court", label: "Court et direct", copy: {
+      fr: { subject: "Vos USDT par Interac, en quelques minutes", preheader: "Ouvrez votre compte gratuit en moins d'une minute.", headline: "USDT ⇄ dollars.", highlight: "Par Interac, en minutes.", intro: "Un compte gratuit, une vérification unique, et vos USDT arrivent directement dans votre wallet." },
+      en: { subject: "Your USDT by Interac, in minutes", preheader: "Open your free account in under a minute.", headline: "USDT ⇄ dollars.", highlight: "By Interac, in minutes.", intro: "A free account, a one-time verification, and your USDT land directly in your wallet." } } },
+    { id: "confiance", label: "Axé confiance", copy: {
+      fr: { subject: "Acheter des USDT au Canada, en toute confiance", preheader: "Entreprise canadienne, Interac, et votre argent ne reste jamais chez nous.", headline: "Des USDT,", highlight: "en toute confiance.", intro: "Ooble est une entreprise canadienne. Vous payez par Interac depuis votre propre compte bancaire, et vos USDT partent directement dans **votre** wallet : nous ne gardons jamais votre argent." },
+      en: { subject: "Buying USDT in Canada, with confidence", preheader: "A Canadian company, Interac, and your money never stays with us.", headline: "USDT,", highlight: "with confidence.", intro: "Ooble is a Canadian company. You pay by Interac from your own bank account, and your USDT go straight to **your** wallet: we never hold your money." } } },
+  ],
+  bienvenue: [
+    { id: "chaleureux", label: "Plus chaleureux", copy: {
+      fr: { subject: "{{prenom}}, bienvenue dans la famille Ooble", preheader: "On est contents de vous compter parmi nous.", headline: "Ravi de vous accueillir, {{prenom}} !", intro: "Merci d'avoir choisi Ooble. Votre compte est prêt : il ne reste qu'à vérifier votre identité, une seule fois, et vous pourrez acheter vos premiers USDT." },
+      en: { subject: "{{prenom}}, welcome to the Ooble family", preheader: "We're glad to have you with us.", headline: "So glad you're here, {{prenom}}!", intro: "Thanks for choosing Ooble. Your account is ready: just verify your identity, once, and you can buy your first USDT." } } },
+    { id: "pratique", label: "Pratique", copy: {
+      fr: { subject: "Votre compte Ooble est prêt : la suite en 3 étapes", preheader: "Vérification, premier ordre, virement Interac.", headline: "Votre compte est prêt.", intro: "Trois étapes vous séparent de vos premiers USDT. Comptez environ dix minutes, vérification comprise." },
+      en: { subject: "Your Ooble account is ready: next, 3 steps", preheader: "Verification, first order, Interac transfer.", headline: "Your account is ready.", intro: "Three steps stand between you and your first USDT. Allow about ten minutes, verification included." } } },
+  ],
+  "relance-kyc": [
+    { id: "court", label: "Très court", copy: {
+      fr: { subject: "{{prenom}}, deux minutes et c'est fait", preheader: "Une pièce d'identité et un selfie.", headline: "Deux minutes, et c'est fait.", intro: "Une pièce d'identité, un selfie, et votre compte est prêt pour votre premier achat de USDT." },
+      en: { subject: "{{prenom}}, two minutes and you're done", preheader: "A photo ID and a selfie.", headline: "Two minutes, and you're done.", intro: "A photo ID, a selfie, and your account is ready for your first USDT purchase." } } },
+    { id: "rassurant", label: "Rassurant", copy: {
+      fr: { subject: "Pourquoi nous vérifions votre identité", preheader: "Une exigence de la loi canadienne, une seule fois, données chiffrées.", headline: "Pourquoi cette vérification ?", intro: "La loi canadienne demande à toute entreprise de services monétaires de vérifier l'identité de ses clients. Elle se fait une seule fois, et vos documents sont chiffrés." },
+      en: { subject: "Why we verify your identity", preheader: "Required by Canadian law, once, with encrypted data.", headline: "Why this verification?", intro: "Canadian law requires every money services business to verify its clients' identity. It happens only once, and your documents are encrypted." } } },
+  ],
+  "relance-courte": [
+    { id: "dernier", label: "Dernier rappel", copy: {
+      fr: { subject: "Dernier rappel, {{prenom}}", preheader: "Votre compte vous attend toujours.", headline: "Dernier rappel, {{prenom}}.", intro: "Votre compte vous attend toujours : terminez votre vérification pour acheter ou vendre des USDT quand vous le voudrez." },
+      en: { subject: "Last reminder, {{prenom}}", preheader: "Your account is still waiting.", headline: "Last reminder, {{prenom}}.", intro: "Your account is still waiting: finish your verification to buy or sell USDT whenever you like." } } },
+  ],
+  verifie: [
+    { id: "premier-ordre", label: "Vers le premier ordre", copy: {
+      fr: { subject: "{{prenom}}, vous pouvez passer votre premier ordre", preheader: "Taux garanti 15 minutes, paiement par Interac.", headline: "À vous de jouer, {{prenom}}.", intro: "Votre identité est vérifiée. Choisissez un montant, un réseau, et payez par Interac : le taux affiché est garanti 15 minutes." },
+      en: { subject: "{{prenom}}, you can place your first order", preheader: "Rate locked for 15 minutes, pay by Interac.", headline: "Over to you, {{prenom}}.", intro: "Your identity is verified. Pick an amount and a network, then pay by Interac: the rate shown is locked for 15 minutes." } } },
+  ],
+  "premier-achat": [
+    { id: "rapide", label: "Rapide", copy: {
+      fr: { subject: "Vos premiers USDT en quelques minutes", preheader: "Le pas à pas, en une minute de lecture.", headline: "Vos premiers USDT,\nen quelques minutes.", intro: "Une minute de lecture, et vous saurez tout : du montant à l'arrivée des USDT dans votre wallet." },
+      en: { subject: "Your first USDT in minutes", preheader: "The step by step, in a one-minute read.", headline: "Your first USDT,\nin minutes.", intro: "A one-minute read, and you'll know it all: from the amount to your USDT landing in your wallet." } } },
+  ],
+  retour: [
+    { id: "nouveautes", label: "Axé nouveautés", copy: {
+      fr: { subject: "{{prenom}}, Ethereum et Avalanche sont arrivés", preheader: "6 blockchains, parrainage, codes promo : les nouveautés d'Ooble.", headline: "Du nouveau sur Ooble, {{prenom}}.", intro: "Depuis votre dernière visite : 6 blockchains, le parrainage, les codes promo et des guides vidéo. L'essentiel en trente secondes." },
+      en: { subject: "{{prenom}}, Ethereum and Avalanche are here", preheader: "6 blockchains, referral, promo codes: what's new on Ooble.", headline: "What's new on Ooble, {{prenom}}.", intro: "Since your last visit: 6 blockchains, referral, promo codes and video guides. The essentials in thirty seconds." } } },
+  ],
+  vendre: [
+    { id: "interac", label: "Axé Interac", copy: {
+      fr: { subject: "Vos USDT deviennent un virement Interac", preheader: "Sur le courriel de votre compte, au nom de votre compte vérifié.", headline: "Vos USDT deviennent un virement Interac.", intro: "Envoyez vos USDT, recevez des dollars canadiens par Interac sur le courriel de votre compte, à partir de 100 $ par vente." },
+      en: { subject: "Your USDT become an Interac e-Transfer", preheader: "To your account email, in the name of your verified account.", headline: "Your USDT become an Interac e-Transfer.", intro: "Send your USDT, receive Canadian dollars by Interac to your account email, from $100 per sale." } } },
+    { id: "court", label: "Court", copy: {
+      fr: { subject: "Vendre vos USDT, c'est simple", preheader: "À partir de 100 $, taux garanti 15 minutes.", headline: "Vendre vos USDT, c'est simple.", intro: "Taux garanti 15 minutes, dollars par Interac, à partir de 100 $." },
+      en: { subject: "Selling your USDT is simple", preheader: "From $100, rate locked for 15 minutes.", headline: "Selling your USDT is simple.", intro: "Rate locked for 15 minutes, dollars by Interac, from $100." } } },
+  ],
+  otc: [
+    { id: "entreprises", label: "Pour les sociétés", copy: {
+      fr: { subject: "Desk OTC : vos gros volumes de USDT, au nom de la société", preheader: "Prix ferme, un interlocuteur, à partir de 10 000 $.", headline: "Vos gros volumes de USDT, au nom de votre société, à un prix ferme." },
+      en: { subject: "OTC desk: your large USDT volumes, in your company's name", preheader: "Firm price, one contact, from $10,000.", headline: "Your large USDT volumes, in your company's name, at a firm price." } } },
+  ],
+  entreprises: [
+    { id: "tresorerie", label: "Axé trésorerie", copy: {
+      fr: { subject: "Gérez la trésorerie en USDT de votre société", preheader: "Achetez et vendez des USDT au nom de l'entreprise, par Interac.", headline: "La trésorerie en USDT de votre société, simplement." },
+      en: { subject: "Manage your company's USDT treasury", preheader: "Buy and sell USDT in your company's name, by Interac.", headline: "Your company's USDT treasury, made simple." } } },
+    { id: "fournisseurs", label: "Fournisseurs à l'étranger", copy: {
+      fr: { subject: "Payez vos fournisseurs à l'étranger en USDT", preheader: "Sans attendre un virement international : en USDT, sur 6 blockchains.", headline: "Payez vos fournisseurs à l'étranger, sans attendre." },
+      en: { subject: "Pay your suppliers abroad in USDT", preheader: "No waiting for an international wire: in USDT, on 6 blockchains.", headline: "Pay your suppliers abroad, without waiting." } } },
+  ],
+  reseaux: [
+    { id: "nouveaux", label: "Ethereum et Avalanche", copy: {
+      fr: { subject: "Ethereum et Avalanche s'ajoutent à Ooble", preheader: "6 blockchains au choix, au moment de l'ordre.", badge: "Nouveau", headline: "6 blockchains,\nau choix." },
+      en: { subject: "Ethereum and Avalanche join Ooble", preheader: "6 blockchains to choose from, when you order.", badge: "New", headline: "6 blockchains,\nyour choice." } } },
+  ],
+  pourquoi: [
+    { id: "court", label: "Court", copy: {
+      fr: { subject: "Pourquoi nos clients choisissent Ooble", preheader: "Interac, dollars canadiens, taux garanti, vraie équipe.", headline: "Pourquoi\nOoble ?", intro: "Quatre raisons, une minute de lecture." },
+      en: { subject: "Why our clients choose Ooble", preheader: "Interac, Canadian dollars, locked rate, a real team.", headline: "Why\nOoble?", intro: "Four reasons, a one-minute read." } } },
+  ],
+  merci: [
+    { id: "parrainage", label: "Avec parrainage", copy: {
+      fr: { subject: "Merci, {{prenom}} ! Et un meilleur taux pour vos proches", preheader: "Invitez un proche : vous y gagnez tous les deux.", intro: "Votre premier achat est terminé. Merci ! Si Ooble vous plaît, invitez un proche depuis Mon compte : il profite d'un meilleur taux, et vous aussi." },
+      en: { subject: "Thank you, {{prenom}}! And a better rate for people you know", preheader: "Invite someone close: you both win.", intro: "Your first purchase is complete. Thank you! If you like Ooble, invite someone from My account: they get a better rate, and so do you." } } },
+  ],
+  securite: [
+    { id: "court", label: "Rappel court", copy: {
+      fr: { subject: "Rappel : Ooble ne vous demandera jamais vos codes", preheader: "Nos courriels viennent seulement de @ooble.ca.", intro: "Ni mot de passe, ni code reçu par courriel ou texto. Nos courriels viennent seulement de **@ooble.ca**." },
+      en: { subject: "Reminder: Ooble will never ask for your codes", preheader: "Our emails only come from @ooble.ca.", intro: "No password, no code received by email or text. Our emails only come from **@ooble.ca**." } } },
+  ],
+  mobile: [
+    { id: "ecran", label: "Écran d'accueil", copy: {
+      fr: { subject: "Ooble, toujours dans votre poche", preheader: "Ajoutez Ooble à votre écran d'accueil en 10 secondes.", headline: "Toujours\ndans votre poche.", intro: "Ajoutez Ooble à votre écran d'accueil : l'ordre, le virement Interac et le suivi, d'un geste." },
+      en: { subject: "Ooble, always in your pocket", preheader: "Add Ooble to your home screen in 10 seconds.", headline: "Always\nin your pocket.", intro: "Add Ooble to your home screen: the order, the Interac transfer and the tracking, in one tap." } } },
+  ],
+  affiche: [
+    { id: "vendre", label: "Côté vente", copy: {
+      fr: { subject: "Vendez vos USDT. Recevez des dollars.", preheader: "Par Interac, à partir de 100 $.", headline: "Vendez.\nRecevez\ndes dollars.", intro: "Vos USDT deviennent des dollars canadiens par Interac, à partir de 100 $.", cta: "Vendre des USDT", ctaUrl: "/app/vendre" },
+      en: { subject: "Sell your USDT. Get dollars.", preheader: "By Interac, from $100.", headline: "Sell.\nGet\ndollars.", intro: "Your USDT become Canadian dollars by Interac, from $100.", cta: "Sell USDT", ctaUrl: "/app/vendre" } } },
+  ],
+  parrainage: [
+    { id: "court", label: "Court", copy: {
+      fr: { subject: "Votre lien d'invitation Ooble est prêt", preheader: "Un meilleur taux pour vous deux.", headline: "Votre lien d'invitation\nest prêt.", intro: "Partagez-le : un meilleur taux pour votre proche, puis pour vous." },
+      en: { subject: "Your Ooble invite link is ready", preheader: "A better rate for you both.", headline: "Your invite link\nis ready.", intro: "Share it: a better rate for them, then for you." } } },
+  ],
+  "code-promo": [
+    { id: "dernier-jour", label: "Dernier jour", copy: {
+      fr: { subject: "Dernier jour pour votre code, {{prenom}}", preheader: "Votre taux amélioré expire ce soir.", headline: "Dernier jour\npour votre code." },
+      en: { subject: "Last day for your code, {{prenom}}", preheader: "Your improved rate expires tonight.", headline: "Last day\nfor your code." } } },
+  ],
+  reactivation: [
+    { id: "nouveautes", label: "Avec nouveautés", copy: {
+      fr: { subject: "{{prenom}}, Ooble a changé depuis votre dernière visite", preheader: "6 blockchains, parrainage, codes promo.", message: "Ça fait un moment ! Depuis votre dernière visite, Ooble a ajouté Ethereum et Avalanche (6 blockchains au total), le parrainage et les codes promo.\n\nVotre compte est toujours actif : vous pouvez acheter ou vendre des USDT quand vous voulez, avec un taux garanti 15 minutes.\n\nUne question ou une suggestion ? Répondez simplement à ce courriel." },
+      en: { subject: "{{prenom}}, Ooble has changed since your last visit", preheader: "6 blockchains, referral, promo codes.", message: "It's been a while! Since your last visit, Ooble added Ethereum and Avalanche (6 blockchains in all), referral and promo codes.\n\nYour account is still active: you can buy or sell USDT whenever you like, with a rate locked for 15 minutes.\n\nA question or a suggestion? Just reply to this email." } } },
+  ],
+};
+for (const t of CAMPAIGN_TEMPLATES) if (VARIANTS[t.id]) t.variants = VARIANTS[t.id];
 
 export function getTemplate(id: string): CampaignTemplate {
   return CAMPAIGN_TEMPLATES.find((t) => t.id === id) ?? CAMPAIGN_TEMPLATES[0];
@@ -3178,6 +3639,12 @@ export function getTemplate(id: string): CampaignTemplate {
 /** Textes par défaut d'un modèle dans une langue. */
 export function defaultsFor(id: string, lang: EmailLang): TemplateValues {
   return { ...getTemplate(id).copy[lang] };
+}
+
+/** Textes d'une variante (les textes par défaut, remplacés par ceux de la variante). */
+export function variantValues(id: string, variantId: string | null, lang: EmailLang): TemplateValues {
+  const v = variantId ? getTemplate(id).variants?.find((x) => x.id === variantId) : undefined;
+  return { ...getTemplate(id).copy[lang], ...(v?.copy[lang] ?? {}) };
 }
 
 /** Courriel complet prêt à envoyer. */

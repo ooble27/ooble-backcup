@@ -34,7 +34,7 @@ import {
 } from "@/lib/campaigns";
 import { renderCampaign } from "@/lib/campaignDesigns";
 import {
-  CAMPAIGN_TEMPLATES, TEMPLATE_CATEGORIES, EMAIL_IMAGES, getTemplate, renderTemplate, defaultsFor,
+  CAMPAIGN_TEMPLATES, TEMPLATE_CATEGORIES, EMAIL_IMAGES, getTemplate, renderTemplate, defaultsFor, variantValues,
   type CampaignTemplate, type TemplateField, type TemplateValues, type EmailLang, type EmailImage,
 } from "@/lib/campaignTemplates";
 import { draftCampaign, isAIError, type DraftCampaignResult } from "@/lib/ai";
@@ -43,6 +43,7 @@ import { Button, Notice, SidePanel, SummaryRow, Workspace, WsPane, type Workspac
 import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column } from "./layout";
 import { ScaledFrame } from "./EmailFrame";
 import { CampaignList, ControlCenter, MarketingOverview } from "./MarketingPanels";
+import { GR_CSS, Opts } from "./GrowthPanel";
 import { JourneysPanel } from "./JourneysPanel";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { GrowthPanel } from "./GrowthPanel";
@@ -699,7 +700,7 @@ function TemplateCard({ delay, template: t, lang, onPreview, onUse }: {
         <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <span style={{ color: C.t1, fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
         </span>
-        <span style={{ fontSize: 11, color: C.t3 }}>{t.category}</span>
+        <span style={{ fontSize: 11, color: C.t3 }}>{t.category}{t.variants?.length ? ` · ${t.variants.length + 1} versions` : ""}</span>
       </button>
     </div>
   );
@@ -864,9 +865,17 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const [name, setName] = useState("");
   const [editLang, setEditLang] = useState<EmailLang>(startLang);
   const [byLang, setByLang] = useState<ByLang>({ fr: defaultsFor(templateId, "fr"), en: defaultsFor(templateId, "en") });
+  // Variante choisie : un autre angle d'écriture, même mise en page.
+  const [variant, setVariant] = useState<string | null>(null);
   const values = byLang[editLang];
   const setField = (k: string, v: string) => setByLang((s) => ({ ...s, [editLang]: { ...s[editLang], [k]: v } }));
-  const edited = (l: EmailLang) => JSON.stringify(byLang[l]) !== JSON.stringify(defaultsFor(templateId, l));
+  const edited = (l: EmailLang) => JSON.stringify(byLang[l]) !== JSON.stringify(variantValues(templateId, variant, l));
+  const pickVariant = (id: string | null) => {
+    if (id === variant) return;
+    if ((edited("fr") || edited("en")) && !window.confirm("Remplacer vos modifications par les textes de cette variante ?")) return;
+    setVariant(id);
+    setByLang({ fr: variantValues(templateId, id, "fr"), en: variantValues(templateId, id, "en") });
+  };
 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const addRecipient = useCallback((r: Recipient) => {
@@ -1100,6 +1109,16 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
         {langSwitch}
       </div>
 
+      {(template.variants?.length ?? 0) > 0 && (
+        <StudioSection title="Variante" hint="Même mise en page, un autre angle d'écriture. Les textes changent dans les deux langues.">
+          <style>{GR_CSS}</style>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: C.t2 }}>
+            <Opts value={variant ?? ""} onChange={(v) => pickVariant(v || null)}
+              options={[{ v: "", label: "Originale" }, ...(template.variants ?? []).map((x) => ({ v: x.id, label: x.label }))]} />
+          </p>
+        </StudioSection>
+      )}
+
       <StudioSection title="Dans la boîte de réception">
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px 10px", borderRadius: 16, background: C.hover3 }}>
           <img src="/icons/icon-192.png" alt="" width={36} height={36} style={{ borderRadius: 10, flexShrink: 0, marginTop: 4 }} />
@@ -1118,7 +1137,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
 
       <StudioSection title="Le courriel" right={
         edited(editLang) ? (
-          <button type="button" className="ui-btn" onClick={() => setByLang((s) => ({ ...s, [editLang]: defaultsFor(templateId, editLang) }))}
+          <button type="button" className="ui-btn" onClick={() => setByLang((s) => ({ ...s, [editLang]: variantValues(templateId, variant, editLang) }))}
             style={{ background: "none", border: "none", padding: 0, color: C.t3, cursor: "pointer", fontSize: 12.5, fontFamily: FONT, display: "inline-flex", alignItems: "center", gap: 5 }}>
             <RotateCcw style={{ width: 12, height: 12 }} /> Textes d'origine
           </button>
