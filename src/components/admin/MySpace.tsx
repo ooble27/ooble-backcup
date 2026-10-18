@@ -12,6 +12,7 @@ import { C, FONT } from "./adminTheme";
 import { Notice } from "./ui";
 import { TeamAvatar, TeamFaces, TeamName, TV_CSS, nameColor, plural, presenceText, useMembers, useTeamLive } from "./TeamViews";
 import { ProfilePanel } from "./TeamProfile";
+import { ApprovalsBlock } from "./TeamApprovals";
 
 /**
  * Mon espace : la page d'accueil de chaque membre, dans le style du back-office (grande phrase,
@@ -249,6 +250,9 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
               );
             })}
           </section>
+
+          {/* Demandes d'approbation */}
+          <ApprovalsBlock onOpenOrder={(id) => { const o = orders.find((x) => x.id === id); if (o) onOpenOrder(o); }} />
 
           {/* Mon bloc-notes */}
           <PrivatePad me={me} />

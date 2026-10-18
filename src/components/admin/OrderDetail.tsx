@@ -13,6 +13,7 @@ import { Button, Notice } from "./ui";
 import { KeyValues, Pill } from "./layout";
 import { DEPOSIT_PILL, OrderChannel, OrderStatusPill, PAYOUT_PILL } from "./orderBits";
 import { LinkedTasks } from "./TeamViews";
+import { ApprovalForm } from "./TeamApprovals";
 
 interface Props {
   order: AdminOrder;
@@ -220,6 +221,7 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
 }
 
 const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWriteClient }: Props) => {
+  const [askApproval, setAskApproval] = useState(false);
   // Agir sur une commande : Administrateur et Opérateur (la base applique la même règle). Les autres rôles la consultent.
   const can = useCan();
   const canAct = can("orders.act");
@@ -431,6 +433,10 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
 
           <Block title="Tâches">
             <LinkedTasks orderId={order.id} orderRef={order.ref} onShowClient={onShowClient} />
+            <p style={{ margin: "8px 0 0" }}>
+              <button type="button" className="tv-link" style={{ fontSize: 13.5 }} onClick={() => setAskApproval(true)}>Demander une approbation</button>
+            </p>
+            {askApproval && <ApprovalForm order={{ id: order.id, ref: order.ref, cad: order.cad }} onClose={() => setAskApproval(false)} onSent={() => setAskApproval(false)} />}
           </Block>
 
           <Block title="Historique">
