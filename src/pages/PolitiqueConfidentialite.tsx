@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { supportEmail } from "@/lib/config";
 import { useLang } from "@/lib/i18n";
 
-const LAST_UPDATED = { fr: "20 septembre 2026", en: "September 20, 2026" };
+const LAST_UPDATED = { fr: "18 octobre 2026", en: "October 18, 2026" };
 
 const Kicker = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[12px] uppercase tracking-[0.16em] text-muted-foreground">{children}</p>
@@ -167,10 +167,23 @@ const PARTS: Part[] = [
           <Ul>
             <li>le type d'opération (achat ou vente) ;</li>
             <li>les montants en CAD et en USDT ;</li>
-            <li>le réseau blockchain choisi (Tron, BNB Chain, Polygon ou Solana) ;</li>
+            <li>le réseau blockchain choisi (Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche) ;</li>
             <li>votre adresse de portefeuille numérique (wallet), pour les achats ;</li>
-            <li>votre adresse courriel Interac, pour les ventes.</li>
+            <li>l'adresse du portefeuille d'où partent vos USDT et l'adresse d'envoi réelle constatée
+              sur la blockchain, pour les ventes ;</li>
+            <li>votre adresse courriel Interac, pour les ventes ;</li>
+            <li>les adresses que vous choisissez d'enregistrer dans votre carnet d'adresses.</li>
           </Ul>
+
+          <H3>Codes promotionnels et parrainage</H3>
+          <P>
+            Si vous utilisez un code promotionnel ou le programme de parrainage, nous conservons le
+            code utilisé, l'avantage accordé sur l'ordre et, pour le parrainage, le lien entre le
+            compte du parrain et celui du filleul. Votre parrain voit seulement un nombre (personnes
+            invitées, premières commandes terminées), jamais votre nom, vos montants ni vos
+            informations personnelles. Le prénom
+            du parrain peut être affiché sur la page d'invitation qu'il partage.
+          </P>
         </>
       ),
       en: (
@@ -223,10 +236,22 @@ const PARTS: Part[] = [
           <Ul>
             <li>the transaction type (buy or sell);</li>
             <li>the amounts in CAD and USDT;</li>
-            <li>the blockchain network chosen (Tron, BNB Chain, Polygon, or Solana);</li>
+            <li>the blockchain network chosen (Tron, BNB Chain, Ethereum, Polygon, Solana, or Avalanche);</li>
             <li>your digital wallet address, for purchases;</li>
-            <li>your Interac email address, for sales.</li>
+            <li>the address of the wallet your USDT are sent from and the actual sending address seen
+              on the blockchain, for sales;</li>
+            <li>your Interac email address, for sales;</li>
+            <li>the addresses you choose to save in your address book.</li>
           </Ul>
+
+          <H3>Promo codes and referral</H3>
+          <P>
+            If you use a promo code or the referral program, we keep the code used, the advantage
+            applied to the order and, for referral, the link between the referrer's account and the
+            referred person's account. Your referrer only sees a count (people invited, first orders
+            completed), never your name, your amounts, or your personal information. The referrer's first name may be shown on the
+            invite page they share.
+          </P>
         </>
       ),
     },
@@ -312,6 +337,13 @@ const PARTS: Part[] = [
               votre nom et votre adresse courriel. Google ne reçoit aucune information sur vos
               transactions Ooble.
             </li>
+            <li>
+              <strong className="text-foreground">WalletConnect (Reown)</strong> : si vous utilisez
+              « Connecter mon portefeuille » pour une vente, la connexion entre votre portefeuille et
+              Ooble passe par ce service. Il ne transmet que l'adresse publique de votre portefeuille
+              et des données techniques de connexion ; il ne reçoit ni vos clés ni vos renseignements
+              personnels Ooble.
+            </li>
           </Ul>
 
           <H3>Autorités réglementaires</H3>
@@ -359,6 +391,12 @@ const PARTS: Part[] = [
               <strong className="text-foreground">Google (OAuth)</strong>: if you choose to sign in
               via Google, authentication is processed by Google. We only receive your name and email
               address. Google does not receive any information about your Ooble transactions.
+            </li>
+            <li>
+              <strong className="text-foreground">WalletConnect (Reown)</strong>: if you use “Connect
+              my wallet” for a sale, the connection between your wallet and Ooble goes through this
+              service. It only passes on your wallet's public address and technical connection data;
+              it receives neither your keys nor your Ooble personal information.
             </li>
           </Ul>
 

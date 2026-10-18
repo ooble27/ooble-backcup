@@ -464,6 +464,26 @@ const dict = {
     fr: "C'est une exigence réglementaire canadienne : aucun ordre n'est possible avant. Elle se fait une seule fois : pièce d'identité et selfie. Vos documents servent uniquement à la conformité.",
     en: "It's a Canadian regulatory requirement: no order is possible before it. It's done once: photo ID and selfie. Your documents are used solely for compliance.",
   },
+  "faqp.emailQ": { fr: "Quel courriel utiliser pour mon compte ?", en: "Which email should I use for my account?" },
+  "faqp.emailA": {
+    fr: "Celui de votre compte Interac, avec votre nom légal. C'est à ce courriel que nous envoyons les dollars de vos ventes, et c'est lui qui reçoit vos confirmations. Pour un compte entreprise : le courriel où l'entreprise reçoit ses virements Interac.",
+    en: "The one linked to your Interac account, with your legal name. That's where we send the dollars from your sales, and where your confirmations arrive. For a business account: the email where the company receives its Interac transfers.",
+  },
+  "faqp.walletQ": { fr: "À quoi sert « Connecter mon portefeuille » ?", en: "What does “Connect my wallet” do?" },
+  "faqp.walletA": {
+    fr: "Pour une vente, il lit l'adresse d'où partiront vos USDT, sans que vous ayez à la copier. La connexion passe par WalletConnect (ou TronLink pour Tron) et ne sert qu'à lire cette adresse : Ooble ne voit jamais vos clés ni votre phrase de récupération, et ne peut rien envoyer à votre place. Vous pouvez aussi simplement coller l'adresse.",
+    en: "For a sale, it reads the address your USDT will come from, so you don't have to copy it. The connection goes through WalletConnect (or TronLink for Tron) and only reads that address: Ooble never sees your keys or your recovery phrase, and can't send anything on your behalf. You can also just paste the address.",
+  },
+  "faqp.referralQ": { fr: "Comment fonctionne le parrainage ?", en: "How does referral work?" },
+  "faqp.referralA": {
+    fr: "Dans Mon compte, partagez votre lien d'invitation ou votre code. Votre filleul l'utilise en créant son compte (au plus tard 3 jours après) et profite d'un meilleur taux sur sa première commande. Quand cette commande est terminée, vous profitez à votre tour d'un meilleur taux sur votre commande suivante. Un seul avantage par commande : le plus intéressant s'applique. Le parrainage peut être modifié ou arrêté à tout moment.",
+    en: "In My account, share your invite link or code. The person you invite uses it when creating their account (within 3 days at most) and gets a better rate on their first order. Once that order is completed, you get a better rate on your next order. One advantage per order: the best one applies. Referral can be changed or stopped at any time.",
+  },
+  "faqp.promoQ": { fr: "Comment utiliser un code promo ?", en: "How do I use a promo code?" },
+  "faqp.promoA": {
+    fr: "Entrez-le à l'étape du montant, sous le taux : le taux avantageux s'affiche aussitôt, avant de valider. Chaque code a ses conditions (achat ou vente, première commande, date de fin). Un code ne s'utilise qu'une fois par compte, et ne se cumule pas avec un autre avantage.",
+    en: "Enter it at the amount step, below the rate: the better rate shows right away, before you confirm. Each code has its own conditions (buy or sell, first order, end date). A code can be used once per account and can't be combined with another advantage.",
+  },
   "faqp.nameQ": { fr: "Quel nom utiliser pour mon compte ?", en: "Which name should I use for my account?" },
   "faqp.nameA": {
     fr: "Votre nom légal complet, tel qu'il apparaît sur votre pièce d'identité et sur votre compte bancaire. Une fois votre identité vérifiée, le nom du compte est verrouillé : c'est lui que nous comparons au nom de l'expéditeur de vos virements. Pour le corriger, écrivez au support.",
@@ -482,8 +502,8 @@ const dict = {
   },
   "faqp.6q": { fr: "Quels réseaux sont pris en charge ?", en: "Which networks are supported?" },
   "faqp.6a": {
-    fr: "Tron (TRC20), BNB Chain (BEP20), Polygon et Solana. L'adresse doit correspondre au réseau choisi : une adresse Tron commence par T, une adresse BNB Chain ou Polygon par 0x. Une transaction blockchain ne peut pas être annulée : vérifiez deux fois.",
-    en: "Tron (TRC20), BNB Chain (BEP20), Polygon and Solana. The address must match the chosen network: a Tron address starts with T, a BNB Chain or Polygon address with 0x. A blockchain transaction can't be reversed: check twice.",
+    fr: "Jusqu'à six blockchains : Tron (TRC20), BNB Chain (BEP20), Ethereum (ERC20), Polygon, Solana et Avalanche (C-Chain). Les réseaux ouverts s'affichent au moment de passer l'ordre. L'adresse doit correspondre au réseau choisi : une adresse Tron commence par T, une adresse BNB Chain, Ethereum, Polygon ou Avalanche par 0x, et une adresse Solana est une suite de lettres et de chiffres sans préfixe. Une transaction blockchain ne peut pas être annulée : vérifiez deux fois.",
+    en: "Up to six blockchains: Tron (TRC20), BNB Chain (BEP20), Ethereum (ERC20), Polygon, Solana and Avalanche (C-Chain). The open networks are shown when you place the order. The address must match the chosen network: a Tron address starts with T, a BNB Chain, Ethereum, Polygon or Avalanche address with 0x, and a Solana address is a string of letters and numbers with no prefix. A blockchain transaction can't be reversed: check twice.",
   },
   "faqp.7q": { fr: "Combien de temps pour recevoir mes USDT ?", en: "How long until I receive my USDT?" },
   "faqp.7a": {
@@ -529,18 +549,18 @@ const dict = {
 
   "faqp.5q": { fr: "Comment vendre des USDT ?", en: "How to sell USDT?" },
   "faqp.5a": {
-    fr: "Entrez le montant, choisissez le réseau et indiquez le courriel Interac où recevoir vos dollars. Envoyez ensuite le montant exact d'USDT à l'adresse de dépôt affichée, sur le réseau choisi, puis confirmez l'envoi. Dès que la blockchain confirme la réception, nous vous versons les dollars par Interac.",
-    en: "Enter the amount, choose the network and give the Interac email where you want your dollars. Then send the exact USDT amount to the deposit address shown, on the chosen network, and confirm the transfer. As soon as the blockchain confirms receipt, we pay you the dollars via Interac.",
+    fr: "Entrez le montant, vérifiez le courriel Interac où partiront vos dollars (celui de votre compte), puis choisissez le réseau. Connectez ensuite le portefeuille d'où partiront vos USDT, ou collez son adresse. Envoyez le montant exact d'USDT à l'adresse de dépôt affichée, sur le réseau choisi, puis cliquez sur « J'ai envoyé mes USDT ». Dès que la blockchain confirme la réception, nous vous versons les dollars par Interac.",
+    en: "Enter the amount, check the Interac email your dollars will go to (your account email), then choose the network. Next, connect the wallet your USDT will come from, or paste its address. Send the exact USDT amount to the deposit address shown, on the chosen network, then click “I've sent my USDT”. As soon as the blockchain confirms receipt, we pay you the dollars via Interac.",
   },
   "faqp.sellExchangeQ": { fr: "J'envoie mes USDT depuis une plateforme d'échange", en: "I'm sending my USDT from an exchange" },
   "faqp.sellExchangeA": {
-    fr: "Les plateformes retirent souvent des frais de retrait du montant envoyé. Le montant qui arrive à notre adresse doit être le montant exact de l'ordre : ajoutez les frais au montant retiré si nécessaire. Choisissez bien le même réseau que dans l'ordre. Un envoi sur un autre réseau peut être perdu définitivement.",
-    en: "Exchanges often deduct a withdrawal fee from the amount sent. The amount that reaches our address must be the exact order amount: add the fee to the withdrawal if needed. Pick the same network as in the order. A transfer on another network can be lost for good.",
+    fr: "C'est possible. Une plateforme envoie depuis sa propre adresse, pas depuis la vôtre : votre vente est alors vérifiée par notre équipe avant le virement, aux heures d'ouverture. Les plateformes retirent souvent des frais de retrait du montant envoyé : le montant qui arrive à notre adresse doit être le montant exact de l'ordre, ajoutez les frais si nécessaire. Choisissez bien le même réseau que dans l'ordre : un envoi sur un autre réseau peut être perdu définitivement. Depuis votre propre portefeuille, c'est plus rapide.",
+    en: "You can. An exchange sends from its own address, not yours: your sale is then checked by our team before the transfer, during business hours. Exchanges often deduct a withdrawal fee from the amount sent: the amount that reaches our address must be the exact order amount, so add the fee if needed. Pick the same network as in the order: a transfer on another network can be lost for good. Sending from your own wallet is faster.",
   },
   "faqp.sellPayoutQ": { fr: "Comment est-ce que je reçois mes dollars ?", en: "How do I receive my dollars?" },
   "faqp.sellPayoutA": {
-    fr: "Par virement Interac, au courriel indiqué dans l'ordre, au nom de votre compte vérifié. Si votre banque n'est pas en dépôt automatique, utilisez la réponse à la question de sécurité affichée dans votre ordre pour déposer le virement. Les ventes sont vérifiées par notre équipe, aux heures d'ouverture.",
-    en: "By Interac transfer, to the email given in the order, in the name of your verified account. If your bank isn't on autodeposit, use the security answer shown in your order to deposit the transfer. Sales are checked by our team during business hours.",
+    fr: "Par virement Interac, au courriel de votre compte Ooble, au nom de votre compte vérifié. Pour votre sécurité, ce courriel ne se change pas d'une vente à l'autre. Si votre banque n'est pas en dépôt automatique, utilisez la réponse à la question de sécurité affichée dans votre ordre pour déposer le virement.",
+    en: "By Interac transfer, to your Ooble account email, in the name of your verified account. For your security, this email can't be changed from one sale to another. If your bank isn't on autodeposit, use the security answer shown in your order to deposit the transfer.",
   },
 
   "faqp.8q": { fr: "Ooble conserve-t-il mes fonds ?", en: "Does Ooble hold my funds?" },
@@ -1264,8 +1284,8 @@ const dict = {
   },
   "guide.account.s3": { fr: "Remplissez le formulaire", en: "Fill in the form" },
   "guide.account.s3d": {
-    fr: "Entrez votre nom légal complet (celui de votre pièce d'identité et de votre compte bancaire), votre adresse e-mail et un mot de passe d'au moins 8 caractères.",
-    en: "Enter your full legal name (as on your ID and bank account), your email address and a password of at least 8 characters.",
+    fr: "Entrez votre nom légal complet (celui de votre pièce d'identité et de votre compte bancaire), le courriel de votre compte Interac et un mot de passe d'au moins 8 caractères.",
+    en: "Enter your full legal name (as on your ID and bank account), the email of your Interac account and a password of at least 8 characters.",
   },
   "guide.account.s4": { fr: "Créez votre compte", en: "Create your account" },
   "guide.account.s4d": {
@@ -1357,8 +1377,8 @@ const dict = {
   },
   "guide.buy.s2": { fr: "Choisissez le réseau", en: "Choose the network" },
   "guide.buy.s2d": {
-    fr: "Sélectionnez le réseau sur lequel vous voulez recevoir vos USDT : Tron, BNB Chain, Polygon ou Solana.",
-    en: "Select the network you want to receive your USDT on: Tron, BNB Chain, Polygon or Solana.",
+    fr: "Sélectionnez le réseau sur lequel vous voulez recevoir vos USDT : Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
+    en: "Select the network you want to receive your USDT on: Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
   },
   "guide.buy.s3": { fr: "Collez votre adresse", en: "Paste your address" },
   "guide.buy.s3d": {
@@ -1458,10 +1478,10 @@ const dict = {
     fr: "Sélectionnez le réseau depuis lequel vous allez envoyer vos USDT.",
     en: "Select the network you'll send your USDT from.",
   },
-  "guide.sell.s3": { fr: "Indiquez où recevoir vos dollars", en: "Tell us where to send your dollars" },
+  "guide.sell.s3": { fr: "Indiquez votre portefeuille", en: "Add your wallet" },
   "guide.sell.s3d": {
-    fr: "Entrez l'adresse e-mail Interac où recevoir votre virement, et notez la question et la réponse de sécurité.",
-    en: "Enter the Interac email where you'll receive your transfer, and note the security question and answer.",
+    fr: "Vos dollars partent au courriel Interac de votre compte. Connectez ensuite le portefeuille d'où partiront vos USDT, ou collez son adresse.",
+    en: "Your dollars go to your account's Interac email. Then connect the wallet your USDT will come from, or paste its address.",
   },
   "guide.sell.s4": { fr: "Envoyez vos USDT", en: "Send your USDT" },
   "guide.sell.s4d": {
@@ -1483,8 +1503,8 @@ const dict = {
     en: "Only send USDT, on the network shown: using another network would result in lost funds.",
   },
   "guide.sell.tip2": {
-    fr: "Gardez la réponse de sécurité : elle sert à débloquer votre virement Interac.",
-    en: "Keep the security answer: it unlocks your Interac e-Transfer.",
+    fr: "Si votre banque n'est pas en dépôt automatique, gardez la réponse de sécurité affichée dans l'ordre : elle sert à déposer votre virement.",
+    en: "If your bank isn't on autodeposit, keep the security answer shown in the order: it's used to deposit your transfer.",
   },
   "guide.sell.tip3": {
     fr: "Si vous envoyez depuis une plateforme d'échange, ajoutez ses frais de retrait : le montant reçu doit être exact.",

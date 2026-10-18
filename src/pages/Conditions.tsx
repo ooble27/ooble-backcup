@@ -6,7 +6,7 @@ import { rateLockMinutes } from "@/lib/rates";
 import { interacEmail, supportEmail } from "@/lib/config";
 import { useLang } from "@/lib/i18n";
 
-const LAST_UPDATED = { fr: "11 octobre 2026", en: "October 11, 2026" };
+const LAST_UPDATED = { fr: "18 octobre 2026", en: "October 18, 2026" };
 
 const Kicker = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[12px] uppercase tracking-[0.16em] text-muted-foreground">{children}</p>
@@ -623,11 +623,38 @@ const PARTS: Part[] = [
             inviter à en créer un nouveau au taux courant.
           </P>
           <P>
-            Ooble prend en charge les réseaux Tron (TRC20), BNB Chain (BEP20), Polygon et
-            Solana. Il vous appartient de vérifier que l'adresse de
+            Ooble peut prendre en charge les réseaux Tron (TRC20), BNB Chain (BEP20), Ethereum
+            (ERC20), Polygon, Solana et Avalanche (C-Chain). Les réseaux ouverts sont ceux affichés
+            au moment de passer l'ordre ; Ooble peut en ouvrir ou en fermer à tout moment. Il vous
+            appartient de vérifier que l'adresse de
             destination correspond exactement au réseau choisi : les transferts de monnaie virtuelle
             sont irréversibles, et Ooble ne peut ni annuler ni récupérer un envoi effectué vers une
             adresse erronée ou un réseau incompatible.
+          </P>
+          <H3>Vente : portefeuille d'envoi</H3>
+          <P>
+            Pour une vente, vous indiquez l'adresse du portefeuille d'où partiront vos USDT, en la
+            collant ou au moyen de la fonction « Connecter mon portefeuille ». Cette fonction passe
+            par un service tiers (WalletConnect, ou l'extension TronLink pour Tron) et ne sert qu'à
+            lire cette adresse : vous ne communiquez jamais à Ooble vos clés privées ni votre phrase
+            de récupération, et Ooble ne peut effectuer aucune opération à votre place. Vous déclarez
+            que ce portefeuille vous appartient ou est sous votre contrôle. Un envoi qui provient
+            d'une autre adresse, notamment celle d'une plateforme d'échange, est vérifié par Ooble
+            avant tout virement, ce qui peut en retarder le paiement. Les dollars d'une vente sont
+            versés par virement Interac e-Transfer au courriel de votre compte Ooble, à votre nom.
+          </P>
+          <H3>Codes promotionnels et parrainage</H3>
+          <P>
+            Ooble peut offrir, à sa discrétion, un taux plus avantageux au moyen d'un code
+            promotionnel ou du programme de parrainage. Ces avantages réduisent la marge d'Ooble sur
+            l'ordre concerné ; ils n'ont aucune valeur en argent, ne sont ni échangeables ni
+            cessibles, et un seul avantage s'applique par ordre. Un code promotionnel s'utilise une
+            fois par compte, selon les conditions qui lui sont propres. Le parrainage s'applique
+            uniquement lorsque le code ou le lien d'invitation est utilisé à la création du compte du
+            filleul ; l'avantage du parrain est accordé après la première commande terminée du
+            filleul. Il est interdit d'ouvrir plusieurs comptes, de se parrainer soi-même ou de
+            contourner ces règles. Ooble peut modifier, suspendre ou mettre fin à ces avantages à
+            tout moment, et annuler un avantage obtenu de manière abusive.
           </P>
         </>
       ),
@@ -646,11 +673,37 @@ const PARTS: Part[] = [
             a new one at the current rate.
           </P>
           <P>
-            Ooble supports the Tron (TRC20), BNB Chain (BEP20), Polygon, and Solana networks. It
+            Ooble may support the Tron (TRC20), BNB Chain (BEP20), Ethereum (ERC20), Polygon,
+            Solana, and Avalanche (C-Chain) networks. The open networks are those shown when you
+            place the order; Ooble may open or close networks at any time. It
             is your responsibility to verify that the
             destination address exactly matches the selected network: virtual currency transfers
             are irreversible, and Ooble can neither cancel nor recover a transfer made to an
             incorrect address or an incompatible network.
+          </P>
+          <H3>Sales: sending wallet</H3>
+          <P>
+            For a sale, you provide the address of the wallet your USDT will be sent from, either by
+            pasting it or by using the “Connect my wallet” feature. This feature relies on a
+            third-party service (WalletConnect, or the TronLink extension for Tron) and is only used
+            to read that address: you never give Ooble your private keys or recovery phrase, and
+            Ooble cannot carry out any transaction on your behalf. You represent that this wallet
+            belongs to you or is under your control. A transfer coming from another address,
+            including an exchange's address, is reviewed by Ooble before any payout, which may delay
+            payment. The dollars from a sale are paid by Interac e-Transfer to your Ooble account
+            email, in your name.
+          </P>
+          <H3>Promo codes and referral</H3>
+          <P>
+            Ooble may offer, at its discretion, a better rate through a promo code or the referral
+            program. These advantages reduce Ooble's margin on the order concerned; they have no
+            cash value, cannot be exchanged or transferred, and only one advantage applies per
+            order. A promo code may be used once per account, under its own conditions. Referral
+            only applies when the code or invite link is used when the referred person creates their
+            account; the referrer's advantage is granted after the referred person's first completed
+            order. Opening multiple accounts, referring yourself, or circumventing these rules is
+            prohibited. Ooble may change, suspend, or end these advantages at any time, and cancel
+            an advantage obtained abusively.
           </P>
         </>
       ),

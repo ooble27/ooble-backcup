@@ -46,6 +46,8 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       item("frais", "2q", "2a"),
       item("taux", "3q", "3a"),
       item("limites", "limitsQ", "limitsA"),
+      item("parrainage", "referralQ", "referralA"),
+      item("code-promo", "promoQ", "promoA"),
     ],
   },
   {
@@ -58,6 +60,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     items: [
       item("verification", "9q", "9a"),
       item("nom", "nameQ", "nameA"),
+      item("courriel", "emailQ", "emailA"),
       item("entreprise", "bizQ", "bizA"),
     ],
   },
@@ -101,6 +104,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     videos: ["vendre-usdt"],
     items: [
       item("vendre", "5q", "5a"),
+      item("portefeuille", "walletQ", "walletA"),
       item("plateforme", "sellExchangeQ", "sellExchangeA"),
       item("recevoir", "sellPayoutQ", "sellPayoutA"),
     ],
