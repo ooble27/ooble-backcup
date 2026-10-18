@@ -1,9 +1,9 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Archive, ArrowDown, ArrowRight, Hash, MessageSquare, Pencil, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import {
-  NOTE_PAGE, audienceLabel, audienceMembers, editNote, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
+  NOTE_PAGE, audienceLabel, audienceMembers, editNote, findOrder, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
   removeNote, removeReply, replyNote, setNote, type Audience, type NoteReply, type TeamMember, type TeamNote, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
@@ -149,16 +149,38 @@ function usePhoneChat(slot: React.RefObject<HTMLDivElement>, main: React.RefObje
   return kb;
 }
 
-/** Texte d'un message : liens cliquables, @mentions dans la couleur de la personne. */
-function RichText({ text, mentions, members, folded }: { text: string; mentions: string[]; members: TeamMember[]; folded?: boolean }) {
+/** Ouvre une commande depuis la messagerie (fourni par le back-office si on a accès aux commandes). */
+const OpenOrderCtx = createContext<((id: string) => void) | undefined>(undefined);
+
+/** Référence OOB-XXXXXXXX dans un message : un lien qui ouvre la commande. */
+function OrderRefLink({ refText }: { refText: string }) {
+  const open = useContext(OpenOrderCtx);
+  const [busy, setBusy] = useState(false);
+  const [missing, setMissing] = useState(false);
+  if (!open) return <>{refText}</>;
+  const go = async () => {
+    setBusy(true);
+    const o = await findOrder(refText).catch(() => null);
+    setBusy(false);
+    if (o) open(o.id); else setMissing(true);
+  };
+  return (
+    <button type="button" className="tv-link" disabled={busy} onClick={go} title={missing ? "Commande introuvable" : "Ouvrir la commande"}
+      style={{ font: "inherit", color: "inherit", textDecoration: missing ? "line-through" : "underline", textUnderlineOffset: 3 }}>{refText}</button>
+  );
+}
+
+/** Texte d'un message : liens cliquables, @mentions dans la couleur de la personne, OOB-… vers la commande. */
+function RichText({ text, mentions, members, folded, style }: { text: string; mentions: string[]; members: TeamMember[]; folded?: boolean; style?: React.CSSProperties }) {
   const parts = useMemo(() => {
     const who = members.filter((m) => mentions.includes(m.userId));
     const names = who.flatMap((m) => [m.name, firstName(m.name)].map((n) => ({ n, m }))).sort((a, b) => b.n.length - a.n.length);
-    const alts = [`https?://[^\\s<]+[^\\s<.,;:!?)\\]]`, ...names.map((x) => `@${escRe(x.n)}`)];
+    const alts = [`https?://[^\\s<]+[^\\s<.,;:!?)\\]]`, `\\bOOB-[0-9A-Fa-f]{8}\\b`, ...names.map((x) => `@${escRe(x.n)}`)];
     const re = new RegExp(`(${alts.join("|")})`, "gi");
     return text.split(re).map((p, i) => {
       if (!p) return null;
       if (/^https?:\/\//i.test(p)) return <a key={i} href={p} target="_blank" rel="noopener noreferrer">{p}</a>;
+      if (/^OOB-[0-9a-f]{8}$/i.test(p)) return <OrderRefLink key={i} refText={p.toUpperCase()} />;
       if (p.startsWith("@")) {
         const hit = names.find((x) => fold(`@${x.n}`) === fold(p));
         if (hit) return <span key={i} className="tv-mention" style={{ color: nameColor(hit.m.color), background: "var(--a-hover3)" }}>{p}</span>;
@@ -166,10 +188,10 @@ function RichText({ text, mentions, members, folded }: { text: string; mentions:
       return <Fragment key={i}>{p}</Fragment>;
     });
   }, [text, mentions, members]);
-  return <p className="tn-text" data-folded={!!folded}>{parts}</p>;
+  return <p className="tn-text" data-folded={!!folded} style={style}>{parts}</p>;
 }
 
-export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
+export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => void; onOpenOrder?: (id: string) => void }) {
   const { user, roles } = useAuth();
   const me = user?.id ?? "";
   const admin = roles.includes("admin");
@@ -294,6 +316,7 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
   let lastDay = "";
 
   return (
+    <OpenOrderCtx.Provider value={onOpenOrder}>
     <div className="tn-root" data-settled={settled || kb} style={{ fontFamily: FONT }}>
       <style>{TV_CSS + GR_CSS + CSS}</style>
       {err && <div style={{ marginBottom: 14 }}><Notice tone="err">{err}</Notice></div>}
@@ -400,6 +423,7 @@ export function TeamNotesView({ onChanged }: { onChanged?: () => void }) {
         </div>
       </div>
     </div>
+    </OpenOrderCtx.Provider>
   );
 }
 
@@ -614,7 +638,7 @@ function Reply({ reply: r, me, admin, archived, onChanged, onError }: { reply: N
               <button type="button" className="tv-link" style={{ fontSize: 13 }} onClick={() => setEditing(null)}>Annuler</button>
             </div>
           </div>
-        ) : <p className="tn-text" style={{ fontSize: 14 }}>{r.body}</p>}
+        ) : <RichText text={r.body} mentions={[]} members={[]} style={{ fontSize: 14 }} />}
       </div>
     </div>
   );

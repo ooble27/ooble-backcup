@@ -535,7 +535,7 @@ const AdminPortal = () => {
                   {tab === "dashboard" && <KpiDashboard orders={orders} onNavigate={navigateTab} />}
                   {tab === "me" && <MySpace orders={orders} canOrders={allowedTabs.has("queue")} onOpenOrder={openOrder} onChanged={refreshTeam}
                     onGo={(t) => { if (allowedTabs.has(t)) setTab(t); }} />}
-                  {tab === "notes" && <TeamNotesView onChanged={refreshTeam} />}
+                  {tab === "notes" && <TeamNotesView onChanged={refreshTeam} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} />}
                   {tab === "tasks" && <TeamTasksView onChanged={refreshTeam} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClientById : undefined} />}
                   {tab === "queue" && <OrdersQueue orders={orders} onOpen={openOrder} onPatch={patch} />}
                   {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}

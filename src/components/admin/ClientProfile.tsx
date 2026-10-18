@@ -14,6 +14,7 @@ import { placeLabel, type SignupOrigin } from "@/lib/origin";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { Avatar, DataTable, EmptyState, KeyValues, Pill, TwoLine, type Column, type Tone } from "./layout";
+import { LinkedTasks } from "./TeamViews";
 import ClientNotes from "./ClientNotes";
 import ClientTimeline from "./ClientTimeline";
 import RiskScoreCard from "./RiskScoreCard";
@@ -170,6 +171,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
   );
   const wallets_ = <Block title="Portefeuilles connus"><ClientWallets userId={userId} /></Block>;
   const notes_ = <Block title="Notes internes"><ClientNotes userId={userId} /></Block>;
+  const tasks_ = <Block title="Tâches"><LinkedTasks clientId={userId} clientName={name} onOpenOrder={onOpenOrder} /></Block>;
   const access_ = (
     <>
       {(can("accounts.unlock") || can("accounts.suspend")) && <Block title="Accès au compte"><ClientAccess userId={userId} /><ClientTestAccount userId={userId} /></Block>}
@@ -254,12 +256,12 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
               à droite les coordonnées, Interac, l'accès, la limite, l'entreprise et le risque.
               Téléphone et tablette (une colonne) : coordonnées, Interac et portefeuilles sous les
               commandes, puis notes et accès ; chronologie et score de risque tout en bas. */}
-          {wide ? <>{notes_}{wallets_}{chrono}</> : <>{coord_}{interac_}{wallets_}</>}
+          {wide ? <>{notes_}{tasks_}{wallets_}{chrono}</> : <>{coord_}{interac_}{wallets_}</>}
           {history && <ClientOrdersHistory clientName={name} orders={orders} onClose={() => setHistory(false)} onOpenOrder={onOpenOrder} />}
         </div>
 
         <aside className="rise" style={{ minWidth: 0 }}>
-          {wide ? <>{coord_}{interac_}{access_}{risk}</> : <>{notes_}{access_}</>}
+          {wide ? <>{coord_}{interac_}{access_}{risk}</> : <>{notes_}{tasks_}{access_}</>}
         </aside>
         {!wide && <div className="rise" style={{ minWidth: 0 }}>{chrono}{risk}</div>}
       </div>

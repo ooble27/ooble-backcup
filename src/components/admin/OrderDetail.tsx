@@ -12,6 +12,7 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { KeyValues, Pill } from "./layout";
 import { DEPOSIT_PILL, OrderChannel, OrderStatusPill, PAYOUT_PILL } from "./orderBits";
+import { LinkedTasks } from "./TeamViews";
 
 interface Props {
   order: AdminOrder;
@@ -426,6 +427,10 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
         <aside className="rise" style={{ minWidth: 0 }}>
           <Block title="Client">
             <ClientCard clientId={order.userId ?? null} name={order.clientName} email={order.clientEmail} onShowClient={onShowClient} onWrite={onWriteClient ? () => onWriteClient(order) : undefined} />
+          </Block>
+
+          <Block title="Tâches">
+            <LinkedTasks orderId={order.id} orderRef={order.ref} onShowClient={onShowClient} />
           </Block>
 
           <Block title="Historique">

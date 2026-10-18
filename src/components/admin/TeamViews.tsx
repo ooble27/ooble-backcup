@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, ChevronDown, Users } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowRight, Check, ChevronDown, Plus, Users } from "lucide-react";
 import { createAvatar } from "@dicebear/core";
 import * as notionists from "@dicebear/notionists";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, archiveTask, firstName, commentTask, findOrder, isLate, loadMembers, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, firstName, commentTask, findOrder, isLate, isMine, loadMembers, loadTasks, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
   type AvatarBg, type Audience, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
@@ -352,7 +352,11 @@ function PersonPicker({ members, value, onChange }: { members: TeamMember[]; val
   );
 }
 
-export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTask | null; members: TeamMember[]; me: string; onClose: () => void; onSaved: (id?: string) => void }) {
+export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
+  task: TeamTask | null; members: TeamMember[]; me: string; onClose: () => void; onSaved: (id?: string) => void;
+  /** Nouvelle tâche déjà rattachée (depuis la fiche d'un client ou une commande). */
+  preset?: { client?: { id: string; name: string }; order?: { id: string; ref: string } };
+}) {
   const { user } = useAuth();
   const [title, setTitle] = useState(task?.title ?? "");
   const [details, setDetails] = useState(task?.details ?? "");
@@ -361,11 +365,11 @@ export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTa
   const [person, setPerson] = useState(task?.assigneeId && task.assigneeId !== me ? task.assigneeId : others[0]?.userId ?? "");
   const [role, setRole] = useState<Role>(task?.assigneeRole ?? "operator");
   const [due, setDue] = useState(task?.dueOn ?? "");
-  const [client, setClient] = useState<{ id: string; name: string } | null>(task?.clientId ? { id: task.clientId, name: task.clientName ?? "Client" } : null);
+  const [client, setClient] = useState<{ id: string; name: string } | null>(task?.clientId ? { id: task.clientId, name: task.clientName ?? "Client" } : preset?.client ?? null);
   const [q, setQ] = useState("");
   const [found, setFound] = useState<{ id: string; name: string; email: string }[]>([]);
-  const [orderText, setOrderText] = useState(task?.orderRef ?? "");
-  const [order, setOrder] = useState<{ id: string; ref: string } | null>(task?.orderId ? { id: task.orderId, ref: task.orderRef ?? "" } : null);
+  const [orderText, setOrderText] = useState(task?.orderRef ?? preset?.order?.ref ?? "");
+  const [order, setOrder] = useState<{ id: string; ref: string } | null>(task?.orderId ? { id: task.orderId, ref: task.orderRef ?? "" } : preset?.order ?? null);
   const [looking, setLooking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -445,5 +449,63 @@ export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTa
       {orderBad && !looking && <p style={{ margin: "6px 0 0", fontSize: 12.5, color: C.t3 }}>Aucune commande avec cette référence.</p>}
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
     </SidePanel>
+  );
+}
+
+/**
+ * Les tâches d'un client ou d'une commande (fiche client, détail de commande) : ouvertes d'abord,
+ * puis les faites. Un clic ouvre la tâche ; « Nouvelle tâche » la crée déjà rattachée.
+ */
+export function LinkedTasks({ clientId, clientName, orderId, orderRef: ref, onOpenOrder, onShowClient }: {
+  clientId?: string; clientName?: string; orderId?: string; orderRef?: string;
+  onOpenOrder?: (id: string) => void; onShowClient?: (id: string) => void;
+}) {
+  const { user, roles } = useAuth();
+  const me = user?.id ?? "";
+  const admin = roles.includes("admin");
+  const members = useMembers();
+  const [tasks, setTasks] = useState<TeamTask[] | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<TeamTask | "new" | null>(null);
+  const load = useCallback(() => {
+    loadTasks(false, { clientId, orderId }).then(setTasks).catch(() => setTasks([]));
+  }, [clientId, orderId]);
+  useEffect(() => { load(); }, [load]);
+  useTeamLive(load, ["team_tasks", "team_task_comments"]);
+
+  const who = (t: TeamTask) => t.assigneeId ? memberLabel(members, t.assigneeId, me) : t.assigneeRole ? roleLabel(t.assigneeRole) : "Toute l'équipe";
+  const list = [...(tasks ?? [])].sort((a, b) => Number(a.status === "done") - Number(b.status === "done") || b.at.localeCompare(a.at));
+  const open = list.find((t) => t.id === openId) ?? null;
+  return (
+    <div>
+      <style>{TV_CSS}</style>
+      {tasks === null && <p style={{ margin: 0, fontSize: 13, color: C.t3 }}>Chargement…</p>}
+      {tasks && list.length === 0 && <p style={{ margin: 0, fontSize: 13.5, color: C.t3 }}>Aucune tâche pour {orderId ? "cette commande" : "ce client"}.</p>}
+      {list.slice(0, 8).map((t) => (
+        <button key={t.id} type="button" className="tv-row" style={{ padding: "10px 0", borderBottom: `1px solid ${C.bds}` }} onClick={() => setOpenId(t.id)}>
+          <span style={{ display: "block", fontSize: 14, color: t.status === "done" ? C.t3 : C.t1, textDecoration: t.status === "done" ? "line-through" : "none", overflowWrap: "anywhere" }}>{t.title}</span>
+          <span style={{ display: "block", marginTop: 2, fontSize: 12.5, color: C.t3 }}>
+            {STATUS_LABEL[t.status]} · {who(t)}{t.dueOn && t.status !== "done" ? ` · ${dueLabel(t.dueOn)}${isLate(t) ? " · en retard" : ""}` : ""}
+          </span>
+        </button>
+      ))}
+      {list.length > 8 && <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t3 }}>Et {list.length - 8} autres dans Tâches.</p>}
+      <p style={{ margin: "12px 0 0" }}>
+        <button type="button" className="tv-link" style={{ fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 6 }} onClick={() => setEditing("new")}>
+          <Plus style={{ width: 14, height: 14 }} />Nouvelle tâche
+        </button>
+      </p>
+      {editing && (
+        <TaskForm task={editing === "new" ? null : editing} members={members} me={me} onClose={() => setEditing(null)}
+          preset={{ client: clientId ? { id: clientId, name: clientName ?? "Client" } : undefined, order: orderId ? { id: orderId, ref: ref ?? "" } : undefined }}
+          onSaved={(id) => { setEditing(null); load(); if (id) setOpenId(id); }} />
+      )}
+      {open && !editing && (
+        <TaskPanel task={open} me={me} admin={admin} canStatus={admin || open.createdBy === me || isMine(open, me, roles)} who={who(open)}
+          onClose={() => setOpenId(null)} onEdit={() => setEditing(open)} onChanged={load}
+          onOpenOrder={onOpenOrder && ((id) => { setOpenId(null); onOpenOrder(id); })}
+          onShowClient={onShowClient && ((id) => { setOpenId(null); onShowClient(id); })} />
+      )}
+    </div>
   );
 }

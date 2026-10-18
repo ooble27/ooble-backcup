@@ -170,10 +170,14 @@ export interface TeamTask {
   clientId: string | null; clientName: string | null; orderId: string | null; orderRef: string | null; archived: boolean;
   createdBy: string; createdByName: string; at: string; updatedAt: string; doneAt: string | null; doneByName: string | null; comments: TaskComment[];
 }
-export async function loadTasks(archived = false): Promise<TeamTask[]> {
-  const { data, error } = await table("team_tasks")
+/** Tâches non archivées (ou archivées), ou seulement celles d'un client ou d'une commande. */
+export async function loadTasks(archived = false, link?: { clientId?: string; orderId?: string }): Promise<TeamTask[]> {
+  let q = table("team_tasks")
     .select("*, client:profiles!team_tasks_client_id_fkey(full_name, email), team_task_comments(id, body, author_id, author_name, created_at)")
-    .eq("archived", archived).order("created_at", { ascending: false }).limit(500);
+    .eq("archived", archived);
+  if (link?.clientId) q = q.eq("client_id", link.clientId);
+  if (link?.orderId) q = q.eq("order_id", link.orderId);
+  const { data, error } = await q.order("created_at", { ascending: false }).limit(500);
   if (error) throw new Error(error.message);
   return ((data ?? []) as Record<string, unknown>[]).map((r) => {
     const c = r.client as { full_name?: string; email?: string } | null;
