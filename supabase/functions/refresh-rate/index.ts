@@ -13,6 +13,7 @@
 // Utilise SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (injectés automatiquement).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { caller, refused } from "../_shared/guard.ts";
 
 /** Marge par défaut si les réglages ne peuvent pas être lus. */
 const DEFAULT_MARGIN_PCT = 2;
@@ -35,10 +36,11 @@ async function marketRate(): Promise<{ rate: number; source: string } | null> {
   return null;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(url, key);
+  if (!(await caller(req, supabase, key))) return refused();
 
   const [{ data: s }, { data: prev }] = await Promise.all([
     supabase.from("app_settings").select("buy_margin_pct, sell_margin_pct, manual_market_rate").eq("id", 1).maybeSingle(),

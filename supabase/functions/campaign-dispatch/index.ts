@@ -19,6 +19,7 @@
 // Secrets : RESEND_API_KEY, EMAIL_FROM (+ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY automatiques).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { caller } from "../_shared/guard.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" } });
@@ -36,6 +37,7 @@ Deno.serve(async (req) => {
   const from = Deno.env.get("EMAIL_FROM") ?? "Ooble <onboarding@resend.dev>";
   if (!url || !key || !apiKey) return json({ error: "Configuration serveur incomplète." }, 500);
   const db = createClient(url, key);
+  if (!(await caller(req, db, key))) return json({ error: "Accès refusé." }, 401);
 
   const { data: s } = await db.from("marketing_settings").select("*").eq("id", 1).maybeSingle();
   const settings = { clientSends: !!s?.client_sends, automatic: !!s?.automatic_sends, limit: Number(s?.daily_limit ?? 100), reserve: Number(s?.daily_reserve ?? 30) };

@@ -17,6 +17,7 @@
 // SCAN_RPC_AVALANCHE, SCAN_RPC_ERC20, SCAN_RPC_SOLANA.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { caller, refused } from "../_shared/guard.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -292,5 +293,6 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* corps vide */ }
   if (body.action !== "scan") return json({ error: "Action inconnue" }, 400);
   const db = createClient(SB_URL, SERVICE);
+  if (!(await caller(req, db, SERVICE))) return refused(CORS);
   return json(await scan(db));
 });

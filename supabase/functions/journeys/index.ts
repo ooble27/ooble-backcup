@@ -13,6 +13,7 @@
 // Secrets : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (automatiques). COMPANY_* comme send-email.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { caller } from "../_shared/guard.ts";
 import { composeMail, isJourneyKind, isMailStyle, type MailCompany, type MailLang, type MailText } from "../_shared/mailStudio.ts";
 
 const json = (body: unknown, status = 200) =>
@@ -50,11 +51,12 @@ const toText = (html: string) => html
   .replace(/&nbsp;/g, " ").replace(/&rarr;/g, "→").replace(/&copy;/g, "©").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
   .replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (!url || !key) return json({ error: "Configuration serveur incomplète." }, 500);
   const db = createClient(url, key);
+  if (!(await caller(req, db, key))) return json({ error: "Accès refusé." }, 401);
 
   const { data: s } = await db.from("marketing_settings").select("client_sends, automatic_sends").eq("id", 1).maybeSingle();
   if (!s?.automatic_sends) return json({ ok: true, idle: "envois automatiques coupés" });

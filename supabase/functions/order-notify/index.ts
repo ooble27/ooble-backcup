@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { caller } from "../_shared/guard.ts";
 // Edge function Ooble — notification PUSH quand le statut d'un ordre change
 // (paiement reçu, terminé, annulé, expiré, remboursé), en français ou en
 // anglais selon l'appareil. Pas d'e-mail ici (envoyés ailleurs).
@@ -48,6 +49,8 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) return json({ error: "Config manquante" }, 500);
+  const who = await caller(req, createClient(supabaseUrl, serviceKey), serviceKey);
+  if (!who || who.kind === "staff") return json({ error: "Accès refusé." }, 401);
 
   let payload: { type: string; table: string; record: Record<string, unknown>; old_record: Record<string, unknown> };
   try { payload = await req.json(); }

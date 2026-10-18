@@ -11,6 +11,7 @@
 // Secrets : VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (+ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { caller } from "../_shared/guard.ts";
 import { sendWebPush } from "../push-notify/webpush.ts";
 
 const json = (body: unknown, status = 200) =>
@@ -26,6 +27,7 @@ Deno.serve(async (req) => {
   const vapid = { publicKey: Deno.env.get("VAPID_PUBLIC_KEY") ?? "", privateKey: Deno.env.get("VAPID_PRIVATE_KEY") ?? "", subject: Deno.env.get("VAPID_SUBJECT") ?? "mailto:support@ooble.ca" };
   if (!url || !key || !vapid.publicKey || !vapid.privateKey) return json({ error: "Configuration serveur incomplète." }, 500);
   const db = createClient(url, key);
+  if (!(await caller(req, db, key))) return json({ error: "Accès refusé." }, 401);
 
   const { data: due } = await db.from("push_campaigns").select("*")
     .eq("status", "scheduled").lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(3);

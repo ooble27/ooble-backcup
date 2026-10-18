@@ -40,6 +40,7 @@
 // faite ici.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { caller } from "../_shared/guard.ts";
 import {
   SUPPORTED, SafeError, balances, explorerUrl, fromAddress, hasKey, health, prepare, txState, validateAddress,
   type Net,
@@ -428,6 +429,10 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { body = {}; }
   const action = body.action ?? "send";
 
+  // Passages automatiques et diagnostic : tâches planifiées, appels internes ou équipe.
+  if (["reconcile", "drain", "health", "snapshot"].includes(action) && !(await caller(req, db, SERVICE))) {
+    return json({ error: "Accès refusé." }, 401);
+  }
   if (action === "reconcile") return json(await reconcile(db));
   if (action === "drain") return json(await drain(db));
   if (action === "health") return json({ ok: true, networks: await health() });
