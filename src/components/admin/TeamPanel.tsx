@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, BadgeCheck, Calculator, Check, ChevronRight, Headphones, Megaphone, ScanFace, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { TeamHero } from "./heroes";
+import { TeamActivity } from "./TeamActivity";
+import { useAuth } from "@/lib/auth";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { fetchTeam, setMemberRoles, removeMember, addMemberByEmail, type LiveTeamMember } from "@/lib/adminTeam";
 import { ROLES, TAB_LABEL, roleLabel, tabsFor, type Role } from "@/lib/roles";
@@ -73,6 +75,7 @@ function RolePicker({ value, onChange }: { value: Role[]; onChange: (r: Role[]) 
 }
 
 const TeamPanel = () => {
+  const { isAdmin } = useAuth();
   const [members, setMembers] = useState<LiveTeamMember[]>(() => peek<LiveTeamMember[]>("team")?.value?.filter((m) => Array.isArray(m.roles)) ?? []);
   const [loading, setLoading] = useState(() => !peek("team"));
   const [filter, setFilter] = useState<"all" | Role>("all");
@@ -179,6 +182,8 @@ const TeamPanel = () => {
         empty={<EmptyState icon={Users} title={loading ? "Chargement…" : "Aucun membre"} text={loading ? undefined : "Ajoutez un premier membre à l'équipe."} />}
         mobile={(m) => <TwoLine lead={<Avatar name={m.name} size={34} />} primary={m.name} secondary={rolesText(m.roles)} />}
       />
+
+      {isAdmin && <TeamActivity />}
 
       {adding && (
         <SidePanel title="Ajouter un membre" subtitle="Donner un ou plusieurs rôles à un compte Ooble existant" onClose={() => setAdding(false)}
