@@ -139,3 +139,76 @@ export async function stopRecurring(id: string) {
   const { error } = await table("expenses").update({ recurring: false }).eq("id", id);
   return error ? { error: error.message } : {};
 }
+
+/* ─── Partie double : plan comptable, journal, états financiers ─── */
+export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
+export interface LedgerAccount { code: string; name: string; type: AccountType; system: boolean; active: boolean }
+export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = { asset: "Actif", liability: "Passif", equity: "Capitaux propres", revenue: "Revenus", expense: "Charges" };
+
+export async function listAccounts(): Promise<LedgerAccount[]> {
+  const { data, error } = await table("ledger_accounts").select("code, name, type, system, active").order("code");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LedgerAccount[];
+}
+export async function addAccount(a: { code: string; name: string; type: AccountType }) {
+  const { error } = await table("ledger_accounts").insert({ code: a.code.trim(), name: a.name.trim(), type: a.type });
+  return error ? { error: /duplicate/i.test(error.message) ? "Ce numéro de compte existe déjà." : error.message } : {};
+}
+
+export interface JLine { account: string; name: string | null; debit: number; credit: number; label: string | null }
+export interface JEntry { piece: string; at: string; source: "purchase" | "sell" | "buy" | "expense" | "manual"; sourceId: string; memo: string; lines: JLine[]; total: number }
+export const SOURCE_LABEL: Record<JEntry["source"], string> = { purchase: "Recharge", sell: "Vente client", buy: "Achat client", expense: "Dépense", manual: "Écriture manuelle" };
+export async function loadJournal(from: string, to: string, limit = 200, offset = 0): Promise<{ total: number; debit: number; credit: number; entries: JEntry[] }> {
+  const { data, error } = await rpc("accounting_journal", { _from: from, _to: to, _limit: limit, _offset: offset });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as { total?: number; debit?: number; credit?: number; entries?: Record<string, unknown>[] };
+  return {
+    total: num(d.total), debit: num(d.debit), credit: num(d.credit),
+    entries: (d.entries ?? []).map((e) => ({
+      piece: String(e.piece), at: String(e.at), source: e.source as JEntry["source"], sourceId: String(e.source_id), memo: String(e.memo ?? ""), total: num(e.total),
+      lines: ((e.lines as Record<string, unknown>[]) ?? []).map((l) => ({ account: String(l.account), name: (l.name as string) ?? null, debit: num(l.debit), credit: num(l.credit), label: (l.label as string) ?? null })),
+    })),
+  };
+}
+export async function postEntry(date: string, memo: string, lines: { account: string; debit: number; credit: number; label?: string }[]) {
+  const { data, error } = await rpc("journal_post", { _date: date, _memo: memo, _lines: lines });
+  return error ? { error: error.message } : { piece: String(data) };
+}
+export async function voidJournalEntry(id: string, reason: string) {
+  const { error } = await rpc("journal_void", { _id: id, _reason: reason });
+  return error ? { error: error.message } : {};
+}
+
+export interface StmtLine { code: string; name: string; amount: number }
+export interface Statements {
+  trial: { code: string; name: string; type: AccountType; debit: number; credit: number; balance: number }[]; trialDebit: number; trialCredit: number;
+  income: { revenue: StmtLine[]; expense: StmtLine[]; totalRevenue: number; totalExpense: number; net: number };
+  balance: { assets: StmtLine[]; liabilities: StmtLine[]; equity: StmtLine[]; earnings: number; totalAssets: number; totalLiabilities: number; totalEquity: number };
+  bank: number;
+}
+const lines = (v: unknown): StmtLine[] => ((v as Record<string, unknown>[]) ?? []).map((l) => ({ code: String(l.code), name: String(l.name), amount: num(l.amount) }));
+const sKey = (from: string, to: string) => `acct.stmt.${from}.${to}`;
+export const peekStatements = (from: string, to: string) => peek<Statements>(sKey(from, to))?.value ?? null;
+export const loadStatements = (from: string, to: string) => fetchCached(sKey(from, to), async () => {
+  const { data, error } = await rpc("accounting_statements", { _from: from, _to: to });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  const inc = (d.income ?? {}) as Record<string, unknown>, bal = (d.balance ?? {}) as Record<string, unknown>;
+  return {
+    trial: ((d.trial as Record<string, unknown>[]) ?? []).map((t) => ({ code: String(t.code), name: String(t.name), type: t.type as AccountType, debit: num(t.debit), credit: num(t.credit), balance: num(t.balance) })),
+    trialDebit: num(d.trial_debit), trialCredit: num(d.trial_credit),
+    income: { revenue: lines(inc.revenue), expense: lines(inc.expense), totalRevenue: num(inc.total_revenue), totalExpense: num(inc.total_expense), net: num(inc.net) },
+    balance: { assets: lines(bal.assets), liabilities: lines(bal.liabilities), equity: lines(bal.equity), earnings: num(bal.earnings),
+      totalAssets: num(bal.total_assets), totalLiabilities: num(bal.total_liabilities), totalEquity: num(bal.total_equity) },
+    bank: num(d.bank),
+  } as Statements;
+}, { persist: true });
+
+export interface AcctLedger { opening: number; closing: number; lines: { at: string; piece: string; source: string; memo: string; debit: number; credit: number; balance: number }[] }
+export async function loadAccountLedger(code: string, from: string, to: string): Promise<AcctLedger> {
+  const { data, error } = await rpc("accounting_account_ledger", { _account: code, _from: from, _to: to });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  return { opening: num(d.opening), closing: num(d.closing),
+    lines: ((d.lines as Record<string, unknown>[]) ?? []).map((l) => ({ at: String(l.at), piece: String(l.piece), source: String(l.source), memo: String(l.memo ?? ""), debit: num(l.debit), credit: num(l.credit), balance: num(l.balance) })) };
+}

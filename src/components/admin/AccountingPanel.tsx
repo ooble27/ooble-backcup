@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, Download, Loader2, Lock } from "lucide-react";
 import { nfCad, nfUsdt } from "@/lib/adminOrders";
-import { NET_LOGO, NET_NAME, PERIODS, exportAccountingCsv, exportAccountingXlsx, loadClosures, loadSummary, monthLabel, peekClosures, peekSummary, periodRange, type AcctMonth, type AcctNetwork, type AcctSummary, type Closure, type Period } from "@/lib/accounting";
+import { NET_LOGO, NET_NAME, PERIODS, exportAccountingCsv, exportAccountingXlsx, exportJournalCsv, loadClosures, loadSummary, monthLabel, peekClosures, peekSummary, periodRange, type AcctMonth, type AcctNetwork, type AcctSummary, type Closure, type Period } from "@/lib/accounting";
 import { loadPnl, peekPnl, type Pnl } from "@/lib/ledger";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { DataTable, Section, Tabs, type Column } from "./layout";
 import { ExpensesView, ProfitStatement, PurchasesView } from "./LedgerViews";
+import { JournalView, StatementsView } from "./JournalViews";
 import AccountingMonth from "./AccountingMonth";
 import { replayRise } from "@/lib/pageMotion";
 
@@ -16,7 +17,7 @@ import { replayRise } from "@/lib/pageMotion";
  * Une période au choix, le détail mois par mois sur sa propre page, un classeur Excel pour le comptable.
  */
 
-type View = "overview" | "purchases" | "expenses";
+type View = "overview" | "journal" | "statements" | "purchases" | "expenses";
 
 const money = (n: number) => `${nfCad.format(n)} $`;
 const pct = (m: number, v: number) => (v > 0 ? `${((m / v) * 100).toLocaleString("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 })} %` : "–");
@@ -61,9 +62,13 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
   const t = data?.totals;
   const periodLabel = PERIODS.find((p) => p.id === period)!.label;
   const fileName = periodLabel.toLowerCase().replace(/\s+/g, "-");
-  const exportAll = async (csv = false) => {
+  const exportAll = async (csv: false | "orders" | "journal" = false) => {
     setExporting(true);
-    try { if (csv) await exportAccountingCsv(from, to, fileName); else await exportAccountingXlsx(from, to, fileName, periodLabel); }
+    try {
+      if (csv === "orders") await exportAccountingCsv(from, to, fileName);
+      else if (csv === "journal") await exportJournalCsv(from, to, fileName);
+      else await exportAccountingXlsx(from, to, fileName, periodLabel);
+    }
     catch (e) { setErr((e as Error).message); }
     finally { setExporting(false); }
   };
@@ -115,7 +120,10 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       </nav>
 
       <Tabs<View> style={{ marginTop: 22 }} value={view} onChange={setView}
-        items={[{ id: "overview", label: "Vue d'ensemble" }, { id: "purchases", label: "Recharges" }, { id: "expenses", label: "Dépenses" }]} />
+        items={[{ id: "overview", label: "Vue d'ensemble" }, { id: "journal", label: "Journal" }, { id: "statements", label: "États financiers" }, { id: "purchases", label: "Recharges" }, { id: "expenses", label: "Dépenses" }]} />
+
+      {view === "journal" && <div style={{ marginTop: 24 }}><JournalView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
+      {view === "statements" && <div style={{ marginTop: 24 }}><StatementsView key={tick} from={from} to={to} toLabel={new Date(new Date(to).getTime() - 1).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })} /></div>}
 
       {view === "purchases" && <div style={{ marginTop: 24 }}><PurchasesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
       {view === "expenses" && <div style={{ marginTop: 24 }}><ExpensesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
@@ -213,7 +221,8 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
         Marge réelle : pour un achat, le montant payé par le client moins la valeur des USDT au taux du marché du moment ; pour une vente, l'inverse.
         Le gaz de réseau (TRX, BNB, SOL… achetés pour les envois) se saisit comme une dépense, catégorie « Gaz de réseau ».
         {t?.unpriced ? ` ${t.unpriced} commande${t.unpriced > 1 ? "s" : ""} sans taux du marché connu ne compte${t.unpriced > 1 ? "nt" : ""} pas dans la marge.` : ""}
-        {" "}<button type="button" onClick={() => exportAll(true)} disabled={exporting} style={{ all: "unset", cursor: "pointer", color: C.t2, textDecoration: "underline", textUnderlineOffset: 3 }}>Exporter les commandes en CSV</button>
+        {" "}<button type="button" onClick={() => exportAll("orders")} disabled={exporting} style={{ all: "unset", cursor: "pointer", color: C.t2, textDecoration: "underline", textUnderlineOffset: 3 }}>Exporter les commandes en CSV</button>
+        {" · "}<button type="button" onClick={() => exportAll("journal")} disabled={exporting} style={{ all: "unset", cursor: "pointer", color: C.t2, textDecoration: "underline", textUnderlineOffset: 3 }}>Journal général en CSV (QuickBooks, Sage)</button>
       </p>
       </>}
 

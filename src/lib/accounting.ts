@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCached, peek } from "@/lib/adminCache";
 import { orderRef } from "@/lib/orders";
-import { catLabel, listExpenses, listPurchases, loadPnl } from "@/lib/ledger";
+import { ACCOUNT_TYPE_LABEL, SOURCE_LABEL, catLabel, listExpenses, listPurchases, loadJournal, loadPnl, loadStatements } from "@/lib/ledger";
 import { downloadXlsx } from "@/lib/xlsx";
 
 /**
@@ -105,7 +105,8 @@ async function allOrders(from: string, to: string): Promise<AcctOrder[]> {
  * Les écritures annulées y figurent, marquées comme telles, pour la piste d'audit.
  */
 export async function exportAccountingXlsx(from: string, to: string, name: string, periodLabel: string) {
-  const [orders, pnl, purchases, expenses] = await Promise.all([allOrders(from, to), loadPnl(from, to), listPurchases(from, to), listExpenses(from, to)]);
+  const [orders, pnl, purchases, expenses, journal, st] = await Promise.all([allOrders(from, to), loadPnl(from, to), listPurchases(from, to), listExpenses(from, to), loadJournal(from, to, 100000), loadStatements(from, to)]);
+  const dayAt = new Date(new Date(to).getTime() - 1).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
   const day = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
   const margin = orders.reduce((s, o) => s + (o.margin ?? 0), 0);
   downloadXlsx(`ooble-comptabilite-${name}`, [
@@ -152,8 +153,41 @@ export async function exportAccountingXlsx(from: string, to: string, name: strin
       { header: "Mois", width: 16 }, { header: "Achats clients", fmt: "int" }, { header: "Ventes CAD", fmt: "money" }, { header: "Coût des USDT", fmt: "money" },
       { header: "Bénéfice brut", fmt: "money" }, { header: "Dépenses", fmt: "money" }, { header: "Bénéfice net", fmt: "money" },
     ], rows: pnl.months.map((m) => [monthLabel(m.month), m.n, m.revenue, m.cogs, m.gross, m.expenses, m.net]) },
+    { name: "Journal", columns: [
+      { header: "Date", width: 12 }, { header: "Pièce", width: 14 }, { header: "Origine", width: 16 }, { header: "Compte", width: 8 }, { header: "Nom du compte", width: 30 },
+      { header: "Libellé", width: 36 }, { header: "Débit", fmt: "money" }, { header: "Crédit", fmt: "money" },
+    ], rows: [...journal.entries].reverse().flatMap((e) => e.lines.map((l) => [day(e.at), e.piece, SOURCE_LABEL[e.source], l.account, l.name ?? "", l.label ?? e.memo, l.debit || null, l.credit || null])) },
+    { name: "Balance", columns: [
+      { header: "Compte", width: 8 }, { header: "Nom", width: 32 }, { header: "Type", width: 16 }, { header: "Débits", fmt: "money" }, { header: "Crédits", fmt: "money" }, { header: "Solde", fmt: "money" },
+    ], rows: [...st.trial.map((t) => [t.code, t.name, ACCOUNT_TYPE_LABEL[t.type], t.debit, t.credit, t.balance]), ["", "Total", "", st.trialDebit, st.trialCredit, null]] },
+    { name: "Résultats", columns: [{ header: "Rubrique", width: 40 }, { header: "Montant (CAD)", fmt: "money", width: 18 }], rows: [
+      ["Période", periodLabel], ["", null], ["Revenus", null],
+      ...st.income.revenue.map((l) => [`${l.code} · ${l.name}`, l.amount]), ["Total des revenus", st.income.totalRevenue], ["", null], ["Charges", null],
+      ...st.income.expense.map((l) => [`${l.code} · ${l.name}`, l.amount]), ["Total des charges", st.income.totalExpense], ["", null],
+      ["Résultat net de la période", st.income.net],
+    ] },
+    { name: "Bilan", columns: [{ header: `Au ${dayAt}`, width: 40 }, { header: "Montant (CAD)", fmt: "money", width: 18 }], rows: [
+      ["Actif", null], ...st.balance.assets.map((l) => [`${l.code} · ${l.name}`, l.amount]), ["Total de l'actif", st.balance.totalAssets], ["", null],
+      ["Passif", null], ...st.balance.liabilities.map((l) => [`${l.code} · ${l.name}`, l.amount]), ["Total du passif", st.balance.totalLiabilities], ["", null],
+      ["Capitaux propres", null], ...st.balance.equity.map((l) => [`${l.code} · ${l.name}`, l.amount]), ["Résultat cumulé", st.balance.earnings],
+      ["Total des capitaux propres", st.balance.totalEquity], ["", null], ["Total du passif et des capitaux propres", st.balance.totalLiabilities + st.balance.totalEquity],
+    ] },
   ]);
   return orders.length;
+}
+
+/** Journal général en CSV, une ligne par ligne d'écriture : le format qu'importent QuickBooks, Sage et la plupart des logiciels. */
+export async function exportJournalCsv(from: string, to: string, name: string) {
+  const j = await loadJournal(from, to, 100000);
+  const cell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const iso = (s: string) => new Date(s).toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+  const head = ["Date", "JournalNo", "Account", "AccountName", "Description", "Debit", "Credit"];
+  const lines = [...j.entries].reverse().flatMap((e) => e.lines.map((l) =>
+    [iso(e.at), e.piece, l.account, l.name ?? "", l.label ?? e.memo, l.debit ? l.debit.toFixed(2) : "", l.credit ? l.credit.toFixed(2) : ""].map((v) => cell(String(v))).join(",")));
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + [head.join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: `ooble-journal-general-${name}.csv` });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /** Export CSV (une ligne par commande terminée), conservé pour les outils qui n'ouvrent que le CSV. */
