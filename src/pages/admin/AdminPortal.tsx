@@ -4,7 +4,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Wallet,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -17,6 +17,7 @@ import OrdersList from "@/components/admin/OrdersList";
 import OrderDetail from "@/components/admin/OrderDetail";
 import KycPanel from "@/components/admin/KycPanel";
 import AccountingPanel from "@/components/admin/AccountingPanel";
+import TreasuryPanel from "@/components/admin/TreasuryPanel";
 import TeamPanel from "@/components/admin/TeamPanel";
 import ClientProfile from "@/components/admin/ClientProfile";
 import CompliancePanel from "@/components/admin/CompliancePanel";
@@ -64,7 +65,8 @@ const GROUPS: NavGroup[] = [
     { id: "kyc", label: "Vérifications", desc: "Identité des particuliers et des entreprises, avant leurs transactions.", icon: ScanFace },
   ] },
   { label: "Finance et conformité", items: [
-    { id: "accounting", label: "Comptabilité", desc: "Revenus, marges et volumes traités.", icon: Calculator },
+    { id: "accounting", label: "Comptabilité", desc: "Bénéfice net, marges, recharges de stock, dépenses et exports pour le comptable.", icon: Calculator },
+    { id: "treasury", label: "Trésorerie", desc: "Stock d'USDT par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: Wallet },
     { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: ShieldCheck },
   ] },
   { label: "Communication", items: [
@@ -524,6 +526,7 @@ const AdminPortal = () => {
                   {tab === "clients" && <ClientsPanel onOpen={openClient} />}
                   {tab === "kyc" && <KycPanel />}
                   {tab === "accounting" && <AccountingPanel onOpenOrder={openOrderById} />}
+                  {tab === "treasury" && <TreasuryPanel />}
                   {tab === "compliance" && <CompliancePanel orders={orders} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClient : undefined} />}
                   {tab === "settlement" && <SettlementPanel />}
                   {tab === "mailbox" && <MailboxPanel onShowClient={allowedTabs.has("clients") ? showClient : undefined} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} />}

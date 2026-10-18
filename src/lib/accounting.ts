@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCached, peek } from "@/lib/adminCache";
 import { orderRef } from "@/lib/orders";
+import { catLabel, listExpenses, listPurchases, loadPnl } from "@/lib/ledger";
+import { downloadXlsx } from "@/lib/xlsx";
 
 /**
  * Comptabilité réelle, calculée par la base (admin_accounting_summary / admin_accounting_orders) :
@@ -85,8 +87,8 @@ export const loadOrders = (from: string, to: string, page: number, size = 20, on
   return { total: num(d.total), rows: (d.rows ?? []).map(toOrder) };
 });
 
-/** Export pour le comptable : toutes les commandes terminées de la période, une ligne chacune, avec le rapprochement. */
-export async function exportAccountingCsv(from: string, to: string, name: string) {
+/** Toutes les commandes terminées de la période, avec le rapprochement. */
+async function allOrders(from: string, to: string): Promise<AcctOrder[]> {
   const all: AcctOrder[] = [];
   for (let page = 0; page < 100; page++) {
     const { data, error } = await rpc("admin_accounting_ledger", { _from: from, _to: to, _limit: 2000, _offset: page * 2000, _only_check: false });
@@ -95,6 +97,68 @@ export async function exportAccountingCsv(from: string, to: string, name: string
     all.push(...rows.map(toOrder));
     if (rows.length < 2000) break;
   }
+  return all;
+}
+
+/**
+ * Classeur Excel pour le comptable : Résumé (bénéfice net), Commandes, Recharges, Dépenses et Mois.
+ * Les écritures annulées y figurent, marquées comme telles, pour la piste d'audit.
+ */
+export async function exportAccountingXlsx(from: string, to: string, name: string, periodLabel: string) {
+  const [orders, pnl, purchases, expenses] = await Promise.all([allOrders(from, to), loadPnl(from, to), listPurchases(from, to), listExpenses(from, to)]);
+  const day = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
+  const margin = orders.reduce((s, o) => s + (o.margin ?? 0), 0);
+  downloadXlsx(`ooble-comptabilite-${name}`, [
+    { name: "Résumé", columns: [{ header: "Rubrique", width: 46 }, { header: "Montant (CAD)", fmt: "money", width: 18 }], rows: [
+      ["Période", periodLabel], ["Du", day(from)], ["Au (exclu)", day(to)], ["", null],
+      ["Ventes de USDT aux clients (achats clients)", pnl.revenue],
+      ["Coût des USDT vendus (coût moyen pondéré)", -pnl.cogs],
+      ["Bénéfice brut", pnl.gross],
+      ...Object.entries(pnl.expensesBy).map(([k, v]) => [`Dépenses · ${catLabel(k)}`, -v] as [string, number]),
+      ["Total des dépenses", -pnl.expenses],
+      ["Bénéfice net", pnl.net], ["", null],
+      ["Marge réelle (écart avec le taux du marché)", margin],
+      ["Recharges chez les fournisseurs (CAD, frais compris)", pnl.purchasesCad],
+      ["USDT rachetés aux clients (ventes clients, CAD versés)", pnl.sellsCad],
+      ["Stock d'USDT en fin de période (USDT)", pnl.stock.usdt],
+      ["Valeur du stock au coût moyen", pnl.stock.cost],
+      ["Valeur du stock au cours du marché", pnl.stock.market ?? null],
+      ["Achats clients sans stock enregistré (évalués au cours du marché)", pnl.uncovered],
+    ] },
+    { name: "Commandes", columns: [
+      { header: "Date", width: 20 }, { header: "Référence", width: 14 }, { header: "Client", width: 26 }, { header: "Opération" }, { header: "Réseau" },
+      { header: "Montant CAD", fmt: "money" }, { header: "USDT", fmt: "usdt" }, { header: "Taux appliqué", fmt: "rate" }, { header: "Taux du marché", fmt: "rate" },
+      { header: "Marge CAD", fmt: "money" }, { header: "Frais facturés CAD", fmt: "money" }, { header: "Rapprochement", width: 18 },
+      { header: "Interac reçu CAD", fmt: "money" }, { header: "USDT envoyés", fmt: "usdt" }, { header: "USDT reçus", fmt: "usdt" }, { header: "Transaction", width: 40 },
+    ], rows: orders.map((o) => [
+      new Date(o.created_at).toLocaleString("fr-CA"), orderRef(o.id), o.client ?? "", o.side === "buy" ? "Achat" : "Vente", NET_NAME[o.network] ?? o.network,
+      o.cad, o.usdt, o.rate, o.mid, o.margin, o.fee, RECON_LABEL[o.recon.state], o.recon.in_cad, o.recon.out_usdt, o.recon.in_usdt, o.recon.tx ?? "",
+    ]) },
+    { name: "Recharges", columns: [
+      { header: "Date", width: 14 }, { header: "Type" }, { header: "Fournisseur", width: 24 }, { header: "Réseau" }, { header: "USDT", fmt: "usdt" },
+      { header: "CAD payés", fmt: "money" }, { header: "Frais CAD", fmt: "money" }, { header: "Coût par USDT", fmt: "rate" }, { header: "Transaction", width: 40 },
+      { header: "Justificatif" }, { header: "Saisi par", width: 20 }, { header: "Annulée", width: 30 },
+    ], rows: purchases.map((p) => [
+      day(p.at), p.kind === "opening" ? "Stock d'ouverture" : "Recharge", p.supplier, NET_NAME[p.network] ?? p.network, p.usdt, p.cad, p.fee,
+      p.usdt ? (p.cad + p.fee) / p.usdt : null, p.tx ?? "", p.receipt ? "Oui" : "Non", p.by ?? "", p.voided ? `Oui : ${p.voidReason ?? ""}` : "",
+    ]) },
+    { name: "Dépenses", columns: [
+      { header: "Date", width: 12 }, { header: "Catégorie", width: 18 }, { header: "Libellé", width: 34 }, { header: "Montant CAD", fmt: "money" },
+      { header: "Taxes payées CAD", fmt: "money" }, { header: "Récurrente" }, { header: "Justificatif" }, { header: "Saisie par", width: 20 }, { header: "Annulée", width: 30 },
+    ], rows: expenses.map((e) => [
+      e.on, catLabel(e.category), e.label, e.amount, e.tax, e.recurring ? "Chaque mois" : e.auto ? "Copie mensuelle" : "", e.receipt ? "Oui" : "Non", e.by ?? "", e.voided ? `Oui : ${e.voidReason ?? ""}` : "",
+    ]) },
+    { name: "Mois", columns: [
+      { header: "Mois", width: 16 }, { header: "Achats clients", fmt: "int" }, { header: "Ventes CAD", fmt: "money" }, { header: "Coût des USDT", fmt: "money" },
+      { header: "Bénéfice brut", fmt: "money" }, { header: "Dépenses", fmt: "money" }, { header: "Bénéfice net", fmt: "money" },
+    ], rows: pnl.months.map((m) => [monthLabel(m.month), m.n, m.revenue, m.cogs, m.gross, m.expenses, m.net]) },
+  ]);
+  return orders.length;
+}
+
+/** Export CSV (une ligne par commande terminée), conservé pour les outils qui n'ouvrent que le CSV. */
+export async function exportAccountingCsv(from: string, to: string, name: string) {
+  const all = await allOrders(from, to);
   const head = ["Date", "Référence", "Client", "Opération", "Réseau", "Montant CAD", "USDT", "Taux appliqué", "Taux du marché", "Marge CAD", "Frais facturés CAD",
     "Rapprochement", "Interac reçu CAD", "USDT envoyés", "USDT reçus", "Transaction"];
   const cell = (v: string) => (/[";\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);

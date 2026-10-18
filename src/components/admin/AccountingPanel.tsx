@@ -1,18 +1,22 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, Download, Loader2, Lock } from "lucide-react";
 import { nfCad, nfUsdt } from "@/lib/adminOrders";
-import { NET_LOGO, NET_NAME, PERIODS, exportAccountingCsv, loadClosures, loadSummary, monthLabel, peekClosures, peekSummary, periodRange, type AcctMonth, type AcctNetwork, type AcctSummary, type Closure, type Period } from "@/lib/accounting";
+import { NET_LOGO, NET_NAME, PERIODS, exportAccountingCsv, exportAccountingXlsx, loadClosures, loadSummary, monthLabel, peekClosures, peekSummary, periodRange, type AcctMonth, type AcctNetwork, type AcctSummary, type Closure, type Period } from "@/lib/accounting";
+import { loadPnl, peekPnl, type Pnl } from "@/lib/ledger";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
-import { DataTable, Section, type Column } from "./layout";
+import { DataTable, Section, Tabs, type Column } from "./layout";
+import { ExpensesView, ProfitStatement, PurchasesView } from "./LedgerViews";
 import AccountingMonth from "./AccountingMonth";
 import { replayRise } from "@/lib/pageMotion";
 
 /**
  * Comptabilité réelle : marge calculée commande par commande à partir du taux du marché au moment
- * de la commande (et non plus 2 % estimés). Une période au choix, le détail mois par mois sur sa
- * propre page, un export pour le comptable.
+ * de la commande (et non plus 2 % estimés), bénéfice net au coût moyen pondéré (recharges, dépenses).
+ * Une période au choix, le détail mois par mois sur sa propre page, un classeur Excel pour le comptable.
  */
+
+type View = "overview" | "purchases" | "expenses";
 
 const money = (n: number) => `${nfCad.format(n)} $`;
 const pct = (m: number, v: number) => (v > 0 ? `${((m / v) * 100).toLocaleString("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 })} %` : "–");
@@ -36,6 +40,8 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
   const [closures, setClosures] = useState<Map<string, Closure> | null>(() => peekClosures());
   const [tick, setTick] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [view, setView] = useState<View>("overview");
+  const [pnl, setPnl] = useState<Pnl | null>(() => peekPnl(from, to));
 
   useEffect(() => {
     let on = true;
@@ -44,12 +50,20 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
     return () => { on = false; };
   }, [from, to, tick]);
   useEffect(() => { loadClosures().then(setClosures).catch(() => undefined); }, [tick]);
+  useEffect(() => {
+    let on = true;
+    setPnl(peekPnl(from, to));
+    loadPnl(from, to).then((d) => { if (on) setPnl(d); }).catch((e: Error) => { if (on) setErr(e.message); });
+    return () => { on = false; };
+  }, [from, to, tick]);
   const openMonth = (key: string, check = false) => setMonth({ key, check });
 
   const t = data?.totals;
-  const exportAll = async () => {
+  const periodLabel = PERIODS.find((p) => p.id === period)!.label;
+  const fileName = periodLabel.toLowerCase().replace(/\s+/g, "-");
+  const exportAll = async (csv = false) => {
     setExporting(true);
-    try { await exportAccountingCsv(from, to, PERIODS.find((p) => p.id === period)!.label.toLowerCase().replace(/\s+/g, "-")); }
+    try { if (csv) await exportAccountingCsv(from, to, fileName); else await exportAccountingXlsx(from, to, fileName, periodLabel); }
     catch (e) { setErr((e as Error).message); }
     finally { setExporting(false); }
   };
@@ -94,11 +108,18 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
             onClick={(e) => { const el = e.currentTarget; setPeriod(p.id); if (p.id !== period) requestAnimationFrame(() => replayRise(el)); }}><span>{p.label}</span></button>
         ))}
         <span style={{ flex: 1 }} />
-        <Button size="sm" onClick={exportAll} disabled={exporting || !t?.n}
+        <Button size="sm" onClick={() => exportAll()} disabled={exporting}
           icon={exporting ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Download style={{ width: 14, height: 14 }} />}>
-          {exporting ? "Préparation…" : "Exporter pour le comptable"}
+          {exporting ? "Préparation…" : "Exporter pour le comptable (Excel)"}
         </Button>
       </nav>
+
+      <Tabs<View> style={{ marginTop: 22 }} value={view} onChange={setView}
+        items={[{ id: "overview", label: "Vue d'ensemble" }, { id: "purchases", label: "Recharges" }, { id: "expenses", label: "Dépenses" }]} />
+
+      {view === "purchases" && <div style={{ marginTop: 24 }}><PurchasesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
+      {view === "expenses" && <div style={{ marginTop: 24 }}><ExpensesView from={from} to={to} onChanged={() => setTick((n) => n + 1)} /></div>}
+      {view === "overview" && <>
 
       <div style={{ marginTop: 26 }}>
         <p className="vz-head" style={{ fontSize: "clamp(34px, 4.4vw, 58px)" }}>
@@ -110,6 +131,10 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       </div>
 
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
+
+      <Section title="Bénéfice net" description="Au coût moyen pondéré : chaque USDT vendu sort au coût moyen du stock (recharges et USDT rachetés aux clients), puis les dépenses sont déduites.">
+        <ProfitStatement pnl={pnl} />
+      </Section>
 
       {/* Les chiffres de la période, côte à côte, sans cartes. */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 24, marginTop: 28 }}>
@@ -186,9 +211,11 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
 
       <p style={{ margin: "26px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 760 }}>
         Marge réelle : pour un achat, le montant payé par le client moins la valeur des USDT au taux du marché du moment ; pour une vente, l'inverse.
-        Les frais de réseau payés pour envoyer les USDT ne sont pas encore enregistrés et ne sont donc pas déduits.
+        Le gaz de réseau (TRX, BNB, SOL… achetés pour les envois) se saisit comme une dépense, catégorie « Gaz de réseau ».
         {t?.unpriced ? ` ${t.unpriced} commande${t.unpriced > 1 ? "s" : ""} sans taux du marché connu ne compte${t.unpriced > 1 ? "nt" : ""} pas dans la marge.` : ""}
+        {" "}<button type="button" onClick={() => exportAll(true)} disabled={exporting} style={{ all: "unset", cursor: "pointer", color: C.t2, textDecoration: "underline", textUnderlineOffset: 3 }}>Exporter les commandes en CSV</button>
       </p>
+      </>}
 
       {month && <AccountingMonth key={`${month.key}:${month.check}`} month={month.key} initialCheck={month.check} summary={data?.months.find((m) => m.month === month.key) ?? null}
         onClose={() => setMonth(null)} onOpenOrder={onOpenOrder} onChanged={() => setTick((n) => n + 1)} />}

@@ -22,6 +22,11 @@
 //                                 cours et termine les ordres confirmés. Sans
 //                                 effet de bord risqué : appelé par une tâche
 //                                 planifiée, sans authentification.
+//   { action: "snapshot" }        relève le stock d'USDT et de gaz de chaque
+//                                 réseau (Trésorerie) et prévient l'équipe d'un
+//                                 stock bas. Lecture seule, toutes les 5 minutes,
+//                                 sans authentification ; ignoré si le dernier
+//                                 relevé a moins de 2 minutes.
 //
 // Garde-fous : un seul envoi actif par ordre (index unique en base), un seul
 // envoi à la fois par réseau (verrou atomique en base), plafond
@@ -336,6 +341,73 @@ async function drain(db: SupabaseClient) {
   return { ok: true, waiting: queue.length, sent: out };
 }
 
+/**
+ * Trésorerie : un relevé du stock par réseau, puis l'alerte « stock bas » à l'équipe (au plus une
+ * fois toutes les 6 heures par réseau tant que le stock reste bas). N'agit jamais sur les commandes.
+ */
+async function snapshot(db: SupabaseClient) {
+  const since = new Date(Date.now() - 2 * 60_000).toISOString();
+  const { data: recent } = await db.from("treasury_stock_snapshots").select("id").gte("taken_at", since).limit(1);
+  if (recent?.length) return { ok: true, skipped: true };
+
+  const rows = (await Promise.all(SUPPORTED.filter((n) => hasKey(n)).map(async (net) => {
+    try {
+      const b = await balances(net);
+      return { network: net, address: b.address, usdt: b.usdt, gas: b.gas, gas_symbol: b.gasSymbol, min_gas: b.minGas };
+    } catch { return null; }
+  }))).filter((r): r is NonNullable<typeof r> => !!r);
+  if (rows.length) await db.from("treasury_stock_snapshots").insert(rows);
+
+  // Réservé : les achats ouverts de chaque réseau (hors essais).
+  const { data: open } = await db.from("orders").select("network, usdt_amount")
+    .eq("side", "buy").in("status", ["created", "awaiting_payment", "payment_received", "settling"]).eq("is_test", false).eq("hidden", false);
+  const reserved: Record<string, number> = {};
+  for (const o of open ?? []) reserved[o.network] = (reserved[o.network] ?? 0) + Number(o.usdt_amount);
+
+  const { data: cfg } = await db.from("treasury_alert_config").select("network, low_balance_threshold_usdt, alert_enabled, last_alert_at");
+  const now = Date.now(), low: { net: string; available: number; threshold: number; gasLow: boolean; gas: number; gasSymbol: string }[] = [];
+  for (const r of rows) {
+    const c = (cfg ?? []).find((x) => x.network === r.network);
+    if (!c?.alert_enabled) continue;
+    const available = r.usdt - (reserved[r.network] ?? 0);
+    const gasLow = r.gas < r.min_gas * 2;
+    const isLow = available < Number(c.low_balance_threshold_usdt) || gasLow;
+    if (!isLow) {
+      if (c.last_alert_at) await db.from("treasury_alert_config").update({ last_alert_at: null }).eq("network", r.network);
+      continue;
+    }
+    if (c.last_alert_at && now - new Date(c.last_alert_at).getTime() < 6 * 3600_000) continue;
+    low.push({ net: r.network, available, threshold: Number(c.low_balance_threshold_usdt), gasLow, gas: r.gas, gasSymbol: r.gas_symbol });
+  }
+  if (low.length) {
+    const sent = await alertLowStock(db, low);
+    if (sent) await db.from("treasury_alert_config").update({ last_alert_at: new Date().toISOString() }).in("network", low.map((l) => l.net));
+  }
+  return { ok: true, snapshots: rows.length, alerts: low.map((l) => l.net) };
+}
+
+/** Courriel « stock bas » aux destinataires des alertes de l'équipe (Réglages), sinon STAFF_NOTIFICATION_EMAIL. */
+async function alertLowStock(db: SupabaseClient, low: { net: string; available: number; threshold: number; gasLow: boolean; gas: number; gasSymbol: string }[]) {
+  const apiKey = Deno.env.get("RESEND_API_KEY"), from = Deno.env.get("EMAIL_FROM");
+  if (!apiKey || !from) return false;
+  const { data } = await db.from("app_private_settings").select("staff_alert_emails").eq("id", 1).maybeSingle();
+  let to = ((data?.staff_alert_emails ?? []) as string[]).map((e) => e.trim()).filter((e) => /^\S+@\S+\.\S+$/.test(e));
+  if (!to.length) { const s = Deno.env.get("STAFF_NOTIFICATION_EMAIL")?.trim(); to = s ? [s] : []; }
+  if (!to.length) return false;
+  const lines = low.map((l) => `${NET_LABEL[l.net] ?? l.net} : ${nfUsdt(l.available)} USDT disponibles (seuil ${nfUsdt(l.threshold)})${l.gasLow ? ` · gaz bas : ${l.gas.toFixed(4)} ${l.gasSymbol}` : ""}`);
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#141414">
+    <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#777">Trésorerie</p>
+    <p style="margin:0 0 16px;font-size:20px;font-weight:bold">Stock bas à recharger</p>
+    ${lines.map((t) => `<p style="margin:0 0 6px">${t}</p>`).join("")}
+    <p style="margin:16px 0 0"><a href="${SITE}/admin" style="color:#141414">Ouvrir la Trésorerie</a></p></div>`;
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to, subject: `Trésorerie · stock bas (${low.map((l) => NET_LABEL[l.net] ?? l.net).join(", ")})`, html, text: lines.join("\n") }),
+  }).catch(() => null);
+  return !!res?.ok;
+}
+
 async function status(db: SupabaseClient) {
   const { data: settings } = await db.from("settlement_settings").select("*").eq("id", 1).single();
   const wallets = await Promise.all(SUPPORTED.map(async (net) => {
@@ -359,6 +431,7 @@ Deno.serve(async (req) => {
   if (action === "reconcile") return json(await reconcile(db));
   if (action === "drain") return json(await drain(db));
   if (action === "health") return json({ ok: true, networks: await health() });
+  if (action === "snapshot") return json(await snapshot(db));
 
   // Authentification : clé service (appel interne) ou membre de l'équipe.
   const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();

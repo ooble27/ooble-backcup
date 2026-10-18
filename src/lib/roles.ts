@@ -10,15 +10,15 @@ import { useAuth } from "@/lib/auth";
 
 export type Role = "admin" | "operator" | "kyc_reviewer" | "support" | "marketing" | "compliance" | "accounting";
 
-export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
+export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
 
-export const ALL_TABS: TabId[] = ["dashboard", "queue", "orders", "settlement", "clients", "kyc", "accounting", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
+export const ALL_TABS: TabId[] = ["dashboard", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
 const HELP: TabId[] = ["kb", "manual"];
 
 /** Nom des pages, pour dire à un membre ce qu'il verra. */
 export const TAB_LABEL: Record<TabId, string> = {
   dashboard: "Tableau de bord", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
-  accounting: "Comptabilité", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
+  accounting: "Comptabilité", treasury: "Trésorerie", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
   team: "Équipe", platform: "Réglages", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
 };
 
@@ -36,11 +36,11 @@ export interface RoleDef {
 export const ROLES: RoleDef[] = [
   { id: "admin", label: "Administrateur", mission: "Dirige tout : opérations, finances, équipe et plateforme.", home: "dashboard", tabs: ALL_TABS },
   { id: "operator", label: "Opérateur", mission: "Traite les commandes : prend les paiements reçus, envoie les USDT, verse les CAD.", home: "queue",
-    tabs: ["queue", "orders", "settlement", "clients", "mailbox", ...HELP] },
+    tabs: ["queue", "orders", "settlement", "treasury", "clients", "mailbox", ...HELP] },
   { id: "compliance", label: "Conformité", mission: "Fait respecter les règles du CANAFE : alertes, déclarations, registres, vérifications d'identité.", home: "compliance",
     tabs: ["compliance", "kyc", "clients", "orders", "accounting", "mailbox", ...HELP] },
   { id: "accounting", label: "Comptabilité", mission: "Tient les comptes : marges, volumes, rapprochements et exports pour le comptable.", home: "accounting",
-    tabs: ["accounting", "orders", "settlement", ...HELP] },
+    tabs: ["accounting", "treasury", "orders", "settlement", ...HELP] },
   { id: "kyc_reviewer", label: "Vérification", mission: "Vérifie l'identité des particuliers et des entreprises.", home: "kyc",
     tabs: ["kyc", "clients", "mailbox", ...HELP] },
   { id: "support", label: "Support", mission: "Répond aux clients et suit leurs demandes.", home: "mailbox",
@@ -76,6 +76,8 @@ const CAPS = {
   "docs.edit": ["admin"],
   "accounting.close": ["admin", "accounting"],
   "accounting.reopen": ["admin"],
+  "accounting.entries": ["admin", "accounting"],
+  "treasury.configure": ["admin", "accounting"],
   "accounts.unlock": ["admin", "support"],
   "accounts.suspend": ["admin", "compliance"],
   "clients.limit": ["admin", "compliance"],
