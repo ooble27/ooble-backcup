@@ -4,7 +4,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Wallet,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -66,7 +66,7 @@ const GROUPS: NavGroup[] = [
   ] },
   { label: "Finance et conformité", items: [
     { id: "accounting", label: "Comptabilité", desc: "Bénéfice net, marges, recharges de stock, dépenses et exports pour le comptable.", icon: Calculator },
-    { id: "treasury", label: "Trésorerie", desc: "Stock d'USDT par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: Wallet },
+    { id: "treasury", label: "Trésorerie", desc: "Stock d'USDT par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: Vault },
     { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: ShieldCheck },
   ] },
   { label: "Communication", items: [
