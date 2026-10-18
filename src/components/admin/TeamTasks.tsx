@@ -16,8 +16,9 @@ import { TaskForm, TaskPanel, TeamAvatar, TeamFaces, TV_CSS, dueLabel, memberLab
 
 const CSS = `
 /* Les trois colonnes se partagent la largeur (aucune n'est coupée par le bord de l'écran) ; quand la
-   place manque (téléphone), elles se placent les unes sous les autres. */
+   place manque (téléphone), un onglet par colonne : on n'en voit qu'une à la fois. */
 .tb-wrap { container-type: inline-size; }
+.tb-tabs { display: none; }
 .tb-board { display: grid; gap: 0 36px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tb-col { min-height: 300px; border-radius: 12px; transition: background .15s, box-shadow .15s; }
 .tb-col[data-over="true"] { background: var(--a-hover2); box-shadow: 0 0 0 1px var(--a-bd); }
@@ -25,8 +26,10 @@ const CSS = `
 .tb-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 6px; margin: 0 -6px; border-bottom: 1px solid var(--a-bds); border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .tb-title { display: block; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
 @container (max-width: 640px) {
-  .tb-board { grid-template-columns: minmax(0, 1fr); gap: 28px 0; }
+  .tb-tabs { display: block; }
+  .tb-board { grid-template-columns: minmax(0, 1fr); }
   .tb-col { min-height: 0; }
+  .tb-col[data-tab="false"] { display: none; }
 }
 .tb-item[draggable="true"] { cursor: grab; }
 .tb-item[data-dragging="true"] { opacity: .3; }
@@ -57,6 +60,8 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
   const [drag, setDrag] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatus | null>(null);
   const [limit, setLimit] = useState<Record<TaskStatus, number>>({ todo: 20, doing: 20, done: 20 });
+  // Téléphone : une colonne à la fois, choisie par onglet.
+  const [colTab, setColTab] = useState<TaskStatus>("todo");
   const [note, setNote] = useState<string | null>(null);
 
   const showArchived = scope === "archived";
@@ -137,11 +142,14 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
 
   const board = (
     <div className="tb-wrap">
+    <p className="tb-tabs" style={{ margin: "0 0 6px", fontSize: 15, lineHeight: 2, color: C.t2 }}>
+      <Opts value={colTab} onChange={setColTab} options={COLS.map((c) => ({ v: c.id, label: `${c.label} (${byCol(c.id).length})` }))} />
+    </p>
     <div className="tb-board">
       {COLS.map((c) => {
         const rows = byCol(c.id);
         return (
-          <section key={c.id} className="tb-col" data-over={over === c.id}
+          <section key={c.id} className="tb-col" data-over={over === c.id} data-tab={colTab === c.id}
             onDragOver={(e) => { if (drag) { e.preventDefault(); setOver(c.id); } }}
             onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(null); }}
             onDrop={(e) => { e.preventDefault(); const t = tasks?.find((x) => x.id === (drag ?? e.dataTransfer.getData("text/plain"))); setOver(null); setDrag(null); if (t) move(t, c.id); }}>

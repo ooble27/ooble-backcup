@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Users } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Users } from "lucide-react";
 import { createAvatar } from "@dicebear/core";
 import * as notionists from "@dicebear/notionists";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,8 +31,15 @@ export const TV_CSS = `
 .tv-ta { width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--a-bd); background: transparent; padding: 8px 0 9px; font: inherit; font-size: 15px; line-height: 1.55; color: var(--a-t1); outline: none; resize: vertical; min-height: 44px; }
 .tv-ta:focus { border-bottom-color: var(--a-t1); }
 .tv-ta::placeholder { color: var(--a-t3); }
-/* Liste déroulante et date : sur iPhone et iPad, un champ natif peut ignorer sa largeur et dépasser du panneau. */
-.tv-sel { min-width: 0; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+/* Menu déroulant d'un membre : champ souligné comme les autres, liste qui flotte par-dessus la page. */
+.tv-dd { position: relative; margin-top: 4px; }
+.tv-dd-btn { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 0 9px; border-bottom: 1px solid var(--a-bd); -webkit-tap-highlight-color: transparent; }
+.tv-dd-btn[aria-expanded="true"] { border-bottom-color: var(--a-t1); }
+.tv-dd-btn:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+.tv-dd-menu { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); max-height: 300px; overflow-y: auto; padding: 6px; border-radius: 14px; background: var(--a-l1); box-shadow: 0 0 0 1px var(--a-bd), 0 18px 40px -16px rgba(0,0,0,.45); }
+.tv-dd-opt { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; -webkit-tap-highlight-color: transparent; }
+.tv-dd-opt:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }
+/* Date : sur iPhone et iPad, le champ natif peut ignorer sa largeur et dépasser du panneau. */
 .gr-in[type="date"] { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .tv-sel { width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--a-bd); background: transparent; padding: 8px 0 9px; font: inherit; font-size: 15px; color: var(--a-t1); outline: none; color-scheme: light dark; }
 .tv-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; gap: 14px; width: 100%; padding: 13px 0; border-bottom: 1px solid var(--a-bds); }
@@ -261,6 +268,51 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
 
 type Who = "me" | "person" | "role" | "all";
 
+/**
+ * Choix d'un membre : fermé, seule la personne choisie (avatar, nom, poste) ; ouvert, la liste de
+ * l'équipe flotte par-dessus la page. Rien ne dépasse de la case, sur ordinateur comme sur téléphone.
+ */
+function PersonPicker({ members, value, onChange }: { members: TeamMember[]; value: string; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const line = (m: TeamMember) => (
+    <>
+      <TeamAvatar id={m.userId} name={m.name} size={30} presence />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <TeamName id={m.userId} name={m.name} full style={{ display: "block", fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} />
+        <span style={{ display: "block", marginTop: 1, fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.roles.map(roleLabel).join(", ")}</span>
+      </span>
+    </>
+  );
+  const sel = members.find((m) => m.userId === value);
+  return (
+    <div ref={box} className="tv-dd">
+      <button type="button" className="tv-dd-btn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        {sel ? line(sel) : <span style={{ flex: 1, fontSize: 14.5, color: C.t3 }}>Choisir une personne</span>}
+        <ChevronDown style={{ width: 16, height: 16, color: C.t3, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      </button>
+      {open && (
+        <div className="tv-dd-menu tv-in" role="listbox" aria-label="Personne">
+          {members.map((m) => (
+            <button key={m.userId} type="button" role="option" aria-selected={m.userId === value} className="tv-dd-opt" onClick={() => { onChange(m.userId); setOpen(false); }}>
+              {line(m)}
+              {m.userId === value && <Check style={{ width: 16, height: 16, color: C.t1, flexShrink: 0 }} strokeWidth={2.4} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTask | null; members: TeamMember[]; me: string; onClose: () => void; onSaved: (id?: string) => void }) {
   const { user } = useAuth();
   const [title, setTitle] = useState(task?.title ?? "");
@@ -325,12 +377,7 @@ export function TaskForm({ task, members, me, onClose, onSaved }: { task: TeamTa
       <p style={{ margin: "2px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
         <Opts value={whoKind} onChange={setWhoKind} options={[{ v: "me", label: "Moi" }, ...(others.length ? [{ v: "person" as Who, label: "Une personne" }] : []), { v: "role", label: "Un poste" }, { v: "all", label: "Toute l'équipe" }]} />
       </p>
-      {whoKind === "person" && (
-        // Liste déroulante (le sélecteur du téléphone s'ouvre par-dessus) ; elle reste dans la largeur du panneau.
-        <select className="tv-sel" aria-label="Personne" value={person} onChange={(e) => setPerson(e.target.value)}>
-          {others.map((m) => <option key={m.userId} value={m.userId}>{m.name} · {m.roles.map(roleLabel).join(", ")}</option>)}
-        </select>
-      )}
+      {whoKind === "person" && <PersonPicker members={others} value={person} onChange={setPerson} />}
       {whoKind === "role" && (
         <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: C.t2 }}><Opts value={role} onChange={setRole} options={ROLES.map((r) => ({ v: r.id, label: r.label }))} /></p>
       )}
