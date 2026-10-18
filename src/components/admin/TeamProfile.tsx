@@ -1,15 +1,16 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, ImagePlus, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { NAME_COLORS, PRESENCE_LABEL, TEAM_COLORS, firstName, memberById, resizePhoto, saveProfile, type AvatarBg, type NameColor, type Presence } from "@/lib/teamSpace";
+import { NAME_COLORS, PRESENCE_LABEL, TEAM_COLORS, firstName, loadPushPrefs, memberById, resizePhoto, savePushPrefs, saveProfile, type AvatarBg, type NameColor, type Presence, type PushPrefs } from "@/lib/teamSpace";
+import { enablePush, pushState, type PushState } from "@/lib/pushNotifications";
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
 import { AVATAR_BG, TV_CSS, TeamAvatar, TeamName, avatarUri, nameColor, useMembers } from "./TeamViews";
 
 /**
- * Mon profil d'équipe : le dessin (ou une photo), le fond de l'avatar, la couleur de mon nom et mon
- * statut. Le dessin et le fond clair d'origine restent les choix par défaut, toujours proposés.
+ * Mon profil d'équipe : le dessin (ou une photo), le fond de l'avatar, la couleur de mon nom, mon
+ * statut et les notifications que je reçois sur mon téléphone. Le dessin et le fond clair d'origine restent les choix par défaut, toujours proposés.
  */
 
 const CSS = `
@@ -57,8 +58,16 @@ export function SideIdentity({ compact, role, hint }: { compact: boolean; role: 
 
 const BGS: { v: AvatarBg; label: string }[] = [{ v: "light", label: "Clair (d'origine)" }, ...TEAM_COLORS.map((c) => ({ v: c.v as AvatarBg, label: c.label }))];
 
+const PUSH_TEXT: Record<Exclude<PushState, "off">, string> = {
+  on: "Activées sur cet appareil.",
+  denied: "Refusées dans les réglages du navigateur. Autorisez les notifications pour Ooble dans les réglages du téléphone, puis revenez ici.",
+  install: "Sur iPhone et iPad : ajoutez d'abord Ooble à l'écran d'accueil (Partager › Sur l'écran d'accueil), puis ouvrez l'app depuis son icône.",
+  unsupported: "Ce navigateur ne reçoit pas de notifications.",
+};
+const YES_NO = [{ v: "yes" as const, label: "Oui" }, { v: "no" as const, label: "Non" }];
+
 export function ProfilePanel({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const me = user?.id ?? "";
   const m = memberById(me);
   const [seed, setSeed] = useState<string | null>(m?.seed ?? null);
@@ -73,6 +82,17 @@ export function ProfilePanel({ onClose }: { onClose: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const name = m?.name ?? user?.name ?? "Vous";
+  const [push, setPush] = useState<PushState | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [prefs, setPrefs] = useState<PushPrefs | null>(null);
+  const [prefsAtOpen, setPrefsAtOpen] = useState<PushPrefs | null>(null);
+  const handlesOrders = roles.includes("admin") || roles.includes("operator");
+  useEffect(() => {
+    void pushState().then(setPush);
+    loadPushPrefs().then((p) => { setPrefs(p); setPrefsAtOpen(p); }).catch(() => undefined);
+  }, []);
+  const turnOn = async () => { setAsking(true); setPush(await enablePush("fr")); setAsking(false); };
+  const setPref = (k: keyof PushPrefs) => (v: "yes" | "no") => setPrefs((p) => (p ? { ...p, [k]: v === "yes" } : p));
 
   // Le dessin d'origine en premier, puis des propositions tirées de mon identifiant.
   const seeds = [...(page === 0 ? [null] : []), ...Array.from({ length: page === 0 ? 15 : 16 }, (_, i) => `${me}:${page * 16 + i + 1}`)];
@@ -85,6 +105,10 @@ export function ProfilePanel({ onClose }: { onClose: () => void }) {
   const save = async () => {
     setBusy(true); setErr(null);
     const r = await saveProfile({ seed, photo, bg, color, status, statusUntil: status === "away" && until ? until : null, statusNote: status === "available" ? "" : note });
+    if (!r.error && prefs && JSON.stringify(prefs) !== JSON.stringify(prefsAtOpen)) {
+      const p = await savePushPrefs(prefs);
+      if (p.error) { setBusy(false); setErr(p.error); return; }
+    }
     setBusy(false);
     if (r.error) setErr(r.error); else onClose();
   };
@@ -170,6 +194,36 @@ export function ProfilePanel({ onClose }: { onClose: () => void }) {
         </div>
       )}
       {status === "away" && !until && <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t3 }}>Indiquez jusqu'à quand : vous redevenez « Disponible » tout seul le lendemain.</p>}
+
+      {/* Notifications sur le téléphone */}
+      <p className="tp-h">Notifications sur mon téléphone</p>
+      {push === "off" ? (
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: C.t2 }}>
+          Pas encore activées sur cet appareil.{" "}
+          <button type="button" className="tv-go" style={{ fontSize: 14 }} disabled={asking} onClick={turnOn}>
+            {asking ? "Activation…" : "Activer sur cet appareil"} <ArrowRight style={{ width: 14, height: 14 }} />
+          </button>
+        </p>
+      ) : push && (
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: C.t2 }}>
+          {push === "on" && <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, marginRight: 8, background: "var(--a-sage)" }} />}
+          {PUSH_TEXT[push]}
+        </p>
+      )}
+      {prefs && (
+        <div style={{ display: "grid", gap: 4, marginTop: 12 }}>
+          {([
+            ["mentions", "Quand on me mentionne avec @"],
+            ["tasks", "Quand on me confie une tâche, et le matin pour celles du jour"],
+            ...(handlesOrders ? [["orders", "Quand une commande payée attend d'être prise"]] : []),
+          ] as [keyof PushPrefs, string][]).map(([k, label]) => (
+            <div key={k} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "6px 0", fontSize: 14, lineHeight: 1.45, color: C.t2 }}>
+              <span style={{ minWidth: 0 }}>{label}</span>
+              <span style={{ flexShrink: 0 }}><Opts value={prefs[k] ? "yes" : "no"} onChange={setPref(k)} options={YES_NO} /></span>
+            </div>
+          ))}
+        </div>
+      )}
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
     </SidePanel>
   );

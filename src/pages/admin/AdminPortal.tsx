@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { versionLabel } from "@/lib/freshness";
+import { refreshPush } from "@/lib/pushNotifications";
 import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
@@ -184,6 +185,8 @@ const readTab = () => new URLSearchParams(window.location.search).get("tab") as 
 
 const AdminPortal = () => {
   const { roles, user } = useAuth();
+  // Notifications de l'équipe déjà autorisées sur cet appareil : l'abonnement reste à jour.
+  useEffect(() => { if (user?.id) refreshPush("fr"); }, [user?.id]);
   // Les commandes déjà chargées dans cette session s'affichent tout de suite (mémoire seulement : données clients).
   const [orders, setOrders] = useState<AdminOrder[]>(() => peek<AdminOrder[]>("orders")?.value ?? []);
   const [loading, setLoading] = useState(() => !peek("orders"));

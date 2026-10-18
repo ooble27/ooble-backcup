@@ -56,6 +56,33 @@ async function saveSubscription(lang: string): Promise<boolean> {
   return !error;
 }
 
+/** État des notifications sur cet appareil, pour le profil d'équipe. */
+export type PushState = "on" | "off" | "denied" | "install" | "unsupported";
+export async function pushState(): Promise<PushState> {
+  const ios = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const standalone = typeof window !== "undefined" && (window.matchMedia?.("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true);
+  if (!pushSupported()) return ios && !standalone ? "install" : "unsupported";
+  if (Notification.permission === "denied") return "denied";
+  if (Notification.permission !== "granted") return "off";
+  const reg = await navigator.serviceWorker.getRegistration().catch(() => undefined);
+  const sub = await reg?.pushManager.getSubscription().catch(() => null);
+  return sub ? "on" : "off";
+}
+
+/** Active les notifications sur cet appareil (au toucher d'un bouton) ; renvoie le nouvel état. */
+export async function enablePush(lang: string): Promise<PushState> {
+  if (!pushSupported()) return pushState();
+  const perm = Notification.permission === "default" ? await Notification.requestPermission().catch(() => "default" as NotificationPermission) : Notification.permission;
+  if (perm !== "granted") return pushState();
+  const ok = await saveSubscription(lang).catch(() => false);
+  return ok ? "on" : pushState();
+}
+
+/** Back-office : si les notifications sont déjà autorisées, l'abonnement de l'appareil est remis à jour. */
+export function refreshPush(lang: string) {
+  if (pushSupported() && Notification.permission === "granted") void saveSubscription(lang).catch(() => {});
+}
+
 let pendingGesture: (() => void) | null = null;
 
 /**

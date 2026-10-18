@@ -265,3 +265,16 @@ export async function savePrivateNote(me: string, body: string) {
   const { error } = await table("team_private_notes").upsert({ user_id: me, body, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
   return error ? { error: error.message } : {};
 }
+
+/* ─── Notifications sur le téléphone (choix de chacun) ─── */
+export interface PushPrefs { mentions: boolean; tasks: boolean; orders: boolean }
+export async function loadPushPrefs(): Promise<PushPrefs> {
+  const { data, error } = await supabase.rpc("team_push_prefs_get" as never);
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Partial<PushPrefs>;
+  return { mentions: d.mentions !== false, tasks: d.tasks !== false, orders: d.orders !== false };
+}
+export async function savePushPrefs(p: PushPrefs): Promise<{ error?: string }> {
+  const { error } = await supabase.rpc("team_push_prefs_save" as never, { _mentions: p.mentions, _tasks: p.tasks, _orders: p.orders } as never);
+  return error ? { error: error.message } : {};
+}
