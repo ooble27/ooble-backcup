@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import type { NetId } from "@/components/app/networks";
 
 export type AddressFamily = "evm" | "tron" | "solana";
@@ -52,9 +53,10 @@ export interface DepositAddressEntry { id: number; family: AddressFamily; addres
 
 /** Historique complet (Réglages) : l'active et les anciennes de chaque famille. */
 export async function fetchDepositAddressBook(): Promise<DepositAddressEntry[]> {
-  const { data, error } = await supabase.from("deposit_addresses").select("*").order("added_at", { ascending: false });
+  // Équipe seulement (le nom de qui a ajouté l'adresse n'est pas public).
+  const { data, error } = await supabase.rpc("deposit_address_book" as never);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => ({
+  return ((data ?? []) as Database["public"]["Tables"]["deposit_addresses"]["Row"][]).map((r) => ({
     id: r.id, family: r.family as AddressFamily, address: r.address, active: r.active,
     addedAt: r.added_at, addedByName: r.added_by_name, retiredAt: r.retired_at,
   }));

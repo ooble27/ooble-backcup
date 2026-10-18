@@ -1,8 +1,8 @@
 /**
  * Réglages de la plateforme (Back-office › Réglages), lus par toute l'app.
  *
- * Une seule ligne en base (app_settings), lisible par tout le monde et modifiable par les
- * administrateurs. La base applique elle-même l'ouverture des achats et ventes et les limites :
+ * Une seule ligne en base (app_settings), lisible par tout le monde (sauf les marges, le cours figé et
+ * le nom de qui a changé quoi, réservés à l'équipe) et modifiable par les administrateurs. La base applique elle-même l'ouverture des achats et ventes et les limites :
  * l'app ne fait qu'afficher les bons écrans. La dernière valeur connue est gardée sur l'appareil
  * pour un affichage immédiat, puis relue.
  */
@@ -69,7 +69,30 @@ function publish(s: AppSettings) {
   listeners.forEach((l) => l(s));
 }
 
-const fromRow = (r: Database["public"]["Tables"]["app_settings"]["Row"]): AppSettings => ({
+type Row = Database["public"]["Tables"]["app_settings"]["Row"];
+type StaffPart = Pick<Row, "buy_margin_pct" | "sell_margin_pct" | "manual_market_rate" | "updated_by_name">;
+/** Colonnes lisibles par tout le monde (clients et visiteurs). */
+const PUBLIC_COLS = "id, trading_enabled, verification_enabled, otc_enabled, trade_min_cad, trade_daily_max_cad, updated_at, networks, signups_individual, signups_business, rate_lock_minutes, sell_expiry_hours, buy_expiry_minutes, support_email, interac_email, otc_email";
+
+/** Équipe seulement : marges, cours figé, auteur du dernier changement (rien pour les autres). */
+async function staffPart(): Promise<StaffPart | null> {
+  const { data, error } = await supabase.rpc("app_settings_staff" as never);
+  if (error || !data) return null;
+  return (Array.isArray(data) ? data[0] : data) as StaffPart | null;
+}
+
+const merge = (pub: Omit<Row, keyof StaffPart | "updated_by">, staff: StaffPart | null): AppSettings => {
+  const keep = current;
+  return fromRow({
+    ...pub, updated_by: null,
+    buy_margin_pct: staff ? staff.buy_margin_pct : keep.buyMarginPct,
+    sell_margin_pct: staff ? staff.sell_margin_pct : keep.sellMarginPct,
+    manual_market_rate: staff ? staff.manual_market_rate : keep.manualMarketRate,
+    updated_by_name: staff ? staff.updated_by_name : keep.updatedByName,
+  });
+};
+
+const fromRow = (r: Row): AppSettings => ({
   tradingEnabled: r.trading_enabled,
   verificationEnabled: r.verification_enabled,
   otcEnabled: r.otc_enabled,
@@ -98,8 +121,8 @@ export const getAppSettingsNow = () => current;
 export function getAppSettings(): Promise<AppSettings> {
   inflight ??= (async () => {
     try {
-      const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
-      if (data) publish(fromRow(data));
+      const [{ data }, staff] = await Promise.all([supabase.from("app_settings").select(PUBLIC_COLS).eq("id", 1).maybeSingle(), staffPart()]);
+      if (data) publish(merge(data, staff));
       return current;
     } finally {
       inflight = null;
@@ -140,8 +163,8 @@ export async function saveAppSettings(patch: SettingsPatch): Promise<{ error?: s
   if (patch.supportEmail !== undefined) row.support_email = patch.supportEmail.trim();
   if (patch.interacEmail !== undefined) row.interac_email = patch.interacEmail.trim();
   if (patch.otcEmail !== undefined) row.otc_email = patch.otcEmail.trim();
-  const { data, error } = await supabase.from("app_settings").update(row).eq("id", 1).select("*").maybeSingle();
+  const { data, error } = await supabase.from("app_settings").update(row).eq("id", 1).select(PUBLIC_COLS).maybeSingle();
   if (error) return { error: error.message };
-  if (data) publish(fromRow(data));
+  if (data) publish(merge(data, await staffPart()));
   return {};
 }
