@@ -10,14 +10,16 @@ import { useAuth } from "@/lib/auth";
 
 export type Role = "admin" | "operator" | "kyc_reviewer" | "support" | "marketing" | "compliance" | "accounting";
 
-export type TabId = "dashboard" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
+export type TabId = "dashboard" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
 
-export const ALL_TABS: TabId[] = ["dashboard", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
+export const ALL_TABS: TabId[] = ["dashboard", "notes", "tasks", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
 const HELP: TabId[] = ["kb", "manual"];
+/** Espace de l'équipe : ouvert à tous les membres. */
+const TEAM: TabId[] = ["notes", "tasks"];
 
 /** Nom des pages, pour dire à un membre ce qu'il verra. */
 export const TAB_LABEL: Record<TabId, string> = {
-  dashboard: "Tableau de bord", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
+  dashboard: "Tableau de bord", notes: "Notes à l'équipe", tasks: "Tâches", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
   accounting: "Comptabilité", treasury: "Trésorerie", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
   team: "Équipe", platform: "Réglages", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
 };
@@ -36,17 +38,17 @@ export interface RoleDef {
 export const ROLES: RoleDef[] = [
   { id: "admin", label: "Administrateur", mission: "Dirige tout : opérations, finances, équipe et plateforme.", home: "dashboard", tabs: ALL_TABS },
   { id: "operator", label: "Opérateur", mission: "Traite les commandes : prend les paiements reçus, envoie les USDT, verse les CAD.", home: "queue",
-    tabs: ["queue", "orders", "settlement", "treasury", "clients", "mailbox", ...HELP] },
+    tabs: ["queue", "orders", "settlement", "treasury", "clients", "mailbox", ...TEAM, ...HELP] },
   { id: "compliance", label: "Conformité", mission: "Fait respecter les règles du CANAFE : alertes, déclarations, registres, vérifications d'identité.", home: "compliance",
-    tabs: ["compliance", "kyc", "clients", "orders", "accounting", "mailbox", ...HELP] },
+    tabs: ["compliance", "kyc", "clients", "orders", "accounting", "mailbox", ...TEAM, ...HELP] },
   { id: "accounting", label: "Comptabilité", mission: "Tient les comptes : marges, volumes, rapprochements et exports pour le comptable.", home: "accounting",
-    tabs: ["accounting", "treasury", "orders", "settlement", ...HELP] },
+    tabs: ["accounting", "treasury", "orders", "settlement", ...TEAM, ...HELP] },
   { id: "kyc_reviewer", label: "Vérification", mission: "Vérifie l'identité des particuliers et des entreprises.", home: "kyc",
-    tabs: ["kyc", "clients", "mailbox", ...HELP] },
+    tabs: ["kyc", "clients", "mailbox", ...TEAM, ...HELP] },
   { id: "support", label: "Support", mission: "Répond aux clients et suit leurs demandes.", home: "mailbox",
-    tabs: ["mailbox", "clients", "orders", ...HELP] },
+    tabs: ["mailbox", "clients", "orders", ...TEAM, ...HELP] },
   { id: "marketing", label: "Marketing", mission: "Fait connaître Ooble : campagnes de courriels aux clients.", home: "campaigns",
-    tabs: ["campaigns", "mailbox", ...HELP] },
+    tabs: ["campaigns", "mailbox", ...TEAM, ...HELP] },
 ];
 
 export const ROLE_BY_ID = new Map(ROLES.map((r) => [r.id, r] as const));

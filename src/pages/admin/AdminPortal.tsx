@@ -4,7 +4,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -39,6 +39,8 @@ import { VIZ_CSS } from "@/components/admin/viz";
 import { HERO_CSS } from "@/components/admin/heroes";
 import ThemeToggle from "@/components/app/ThemeToggle";
 import { AutoSettle } from "@/components/admin/icons";
+import { TeamNotesView, TeamTasksView, useTeamLive } from "@/components/admin/TeamViews";
+import { loadCounts, type TeamCounts } from "@/lib/teamSpace";
 import { prefetchAdmin } from "@/lib/adminData";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { prefetchClient } from "@/lib/clientProfileCache";
@@ -54,6 +56,10 @@ interface NavGroup { label: string | null; items: NavItem[]; menu?: { label: str
 const GROUPS: NavGroup[] = [
   { label: null, items: [
     { id: "dashboard", label: "Tableau de bord", desc: "Volumes, marge, alertes et actions à traiter.", icon: LayoutDashboard },
+  ] },
+  { label: "Équipe", items: [
+    { id: "notes", label: "Notes à l'équipe", desc: "Un mot à toute l'équipe ou à un poste : on voit qui l'a lu, et on y répond.", icon: StickyNote },
+    { id: "tasks", label: "Tâches", desc: "Ce que chacun a à faire : confié à une personne ou à un poste, avec une échéance.", icon: ListTodo },
   ] },
   { label: "Opérations", items: [
     { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
@@ -285,6 +291,12 @@ const AdminPortal = () => {
     return () => { if (!w.requestIdleCallback) clearTimeout(t); };
   }, [allowedTabs]);
 
+  // Espace de l'équipe : notes non lues et tâches pour moi, dans le menu, en direct.
+  const [team, setTeam] = useState<TeamCounts | null>(null);
+  const refreshTeam = useCallback(() => { loadCounts().then(setTeam).catch(() => undefined); }, []);
+  useEffect(() => { if (roles.length) refreshTeam(); }, [roles.length, refreshTeam]);
+  useTeamLive(refreshTeam, ["team_notes", "team_note_replies", "team_tasks"]);
+
   const refresh = () => fetchCached("orders", fetchAdminOrders).then((rows) => {
     setOrders(rows);
     setSelected((s) => (s ? rows.find((r) => r.id === s.id) ?? s : s));
@@ -334,11 +346,12 @@ const AdminPortal = () => {
 
   const active = visibleNav.find((n) => n.id === tab) ?? visibleNav[0];
   const toProcess = orders.filter((o) => o.status === "recu").length;
-  const badges: Partial<Record<TabId, number>> = { queue: toProcess };
+  const badges: Partial<Record<TabId, number>> = { queue: toProcess, notes: team?.unreadNotes, tasks: team?.myTasks };
 
   const openOrder = (o: AdminOrder) => { setClientView(null); setSelected(o); toTop(); prefetchClient(o.userId); prefetchOrder(o.id, o.userId); };
   const openClient = (userId: string, name: string) => { setSelected(null); setClientView({ userId, name }); toTop(); };
   const showClient = (userId: string) => openClient(userId, selected?.clientName ?? "Client");
+  const showClientById = (userId: string) => openClient(userId, "Client");
   const openOrderById = (orderId: string) => {
     const o = orders.find((x) => x.id === orderId);
     if (o) openOrder(o);
@@ -521,6 +534,8 @@ const AdminPortal = () => {
               ) : (
                 <>
                   {tab === "dashboard" && <KpiDashboard orders={orders} onNavigate={navigateTab} />}
+                  {tab === "notes" && <TeamNotesView onChanged={refreshTeam} />}
+                  {tab === "tasks" && <TeamTasksView onChanged={refreshTeam} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClientById : undefined} />}
                   {tab === "queue" && <OrdersQueue orders={orders} onOpen={openOrder} onPatch={patch} />}
                   {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}
                   {tab === "clients" && <ClientsPanel onOpen={openClient} />}
