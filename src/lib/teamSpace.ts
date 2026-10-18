@@ -1,9 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCached, peek } from "@/lib/adminCache";
-import { fetchTeam, type LiveTeamMember } from "@/lib/adminTeam";
+import type { LiveTeamMember } from "@/lib/adminTeam";
 import { sendCustomEmail } from "@/lib/email";
 import { orderRef } from "@/lib/orders";
-import { roleLabel, type Role } from "@/lib/roles";
+import { roleLabel, sortRoles, type Role } from "@/lib/roles";
 
 /**
  * Espace de l'équipe : notes à l'équipe (à tous ou à un poste), tâches, bloc-notes privé.
@@ -20,9 +20,15 @@ const done = ({ error }: { error: { message: string } | null }) => (error ? { er
 export type Audience = "all" | Role;
 export const audienceLabel = (a: string) => (a === "all" ? "Toute l'équipe" : roleLabel(a));
 
-/** Membres de l'équipe (même cache que la page Équipe). */
-export const peekMembers = () => peek<LiveTeamMember[]>("team")?.value?.filter((m) => Array.isArray(m.roles)) ?? [];
-export const loadMembers = () => fetchCached("team", fetchTeam);
+/** Annuaire de l'équipe, lisible par tout membre (team_directory). */
+export const peekMembers = () => peek<LiveTeamMember[]>("team.dir")?.value ?? [];
+export const loadMembers = () => fetchCached("team.dir", async (): Promise<LiveTeamMember[]> => {
+  const { data, error } = await rpc("team_directory");
+  if (error) throw new Error(error.message);
+  return ((data as Record<string, unknown>[]) ?? []).map((m) => ({
+    userId: String(m.id), name: String(m.name ?? "Membre"), email: String(m.email ?? ""), roles: sortRoles((m.roles as string[]) ?? []) as Role[],
+  }));
+});
 
 /* ─── Compteurs ─── */
 export interface TeamCounts { unreadNotes: number; myTasks: number; myOverdue: number }
