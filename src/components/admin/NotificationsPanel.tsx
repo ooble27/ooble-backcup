@@ -9,7 +9,7 @@ import { ArrowRight, BellRing, Megaphone } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { peek, put } from "@/lib/adminCache";
 import {
-  APP_LINKS, AUDIENCES, audienceLabel, cancelPush, countAudience, createMessage, createPush, linkLabel, loadNotifications, setMessageActive,
+  APP_LINKS, AUDIENCES, audienceLabel, cancelPush, countAudience, createMessage, createPush, linkLabel, loadNotifications, removeMessage, setMessageActive,
   type Audience, type AudienceCount, type MessageRow, type NotifStats, type PushRow, type Target,
 } from "@/lib/notifications";
 import { C } from "./adminTheme";
@@ -180,11 +180,18 @@ function MessageItem({ m, st = { seen: 0, click: 0, dismiss: 0 }, onErr, onChang
         </span>
       </span>
       <span className="v" style={{ color }}>{label}</span>
-      {!ended && (
+      <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+        {!ended && (
+          <button type="button" className="mk-link quiet" onClick={async () => {
+            const e = await setMessageActive(m.id, !m.active); if (e) onErr(e); onChanged();
+          }}>{m.active ? "Mettre en pause" : "Remettre en ligne"}</button>
+        )}
+        {/* Retirer : le message quitte l'app et cette liste pour de bon. */}
         <button type="button" className="mk-link quiet" onClick={async () => {
-          const e = await setMessageActive(m.id, !m.active); if (e) onErr(e); onChanged();
-        }}>{m.active ? "Mettre en pause" : "Remettre en ligne"}</button>
-      )}
+          if (!window.confirm(`Retirer « ${m.titleFr} » ? Il disparaît de l'app des clients et de cette liste.`)) return;
+          const e = await removeMessage(m.id); if (e) onErr(e); onChanged();
+        }}>Retirer</button>
+      </span>
     </div>
   );
 }

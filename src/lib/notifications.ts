@@ -45,7 +45,7 @@ export interface NotifStats { push: Record<string, number>; messages: Record<str
 export async function loadNotifications(): Promise<{ push: PushRow[]; messages: MessageRow[]; stats: NotifStats }> {
   const [p, m, st] = await Promise.all([
     supabase.from("push_campaigns").select("*").order("scheduled_at", { ascending: false }).limit(100),
-    supabase.from("app_messages").select("*").order("starts_at", { ascending: false }).limit(100),
+    supabase.from("app_messages").select("*").is("removed_at" as never, null).order("starts_at", { ascending: false }).limit(100),
     supabase.rpc("notif_stats"),
   ]);
   const error = p.error ?? m.error ?? st.error;
@@ -101,6 +101,14 @@ export async function createMessage(input: {
   }).select("id").single();
   if (error || !data) return error?.message.includes("check") ? "Un texte est trop long, ou la date de fin est passée." : (error?.message ?? "Non enregistré.");
   void logAdminAction({ action: "marketing.app_message", entityKind: "app_messages", entityId: data.id, metadata: { audience: input.audience, title: input.titleFr } });
+  return null;
+}
+
+/** Retirer un message : il quitte l'app et la liste (désactivé, gardé pour l'historique). */
+export async function removeMessage(id: string): Promise<string | null> {
+  const { error } = await supabase.from("app_messages").update({ active: false, removed_at: new Date().toISOString() } as never).eq("id", id);
+  if (error) return error.message;
+  void logAdminAction({ action: "marketing.app_message_removed", entityKind: "app_messages", entityId: id });
   return null;
 }
 
