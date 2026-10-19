@@ -358,3 +358,26 @@ export async function loadHandoffs(): Promise<Handoff[]> {
 export const postHandoff = (body: string, orderIds: string[], taskIds: string[], to: string | null) =>
   rpc("team_handoff_post", { _body: body, _orders: orderIds, _tasks: taskIds, _to: to }).then(done);
 export const ackHandoff = (id: string) => rpc("team_handoff_ack", { _id: id }).then(done);
+
+/* ─── Fiche d'un membre (ouverte depuis n'importe quel avatar de l'équipe) ─── */
+const MEMBER_EVENT = "ooble:open-member";
+export const openMember = (userId: string) => window.dispatchEvent(new CustomEvent(MEMBER_EVENT, { detail: userId }));
+export const onOpenMember = (fn: (userId: string) => void) => {
+  const h = (e: Event) => fn(String((e as CustomEvent).detail));
+  window.addEventListener(MEMBER_EVENT, h);
+  return () => window.removeEventListener(MEMBER_EVENT, h);
+};
+export interface MemberCard {
+  joined: string | null; ordersDone: number; tasksDone: number;
+  ordersOpen: { id: string; side: string; cad: number; status: string; client: string }[];
+}
+export async function loadMemberCard(userId: string): Promise<MemberCard | null> {
+  const { data, error } = await rpc("team_member_card", { _user: userId });
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  return {
+    joined: (d.joined as string) ?? null, ordersDone: Number(d.orders_done ?? 0), tasksDone: Number(d.tasks_done ?? 0),
+    ordersOpen: ((d.orders_open as Record<string, unknown>[]) ?? []).map((o) => ({ id: String(o.id), side: String(o.side), cad: Number(o.cad), status: String(o.status), client: String(o.client) })),
+  };
+}

@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, takeTask, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, onMembersChange, peekMembers, removeTask, saveTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, takeTask, openMember, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
   type AvatarBg, type Audience, type ChecklistTemplate, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
@@ -143,7 +143,8 @@ export function TeamFaces({ title, rows, onPick }: { title: string; rows: { id: 
     <div>
       <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>{title}</p>
       {rows.map((r) => (
-        <div key={r.id} className="tv-face" onClick={onPick ? () => onPick(r.id) : undefined} style={onPick ? { cursor: "pointer" } : undefined}>
+        <div key={r.id} className="tv-face" role="button" tabIndex={0} title={`Voir la fiche de ${r.name}`}
+          onClick={() => (onPick ?? openMember)(r.id)} onKeyDown={(e) => { if (e.key === "Enter") (onPick ?? openMember)(r.id); }} style={{ cursor: "pointer" }}>
           <TeamAvatar name={r.name} id={r.id} size={32} presence />
           <span className="tv-face-b">
             <span className="tv-face-n" title={r.name}><TeamName id={r.id} name={r.name} />{r.you && <span style={{ color: C.t3 }}> (vous)</span>}</span>
@@ -399,13 +400,13 @@ export function PersonPicker({ members, value, onChange }: { members: TeamMember
 export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
   task: TeamTask | null; members: TeamMember[]; me: string; onClose: () => void; onSaved: (id?: string) => void;
   /** Nouvelle tâche déjà rattachée (depuis la fiche d'un client ou une commande). */
-  preset?: { client?: { id: string; name: string }; order?: { id: string; ref: string } };
+  preset?: { client?: { id: string; name: string }; order?: { id: string; ref: string }; person?: string };
 }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [details, setDetails] = useState(task?.details ?? "");
-  const [whoKind, setWhoKind] = useState<Who>(task ? (task.assigneeId === me ? "me" : task.assigneeId ? "person" : task.assigneeRole ? "role" : "all") : "me");
+  const [whoKind, setWhoKind] = useState<Who>(task ? (task.assigneeId === me ? "me" : task.assigneeId ? "person" : task.assigneeRole ? "role" : "all") : preset?.person ? "person" : "me");
   const others = members.filter((m) => m.userId !== me);
-  const [person, setPerson] = useState(task?.assigneeId && task.assigneeId !== me ? task.assigneeId : others[0]?.userId ?? "");
+  const [person, setPerson] = useState(task?.assigneeId && task.assigneeId !== me ? task.assigneeId : preset?.person ?? others[0]?.userId ?? "");
   const [role, setRole] = useState<Role>(task?.assigneeRole ?? "operator");
   const [due, setDue] = useState(task?.dueOn ?? "");
   const [client, setClient] = useState<{ id: string; name: string } | null>(task?.clientId ? { id: task.clientId, name: task.clientName ?? "Client" } : preset?.client ?? null);

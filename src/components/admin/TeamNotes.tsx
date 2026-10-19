@@ -3,7 +3,7 @@ import { Archive, ArrowDown, ArrowRight, Hash, MessageSquare, Pencil, Pin, PinOf
 import { useAuth } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import {
-  NOTE_PAGE, audienceLabel, audienceMembers, editNote, findOrder, searchNotes, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
+  NOTE_PAGE, audienceLabel, audienceMembers, editNote, findOrder, openMember, searchNotes, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
   removeNote, removeReply, replyNote, setNote, type Audience, type NoteReply, type TeamMember, type TeamNote, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
@@ -373,7 +373,8 @@ export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => vo
               {audience.map((m) => {
                 const pending = readers[m.userId] ?? 0;
                 return (
-                  <div key={m.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", fontSize: 13.5 }}>
+                  <div key={m.userId} role="button" tabIndex={0} title={`Voir la fiche de ${m.name}`} onClick={() => openMember(m.userId)} onKeyDown={(e) => { if (e.key === "Enter") openMember(m.userId); }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", fontSize: 13.5, cursor: "pointer" }}>
                     <TeamAvatar id={m.userId} name={m.name} size={28} presence />
                     <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <TeamName id={m.userId} name={firstName(m.name)} you={m.userId === me} style={{ fontWeight: 500 }} />

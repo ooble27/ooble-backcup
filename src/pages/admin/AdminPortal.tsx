@@ -44,6 +44,7 @@ import { useTeamLive } from "@/components/admin/TeamViews";
 import { TeamNotesView } from "@/components/admin/TeamNotes";
 import { TeamTasksView } from "@/components/admin/TeamTasks";
 import { SideIdentity } from "@/components/admin/TeamProfile";
+import { MemberSheetHost } from "@/components/admin/TeamMember";
 import { MySpace } from "@/components/admin/MySpace";
 import { loadCounts, loadMembers, type TeamCounts } from "@/lib/teamSpace";
 import { prefetchAdmin } from "@/lib/adminData";
@@ -520,6 +521,8 @@ const AdminPortal = () => {
   const panel = vw >= 768; // même seuil que le mode « drawer »
 
   // Contenu de la page, le même sur ordinateur et sur téléphone.
+  // La fiche d'un membre s'ouvre de partout (avatars), y compris depuis une commande ou une fiche client.
+  const memberSheet = <MemberSheetHost onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onGoTasks={() => { setSelected(null); setClientView(null); setTab("tasks"); }} />;
   const page = clientView ? (
             <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
           ) : selected ? (
@@ -613,7 +616,7 @@ const AdminPortal = () => {
             </header>
               <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
                 style={{ maxWidth: 1320, margin: "0 auto", padding: "32px 32px 96px" }}>
-                {page}
+                <>{memberSheet}{page}</>
               </main>
             </div>
           </div>
@@ -647,7 +650,7 @@ const AdminPortal = () => {
 
         <main key={`${tab}:${selected?.id ?? ""}:${clientView?.userId ?? ""}`} className="sh-page"
           style={{ maxWidth: 1320, margin: "0 auto", padding: "24px 16px 96px" }}>
-          {page}
+          <>{memberSheet}{page}</>
         </main>
         </div>
       )}
