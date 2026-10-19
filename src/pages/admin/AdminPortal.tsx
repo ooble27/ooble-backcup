@@ -6,7 +6,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House, UsersRound, Workflow, Landmark, Send, SlidersHorizontal,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House, UsersRound, ArrowLeftRight, CircleUserRound, Wallet, Send, SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -71,16 +71,16 @@ const GROUPS: NavGroup[] = [
     { id: "notes", label: "Notes à l'équipe", desc: "Un mot à toute l'équipe ou à un poste : on voit qui l'a lu, et on y répond.", icon: StickyNote },
     { id: "tasks", label: "Tâches", desc: "Ce que chacun a à faire : confié à une personne ou à un poste, avec une échéance.", icon: ListTodo },
   ] },
-  { label: "Opérations", menu: { label: "Opérations", icon: Workflow }, items: [
+  { label: "Opérations", menu: { label: "Opérations", icon: ArrowLeftRight }, items: [
     { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
     { id: "orders", label: "Commandes", desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
     { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: AutoSettle },
   ] },
-  { label: "Clients", menu: { label: "Clients", icon: BookUser }, items: [
+  { label: "Clients", menu: { label: "Clients", icon: CircleUserRound }, items: [
     { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: BookUser },
     { id: "kyc", label: "Vérifications", desc: "Identité des particuliers et des entreprises, avant leurs transactions.", icon: ScanFace },
   ] },
-  { label: "Finance et conformité", menu: { label: "Finance et conformité", icon: Landmark }, items: [
+  { label: "Finance et conformité", menu: { label: "Finance et conformité", icon: Wallet }, items: [
     { id: "accounting", label: "Comptabilité", desc: "Bénéfice net, marges, recharges de stock, dépenses et exports pour le comptable.", icon: Calculator },
     { id: "treasury", label: "Trésorerie", desc: "Stock d'USDT par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: Vault },
     { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: ShieldCheck },
@@ -424,7 +424,8 @@ const AdminPortal = () => {
         <div style={{ flex: 1, overflowY: "auto", padding: compact ? "4px 0 10px" : "4px 12px 14px", display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center" }}>
           {visibleGroups.map((g, gi) => {
             // Une section qui ne garde qu'une page (selon le rôle) s'affiche comme une page simple.
-            const isMenu = !!g.menu && g.items.length > 1;
+            // Barre réduite (icônes seules) : toutes les pages à plat, sans sections à ouvrir.
+            const isMenu = !compact && !!g.menu && g.items.length > 1;
             const inMenu = isMenu && g.items.some((i) => i.id === tab);
             const menuOpen = isMenu && openGroup === g.label;
             const menuBadge = isMenu && !menuOpen ? g.items.reduce((a, i) => a + (badges[i.id] ?? 0), 0) : 0;
@@ -458,7 +459,7 @@ const AdminPortal = () => {
                 );
               });
             return (
-              <div key={g.label ?? gi} style={{ marginTop: gi === 0 ? 0 : g.label && !visibleGroups[gi - 1].label ? (compact ? 10 : 18) : (compact ? 2 : 1), display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <div key={g.label ?? gi} style={{ marginTop: gi === 0 ? 0 : compact ? 10 : g.label && !visibleGroups[gi - 1].label ? 18 : 1, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
                 {g.label && !compact && !g.menu && <p className="sh-grp">{g.label}</p>}
                 {!isMenu ? itemButtons : (
                   <>
