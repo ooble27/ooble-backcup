@@ -491,4 +491,17 @@ export function prefetchTeamSpace() {
   void loadHandoffs().catch(() => undefined);
   void loadShifts().catch(() => undefined);
   void loadRecentNotes(5).catch(() => undefined);
+  // Messagerie : le canal d'accueil prêt à l'ouverture (lire ne marque rien comme lu).
+  void loadChannelLatest("all", false).catch(() => undefined);
+  void loadPinnedCached("all").catch(() => undefined);
+  void loadReadersCached("all").catch(() => undefined);
+  void loadUnreadCached().catch(() => undefined);
+  void loadActivity().catch(() => undefined);
 }
+
+/** Dernière page d'un canal (ou des archives), gardée en mémoire : changer de canal est immédiat au retour. */
+export const channelKey = (audience: Audience | null, archived: boolean) => `ch:${archived ? "archives" : audience}`;
+export const loadChannelLatest = (audience: Audience | null, archived: boolean) => swr(channelKey(audience, archived), () => loadChannel(audience, { archived }));
+export const loadPinnedCached = (audience: Audience) => swr(`pin:${audience}`, () => loadPinned(audience));
+export const loadReadersCached = (audience: Audience) => swr(`readers:${audience}`, () => loadChannelReaders(audience));
+export const loadUnreadCached = () => swr("unread", loadUnread);

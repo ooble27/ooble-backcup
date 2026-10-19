@@ -3,7 +3,7 @@ import { Archive, ArrowDown, ArrowRight, Hash, MessageSquare, Pencil, Pin, PinOf
 import { useAuth } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import {
-  NOTE_PAGE, audienceLabel, audienceMembers, editNote, findOrder, openMember, prefetchMember, searchNotes, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
+  NOTE_PAGE, audienceLabel, audienceMembers, editNote, findOrder, openMember, prefetchMember, searchNotes, firstName, editReply, loadChannel, loadChannelLatest, loadPinnedCached, loadReadersCached, loadUnreadCached, channelKey, peekTeam, markNotesRead, postNote,
   removeNote, removeReply, replyNote, setNote, type Audience, type NoteReply, type TeamMember, type TeamNote, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
@@ -216,12 +216,14 @@ export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => vo
     const t = window.setTimeout(() => { searchNotes(findQ).then(setFound).catch(() => setFound([])); }, 250);
     return () => window.clearTimeout(t);
   }, [findQ, searching]);
-  const [msgs, setMsgs] = useState<TeamNote[] | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  // Ce qui est déjà en mémoire s'affiche tout de suite ; la lecture fraîche arrive par-dessus.
+  const cachedPage = (aud: Audience, arch: boolean) => peekTeam<TeamNote[]>(channelKey(aud, arch))?.slice().reverse() ?? null;
+  const [msgs, setMsgs] = useState<TeamNote[] | null>(() => cachedPage("all", false));
+  const [hasMore, setHasMore] = useState(() => (peekTeam<TeamNote[]>(channelKey("all", false))?.length ?? 0) === NOTE_PAGE);
   const [older, setOlder] = useState(false);
-  const [pinned, setPinned] = useState<TeamNote[]>([]);
-  const [unread, setUnread] = useState<Unread>({ channels: {}, mentions: 0, mentionChannels: {} });
-  const [readers, setReaders] = useState<Record<string, number>>({});
+  const [pinned, setPinned] = useState<TeamNote[]>(() => peekTeam<TeamNote[]>("pin:all") ?? []);
+  const [unread, setUnread] = useState<Unread>(() => peekTeam<Unread>("unread") ?? { channels: {}, mentions: 0, mentionChannels: {} });
+  const [readers, setReaders] = useState<Record<string, number>>(() => peekTeam<Record<string, number>>("readers:all") ?? {});
   const [err, setErr] = useState<string | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [newBelow, setNewBelow] = useState(false);
@@ -242,7 +244,7 @@ export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => vo
   const loadLatest = useCallback(async (reset = false) => {
     const k = keyRef.current;
     try {
-      const page = await loadChannel(archivedView ? null : channel, { archived: archivedView });
+      const page = await loadChannelLatest(archivedView ? null : channel, archivedView);
       if (keyRef.current !== k) return;
       const asc = page.slice().reverse();
       setMsgs((prev) => {
@@ -257,15 +259,18 @@ export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => vo
   }, [channel, archivedView]);
 
   const loadSide = useCallback(() => {
-    loadUnread().then(setUnread).catch(() => undefined);
+    loadUnreadCached().then(setUnread).catch(() => undefined);
     if (!archivedView) {
-      loadPinned(channel).then(setPinned).catch(() => undefined);
-      loadChannelReaders(channel).then(setReaders).catch(() => undefined);
+      loadPinnedCached(channel).then(setPinned).catch(() => undefined);
+      loadReadersCached(channel).then(setReaders).catch(() => undefined);
     }
   }, [channel, archivedView]);
 
   useEffect(() => {
-    setMsgs(null); setPinned([]); setNewBelow(false); lastSeen.current = undefined; atBottom.current = true;
+    const hit = archivedView ? cachedPage("all", true) : cachedPage(channel, false);
+    setMsgs(hit); setPinned(archivedView ? [] : peekTeam<TeamNote[]>(`pin:${channel}`) ?? []);
+    if (!archivedView) setReaders(peekTeam<Record<string, number>>(`readers:${channel}`) ?? {});
+    setNewBelow(false); lastSeen.current = undefined; atBottom.current = true;
     loadLatest(true); loadSide();
   }, [loadLatest, loadSide]);
   useTeamLive(() => { loadLatest(); loadSide(); }, ["team_notes", "team_note_replies"]);

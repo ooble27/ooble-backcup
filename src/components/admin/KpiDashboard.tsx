@@ -40,7 +40,7 @@ type Snapshot = {
 };
 
 /** Chiffres agrégés seulement (aucune donnée client) : gardés aussi pour la prochaine ouverture. */
-const fetchSnapshot = async (days: number): Promise<Snapshot> => {
+export const fetchSnapshot = async (days: number): Promise<Snapshot> => {
   const [v, m, s, p, f, c, d] = await Promise.all([
     getVolumeMetrics({ periodDays: days }),
     getMarginMetrics({ periodDays: days }),

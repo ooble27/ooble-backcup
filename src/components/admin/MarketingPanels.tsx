@@ -178,7 +178,7 @@ export function CampaignName({ name }: { name: string }) {
 }
 
 const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const CAL_PAST = 16, CAL_NEXT = 4;
+export const CAL_PAST = 16, CAL_NEXT = 4;
 
 /**
  * Le calendrier des envois : une case par jour, plus foncée quand on a envoyé plus de courriels ;

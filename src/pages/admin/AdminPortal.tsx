@@ -49,6 +49,7 @@ import { MemberSheetHost } from "@/components/admin/TeamMember";
 import { MySpace } from "@/components/admin/MySpace";
 import { loadCounts, loadMembers, type TeamCounts } from "@/lib/teamSpace";
 import { prefetchAdmin } from "@/lib/adminData";
+import { warmPages } from "@/components/admin/warmPages";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { prefetchClient } from "@/lib/clientProfileCache";
 import { prefetchOrder } from "@/lib/orderDetailCache";
@@ -298,9 +299,12 @@ const AdminPortal = () => {
       settlement: allowedTabs.has("settlement"), platform: allowedTabs.has("platform"), kyc: allowedTabs.has("kyc"),
       clients: allowedTabs.has("clients"), compliance: allowedTabs.has("compliance"), mailbox: allowedTabs.has("mailbox"), team: allowedTabs.has("team"), campaigns: allowedTabs.has("campaigns"), accounting: allowedTabs.has("accounting"),
     });
+    // Puis toutes les autres pages permises, par petits paquets : chacune s'ouvrira déjà remplie.
+    let stop: (() => void) | undefined;
+    const later = window.setTimeout(() => { stop = warmPages(allowedTabs); }, 1500);
     const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
     const t = w.requestIdleCallback ? w.requestIdleCallback(go) : window.setTimeout(go, 1200);
-    return () => { if (!w.requestIdleCallback) clearTimeout(t); };
+    return () => { if (!w.requestIdleCallback) clearTimeout(t); window.clearTimeout(later); stop?.(); };
   }, [allowedTabs]);
 
   // Espace de l'équipe : notes non lues et tâches pour moi, dans le menu, en direct.

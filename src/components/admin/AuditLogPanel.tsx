@@ -10,7 +10,7 @@ import { C } from "./adminTheme";
 import { Button, SidePanel } from "./ui";
 import { Avatar, DataTable, EmptyState, KeyValues, Pill, SearchField, Toolbar, TwoLine, type Column } from "./layout";
 
-const PAGE_SIZE = 50;
+export const PAGE_SIZE = 50;
 
 const dateTimeFmt = new Intl.DateTimeFormat("fr-CA", {
   day: "numeric", month: "short", year: "numeric",
@@ -104,7 +104,7 @@ const AuditLogPanel = () => {
   const [entityKind, setEntityKind] = useState<string>("");
   const [showDates, setShowDates] = useState(false);
 
-  const [facets, setFacets] = useState<{ actions: string[]; entityKinds: string[] }>({ actions: [], entityKinds: [] });
+  const [facets, setFacets] = useState<{ actions: string[]; entityKinds: string[] }>(() => peek<{ actions: string[]; entityKinds: string[] }>("audit.facets")?.value ?? { actions: [], entityKinds: [] });
 
   const load = useCallback(async () => {
     const plain = !from && !to && !actorEmail.trim() && !action && !entityKind && page === 0;

@@ -31,7 +31,7 @@ interface Approval {
 const rpc = (fn: string, args: Record<string, unknown>) => (supabase.rpc as any)(fn, args) as Promise<{ data: unknown; error: { message: string } | null }>;
 
 let approvalsMem: Approval[] | null = null;
-async function loadApprovals(): Promise<Approval[]> {
+export async function loadApprovals(): Promise<Approval[]> {
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from as any)("team_approvals").select("*").gte("created_at", since).order("created_at", { ascending: false }).limit(50);
