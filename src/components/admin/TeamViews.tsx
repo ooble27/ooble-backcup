@@ -302,10 +302,11 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
           {t.status === "doing" && <span style={{ fontSize: 12.5, color: C.t3 }}>Tâche commencée : elle ne se modifie plus.</span>}
         </div>
       )}
-      {!t.archived && t.status === "todo" && (admin || t.createdBy === me) && (
+      {/* Retirer : pas commencée, faite ou archivée (jamais en cours). Elle disparaît des listes, l'historique est gardé. */}
+      {(t.archived || t.status !== "doing") && (admin || t.createdBy === me) && (
         <p style={{ margin: "18px 0 0" }}>
           <button type="button" className="tv-link" style={{ fontSize: 13.5 }}
-            onClick={() => { if (window.confirm("Retirer cette tâche ? Elle disparaîtra pour toute l'équipe.")) act(removeTask(t.id), onClose); }}>Retirer la tâche</button>
+            onClick={() => { if (window.confirm(t.status === "todo" && !t.archived ? "Retirer cette tâche ? Elle disparaîtra pour toute l'équipe." : "Retirer cette tâche des listes ? Elle ne s'affichera plus, ni ici ni dans les archives.")) act(removeTask(t.id), onClose); }}>Retirer la tâche</button>
         </p>
       )}
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
