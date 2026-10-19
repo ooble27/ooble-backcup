@@ -13,7 +13,7 @@ import { Notice } from "./ui";
 import { TeamAvatar, TeamFaces, TeamName, TV_CSS, nameColor, plural, presenceText, useMembers, useTeamLive } from "./TeamViews";
 import { ProfilePanel } from "./TeamProfile";
 import { PersonPicker } from "./TeamViews";
-import { Opts } from "./GrowthPanel";
+import { GR_CSS, Opts } from "./GrowthPanel";
 import { ApprovalsBlock } from "./TeamApprovals";
 import { OnCallLine } from "./TeamPlanning";
 
@@ -143,7 +143,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
 
   return (
     <div style={{ fontFamily: FONT }}>
-      <style>{TV_CSS + CSS}</style>
+      <style>{TV_CSS + GR_CSS + CSS}</style>
 
       <section className="hz" style={{ marginBottom: 0 }}>
         <div style={{ minWidth: 0 }}>
@@ -157,7 +157,6 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
               <button type="button" className="tv-link" style={{ marginTop: 3 }} onClick={() => setProfile(true)}>Modifier mon profil</button>
             </span>
           </div>
-          <OnCallLine />
           <h2 className="hz-title tv-rise" style={{ animationDelay: "60ms" }}>
             {hello()}{first ? <>, <span style={{ color: nameColor(myself?.color) }}>{first}</span></> : ""}.{" "}
             {!ready ? <span className="mute">…</span>
@@ -174,7 +173,11 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
             ))}
           </div>
         </div>
-        <div className="tv-rise" style={{ animationDelay: "160ms" }}><TeamFaces title="L'équipe" rows={faces} /></div>
+        <div className="tv-rise" style={{ animationDelay: "160ms" }}>
+          {/* En haut à droite : qui est de garde, le planning et l'activité de l'équipe. */}
+          <OnCallLine />
+          <TeamFaces title="L'équipe" rows={faces} />
+        </div>
       </section>
 
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}

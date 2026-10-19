@@ -34,6 +34,8 @@ export function onCallNow(shifts: Shift[], members: TeamMember[]) {
 
 /** Mon espace : « De garde maintenant : Awa jusqu'à 17 h » et le lien vers le planning. */
 export function OnCallLine() {
+  const { user } = useAuth();
+  const me = user?.id ?? "";
   const members = useMembers();
   const { shifts, reload } = useShifts();
   const [open, setOpen] = useState(false);
@@ -42,22 +44,34 @@ export function OnCallLine() {
   useEffect(() => { const t = window.setInterval(() => tick((n) => n + 1), 60_000); return () => window.clearInterval(t); }, []);
   if (!shifts) return null;
   const now = onCallNow(shifts, members);
+  const mine = now.find(({ m }) => m.userId === me);
+  const others = now.filter(({ m }) => m.userId !== me);
   return (
-    <>
-      <p style={{ margin: "14px 0 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 13.5, color: C.t3 }}>
-        {now.length ? (
-          <>
-            <span className="tv-stack">{now.slice(0, 4).map(({ m }) => <TeamAvatar key={m.userId} id={m.userId} name={m.name} size={24} />)}</span>
-            <span>De garde maintenant : {now.map(({ m, s }, i) => (
-              <span key={m.userId}>{i > 0 && ", "}<TeamName id={m.userId} name={firstName(m.name)} style={{ fontSize: 13.5, fontWeight: 500 }} /> jusqu'à {hourLabel(s.ends)}</span>
-            ))}</span>
-          </>
-        ) : <span>{shifts.length ? "Personne n'est de garde en ce moment." : "Aucun planning de garde pour l'instant."}</span>}
-        <button type="button" className="tv-link" style={{ fontSize: 13.5, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={() => setOpen(true)}>Planning</button>
-        <button type="button" className="tv-link" style={{ fontSize: 13.5, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={openActivity}>Activité de l'équipe</button>
+    <div className="oc">
+      <style>{`
+.oc { margin-bottom: 26px; }
+.oc-now { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.45; color: var(--a-t2); }
+.oc-links { margin: 10px 0 0; display: flex; gap: 22px; flex-wrap: wrap; }
+`}</style>
+      <p className="oc-now">
+        {now.length > 0 && <span className="tv-stack" style={{ flexShrink: 0 }}>{now.slice(0, 3).map(({ m }) => <TeamAvatar key={m.userId} id={m.userId} name={m.name} size={26} presence />)}</span>}
+        <span style={{ minWidth: 0 }}>
+          {/* Pour soi : « Vous êtes de garde » ; pour les autres, leur prénom. */}
+          {mine && <>Vous êtes de garde jusqu'à {hourLabel(mine.s.ends)}{others.length ? ", avec " : "."}</>}
+          {!mine && others.length > 0 && "De garde : "}
+          {others.map(({ m, s }, i) => (
+            <span key={m.userId}>{i > 0 && ", "}<TeamName id={m.userId} name={firstName(m.name)} style={{ fontWeight: 500 }} /> jusqu'à {hourLabel(s.ends)}</span>
+          ))}
+          {!mine && others.length > 0 && "."}
+          {now.length === 0 && (shifts.length ? "Personne n'est de garde en ce moment." : "Aucun planning de garde pour l'instant.")}
+        </span>
+      </p>
+      <p className="oc-links">
+        <button type="button" className="ms-link" onClick={() => setOpen(true)}>Planning <ArrowRight style={{ width: 14, height: 14 }} /></button>
+        <button type="button" className="ms-link" onClick={openActivity}>Activité de l'équipe <ArrowRight style={{ width: 14, height: 14 }} /></button>
       </p>
       {open && <PlanningPanel shifts={shifts} onChanged={reload} onClose={() => setOpen(false)} />}
-    </>
+    </div>
   );
 }
 
