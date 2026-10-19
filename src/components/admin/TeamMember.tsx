@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { orderRef } from "@/lib/orders";
 import { roleLabel, sortRoles } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, firstName, shiftSummary, isLate, loadHandoffs, loadMemberCard, loadTasks, memberById, onOpenMember,
+  PRESENCE_LABEL, STATUS_LABEL, firstName, onOpenActivity, shiftSummary, isLate, loadHandoffs, loadMemberCard, loadTasks, memberById, onOpenMember,
   type Handoff, type MemberCard, type TeamTask,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
@@ -12,6 +12,7 @@ import { SidePanel } from "./ui";
 import { TaskForm, TeamAvatar, TV_CSS, dueLabel, nameColor, plural, useMembers, useTeamLive, when } from "./TeamViews";
 import { ProfilePanel } from "./TeamProfile";
 import { useShifts } from "./TeamPlanning";
+import { ActivityPanel } from "./TeamFeed";
 
 /**
  * Fiche d'un membre de l'équipe, ouverte en touchant son avatar (L'équipe, Qui a quoi, Dans ce canal, une commande) :
@@ -24,9 +25,17 @@ const ORDER_STATE: Record<string, string> = { created: "Attend le paiement", awa
 const money = (n: number) => `${n.toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
 /** Monté une seule fois dans le back-office : ouvre la fiche demandée par openMember(id). */
-export function MemberSheetHost({ onOpenOrder, onGoTasks }: { onOpenOrder?: (id: string) => void; onGoTasks?: () => void }) {
+export function MemberSheetHost({ onOpenOrder, onGoTasks, onGoMe }: { onOpenOrder?: (id: string) => void; onGoTasks?: () => void; onGoMe?: () => void }) {
   const [id, setId] = useState<string | null>(null);
+  const [feed, setFeed] = useState(false);
   useEffect(() => onOpenMember(setId), []);
+  useEffect(() => onOpenActivity(() => setFeed(true)), []);
+  if (feed) {
+    return <ActivityPanel onClose={() => setFeed(false)}
+      onOpenOrder={onOpenOrder && ((o) => { setFeed(false); onOpenOrder(o); })}
+      onGoTasks={onGoTasks && (() => { setFeed(false); onGoTasks(); })}
+      onGoMe={onGoMe && (() => { setFeed(false); onGoMe(); })} />;
+  }
   if (!id) return null;
   return <MemberSheet userId={id} onClose={() => setId(null)}
     onOpenOrder={onOpenOrder && ((o) => { setId(null); onOpenOrder(o); })}

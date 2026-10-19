@@ -426,3 +426,17 @@ export function shiftSummary(shifts: Shift[], userId: string): string {
   }
   return groups.map((g) => `${g.from === g.to ? DOW_SHORT[g.from] : `${DOW_SHORT[g.from]} – ${DOW_SHORT[g.to]}`} · ${g.label}`).join(" ; ");
 }
+
+/* ─── Activité de l'équipe ─── */
+export interface ActivityItem { at: string; actorId: string | null; actorName: string; kind: string; text: string; refKind: string; refId: string }
+export async function loadActivity(before?: string): Promise<ActivityItem[]> {
+  const { data, error } = await rpc("team_activity_feed", { _before: before ?? null, _limit: 60 });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    at: String(r.at), actorId: (r.actor_id as string) ?? null, actorName: String(r.actor_name ?? ""), kind: String(r.kind),
+    text: String(r.text), refKind: String(r.ref_kind), refId: String(r.ref_id),
+  }));
+}
+const ACTIVITY_EVENT = "ooble:open-activity";
+export const openActivity = () => window.dispatchEvent(new CustomEvent(ACTIVITY_EVENT));
+export const onOpenActivity = (fn: () => void) => { window.addEventListener(ACTIVITY_EVENT, fn); return () => window.removeEventListener(ACTIVITY_EVENT, fn); };

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
-  DOW_LABEL, DOW_SHORT, currentShift, firstName, hourLabel, loadShifts, nowMontreal, openMember, setShift, shiftLabel, todayToronto,
+  DOW_LABEL, DOW_SHORT, currentShift, firstName, openActivity, hourLabel, loadShifts, nowMontreal, openMember, setShift, shiftLabel, todayToronto,
   type Shift, type TeamMember,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
@@ -54,6 +54,7 @@ export function OnCallLine() {
           </>
         ) : <span>{shifts.length ? "Personne n'est de garde en ce moment." : "Aucun planning de garde pour l'instant."}</span>}
         <button type="button" className="tv-link" style={{ fontSize: 13.5, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={() => setOpen(true)}>Planning</button>
+        <button type="button" className="tv-link" style={{ fontSize: 13.5, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={openActivity}>Activité de l'équipe</button>
       </p>
       {open && <PlanningPanel shifts={shifts} onChanged={reload} onClose={() => setOpen(false)} />}
     </>

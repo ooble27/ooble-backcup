@@ -522,7 +522,8 @@ const AdminPortal = () => {
 
   // Contenu de la page, le même sur ordinateur et sur téléphone.
   // La fiche d'un membre s'ouvre de partout (avatars), y compris depuis une commande ou une fiche client.
-  const memberSheet = <MemberSheetHost onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onGoTasks={() => { setSelected(null); setClientView(null); setTab("tasks"); }} />;
+  const memberSheet = <MemberSheetHost onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onGoTasks={() => { setSelected(null); setClientView(null); setTab("tasks"); }}
+    onGoMe={() => { setSelected(null); setClientView(null); setTab("me"); }} />;
   const page = clientView ? (
             <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
           ) : selected ? (
