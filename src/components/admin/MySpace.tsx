@@ -424,7 +424,7 @@ function MyHandoff({ members, last, done, orderIds, taskIds, onSent, onError }: 
         : "Aucune commande ni tâche en cours à remettre."}</p>
       <p style={{ margin: "16px 0 0" }}>
         <button type="button" className="tv-go" disabled={busy || justSent || (!body.trim() && !parts.length) || (toKind === "person" && !person)} onClick={send}>
-          {busy ? "Envoi…" : justSent ? "Transmise" : toKind === "person" ? `Transmettre à ${who}` : "Transmettre à l'équipe"} {!justSent && <ArrowRight style={{ width: 15, height: 15 }} />}
+          {busy ? "Envoi…" : justSent ? "Transmise" : toKind === "person" ? "Transmettre" : "Transmettre à l'équipe"} {!justSent && <ArrowRight style={{ width: 15, height: 15 }} />}
         </button>
       </p>
       {last && (
