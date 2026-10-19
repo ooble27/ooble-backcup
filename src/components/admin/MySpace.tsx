@@ -96,7 +96,13 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const openOrder = (id: string) => orders.some((o) => o.id === id && !o.assignedTo && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
   const openTask = (id: string) => (tasks ?? []).some((t) => t.id === id && t.status !== "done" && !t.assigneeId);
   const settled = (h: Handoff) => !!tasks && (h.orderIds.length + h.taskIds.length) > 0 && !h.orderIds.some(openOrder) && !h.taskIds.some(openTask);
-  const incoming = handoffs.filter((h) => h.authorId !== me && !h.reads.some((r) => r.userId === me) && !settled(h)).slice(0, 3);
+  // Une même tâche ou commande peut passer de main en main : elle n'appartient qu'à la passation la plus récente
+  // qui la contient. Les anciennes passations ne la montrent plus (pas de doublon, pas de double « La prendre »).
+  const latestOf = new Map<string, string>();
+  for (const h of handoffs) for (const id of [...h.orderIds, ...h.taskIds]) if (!latestOf.has(id)) latestOf.set(id, h.id);
+  const own = (h: Handoff): Handoff => ({ ...h, orderIds: h.orderIds.filter((id) => latestOf.get(id) === h.id), taskIds: h.taskIds.filter((id) => latestOf.get(id) === h.id) });
+  const superseded = (h: Handoff) => (h.orderIds.length + h.taskIds.length) > 0 && own(h).orderIds.length + own(h).taskIds.length === 0;
+  const incoming = handoffs.filter((h) => h.authorId !== me && !h.reads.some((r) => r.userId === me) && !superseded(h) && !settled(own(h))).map(own).slice(0, 3);
   const myLast = handoffs.find((h) => h.authorId === me) ?? null;
   const myDoing = (tasks ?? []).filter((t) => t.assigneeId === me && t.status === "doing");
   const handoffOrders = orders.filter((o) => o.assignedTo === CURRENT_OPERATOR && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
@@ -190,7 +196,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
                 <button type="button" onClick={() => onGo("tasks")} style={{ all: "unset", cursor: "pointer", flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 15, color: leaving.has(t.id) ? C.t3 : C.t1, textDecoration: leaving.has(t.id) ? "line-through" : undefined, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
                   <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>
-                    {t.assigneeRole ? `Poste ${roleLabel(t.assigneeRole)}` : !t.assigneeId ? "Toute l'équipe" : t.createdBy !== me ? <>De <TeamName id={t.createdBy} name={t.createdByName} style={{ fontWeight: 500 }} /></> : "Pour moi"}{t.status === "doing" ? " · en cours" : ""}
+                    {t.assigneeRole ? `Poste ${roleLabel(t.assigneeRole)}` : !t.assigneeId ? (t.handedOffBy ? `À reprendre · passation de ${firstName(t.handedOffBy)}` : "Toute l'équipe") : t.createdBy !== me ? <>De <TeamName id={t.createdBy} name={t.createdByName} style={{ fontWeight: 500 }} /></> : "Pour moi"}{t.status === "doing" ? " · en cours" : ""}
                     {t.dueOn && <span className="ms-due-in" style={{ color: isLate(t) || t.dueOn === today ? C.t1 : C.t3, fontWeight: isLate(t) ? 600 : 400 }}> · {isLate(t) ? `En retard · ${shortDue(t.dueOn)}` : shortDue(t.dueOn)}</span>}
                   </span>
                 </button>
