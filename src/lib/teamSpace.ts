@@ -122,6 +122,23 @@ export async function loadChannel(audience: Audience | null, opts: { before?: st
   if (error) throw new Error(error.message);
   return ((data ?? []) as Record<string, unknown>[]).map(toNote);
 }
+/** Recherche dans la messagerie : messages et réponses de tous les canaux que je peux lire (archives comprises). */
+export async function searchNotes(query: string): Promise<TeamNote[]> {
+  const q = query.trim().replace(/[%_\\]/g, (c) => `\\${c}`);
+  if (q.length < 2) return [];
+  const [{ data: a, error: e1 }, { data: r }] = await Promise.all([
+    table("team_notes").select(NOTE_FIELDS).ilike("body", `%${q}%`).order("created_at", { ascending: false }).limit(30),
+    table("team_note_replies").select("note_id").ilike("body", `%${q}%`).order("created_at", { ascending: false }).limit(30),
+  ]);
+  if (e1) throw new Error(e1.message);
+  const found = ((a ?? []) as Record<string, unknown>[]).map(toNote);
+  const more = [...new Set(((r ?? []) as { note_id: string }[]).map((x) => String(x.note_id)))].filter((id) => !found.some((n) => n.id === id));
+  if (more.length) {
+    const { data: b } = await table("team_notes").select(NOTE_FIELDS).in("id", more);
+    found.push(...((b ?? []) as Record<string, unknown>[]).map(toNote));
+  }
+  return found.sort((x, y) => y.at.localeCompare(x.at)).slice(0, 40);
+}
 /** Notes épinglées d'un canal (toujours en haut, même si elles sont anciennes). */
 export async function loadPinned(audience: Audience): Promise<TeamNote[]> {
   const { data, error } = await table("team_notes").select(NOTE_FIELDS).eq("archived", false).eq("pinned", true).eq("audience", audience).order("created_at", { ascending: false }).limit(10);

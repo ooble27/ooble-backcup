@@ -1,9 +1,9 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Archive, ArrowDown, ArrowRight, Hash, MessageSquare, Pencil, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, ArrowDown, ArrowRight, Hash, MessageSquare, Pencil, Pin, PinOff, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import {
-  NOTE_PAGE, audienceLabel, audienceMembers, editNote, findOrder, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
+  NOTE_PAGE, audienceLabel, audienceMembers, editNote, findOrder, searchNotes, firstName, editReply, loadChannel, loadChannelReaders, loadPinned, loadUnread, markNotesRead, postNote,
   removeNote, removeReply, replyNote, setNote, type Audience, type NoteReply, type TeamMember, type TeamNote, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
@@ -149,6 +149,14 @@ function usePhoneChat(slot: React.RefObject<HTMLDivElement>, main: React.RefObje
   return kb;
 }
 
+/** Les mots cherchés, soulignés dans le texte trouvé. */
+function Highlight({ text, q }: { text: string; q: string }) {
+  const k = q.trim();
+  if (!k) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${escRe(k)})`, "gi"));
+  return <>{parts.map((p, i) => (p.toLowerCase() === k.toLowerCase() ? <mark key={i} style={{ background: "none", color: C.t1, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3 }}>{p}</mark> : <Fragment key={i}>{p}</Fragment>))}</>;
+}
+
 /** Ouvre une commande depuis la messagerie (fourni par le back-office si on a accès aux commandes). */
 const OpenOrderCtx = createContext<((id: string) => void) | undefined>(undefined);
 
@@ -198,6 +206,16 @@ export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => vo
   const members = useMembers();
   const [channel, setChannel] = useState<Audience>("all");
   const [archivedView, setArchivedView] = useState(false);
+  // Recherche dans tous les canaux que je peux lire.
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQ, setFindQ] = useState("");
+  const [found, setFound] = useState<TeamNote[] | null>(null);
+  const searching = findOpen && findQ.trim().length >= 2;
+  useEffect(() => {
+    if (!searching) { setFound(null); return; }
+    const t = window.setTimeout(() => { searchNotes(findQ).then(setFound).catch(() => setFound([])); }, 250);
+    return () => window.clearTimeout(t);
+  }, [findQ, searching]);
   const [msgs, setMsgs] = useState<TeamNote[] | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [older, setOlder] = useState(false);
@@ -379,8 +397,41 @@ export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => vo
                 {archivedView ? "Les notes retirées du fil, gardées pour mémoire." : `${audience.length} ${plural(audience.length, "personne")}${unread.mentions ? ` · vous êtes mentionné ${unread.mentions} fois` : ""}`}
               </span>
             </span>
-            {!archivedView && audience.length > 0 && <span className="tv-stack">{audience.slice(0, 6).map((m) => <TeamAvatar key={m.userId} id={m.userId} name={m.name} size={30} />)}</span>}
+            {!archivedView && audience.length > 0 && <span className="tv-stack tn-hide-find">{audience.slice(0, 6).map((m) => <TeamAvatar key={m.userId} id={m.userId} name={m.name} size={30} />)}</span>}
+            <button type="button" className="tv-icon" aria-label={findOpen ? "Fermer la recherche" : "Rechercher dans la messagerie"} title={findOpen ? "Fermer la recherche" : "Rechercher dans la messagerie"}
+              onClick={() => { setFindOpen((v) => !v); setFindQ(""); }} style={{ all: "unset", cursor: "pointer", display: "inline-flex", padding: 6, color: C.t2, alignSelf: "center" }}>
+              {findOpen ? <X style={{ width: 18, height: 18 }} /> : <Search style={{ width: 18, height: 18 }} />}
+            </button>
           </header>
+          {findOpen && (
+            <div style={{ padding: "10px 0 4px" }}>
+              <input className="gr-in no-zoom" autoFocus value={findQ} onChange={(e) => setFindQ(e.target.value)} placeholder="Un mot, un prénom, une référence OOB-…"
+                onKeyDown={(e) => { if (e.key === "Escape") { setFindOpen(false); setFindQ(""); } }} />
+            </div>
+          )}
+          {searching && (
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+              <p style={{ margin: "10px 0 4px", fontSize: 12.5, color: C.t3 }}>
+                {found === null ? "Recherche…" : found.length ? `${found.length} ${plural(found.length, "message")} · tous les canaux` : "Aucun message ne contient ces mots."}
+              </p>
+              {(found ?? []).map((n) => (
+                <button key={n.id} type="button" className="tv-row" onClick={() => { if (n.archived) setArchivedView(true); else pick(n.audience); setFindOpen(false); setFindQ(""); }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0", borderBottom: `1px solid ${C.bds}`, textAlign: "left", width: "100%" }}>
+                  <TeamAvatar id={n.authorId} name={n.authorName} size={32} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 12.5, color: C.t3 }}>
+                      <TeamName id={n.authorId} name={firstName(n.authorName)} style={{ fontSize: 13.5 }} /> · {n.archived ? "Archivées" : `# ${audienceLabel(n.audience)}`} · {new Date(n.at).toLocaleDateString("fr-CA", { day: "numeric", month: "short" })}
+                    </span>
+                    <span style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", marginTop: 3, fontSize: 14.5, lineHeight: 1.5, color: C.t1, overflowWrap: "anywhere" }}>
+                      <Highlight text={n.body} q={findQ} />
+                    </span>
+                    {n.replies.some((r) => r.body.toLowerCase().includes(findQ.trim().toLowerCase())) && <span style={{ display: "block", marginTop: 3, fontSize: 12.5, color: C.t3 }}>Trouvé dans une réponse</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: searching ? "none" : "contents" }}>
 
           {pinned.length > 0 && (
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "12px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 14, minWidth: 0 }}>
@@ -419,6 +470,7 @@ export function TeamNotesView({ onChanged, onOpenOrder }: { onChanged?: () => vo
           {newBelow && <button type="button" className="tn-new tv-in" onClick={toBottom}>Nouveaux messages <ArrowDown style={{ width: 14, height: 14 }} /></button>}
 
           {!archivedView && <Composer channel={channel} chLabel={chLabel} me={me} meName={user?.name ?? "Vous"} admin={admin} audience={audience} onSent={() => { atBottom.current = true; refresh(); }} onError={setErr} />}
+          </div>
         </section>
         </div>
       </div>
