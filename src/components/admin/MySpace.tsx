@@ -91,7 +91,11 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const myOrders = canOrders ? orders.filter((o) => o.assignedTo === CURRENT_OPERATOR && (o.status === "recu" || o.status === "cours")) : [];
   const first = (user?.name ?? "").split(/\s+/)[0];
   // Passations des autres que je n'ai pas encore lues, et ce que je peux rattacher à la mienne.
-  const incoming = handoffs.filter((h) => h.authorId !== me && !h.reads.some((r) => r.userId === me)).slice(0, 3);
+  // Une passation dont tout est réglé (commandes terminées, tâches faites) disparaît d'elle-même, pour tout le monde.
+  const openOrder = (id: string) => orders.some((o) => o.id === id && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
+  const openTask = (id: string) => (tasks ?? []).some((t) => t.id === id && t.status !== "done");
+  const settled = (h: Handoff) => !!tasks && (h.orderIds.length + h.taskIds.length) > 0 && !h.orderIds.some(openOrder) && !h.taskIds.some(openTask);
+  const incoming = handoffs.filter((h) => h.authorId !== me && !h.reads.some((r) => r.userId === me) && !settled(h)).slice(0, 3);
   const myLast = handoffs.find((h) => h.authorId === me) ?? null;
   const myDoing = (tasks ?? []).filter((t) => t.assigneeId === me && t.status === "doing");
   const handoffOrders = orders.filter((o) => o.assignedTo === CURRENT_OPERATOR && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
@@ -162,11 +166,6 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
       {profile && <ProfilePanel onClose={() => setProfile(false)} />}
 
-      {incoming.map((h) => (
-        <IncomingHandoff key={h.id} h={h} orders={orders} tasks={tasks ?? []} onOpenOrder={onOpenOrder} onGo={onGo}
-          onAck={async () => { const r = await ackHandoff(h.id); if (r.error) setErr(r.error); else load(); }} />
-      ))}
-
       <div className="ms-grid">
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 48, alignContent: "start", minWidth: 0 }}>
           {/* Mes tâches et ma semaine */}
@@ -202,7 +201,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
           </section>
 
           {/* Ma passation de fin de journée */}
-          <MyHandoff last={myLast} orderIds={handoffOrders.map((o) => o.id)} taskIds={myDoing.map((t) => t.id)} onSent={load} onError={setErr} />
+          <MyHandoff last={myLast} done={!!myLast && settled(myLast)} orderIds={handoffOrders.map((o) => o.id)} taskIds={myDoing.map((t) => t.id)} onSent={load} onError={setErr} />
 
           {/* Mes commandes en cours */}
           {canOrders && (
@@ -226,6 +225,12 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 48, alignContent: "start", minWidth: 0 }}>
+          {/* Passations reçues (colonne de droite, en haut) */}
+          {incoming.map((h) => (
+            <IncomingHandoff key={h.id} h={h} orders={orders} tasks={tasks ?? []} onOpenOrder={onOpenOrder} onGo={onGo}
+              onAck={async () => { const r = await ackHandoff(h.id); if (r.error) setErr(r.error); else load(); }} />
+          ))}
+
           {/* Le fil de l'équipe */}
           <section className="tv-rise" style={{ animationDelay: "230ms" }}>
             <Head title="Le fil de l'équipe" action={<button type="button" className="ms-link" onClick={() => onGo("notes")}>{unreadCount ? `Lire (${unreadCount})` : "Ouvrir"} <ArrowRight style={{ width: 14, height: 14 }} /></button>} />
@@ -300,7 +305,7 @@ function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck }: {
   const [busy, setBusy] = useState(false);
   const rowStyle: React.CSSProperties = { all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 6px", margin: "0 -6px", borderBottom: `1px solid ${C.bds}`, borderRadius: 10, width: "calc(100% + 12px)", boxSizing: "border-box" };
   return (
-    <section className="tv-rise" style={{ marginTop: 44 }}>
+    <section className="tv-rise">
       <Head title={`Passation de ${firstName(h.authorName)}`} action={
         <button type="button" className="ms-link" disabled={busy} onClick={async () => { setBusy(true); await onAck(); setBusy(false); }}>Bien reçu <ArrowRight style={{ width: 14, height: 14 }} /></button>
       } />
@@ -342,8 +347,8 @@ function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck }: {
 }
 
 /** Ma passation : un mot pour la suite, mes commandes ouvertes et tâches en cours rattachées toutes seules. */
-function MyHandoff({ last, orderIds, taskIds, onSent, onError }: {
-  last: Handoff | null; orderIds: string[]; taskIds: string[]; onSent: () => void; onError: (e: string) => void;
+function MyHandoff({ last, done, orderIds, taskIds, onSent, onError }: {
+  last: Handoff | null; done: boolean; orderIds: string[]; taskIds: string[]; onSent: () => void; onError: (e: string) => void;
 }) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -367,7 +372,7 @@ function MyHandoff({ last, orderIds, taskIds, onSent, onError }: {
       </div>
       {last && (
         <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.t3 }}>
-          Dernière passation transmise {agoIso(last.at)} · {readers.length ? `lue par ${readers.join(", ")}` : "pas encore lue"}.
+          Dernière passation transmise {agoIso(last.at)} · {done ? "tout ce que vous aviez laissé est terminé" : readers.length ? `lue par ${readers.join(", ")}` : "pas encore lue"}.
         </p>
       )}
     </section>
