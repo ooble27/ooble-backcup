@@ -200,6 +200,12 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
             {mine.length > 6 && <p style={{ margin: "10px 0 0", fontSize: 13, color: C.t3 }}>Et {mine.length - 6} de plus.</p>}
           </section>
 
+          {/* Passations reçues, juste au-dessus de la mienne (colonne de gauche) */}
+          {incoming.map((h) => (
+            <IncomingHandoff key={h.id} h={h} orders={orders} tasks={tasks ?? []} onOpenOrder={onOpenOrder} onGo={onGo}
+              onAck={async () => { const r = await ackHandoff(h.id); if (r.error) setErr(r.error); else load(); }} />
+          ))}
+
           {/* Ma passation de fin de journée */}
           <MyHandoff last={myLast} done={!!myLast && settled(myLast)} orderIds={handoffOrders.map((o) => o.id)} taskIds={myDoing.map((t) => t.id)} onSent={load} onError={setErr} />
 
@@ -225,12 +231,6 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 48, alignContent: "start", minWidth: 0 }}>
-          {/* Passations reçues (colonne de droite, en haut) */}
-          {incoming.map((h) => (
-            <IncomingHandoff key={h.id} h={h} orders={orders} tasks={tasks ?? []} onOpenOrder={onOpenOrder} onGo={onGo}
-              onAck={async () => { const r = await ackHandoff(h.id); if (r.error) setErr(r.error); else load(); }} />
-          ))}
-
           {/* Le fil de l'équipe */}
           <section className="tv-rise" style={{ animationDelay: "230ms" }}>
             <Head title="Le fil de l'équipe" action={<button type="button" className="ms-link" onClick={() => onGo("notes")}>{unreadCount ? `Lire (${unreadCount})` : "Ouvrir"} <ArrowRight style={{ width: 14, height: 14 }} /></button>} />
