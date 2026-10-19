@@ -6,12 +6,14 @@ import { roleLabel, sortRoles } from "@/lib/roles";
 import { orderRef } from "@/lib/orders";
 import {
   ackHandoff, audienceLabel, firstName, isLate, isMine, loadHandoffs, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, postHandoff, savePrivateNote,
-  setTaskStatus, takeTask, todayToronto, type Handoff, type TeamNote, type TeamTask, type Unread,
+  setTaskStatus, takeTask, todayToronto, type Handoff, type TeamMember, type TeamNote, type TeamTask, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
 import { Notice } from "./ui";
 import { TeamAvatar, TeamFaces, TeamName, TV_CSS, nameColor, plural, presenceText, useMembers, useTeamLive } from "./TeamViews";
 import { ProfilePanel } from "./TeamProfile";
+import { PersonPicker } from "./TeamViews";
+import { Opts } from "./GrowthPanel";
 import { ApprovalsBlock } from "./TeamApprovals";
 
 /**
@@ -93,16 +95,19 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   // Passations des autres que je n'ai pas encore lues, et ce que je peux rattacher à la mienne.
   // Une passation dont tout est réglé (commandes terminées, tâches faites) disparaît d'elle-même, pour tout le monde.
   // Réglé = fini, ou repris par quelqu'un.
-  const openOrder = (id: string) => orders.some((o) => o.id === id && !o.assignedTo && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
-  const openTask = (id: string) => (tasks ?? []).some((t) => t.id === id && t.status !== "done" && !t.assigneeId);
-  const settled = (h: Handoff) => !!tasks && (h.orderIds.length + h.taskIds.length) > 0 && !h.orderIds.some(openOrder) && !h.taskIds.some(openTask);
+  // À toute l'équipe : réglé quand tout est repris ou fini. À une personne : quand tout est fini.
+  const openOrder = (id: string, direct: boolean) => orders.some((o) => o.id === id && (direct || !o.assignedTo) && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
+  const openTask = (id: string, direct: boolean) => (tasks ?? []).some((t) => t.id === id && t.status !== "done" && (direct || !t.assigneeId));
+  const settled = (h: Handoff) => !!tasks && (h.orderIds.length + h.taskIds.length) > 0
+    && !h.orderIds.some((id) => openOrder(id, !!h.toUser)) && !h.taskIds.some((id) => openTask(id, !!h.toUser));
   // Une même tâche ou commande peut passer de main en main : elle n'appartient qu'à la passation la plus récente
   // qui la contient. Les anciennes passations ne la montrent plus (pas de doublon, pas de double « La prendre »).
   const latestOf = new Map<string, string>();
   for (const h of handoffs) for (const id of [...h.orderIds, ...h.taskIds]) if (!latestOf.has(id)) latestOf.set(id, h.id);
   const own = (h: Handoff): Handoff => ({ ...h, orderIds: h.orderIds.filter((id) => latestOf.get(id) === h.id), taskIds: h.taskIds.filter((id) => latestOf.get(id) === h.id) });
   const superseded = (h: Handoff) => (h.orderIds.length + h.taskIds.length) > 0 && own(h).orderIds.length + own(h).taskIds.length === 0;
-  const incoming = handoffs.filter((h) => h.authorId !== me && !h.reads.some((r) => r.userId === me) && !superseded(h) && !settled(own(h))).map(own).slice(0, 3);
+  // Une passation à une personne précise ne s'affiche que chez elle.
+  const incoming = handoffs.filter((h) => h.authorId !== me && (!h.toUser || h.toUser === me) && !h.reads.some((r) => r.userId === me) && !superseded(h) && !settled(own(h))).map(own).slice(0, 3);
   const myLast = handoffs.find((h) => h.authorId === me) ?? null;
   const myDoing = (tasks ?? []).filter((t) => t.assigneeId === me && t.status === "doing");
   const handoffOrders = orders.filter((o) => o.assignedTo === CURRENT_OPERATOR && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
@@ -215,7 +220,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
           ))}
 
           {/* Ma passation de fin de journée */}
-          <MyHandoff last={myLast} done={!!myLast && settled(myLast)} orderIds={handoffOrders.map((o) => o.id)} taskIds={myDoing.map((t) => t.id)} onSent={load} onError={setErr} />
+          <MyHandoff members={members.filter((m) => m.userId !== me)} last={myLast} done={!!myLast && settled(myLast)} orderIds={handoffOrders.map((o) => o.id)} taskIds={myDoing.map((t) => t.id)} onSent={load} onError={setErr} />
 
           {/* Mes commandes en cours */}
           {canOrders && (
@@ -316,7 +321,7 @@ function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck, onTake }:
   const rowStyle: React.CSSProperties = { all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 6px", margin: "0 -6px", borderBottom: `1px solid ${C.bds}`, borderRadius: 10, width: "calc(100% + 12px)", boxSizing: "border-box" };
   return (
     <section className="tv-rise">
-      <Head title={`Passation de ${firstName(h.authorName)}`} action={
+      <Head title={`Passation de ${firstName(h.authorName)}${h.toUser ? " · pour vous" : ""}`} action={
         <button type="button" className="ms-link" disabled={busy} onClick={async () => { setBusy(true); await onAck(); setBusy(false); }}>Bien reçu <ArrowRight style={{ width: 14, height: 14 }} /></button>
       } />
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "16px 0 6px" }}>
@@ -348,7 +353,7 @@ function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck, onTake }:
             <button type="button" onClick={() => onGo("tasks")} style={{ all: "unset", cursor: "pointer", flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 14.5, color: t.status === "done" ? C.t3 : C.t1, textDecoration: t.status === "done" ? "line-through" : "none", overflowWrap: "anywhere" }}>{t.title}</span>
               <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>
-                Tâche · {t.status === "done" ? "faite" : t.assigneeId ? `prise par ${firstName(memberById(t.assigneeId)?.name ?? "un membre")}` : "à reprendre"}{t.steps.length ? ` · ${t.steps.filter((x) => x.done).length} sur ${t.steps.length} étapes` : ""}
+                Tâche · {t.status === "done" ? "faite" : h.toUser && t.assigneeId === h.toUser ? "confiée à vous" : t.assigneeId ? `prise par ${firstName(memberById(t.assigneeId)?.name ?? "un membre")}` : "à reprendre"}{t.steps.length ? ` · ${t.steps.filter((x) => x.done).length} sur ${t.steps.length} étapes` : ""}
               </span>
             </button>
             {!t.assigneeId && t.status !== "done" && (
@@ -362,11 +367,15 @@ function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck, onTake }:
 }
 
 /** Ma passation : un mot pour la suite, mes commandes ouvertes et tâches en cours rattachées toutes seules. */
-function MyHandoff({ last, done, orderIds, taskIds, onSent, onError }: {
-  last: Handoff | null; done: boolean; orderIds: string[]; taskIds: string[]; onSent: () => void; onError: (e: string) => void;
+function MyHandoff({ members, last, done, orderIds, taskIds, onSent, onError }: {
+  members: TeamMember[]; last: Handoff | null; done: boolean; orderIds: string[]; taskIds: string[]; onSent: () => void; onError: (e: string) => void;
 }) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  // À toute l'équipe (le premier qui prend), ou à une personne précise (tout lui est confié directement).
+  const [toKind, setToKind] = useState<"team" | "person">("team");
+  const [person, setPerson] = useState(members[0]?.userId ?? "");
+  useEffect(() => { if (!person && members[0]) setPerson(members[0].userId); }, [members, person]);
   // Ce qui vient d'être remis à l'équipe n'est plus à moi : on ne le propose plus.
   const [released, setReleased] = useState<Set<string>>(new Set());
   const [sentAt, setSentAt] = useState<number | null>(null);
@@ -376,7 +385,7 @@ function MyHandoff({ last, done, orderIds, taskIds, onSent, onError }: {
   const parts = [orderIds.length ? `${orderIds.length} ${plural(orderIds.length, "commande ouverte", "commandes ouvertes")}` : null, taskIds.length ? `${taskIds.length} ${plural(taskIds.length, "tâche en cours", "tâches en cours")}` : null].filter(Boolean);
   const send = async () => {
     setBusy(true);
-    const r = await postHandoff(body, orderIds, taskIds);
+    const r = await postHandoff(body, orderIds, taskIds, toKind === "person" ? person || null : null);
     setBusy(false);
     if (r.error) { onError(r.error); return; }
     setReleased((x) => new Set([...x, ...orderIds, ...taskIds]));
@@ -387,15 +396,25 @@ function MyHandoff({ last, done, orderIds, taskIds, onSent, onError }: {
   return (
     <section className="tv-rise" style={{ animationDelay: "240ms" }}>
       <Head title="Ma passation de fin de journée" />
+      {members.length > 0 && (
+        <>
+          <p style={{ margin: "12px 0 0", fontSize: 14.5, lineHeight: 2, color: C.t2 }}>
+            <Opts value={toKind} onChange={setToKind} options={[{ v: "team", label: "À toute l'équipe" }, { v: "person", label: "À une personne" }]} />
+          </p>
+          {toKind === "person" && <PersonPicker members={members} value={person} onChange={setPerson} />}
+        </>
+      )}
       <textarea className="tv-ta" rows={3} value={body} maxLength={2000} onChange={(e) => setBody(e.target.value)} style={{ marginTop: 12, fontSize: 15 }}
         placeholder="Ce que je laisse en cours : où j'en suis, ce qui reste à faire, à qui s'adresser…" />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 10 }}>
-        <span style={{ fontSize: 12.5, color: C.t3 }}>{parts.length ? `Remises à l'équipe en transmettant : ${parts.join(" et ")}. Quelqu'un d'autre les reprendra.` : "Aucune commande ni tâche en cours à remettre."}</span>
-        <button type="button" className="tv-go" disabled={busy || justSent || (!body.trim() && !parts.length)} onClick={send}>{busy ? "Envoi…" : justSent ? "Transmise" : "Transmettre à l'équipe"} {!justSent && <ArrowRight style={{ width: 15, height: 15 }} />}</button>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>{parts.length
+          ? (toKind === "person" ? `Confiées directement à ${firstName(members.find((m) => m.userId === person)?.name ?? "cette personne")} : ${parts.join(" et ")}.` : `Remises à l'équipe en transmettant : ${parts.join(" et ")}. Le premier qui les prend les a pour lui.`)
+          : "Aucune commande ni tâche en cours à remettre."}</span>
+        <button type="button" className="tv-go" disabled={busy || justSent || (!body.trim() && !parts.length) || (toKind === "person" && !person)} onClick={send}>{busy ? "Envoi…" : justSent ? "Transmise" : "Transmettre à l'équipe"} {!justSent && <ArrowRight style={{ width: 15, height: 15 }} />}</button>
       </div>
       {last && (
         <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.t3 }}>
-          Dernière passation transmise {agoIso(last.at)} · {done ? "tout ce que vous aviez laissé est terminé" : readers.length ? `lue par ${readers.join(", ")}` : "pas encore lue"}.
+          Dernière passation transmise {agoIso(last.at)}{last.toName ? ` à ${firstName(last.toName)}` : ""} · {done ? "tout ce que vous aviez laissé est terminé" : readers.length ? `lue par ${readers.join(", ")}` : "pas encore lue"}.
         </p>
       )}
     </section>

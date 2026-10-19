@@ -337,21 +337,24 @@ export async function savePushPrefs(p: PushPrefs): Promise<{ error?: string }> {
 /* ─── Passation de fin de journée ─── */
 export interface Handoff {
   id: string; authorId: string; authorName: string; body: string; orderIds: string[]; taskIds: string[]; at: string;
+  /** Remise à une personne précise (sinon à toute l'équipe). */
+  toUser: string | null; toName: string | null;
   reads: { userId: string; name: string; at: string }[];
 }
 /** Les passations des deux derniers jours, la plus récente d'abord. */
 export async function loadHandoffs(): Promise<Handoff[]> {
   const since = new Date(Date.now() - 48 * 3600_000).toISOString();
   const { data, error } = await table("team_handoffs")
-    .select("id, author_id, author_name, body, order_ids, task_ids, created_at, team_handoff_reads(user_id, user_name, read_at)")
+    .select("id, author_id, author_name, body, order_ids, task_ids, to_user, to_name, created_at, team_handoff_reads(user_id, user_name, read_at)")
     .gte("created_at", since).order("created_at", { ascending: false }).limit(20);
   if (error) throw new Error(error.message);
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
     id: String(r.id), authorId: String(r.author_id), authorName: String(r.author_name), body: String(r.body ?? ""),
     orderIds: ((r.order_ids as string[]) ?? []).map(String), taskIds: ((r.task_ids as string[]) ?? []).map(String), at: String(r.created_at),
+    toUser: (r.to_user as string) ?? null, toName: (r.to_name as string) ?? null,
     reads: ((r.team_handoff_reads as Record<string, unknown>[]) ?? []).map((x) => ({ userId: String(x.user_id), name: String(x.user_name), at: String(x.read_at) })),
   }));
 }
-export const postHandoff = (body: string, orderIds: string[], taskIds: string[]) =>
-  rpc("team_handoff_post", { _body: body, _orders: orderIds, _tasks: taskIds }).then(done);
+export const postHandoff = (body: string, orderIds: string[], taskIds: string[], to: string | null) =>
+  rpc("team_handoff_post", { _body: body, _orders: orderIds, _tasks: taskIds, _to: to }).then(done);
 export const ackHandoff = (id: string) => rpc("team_handoff_ack", { _id: id }).then(done);

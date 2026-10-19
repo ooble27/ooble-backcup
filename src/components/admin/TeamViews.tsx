@@ -361,7 +361,7 @@ export function MenuSelect<V extends string>({ value, options, onChange, label, 
   );
 }
 
-function PersonPicker({ members, value, onChange }: { members: TeamMember[]; value: string; onChange: (id: string) => void }) {
+export function PersonPicker({ members, value, onChange }: { members: TeamMember[]; value: string; onChange: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useDismiss(open, () => setOpen(false), box);
