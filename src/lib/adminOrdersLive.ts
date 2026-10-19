@@ -69,6 +69,7 @@ function toAdminOrder(row: RowWithProfile, currentUid: string | null, team: Map<
     createdMinsAgo: minsAgo(row.created_at),
     updatedAt: row.updated_at,
     assignedTo: assigned,
+    assignedId: row.assigned_to ?? null,
     isTest: !!row.is_test,
   };
 }
@@ -161,8 +162,16 @@ export async function persistOrderPatch(
   }
   if (Object.keys(update).length === 0) return {};
 
-  const { error } = await supabase.from("orders").update(update).eq("id", id);
-  if (error) return { error: error.message };
+  // Prendre une commande : seulement si personne ne l'a déjà prise (deux membres ne la prennent jamais en même temps).
+  if (changes.assignedTo === CURRENT_OPERATOR && uid) {
+    const { data: took, error: e1 } = await supabase.from("orders").update(update).eq("id", id)
+      .or(`assigned_to.is.null,assigned_to.eq.${uid}`).select("id");
+    if (e1) return { error: e1.message };
+    if (!took?.length) return { error: "Cette commande vient d'être prise par quelqu'un d'autre." };
+  } else {
+    const { error } = await supabase.from("orders").update(update).eq("id", id);
+    if (error) return { error: error.message };
+  }
 
   // Journal d'audit (best-effort).
   if (changes.status) {

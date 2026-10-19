@@ -12,7 +12,7 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { KeyValues, Pill } from "./layout";
 import { DEPOSIT_PILL, OrderChannel, OrderStatusPill, PAYOUT_PILL } from "./orderBits";
-import { LinkedTasks } from "./TeamViews";
+import { LinkedTasks, TeamAvatar } from "./TeamViews";
 import { ApprovalForm } from "./TeamApprovals";
 
 interface Props {
@@ -357,6 +357,13 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
             <CopyValue value={order.ref} k="ref" copy={copy} copied={copied} />
             <span>·</span><span>{createdAt}</span><span>·</span><span>{order.clientName}</span>
           </p>
+          {/* Qui traite la commande : son avatar, en haut. */}
+          {order.assignedId && order.assignedTo && (
+            <p style={{ margin: "14px 0 0", display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.t2 }}>
+              <TeamAvatar id={order.assignedId} name={order.assignedTo} size={32} presence />
+              <span>{order.assignedTo === CURRENT_OPERATOR ? "Vous traitez cette commande" : <>Traitée par <span style={{ color: C.t1, fontWeight: 500 }}>{order.assignedTo}</span></>}</span>
+            </p>
+          )}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{actions}</div>
         {canAct && !lockedByOther && sellBlocked && (order.status === "attente" || order.status === "cours") && (
