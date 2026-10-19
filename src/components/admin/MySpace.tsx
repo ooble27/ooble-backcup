@@ -45,6 +45,10 @@ const CSS = `
 .ms-paper { width: 100%; box-sizing: border-box; border: none; outline: none; resize: vertical; min-height: 270px; padding: 0; margin-top: 2px; font: inherit; font-size: 15px; line-height: 30px; color: var(--a-t1);
   background: repeating-linear-gradient(transparent 0 29px, var(--a-bds) 29px 30px); background-attachment: local; }
 .ms-paper::placeholder { color: var(--a-t3); }
+.hp-l { margin: 18px 0 4px; font-size: 12.5px; color: var(--a-t3); }
+.hp-ta { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; margin: 0; padding: 12px 14px; border: 1px solid var(--a-bd); border-radius: 12px; outline: none; background: transparent; font: inherit; font-size: 15px; line-height: 1.55; color: var(--a-t1); transition: border-color .15s; }
+.hp-ta:focus { border-color: var(--a-t2); }
+.hp-ta::placeholder { color: var(--a-t3); }
 .ms-due-in { display: none; }
 @media (max-width: 600px) { .ms-due { display: none; } .ms-due-in { display: inline; } }
 @media (prefers-reduced-motion: reduce) { .ms-row { transition: none; } }
@@ -184,7 +188,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
       {profile && <ProfilePanel onClose={() => setProfile(false)} />}
 
       <div className="ms-grid">
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 48, alignContent: "start", minWidth: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 64, alignContent: "start", minWidth: 0 }}>
           {/* Mes tâches et ma semaine */}
           <section className="tv-rise" style={{ animationDelay: "200ms" }}>
             <Head title="Mes tâches" action={<button type="button" className="ms-link" onClick={() => onGo("tasks")}>Toutes les tâches <ArrowRight style={{ width: 14, height: 14 }} /></button>} />
@@ -398,25 +402,31 @@ function MyHandoff({ members, last, done, orderIds, taskIds, onSent, onError }: 
     setBody(""); onSent();
   };
   const readers = last?.reads.map((r) => firstName(r.name)) ?? [];
+  const who = firstName(members.find((m) => m.userId === person)?.name ?? "cette personne");
   return (
     <section className="tv-rise" style={{ animationDelay: "240ms" }}>
       <Head title="Ma passation de fin de journée" />
+      {/* Deux étapes nettes : pour qui, puis le mot. Une seule zone d'écriture, bien délimitée. */}
       {members.length > 0 && (
         <>
-          <p style={{ margin: "12px 0 0", fontSize: 14.5, lineHeight: 2, color: C.t2 }}>
-            <Opts value={toKind} onChange={setToKind} options={[{ v: "team", label: "À toute l'équipe" }, { v: "person", label: "À une personne" }]} />
+          <p className="hp-l">Pour qui</p>
+          <p style={{ margin: 0, fontSize: 14.5, lineHeight: 2, color: C.t2 }}>
+            <Opts value={toKind} onChange={setToKind} options={[{ v: "team", label: "Toute l'équipe" }, { v: "person", label: "Une personne" }]} />
           </p>
           {toKind === "person" && <PersonPicker members={members} value={person} onChange={setPerson} />}
         </>
       )}
-      <textarea className="tv-ta" rows={3} value={body} maxLength={2000} onChange={(e) => setBody(e.target.value)} style={{ marginTop: 12, fontSize: 15 }}
-        placeholder="Ce que je laisse en cours : où j'en suis, ce qui reste à faire, à qui s'adresser…" />
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 10 }}>
-        <span style={{ fontSize: 12.5, color: C.t3 }}>{parts.length
-          ? (toKind === "person" ? `Confiées directement à ${firstName(members.find((m) => m.userId === person)?.name ?? "cette personne")} : ${parts.join(" et ")}.` : `Remises à l'équipe en transmettant : ${parts.join(" et ")}. Le premier qui les prend les a pour lui.`)
-          : "Aucune commande ni tâche en cours à remettre."}</span>
-        <button type="button" className="tv-go" disabled={busy || justSent || (!body.trim() && !parts.length) || (toKind === "person" && !person)} onClick={send}>{busy ? "Envoi…" : justSent ? "Transmise" : "Transmettre à l'équipe"} {!justSent && <ArrowRight style={{ width: 15, height: 15 }} />}</button>
-      </div>
+      <p className="hp-l">Votre mot pour la suite</p>
+      <textarea className="hp-ta" rows={3} value={body} maxLength={2000} onChange={(e) => setBody(e.target.value)}
+        placeholder="Où j'en suis, ce qui reste à faire, à qui s'adresser…" />
+      <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t3 }}>{parts.length
+        ? (toKind === "person" ? `Confiées directement à ${who} : ${parts.join(" et ")}.` : `Remises à l'équipe : ${parts.join(" et ")}. Le premier qui les prend les a pour lui.`)
+        : "Aucune commande ni tâche en cours à remettre."}</p>
+      <p style={{ margin: "16px 0 0" }}>
+        <button type="button" className="tv-go" disabled={busy || justSent || (!body.trim() && !parts.length) || (toKind === "person" && !person)} onClick={send}>
+          {busy ? "Envoi…" : justSent ? "Transmise" : toKind === "person" ? `Transmettre à ${who}` : "Transmettre à l'équipe"} {!justSent && <ArrowRight style={{ width: 15, height: 15 }} />}
+        </button>
+      </p>
       {last && (
         <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.t3 }}>
           Dernière passation transmise {agoIso(last.at)}{last.toName ? ` à ${firstName(last.toName)}` : ""} · {done ? "tout ce que vous aviez laissé est terminé" : readers.length ? `lue par ${readers.join(", ")}` : "pas encore lue"}.
