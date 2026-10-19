@@ -10,16 +10,16 @@ import { useAuth } from "@/lib/auth";
 
 export type Role = "admin" | "operator" | "kyc_reviewer" | "support" | "marketing" | "compliance" | "accounting";
 
-export type TabId = "me" | "dashboard" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
+export type TabId = "me" | "dashboard" | "control" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
 
-export const ALL_TABS: TabId[] = ["me", "dashboard", "notes", "tasks", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
+export const ALL_TABS: TabId[] = ["me", "dashboard", "notes", "tasks", "control", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
 const HELP: TabId[] = ["kb", "manual"];
 /** Espace de l'équipe : ouvert à tous les membres. */
 const TEAM: TabId[] = ["me", "notes", "tasks"];
 
 /** Nom des pages, pour dire à un membre ce qu'il verra. */
 export const TAB_LABEL: Record<TabId, string> = {
-  me: "Mon espace", dashboard: "Tableau de bord", notes: "Notes à l'équipe", tasks: "Tâches", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
+  me: "Mon espace", dashboard: "Tableau de bord", control: "Salle de contrôle", notes: "Notes à l'équipe", tasks: "Tâches", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
   accounting: "Comptabilité", treasury: "Trésorerie", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
   team: "Équipe", platform: "Réglages", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
 };
@@ -38,7 +38,7 @@ export interface RoleDef {
 export const ROLES: RoleDef[] = [
   { id: "admin", label: "Administrateur", mission: "Dirige tout : opérations, finances, équipe et plateforme.", home: "dashboard", tabs: ALL_TABS },
   { id: "operator", label: "Opérateur", mission: "Traite les commandes : prend les paiements reçus, envoie les USDT, verse les CAD.", home: "queue",
-    tabs: ["queue", "orders", "settlement", "treasury", "clients", "mailbox", ...TEAM, ...HELP] },
+    tabs: ["control", "queue", "orders", "settlement", "treasury", "clients", "mailbox", ...TEAM, ...HELP] },
   { id: "compliance", label: "Conformité", mission: "Fait respecter les règles du CANAFE : alertes, déclarations, registres, vérifications d'identité.", home: "compliance",
     tabs: ["compliance", "kyc", "clients", "orders", "accounting", "mailbox", ...TEAM, ...HELP] },
   { id: "accounting", label: "Comptabilité", mission: "Tient les comptes : marges, volumes, rapprochements et exports pour le comptable.", home: "accounting",

@@ -6,7 +6,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House, UsersRound, ArrowLeftRight, CircleUserRound, Wallet, Send, SlidersHorizontal,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House, UsersRound, ArrowLeftRight, CircleUserRound, Wallet, Send, SlidersHorizontal, MonitorDot,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -33,6 +33,7 @@ import CampaignsPanel from "@/components/admin/CampaignsPanel";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import ClientsPanel from "@/components/admin/ClientsPanel";
 import DocsPanel from "@/components/admin/DocsPanel";
+import ControlRoom from "@/components/admin/ControlRoom";
 import CommandPalette from "@/components/admin/CommandPalette";
 import { C, FONT, ADMIN_THEME_CSS, ADMIN_BG } from "@/components/admin/adminTheme";
 import { UI_CSS } from "@/components/admin/ui";
@@ -72,6 +73,7 @@ const GROUPS: NavGroup[] = [
     { id: "tasks", label: "Tâches", desc: "Ce que chacun a à faire : confié à une personne ou à un poste, avec une échéance.", icon: ListTodo },
   ] },
   { label: "Opérations", menu: { label: "Opérations", icon: ArrowLeftRight }, items: [
+    { id: "control", label: "Salle de contrôle", desc: "Ce qui se passe maintenant : commandes en direct, taux, stock, équipe. L'écran à laisser ouvert au bureau.", icon: MonitorDot },
     { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
     { id: "orders", label: "Commandes", desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
     { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: AutoSettle },
@@ -545,8 +547,8 @@ const AdminPortal = () => {
           ) : (
             <>
               {/* Téléphone : la messagerie prend toute la hauteur (le nom de la page est déjà dans la barre du haut). */}
-              {tab !== "me" && tab !== "dashboard" && tab !== "campaigns" && !(tab === "notes" && !panel) && <PageHeader title={active.label} description={active.desc} />}
-              {loading && (tab === "queue" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
+              {tab !== "me" && tab !== "dashboard" && tab !== "control" && tab !== "campaigns" && !(tab === "notes" && !panel) && <PageHeader title={active.label} description={active.desc} />}
+              {loading && (tab === "queue" || tab === "control" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
                 <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
               ) : (
                 <>
@@ -555,6 +557,7 @@ const AdminPortal = () => {
                     onGo={(t) => { if (allowedTabs.has(t)) setTab(t); }} />}
                   {tab === "notes" && <TeamNotesView onChanged={refreshTeam} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} />}
                   {tab === "tasks" && <TeamTasksView onChanged={refreshTeam} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClientById : undefined} />}
+                  {tab === "control" && <ControlRoom orders={orders} canStock={allowedTabs.has("treasury")} />}
                   {tab === "queue" && <OrdersQueue orders={orders} onOpen={openOrder} onPatch={patch} />}
                   {tab === "orders" && <OrdersList orders={orders} onOpen={openOrder} />}
                   {tab === "clients" && <ClientsPanel onOpen={openClient} />}
