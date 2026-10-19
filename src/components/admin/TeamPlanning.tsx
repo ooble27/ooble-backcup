@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
-  DOW_LABEL, DOW_SHORT, currentShift, firstName, openActivity, hourLabel, loadShifts, nowMontreal, openMember, setShift, shiftLabel, todayToronto,
+  DOW_LABEL, DOW_SHORT, currentShift, firstName, openActivity, peekTeam, hourLabel, loadShifts, nowMontreal, openMember, setShift, shiftLabel, todayToronto,
   type Shift, type TeamMember,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
@@ -20,7 +20,7 @@ const away = (m: TeamMember | undefined) => !!m && m.status === "away" && (!m.st
 
 /** Le planning, tenu à jour en direct. */
 export function useShifts() {
-  const [shifts, setShifts] = useState<Shift[] | null>(null);
+  const [shifts, setShifts] = useState<Shift[] | null>(() => peekTeam<Shift[]>("shifts") ?? null);
   const load = useCallback(() => { loadShifts().then(setShifts).catch(() => setShifts([])); }, []);
   useEffect(() => { load(); }, [load]);
   useTeamLive(load, ["team_shifts", "team_profiles"]);

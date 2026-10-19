@@ -30,16 +30,17 @@ interface Approval {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = (fn: string, args: Record<string, unknown>) => (supabase.rpc as any)(fn, args) as Promise<{ data: unknown; error: { message: string } | null }>;
 
+let approvalsMem: Approval[] | null = null;
 async function loadApprovals(): Promise<Approval[]> {
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from as any)("team_approvals").select("*").gte("created_at", since).order("created_at", { ascending: false }).limit(50);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+  return (approvalsMem = ((data ?? []) as Record<string, unknown>[]).map((r) => ({
     id: String(r.id), kind: String(r.kind), title: String(r.title), details: (r.details as string) ?? null, amount: r.amount_cad == null ? null : Number(r.amount_cad),
     orderId: (r.order_id as string) ?? null, requestedBy: String(r.requested_by), requestedByName: String(r.requested_by_name), status: r.status as Approval["status"],
     decidedByName: (r.decided_by_name as string) ?? null, decidedAt: (r.decided_at as string) ?? null, note: (r.decision_note as string) ?? null, at: String(r.created_at),
-  }));
+  })));
 }
 
 const money = (n: number) => `${n.toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
@@ -48,7 +49,7 @@ const money = (n: number) => `${n.toLocaleString("fr-CA", { minimumFractionDigit
 export function ApprovalsBlock({ onOpenOrder }: { onOpenOrder?: (orderId: string) => void }) {
   const { user, isAdmin } = useAuth();
   const me = user?.id ?? "";
-  const [list, setList] = useState<Approval[] | null>(null);
+  const [list, setList] = useState<Approval[] | null>(approvalsMem);
   const [asking, setAsking] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const load = useCallback(() => { loadApprovals().then(setList).catch((e: Error) => setErr(e.message)); }, []);

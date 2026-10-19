@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, takeTask, openMember, prefetchMember, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, onMembersChange, peekMembers, removeTask, saveTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, takeTask, openMember, prefetchMember, peekTeam, tasksKey, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
   type AvatarBg, type Audience, type ChecklistTemplate, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
@@ -581,7 +581,7 @@ export function LinkedTasks({ clientId, clientName, orderId, orderRef: ref, onOp
   const me = user?.id ?? "";
   const admin = roles.includes("admin");
   const members = useMembers();
-  const [tasks, setTasks] = useState<TeamTask[] | null>(null);
+  const [tasks, setTasks] = useState<TeamTask[] | null>(() => peekTeam<TeamTask[]>(tasksKey(false, { clientId, orderId })) ?? null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [editing, setEditing] = useState<TeamTask | "new" | null>(null);
   const load = useCallback(() => {

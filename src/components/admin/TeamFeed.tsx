@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { firstName, loadActivity, openMember, type ActivityItem } from "@/lib/teamSpace";
+import { firstName, loadActivity, openMember, peekTeam, type ActivityItem } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
 import { Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
@@ -26,7 +26,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("fr-CA", { hour: 
 
 export function ActivityPanel({ onClose, onOpenOrder, onGoTasks, onGoMe }: { onClose: () => void; onOpenOrder?: (id: string) => void; onGoTasks?: () => void; onGoMe?: () => void }) {
   const members = useMembers();
-  const [items, setItems] = useState<ActivityItem[] | null>(null);
+  const [items, setItems] = useState<ActivityItem[] | null>(() => peekTeam<ActivityItem[]>("activity") ?? null);
   const [more, setMore] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [who, setWho] = useState<string | null>(null);

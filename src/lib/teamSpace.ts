@@ -146,7 +146,7 @@ export async function loadPinned(audience: Audience): Promise<TeamNote[]> {
   return ((data ?? []) as Record<string, unknown>[]).map(toNote);
 }
 /** Les dernières notes, tous canaux confondus (Mon espace). */
-export const loadRecentNotes = (limit = 5) => loadChannel(null, { limit });
+const loadRecentNotesRaw = (limit = 5) => loadChannel(null, { limit });
 
 export interface Unread { channels: Partial<Record<Audience, number>>; mentions: number; mentionChannels: Partial<Record<Audience, number>> }
 export async function loadUnread(): Promise<Unread> {
@@ -193,7 +193,7 @@ export interface TeamTask {
   createdBy: string; createdByName: string; at: string; updatedAt: string; doneAt: string | null; doneByName: string | null; comments: TaskComment[];
 }
 /** Tâches non archivées (ou archivées), ou seulement celles d'un client ou d'une commande. */
-export async function loadTasks(archived = false, link?: { clientId?: string; orderId?: string }): Promise<TeamTask[]> {
+async function loadTasksRaw(archived = false, link?: { clientId?: string; orderId?: string }): Promise<TeamTask[]> {
   let q = table("team_tasks")
     .select("*, client:profiles!team_tasks_client_id_fkey(full_name, email), team_task_comments(id, body, author_id, author_name, created_at)")
     .eq("archived", archived);
@@ -342,7 +342,7 @@ export interface Handoff {
   reads: { userId: string; name: string; at: string }[];
 }
 /** Les passations des deux derniers jours, la plus récente d'abord. */
-export async function loadHandoffs(): Promise<Handoff[]> {
+async function loadHandoffsRaw(): Promise<Handoff[]> {
   const since = new Date(Date.now() - 48 * 3600_000).toISOString();
   const { data, error } = await table("team_handoffs")
     .select("id, author_id, author_name, body, order_ids, task_ids, to_user, to_name, created_at, team_handoff_reads(user_id, user_name, read_at)")
@@ -386,7 +386,7 @@ export async function loadMemberCard(userId: string): Promise<MemberCard | null>
 export interface Shift { userId: string; dow: number; starts: string; ends: string }
 export const DOW_LABEL = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 export const DOW_SHORT = ["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-export async function loadShifts(): Promise<Shift[]> {
+async function loadShiftsRaw(): Promise<Shift[]> {
   const { data, error } = await table("team_shifts").select("user_id, dow, starts, ends").eq("active", true);
   if (error) throw new Error(error.message);
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ userId: String(r.user_id), dow: Number(r.dow), starts: String(r.starts).slice(0, 5), ends: String(r.ends).slice(0, 5) }));
@@ -429,7 +429,7 @@ export function shiftSummary(shifts: Shift[], userId: string): string {
 
 /* ─── Activité de l'équipe ─── */
 export interface ActivityItem { at: string; actorId: string | null; actorName: string; kind: string; text: string; refKind: string; refId: string }
-export async function loadActivity(before?: string): Promise<ActivityItem[]> {
+async function loadActivityRaw(before?: string): Promise<ActivityItem[]> {
   const { data, error } = await rpc("team_activity_feed", { _before: before ?? null, _limit: 60 });
   if (error) throw new Error(error.message);
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
@@ -464,3 +464,31 @@ export function loadMemberBundle(userId: string): Promise<MemberBundle> {
 }
 /** Précharge la fiche (au survol d'un avatar, ou dès qu'on le touche) : elle s'ouvre déjà remplie. */
 export const prefetchMember = (userId: string) => { if (!bundles.has(userId)) void loadMemberBundle(userId); };
+
+/* ─── Mémoire de l'espace Équipe ───
+ * Chaque page s'affiche tout de suite avec ce qu'on sait déjà (peekTeam), puis se met à jour en silence.
+ * Deux pages qui demandent la même chose au même moment partagent une seule lecture. */
+const teamMem = new Map<string, unknown>();
+const teamFly = new Map<string, Promise<unknown>>();
+function swr<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const running = teamFly.get(key) as Promise<T> | undefined;
+  if (running) return running;
+  const p = fn().then((v) => { teamMem.set(key, v); return v; }).finally(() => teamFly.delete(key));
+  teamFly.set(key, p);
+  return p;
+}
+export const peekTeam = <T>(key: string): T | undefined => teamMem.get(key) as T | undefined;
+export const tasksKey = (archived = false, link?: { clientId?: string; orderId?: string }) => `tasks:${archived}:${link?.clientId ?? ""}:${link?.orderId ?? ""}`;
+export const loadTasks = (archived = false, link?: { clientId?: string; orderId?: string }) => swr(tasksKey(archived, link), () => loadTasksRaw(archived, link));
+export const loadHandoffs = () => swr("handoffs", loadHandoffsRaw);
+export const loadShifts = () => swr("shifts", loadShiftsRaw);
+export const loadRecentNotes = (limit = 5) => swr(`notes:${limit}`, () => loadRecentNotesRaw(limit));
+/** Première page de l'activité gardée en mémoire ; les pages suivantes sont lues à la demande. */
+export const loadActivity = (before?: string) => (before ? loadActivityRaw(before) : swr("activity", () => loadActivityRaw()));
+/** Au démarrage du back-office : l'espace Équipe est chargé d'avance, pour s'ouvrir sans attente. */
+export function prefetchTeamSpace() {
+  void loadTasks(false).catch(() => undefined);
+  void loadHandoffs().catch(() => undefined);
+  void loadShifts().catch(() => undefined);
+  void loadRecentNotes(5).catch(() => undefined);
+}

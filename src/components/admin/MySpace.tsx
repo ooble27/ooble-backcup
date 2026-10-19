@@ -5,7 +5,7 @@ import { CURRENT_OPERATOR, nfCad, nfUsdt, STATUS_META, type AdminOrder } from "@
 import { roleLabel, sortRoles } from "@/lib/roles";
 import { orderRef } from "@/lib/orders";
 import {
-  ackHandoff, audienceLabel, firstName, isLate, isMine, loadHandoffs, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, postHandoff, savePrivateNote,
+  ackHandoff, audienceLabel, peekTeam, tasksKey, firstName, isLate, isMine, loadHandoffs, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, postHandoff, savePrivateNote,
   setTaskStatus, takeTask, todayToronto, type Handoff, type TeamMember, type TeamNote, type TeamTask, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
@@ -69,13 +69,14 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const { user, roles } = useAuth();
   const me = user?.id ?? "";
   const members = useMembers();
-  const [tasks, setTasks] = useState<TeamTask[] | null>(null);
-  const [notes, setNotes] = useState<TeamNote[] | null>(null);
+  // Déjà en mémoire : la page s'affiche tout de suite, puis se met à jour.
+  const [tasks, setTasks] = useState<TeamTask[] | null>(() => peekTeam<TeamTask[]>(tasksKey()) ?? null);
+  const [notes, setNotes] = useState<TeamNote[] | null>(() => peekTeam<TeamNote[]>("notes:5") ?? null);
   const [unreadInfo, setUnreadInfo] = useState<Unread | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<Set<string>>(new Set());
   const [profile, setProfile] = useState(false);
-  const [handoffs, setHandoffs] = useState<Handoff[]>([]);
+  const [handoffs, setHandoffs] = useState<Handoff[]>(() => peekTeam<Handoff[]>("handoffs") ?? []);
 
   const load = useCallback(() => {
     loadHandoffs().then(setHandoffs).catch(() => undefined);

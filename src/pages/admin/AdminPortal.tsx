@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { versionLabel } from "@/lib/freshness";
 import { refreshPush } from "@/lib/pushNotifications";
+import { prefetchTeamSpace } from "@/lib/teamSpace";
 import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
@@ -188,6 +189,8 @@ const AdminPortal = () => {
   const { roles, user } = useAuth();
   // Notifications de l'équipe déjà autorisées sur cet appareil : l'abonnement reste à jour.
   useEffect(() => { if (user?.id) refreshPush("fr"); }, [user?.id]);
+  // L'espace Équipe est chargé d'avance : Mon espace, Tâches et la fiche des membres s'ouvrent sans attente.
+  useEffect(() => { if (user?.id && roles.length) prefetchTeamSpace(); }, [user?.id, roles.length]);
   // Les commandes déjà chargées dans cette session s'affichent tout de suite (mémoire seulement : données clients).
   const [orders, setOrders] = useState<AdminOrder[]>(() => peek<AdminOrder[]>("orders")?.value ?? []);
   const [loading, setLoading] = useState(() => !peek("orders"));
