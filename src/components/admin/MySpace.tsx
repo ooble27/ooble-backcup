@@ -6,7 +6,7 @@ import { roleLabel, sortRoles } from "@/lib/roles";
 import { orderRef } from "@/lib/orders";
 import {
   ackHandoff, audienceLabel, firstName, isLate, isMine, loadHandoffs, loadPrivateNote, loadRecentNotes, loadTasks, loadUnread, memberById, postHandoff, savePrivateNote,
-  setTaskStatus, todayToronto, type Handoff, type TeamNote, type TeamTask, type Unread,
+  setTaskStatus, takeTask, todayToronto, type Handoff, type TeamNote, type TeamTask, type Unread,
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
 import { Notice } from "./ui";
@@ -92,8 +92,9 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
   const first = (user?.name ?? "").split(/\s+/)[0];
   // Passations des autres que je n'ai pas encore lues, et ce que je peux rattacher à la mienne.
   // Une passation dont tout est réglé (commandes terminées, tâches faites) disparaît d'elle-même, pour tout le monde.
-  const openOrder = (id: string) => orders.some((o) => o.id === id && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
-  const openTask = (id: string) => (tasks ?? []).some((t) => t.id === id && t.status !== "done");
+  // Réglé = fini, ou repris par quelqu'un.
+  const openOrder = (id: string) => orders.some((o) => o.id === id && !o.assignedTo && (o.status === "recu" || o.status === "cours" || o.status === "attente"));
+  const openTask = (id: string) => (tasks ?? []).some((t) => t.id === id && t.status !== "done" && !t.assigneeId);
   const settled = (h: Handoff) => !!tasks && (h.orderIds.length + h.taskIds.length) > 0 && !h.orderIds.some(openOrder) && !h.taskIds.some(openTask);
   const incoming = handoffs.filter((h) => h.authorId !== me && !h.reads.some((r) => r.userId === me) && !settled(h)).slice(0, 3);
   const myLast = handoffs.find((h) => h.authorId === me) ?? null;
@@ -203,6 +204,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
           {/* Passations reçues, juste au-dessus de la mienne (colonne de gauche) */}
           {incoming.map((h) => (
             <IncomingHandoff key={h.id} h={h} orders={orders} tasks={tasks ?? []} onOpenOrder={onOpenOrder} onGo={onGo}
+              onTake={async (id) => { const r = await takeTask(id); if (r.error) setErr(r.error); load(); onChanged?.(); }}
               onAck={async () => { const r = await ackHandoff(h.id); if (r.error) setErr(r.error); else load(); }} />
           ))}
 
@@ -299,10 +301,12 @@ function PrivatePad({ me }: { me: string }) {
 }
 
 /** La passation d'un collègue : son mot, ses commandes et tâches en cours, et « Bien reçu ». */
-function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck }: {
+function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck, onTake }: {
   h: Handoff; orders: AdminOrder[]; tasks: TeamTask[]; onOpenOrder: (o: AdminOrder) => void; onGo: (tab: "tasks" | "notes" | "queue") => void; onAck: () => void;
+  onTake: (taskId: string) => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [taking, setTaking] = useState<string | null>(null);
   const rowStyle: React.CSSProperties = { all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 6px", margin: "0 -6px", borderBottom: `1px solid ${C.bds}`, borderRadius: 10, width: "calc(100% + 12px)", boxSizing: "border-box" };
   return (
     <section className="tv-rise">
@@ -322,7 +326,7 @@ function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck }: {
           <button key={id} type="button" style={rowStyle} onClick={() => onOpenOrder(o)}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 14.5, color: C.t1 }}>{o.type === "buy" ? "Achat" : "Vente"} · {o.clientName}</span>
-              <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>{o.ref} · {STATUS_META[o.status].label}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>{o.ref} · {STATUS_META[o.status].label} · {o.assignedTo ? `prise par ${o.assignedTo === "Vous" ? "vous" : o.assignedTo}` : "libre, à prendre dans la commande"}</span>
             </span>
             <span style={{ fontSize: 14.5, color: C.t1, fontVariantNumeric: "tabular-nums" }}>{nfCad.format(o.cad)} $</span>
           </button>
@@ -334,12 +338,17 @@ function IncomingHandoff({ h, orders, tasks, onOpenOrder, onGo, onAck }: {
         const t = tasks.find((x) => x.id === id);
         if (!t) return null;
         return (
-          <button key={id} type="button" style={rowStyle} onClick={() => onGo("tasks")}>
-            <span style={{ flex: 1, minWidth: 0 }}>
+          <div key={id} style={{ ...rowStyle, cursor: "default" }}>
+            <button type="button" onClick={() => onGo("tasks")} style={{ all: "unset", cursor: "pointer", flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 14.5, color: t.status === "done" ? C.t3 : C.t1, textDecoration: t.status === "done" ? "line-through" : "none", overflowWrap: "anywhere" }}>{t.title}</span>
-              <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>Tâche · {t.status === "done" ? "faite" : t.status === "doing" ? "en cours" : "à faire"}{t.steps.length ? ` · ${t.steps.filter((x) => x.done).length} sur ${t.steps.length} étapes` : ""}</span>
-            </span>
-          </button>
+              <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>
+                Tâche · {t.status === "done" ? "faite" : t.assigneeId ? `prise par ${firstName(memberById(t.assigneeId)?.name ?? "un membre")}` : "à reprendre"}{t.steps.length ? ` · ${t.steps.filter((x) => x.done).length} sur ${t.steps.length} étapes` : ""}
+              </span>
+            </button>
+            {!t.assigneeId && t.status !== "done" && (
+              <button type="button" className="ms-link" disabled={taking === id} onClick={async () => { setTaking(id); await onTake(id); setTaking(null); }}>La prendre <ArrowRight style={{ width: 14, height: 14 }} /></button>
+            )}
+          </div>
         );
       })}
     </section>
@@ -352,12 +361,20 @@ function MyHandoff({ last, done, orderIds, taskIds, onSent, onError }: {
 }) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  // Ce qui vient d'être remis à l'équipe n'est plus à moi : on ne le propose plus.
+  const [released, setReleased] = useState<Set<string>>(new Set());
+  const [sentAt, setSentAt] = useState<number | null>(null);
+  orderIds = orderIds.filter((id) => !released.has(id));
+  taskIds = taskIds.filter((id) => !released.has(id));
+  const justSent = !!sentAt && Date.now() - sentAt < 120_000;
   const parts = [orderIds.length ? `${orderIds.length} ${plural(orderIds.length, "commande ouverte", "commandes ouvertes")}` : null, taskIds.length ? `${taskIds.length} ${plural(taskIds.length, "tâche en cours", "tâches en cours")}` : null].filter(Boolean);
   const send = async () => {
     setBusy(true);
     const r = await postHandoff(body, orderIds, taskIds);
     setBusy(false);
     if (r.error) { onError(r.error); return; }
+    setReleased((x) => new Set([...x, ...orderIds, ...taskIds]));
+    setSentAt(Date.now());
     setBody(""); onSent();
   };
   const readers = last?.reads.map((r) => firstName(r.name)) ?? [];
@@ -367,8 +384,8 @@ function MyHandoff({ last, done, orderIds, taskIds, onSent, onError }: {
       <textarea className="tv-ta" rows={3} value={body} maxLength={2000} onChange={(e) => setBody(e.target.value)} style={{ marginTop: 12, fontSize: 15 }}
         placeholder="Ce que je laisse en cours : où j'en suis, ce qui reste à faire, à qui s'adresser…" />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 10 }}>
-        <span style={{ fontSize: 12.5, color: C.t3 }}>{parts.length ? `Rattachées automatiquement : ${parts.join(" et ")}.` : "Aucune commande ni tâche en cours à rattacher."}</span>
-        <button type="button" className="tv-go" disabled={busy || (!body.trim() && !parts.length)} onClick={send}>{busy ? "Envoi…" : "Transmettre à l'équipe"} <ArrowRight style={{ width: 15, height: 15 }} /></button>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>{parts.length ? `Remises à l'équipe en transmettant : ${parts.join(" et ")}. Quelqu'un d'autre les reprendra.` : "Aucune commande ni tâche en cours à remettre."}</span>
+        <button type="button" className="tv-go" disabled={busy || justSent || (!body.trim() && !parts.length)} onClick={send}>{busy ? "Envoi…" : justSent ? "Transmise" : "Transmettre à l'équipe"} {!justSent && <ArrowRight style={{ width: 15, height: 15 }} />}</button>
       </div>
       {last && (
         <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.t3 }}>

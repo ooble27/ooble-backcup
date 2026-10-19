@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, notifyAssignees, onMembersChange, peekMembers, removeTask, saveTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, takeTask, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
   type AvatarBg, type Audience, type ChecklistTemplate, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
@@ -219,7 +219,10 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
   onOpenOrder?: (id: string) => void; onShowClient?: (id: string) => void;
 }) {
   const [comment, setComment] = useState("");
+  const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const free = !t.assigneeId;
+  const open = !t.archived && t.status !== "done";
   const act = async (p: Promise<{ error?: string }>, after?: () => void) => { const r = await p; if (r.error) setErr(r.error); else { setErr(null); onChanged(); after?.(); } };
   const row = (k: string, v: React.ReactNode) => (
     <div style={{ display: "flex", gap: 16, padding: "8px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 14 }}>
@@ -229,9 +232,22 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
   return (
     <SidePanel title={t.title} subtitle={<>Créée par <TeamName id={t.createdBy} name={t.createdByName} you={t.createdBy === me} style={{ fontWeight: 500 }} /> · {when(t.at)}</>} onClose={onClose} width={560}>
       <style>{TV_CSS + GR_CSS}</style>
-      {!t.archived && canStatus && (
+      {/* Une tâche libre (poste, toute l'équipe, ou remise par une passation) se prend d'abord. */}
+      {!t.archived && free && t.status !== "done" && (
+        <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.6, color: C.t2 }}>
+          {t.handedOffBy ? `Remise à l'équipe par ${firstName(t.handedOffBy)} dans sa passation.` : "Cette tâche n'est encore à personne."}{" "}
+          {canStatus && <button type="button" className="tv-go" onClick={() => act(takeTask(t.id))}>La prendre <ArrowRight style={{ width: 14, height: 14 }} /></button>}
+        </p>
+      )}
+      {!t.archived && canStatus && t.status !== "done" && (
         <p style={{ margin: 0, fontSize: 15.5, lineHeight: 2, color: C.t2 }}>
           <Opts value={t.status} onChange={(s: TaskStatus) => act(setTaskStatus(t.id, s))} options={(["todo", "doing", "done"] as TaskStatus[]).map((s) => ({ v: s, label: STATUS_LABEL[s] }))} />
+        </p>
+      )}
+      {t.status === "done" && (
+        <p style={{ margin: 0, fontSize: 14, color: C.t2 }}>
+          <Check style={{ width: 14, height: 14, verticalAlign: "-2px", marginRight: 6 }} strokeWidth={2.6} />Faite{t.doneByName ? ` par ${firstName(t.doneByName)}` : ""}{t.doneAt ? `, ${when(t.doneAt)}` : ""}.
+          {!t.archived && (admin || t.createdBy === me) && <> <button type="button" className="tv-link" style={{ fontSize: 14 }} onClick={() => act(setTaskStatus(t.id, "doing"))}>Rouvrir</button></>}
         </p>
       )}
       {t.details && <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.6, color: C.t1, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{t.details}</p>}
@@ -241,7 +257,7 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
             Étapes · {t.steps.filter((x) => x.done).length} sur {t.steps.length}
           </p>
           {t.steps.map((st, i) => (
-            <button key={i} type="button" className="tv-step" role="checkbox" aria-checked={st.done} disabled={t.archived || !canStatus}
+            <button key={i} type="button" className="tv-step" role="checkbox" aria-checked={st.done} disabled={!open || !canStatus}
               onClick={() => act(checkTaskStep(t.id, i, !st.done))}>
               <span className="tv-box">{st.done && <Check style={{ width: 13, height: 13 }} strokeWidth={3} />}</span>
               <span style={{ minWidth: 0 }}>
@@ -253,7 +269,7 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
         </div>
       )}
       <div style={{ marginTop: 16 }}>
-        {row("Pour", who)}
+        {row("Pour", free && t.handedOffBy ? `À reprendre (passation de ${firstName(t.handedOffBy)})` : who)}
         {row("Échéance", t.dueOn ? `${dueLabel(t.dueOn)}${isLate(t) ? " · en retard" : ""}` : "Aucune")}
         {t.clientId && row("Client", onShowClient ? <button type="button" className="tv-link" style={{ fontSize: 14, color: C.t1, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={() => onShowClient(t.clientId!)}>{t.clientName}</button> : t.clientName)}
         {t.orderId && row("Commande", onOpenOrder ? <button type="button" className="tv-link" style={{ fontSize: 14, color: C.t1, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={() => onOpenOrder(t.orderId!)}>{t.orderRef}</button> : t.orderRef)}
@@ -268,20 +284,25 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
           <p style={{ margin: "3px 0 0", fontSize: 14, lineHeight: 1.55, color: C.t2, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{c.body}</p>
         </div>
       ))}
-      {!t.archived && (
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginTop: 8 }}>
-          <textarea className="tv-ta" rows={1} value={comment} maxLength={2000} onChange={(e) => setComment(e.target.value)} placeholder="Ajouter un commentaire…" style={{ fontSize: 14 }} />
-          <button type="button" className="tv-go" disabled={!comment.trim()} onClick={() => act(commentTask(t.id, comment), () => setComment(""))}>Envoyer <ArrowRight style={{ width: 15, height: 15 }} /></button>
-        </div>
-      )}
+      {open ? (
+        <>
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginTop: 8 }}>
+            <textarea className="tv-ta" rows={1} value={comment} maxLength={2000} onChange={(e) => setComment(e.target.value)} placeholder="Ajouter un commentaire…" style={{ fontSize: 14 }} />
+            <button type="button" className="tv-go" disabled={!comment.trim() || sending} onClick={() => { setSending(true); void act(commentTask(t.id, comment), () => setComment("")).finally(() => setSending(false)); }}>Envoyer <ArrowRight style={{ width: 15, height: 15 }} /></button>
+          </div>
+          <p style={{ margin: "6px 0 0", fontSize: 12, color: C.t3 }}>@Prénom pour prévenir quelqu'un. La personne qui fait la tâche et celle qui l'a créée sont prévenues.</p>
+        </>
+      ) : <p style={{ margin: "8px 0 0", fontSize: 12.5, color: C.t3 }}>Tâche faite : les commentaires sont fermés.</p>}
 
-      {!t.archived && (
+      {/* Modifier et retirer tant qu'elle est « À faire » ; archiver une fois faite. */}
+      {!t.archived && (admin || t.createdBy === me) && (
         <div style={{ display: "flex", gap: 22, marginTop: 28, flexWrap: "wrap" }}>
-          {(admin || t.createdBy === me) && <button type="button" className="tv-go" onClick={onEdit}>Modifier <ArrowRight style={{ width: 15, height: 15 }} /></button>}
-          {(admin || t.createdBy === me) && <button type="button" className="tv-link" style={{ fontSize: 14 }} onClick={() => act(archiveTask(t.id), onClose)}>Archiver</button>}
+          {t.status === "todo" && <button type="button" className="tv-go" onClick={onEdit}>Modifier <ArrowRight style={{ width: 15, height: 15 }} /></button>}
+          {t.status === "done" && <button type="button" className="tv-go" onClick={() => act(archiveTask(t.id), onClose)}>Archiver <ArrowRight style={{ width: 15, height: 15 }} /></button>}
+          {t.status === "doing" && <span style={{ fontSize: 12.5, color: C.t3 }}>Tâche commencée : elle ne se modifie plus.</span>}
         </div>
       )}
-      {(admin || t.createdBy === me) && (
+      {!t.archived && t.status === "todo" && (admin || t.createdBy === me) && (
         <p style={{ margin: "18px 0 0" }}>
           <button type="button" className="tv-link" style={{ fontSize: 13.5 }}
             onClick={() => { if (window.confirm("Retirer cette tâche ? Elle disparaîtra pour toute l'équipe.")) act(removeTask(t.id), onClose); }}>Retirer la tâche</button>
@@ -379,7 +400,6 @@ export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
   /** Nouvelle tâche déjà rattachée (depuis la fiche d'un client ou une commande). */
   preset?: { client?: { id: string; name: string }; order?: { id: string; ref: string } };
 }) {
-  const { user } = useAuth();
   const [title, setTitle] = useState(task?.title ?? "");
   const [details, setDetails] = useState(task?.details ?? "");
   const [whoKind, setWhoKind] = useState<Who>(task ? (task.assigneeId === me ? "me" : task.assigneeId ? "person" : task.assigneeRole ? "role" : "all") : "me");
@@ -451,7 +471,6 @@ export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
   };
   const orderBad = !!orderText.trim() && !order;
   const ok = !!input.title && !(whoKind === "person" && !person) && !orderBad;
-  const assigneeChanged = !task || task.assigneeId !== input.assigneeId || task.assigneeRole !== input.assigneeRole;
 
   const save = async () => {
     setBusy(true); setErr(null);
@@ -462,8 +481,6 @@ export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
       const st = await setTaskSteps(r.id, clean);
       if (st.error) { setBusy(false); setErr(st.error); return; }
     }
-    const by = members.find((m) => m.userId === me)?.name || user?.email || "Un membre";
-    if (assigneeChanged) await notifyAssignees(input, by, me).catch(() => undefined);
     setBusy(false);
     onSaved(r.id);
   };
@@ -521,7 +538,7 @@ export function TaskForm({ task, members, me, onClose, onSaved, preset }: {
       {whoKind === "role" && (
         <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: C.t2 }}><Opts value={role} onChange={setRole} options={ROLES.map((r) => ({ v: r.id, label: r.label }))} /></p>
       )}
-      {whoKind !== "me" && whoKind !== "all" && <p style={{ margin: "6px 0 0", fontSize: 12.5, color: C.t3 }}>{whoKind === "person" ? "La personne reçoit un courriel." : "Chaque membre de ce poste reçoit un courriel."}</p>}
+      {whoKind !== "me" && whoKind !== "all" && <p style={{ margin: "6px 0 0", fontSize: 12.5, color: C.t3 }}>{whoKind === "person" ? "La personne est prévenue sur son téléphone." : "Chaque membre de ce poste est prévenu ; le premier qui la prend l'a pour lui."}</p>}
 
       <label style={{ display: "block", marginTop: 20 }}><span style={{ fontSize: 12.5, color: C.t3 }}>Échéance (facultatif)</span>
         <input className="gr-in" type="date" value={due} onChange={(e) => setDue(e.target.value)} /></label>
@@ -598,7 +615,7 @@ export function LinkedTasks({ clientId, clientName, orderId, orderRef: ref, onOp
           onSaved={(id) => { setEditing(null); load(); if (id) setOpenId(id); }} />
       )}
       {open && !editing && (
-        <TaskPanel task={open} me={me} admin={admin} canStatus={admin || open.createdBy === me || isMine(open, me, roles)} who={who(open)}
+        <TaskPanel task={open} me={me} admin={admin} canStatus={admin || open.createdBy === me || (open.status !== "done" && isMine(open, me, roles))} who={who(open)}
           onClose={() => setOpenId(null)} onEdit={() => setEditing(open)} onChanged={load}
           onOpenOrder={onOpenOrder && ((id) => { setOpenId(null); onOpenOrder(id); })}
           onShowClient={onShowClient && ((id) => { setOpenId(null); onShowClient(id); })} />

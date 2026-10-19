@@ -78,7 +78,8 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
   const pickView = (v: "board" | "list") => { setView(v); try { localStorage.setItem("ooble.tasks.view", v); } catch { /* préférence facultative */ } };
   const pickScope = (v: Scope) => { setScope(v); if (v === "archived") pickView("list"); };
 
-  const canStatus = (t: TeamTask) => admin || t.createdBy === me || isMine(t, me, roles);
+  // Changer l'état : la personne qui la fait, ou l'auteur et les admins. Une tâche faite ne se rouvre que par eux.
+  const canStatus = (t: TeamTask) => admin || t.createdBy === me || (t.status !== "done" && isMine(t, me, roles));
   const inScope = (t: TeamTask) => scope === "all" || (scope === "mine" ? isMine(t, me, roles) : t.createdBy === me);
   const recent = (t: TeamTask) => t.status !== "done" || (!!t.doneAt && Date.now() - new Date(t.doneAt).getTime() < 7 * 86_400_000);
   const shown = (tasks ?? []).filter((t) => inScope(t) && recent(t));
@@ -103,7 +104,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
 
   const move = async (t: TeamTask, s: TaskStatus) => {
     if (t.status === s) return;
-    if (!canStatus(t)) { setErr("Seules la personne qui reçoit la tâche et celle qui l'a créée peuvent changer son état."); return; }
+    if (!canStatus(t)) { setErr(t.status === "done" ? "Une tâche faite ne se rouvre que par la personne qui l'a créée, ou par un administrateur." : "Cette tâche a été prise par quelqu'un d'autre."); return; }
     setTasks((all) => all?.map((x) => (x.id === t.id ? { ...x, status: s, doneAt: s === "done" ? new Date().toISOString() : null } : x)) ?? all);
     const r = await setTaskStatus(t.id, s);
     if (r.error) setErr(r.error);
@@ -118,6 +119,7 @@ export function TeamTasksView({ onChanged, onOpenOrder, onShowClient }: { onChan
 
   const meta = (t: TeamTask) => [
     t.status === "done" ? (t.doneByName ? `fait par ${t.doneByName.split(" ")[0]}${t.doneAt ? `, ${when(t.doneAt)}` : ""}` : "fait") : null,
+    !t.assigneeId && t.handedOffBy && t.status !== "done" ? `à reprendre (passation de ${t.handedOffBy.split(" ")[0]})` : null,
     t.steps.length ? `${t.steps.filter((x) => x.done).length} sur ${t.steps.length} ${plural(t.steps.length, "étape")}` : null,
     t.clientName, t.orderRef, t.comments.length ? `${t.comments.length} ${plural(t.comments.length, "commentaire")}` : null,
   ].filter(Boolean).join(" · ");

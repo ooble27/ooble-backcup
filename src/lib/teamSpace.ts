@@ -169,6 +169,8 @@ export interface TaskComment { id: string; body: string; authorId: string | null
 export interface TaskStep { text: string; done: boolean; by: string | null; at: string | null }
 export interface TeamTask {
   steps: TaskStep[];
+  /** Remise à l'équipe par une passation (à reprendre). */
+  handedOffBy: string | null;
   id: string; title: string; details: string | null; assigneeId: string | null; assigneeRole: Role | null; dueOn: string | null; status: TaskStatus;
   clientId: string | null; clientName: string | null; orderId: string | null; orderRef: string | null; archived: boolean;
   createdBy: string; createdByName: string; at: string; updatedAt: string; doneAt: string | null; doneByName: string | null; comments: TaskComment[];
@@ -191,6 +193,7 @@ export async function loadTasks(archived = false, link?: { clientId?: string; or
       orderId: (r.order_id as string) ?? null, orderRef: r.order_id ? orderRef(String(r.order_id)) : null, archived: !!r.archived,
       createdBy: String(r.created_by), createdByName: String(r.created_by_name ?? "Membre"), at: String(r.created_at), updatedAt: String(r.updated_at),
       doneAt: (r.done_at as string) ?? null, doneByName: (r.done_by_name as string) ?? null,
+      handedOffBy: (r.handed_off_by_name as string) ?? null,
       steps: (Array.isArray(r.steps) ? (r.steps as Record<string, unknown>[]) : []).map((x) => ({ text: String(x.text ?? ""), done: !!x.done, by: (x.by as string) ?? null, at: (x.at as string) ?? null })),
       comments: ((r.team_task_comments as Record<string, unknown>[]) ?? [])
         .map((x) => ({ id: String(x.id), body: String(x.body), authorId: (x.author_id as string) ?? null, authorName: String(x.author_name ?? "Membre"), at: String(x.created_at) }))
@@ -212,6 +215,8 @@ export async function tidyDoneTasks(): Promise<{ count?: number; error?: string 
   const { data, error } = await rpc("team_tasks_tidy_mine");
   return error ? { error: error.message } : { count: Number(data ?? 0) };
 }
+/** Prendre une tâche d'un poste, de toute l'équipe ou reprise d'une passation : elle devient la mienne. */
+export const takeTask = (id: string) => rpc("team_task_take", { _id: id }).then(done);
 export const commentTask = (id: string, body: string) => rpc("team_task_comment", { _task: id, _body: body }).then(done);
 
 /* ─── Listes de contrôle ─── */
