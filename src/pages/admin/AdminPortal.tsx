@@ -6,7 +6,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House, UsersRound, Workflow, Landmark, Send, SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -61,39 +61,39 @@ export type { TabId };
 interface NavItem { id: TabId; label: string; desc: string; icon: typeof Inbox }
 interface NavGroup { label: string | null; items: NavItem[]; menu?: { label: string; icon: typeof Inbox } }
 
+// Mon espace et Tableau de bord restent à plat ; le reste est rangé en sections qui se déplient (une à la fois).
 const GROUPS: NavGroup[] = [
   { label: null, items: [
     { id: "me", label: "Mon espace", desc: "Vos tâches, les notes de l'équipe, vos commandes en cours et votre bloc-notes.", icon: House },
     { id: "dashboard", label: "Tableau de bord", desc: "Volumes, marge, alertes et actions à traiter.", icon: LayoutDashboard },
   ] },
-  { label: "Équipe", items: [
+  { label: "Équipe", menu: { label: "Équipe", icon: UsersRound }, items: [
     { id: "notes", label: "Notes à l'équipe", desc: "Un mot à toute l'équipe ou à un poste : on voit qui l'a lu, et on y répond.", icon: StickyNote },
     { id: "tasks", label: "Tâches", desc: "Ce que chacun a à faire : confié à une personne ou à un poste, avec une échéance.", icon: ListTodo },
   ] },
-  { label: "Opérations", items: [
+  { label: "Opérations", menu: { label: "Opérations", icon: Workflow }, items: [
     { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
     { id: "orders", label: "Commandes", desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
     { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: AutoSettle },
   ] },
-  { label: "Clients", items: [
+  { label: "Clients", menu: { label: "Clients", icon: BookUser }, items: [
     { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: BookUser },
     { id: "kyc", label: "Vérifications", desc: "Identité des particuliers et des entreprises, avant leurs transactions.", icon: ScanFace },
   ] },
-  { label: "Finance et conformité", items: [
+  { label: "Finance et conformité", menu: { label: "Finance et conformité", icon: Landmark }, items: [
     { id: "accounting", label: "Comptabilité", desc: "Bénéfice net, marges, recharges de stock, dépenses et exports pour le comptable.", icon: Calculator },
     { id: "treasury", label: "Trésorerie", desc: "Stock d'USDT par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: Vault },
     { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: ShieldCheck },
   ] },
-  { label: "Communication", items: [
+  { label: "Communication", menu: { label: "Communication", icon: Send }, items: [
     { id: "mailbox", label: "Messagerie", desc: "Écrire à un client à partir d'un modèle, historique des envois, boîte de réception.", icon: Mail },
     { id: "campaigns", label: "Marketing", desc: "Campagnes, parcours automatiques et résultats, sous votre contrôle.", icon: Megaphone },
     { id: "announcements", label: "Bannière et maintenance", desc: "Message en haut du site pour tous les clients, et mode maintenance qui suspend les commandes.", icon: Bell },
   ] },
-  { label: "Administration", items: [
+  { label: "Administration", menu: { label: "Administration", icon: SlidersHorizontal }, items: [
     { id: "team", label: "Équipe", desc: "Membres, rôles et permissions, et le journal de toutes les actions de l'équipe.", icon: Users },
     { id: "platform", label: "Réglages", desc: "Ouverture, courriels, santé, tests, démarrage et sauvegardes.", icon: Settings2 },
   ] },
-  // Ressources : un seul bouton qui se déplie, au lieu de trois entrées de plus dans le menu.
   { label: "Ressources", menu: { label: "Ressources", icon: Library }, items: [
     { id: "kb", label: "Base de connaissances", desc: "Une fiche par geste du quotidien, pour toute l'équipe.", icon: BookOpen },
     { id: "manual", label: "Manuel", desc: "La référence de fonctionnement d'Ooble, chapitre par chapitre.", icon: BookMarked },
@@ -216,9 +216,9 @@ const AdminPortal = () => {
   const visibleNav = useMemo(() => NAV.filter((n) => allowedTabs.has(n.id)), [allowedTabs]);
 
   const [tab, setTabState] = useState<TabId>(() => readTab() ?? "me");
-  // Menu « Ressources » : ouvert d'office quand on est sur une de ses pages.
-  const [menuOpen, setMenuOpen] = useState(() => GROUP_OF.get(readTab() ?? "me") === "Ressources");
-  useEffect(() => { if (GROUP_OF.get(tab) === "Ressources") setMenuOpen(true); }, [tab]);
+  // Sections de la barre : une seule ouverte à la fois, celle de la page affichée s'ouvre d'office.
+  const [openGroup, setOpenGroup] = useState<string | null>(() => GROUP_OF.get(readTab() ?? "me") ?? null);
+  useEffect(() => { const g = GROUP_OF.get(tab); if (g) setOpenGroup(g); }, [tab]);
   useEffect(() => {
     // Page interdite ou absente : on arrive sur la page d'accueil du rôle principal.
     if (roles.length > 0 && !allowedTabs.has(tab)) setTabState(homeFor(roles));
@@ -423,8 +423,11 @@ const AdminPortal = () => {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: compact ? "4px 0 10px" : "4px 12px 14px", display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center" }}>
           {visibleGroups.map((g, gi) => {
-            const isMenu = !!g.menu;
+            // Une section qui ne garde qu'une page (selon le rôle) s'affiche comme une page simple.
+            const isMenu = !!g.menu && g.items.length > 1;
             const inMenu = isMenu && g.items.some((i) => i.id === tab);
+            const menuOpen = isMenu && openGroup === g.label;
+            const menuBadge = isMenu && !menuOpen ? g.items.reduce((a, i) => a + (badges[i.id] ?? 0), 0) : 0;
             const MenuIcon = g.menu?.icon ?? Library;
             const itemButtons = g.items.map((it) => {
                 const on = it.id === tab;
@@ -455,11 +458,11 @@ const AdminPortal = () => {
                 );
               });
             return (
-              <div key={g.label ?? gi} style={{ marginTop: gi ? (compact ? 10 : 20) : 0, display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                {g.label && !compact && !isMenu && <p className="sh-grp">{g.label}</p>}
+              <div key={g.label ?? gi} style={{ marginTop: gi === 0 ? 0 : g.label && !visibleGroups[gi - 1].label ? (compact ? 10 : 18) : (compact ? 2 : 1), display: compact ? "flex" : "block", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                {g.label && !compact && !g.menu && <p className="sh-grp">{g.label}</p>}
                 {!isMenu ? itemButtons : (
                   <>
-                    <button type="button" className="sh-nav" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}
+                    <button type="button" className="sh-nav" onClick={() => setOpenGroup((v) => (v === g.label ? null : g.label))} aria-expanded={menuOpen}
                       aria-label={compact ? g.menu!.label : undefined} title={compact ? g.menu!.label : undefined}
                       style={{
                         position: "relative", display: "flex", alignItems: "center", gap: 12, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
@@ -471,11 +474,14 @@ const AdminPortal = () => {
                         ...(compact ? {} : { gap: 10 }),
                       }}>
                       {compact
-                        ? <MenuIcon style={{ width: 23, height: 23, flexShrink: 0 }} strokeWidth={inMenu ? 2 : 1.75} />
+                        ? <MenuIcon className="sh-rail-ic" style={{ width: 20, height: 20, flexShrink: 0 }} strokeWidth={inMenu ? 1.9 : 1.7} />
                         : <span className="sh-ic" data-on={inMenu && !menuOpen} style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: inMenu && !menuOpen ? C.t1 : "transparent", color: inMenu && !menuOpen ? C.bg : C.t3 }}>
                             <MenuIcon style={{ width: 16, height: 16 }} strokeWidth={inMenu ? 1.9 : 1.6} />
                           </span>}
-                      {!compact && <span style={{ flex: 1, minWidth: 0 }}><span className="sh-tx">{g.menu!.label}</span></span>}
+                      {!compact && <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "4px 0" }}><span className="sh-tx">{g.menu!.label}</span></span>}
+                      {!!menuBadge && (compact
+                        ? <span style={{ position: "absolute", top: 1, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99, background: C.warnBg, color: C.warnText, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums", boxShadow: `0 0 0 2px ${C.ground}` }}>{menuBadge}</span>
+                        : <span style={{ fontSize: 11.5, fontWeight: 500, minWidth: 20, height: 20, padding: "0 7px", borderRadius: 99, background: "rgba(242,97,61,.12)", color: "var(--a-coral)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>{menuBadge}</span>)}
                       <ChevronDown className="sh-chev" style={{
                         width: compact ? 12 : 16, height: compact ? 12 : 16, color: C.t3, flexShrink: 0, transform: menuOpen ? "rotate(180deg)" : "none",
                         ...(compact ? { position: "absolute", bottom: 3, left: "50%", marginLeft: -6 } : {}),
