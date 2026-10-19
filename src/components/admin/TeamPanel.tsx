@@ -193,6 +193,7 @@ const TeamPanel = () => {
           </>}>
           <p style={{ margin: "0 0 20px", fontSize: 13, lineHeight: 1.6, color: C.t2 }}>
             La personne crée d'abord son compte Ooble normalement, puis vous lui donnez ses rôles ici avec son courriel.
+            Elle reçoit automatiquement ses tâches de démarrage (premiers pas et prise en main de son poste), à faire dans la semaine.
           </p>
           <Field label="Courriel du compte">
             <TextInput type="email" spellCheck={false} autoCapitalize="none" autoFocus placeholder="prenom@exemple.ca"
