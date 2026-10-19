@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { orderRef } from "@/lib/orders";
 import { roleLabel, sortRoles } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, firstName, onOpenActivity, shiftSummary, isLate, loadHandoffs, loadMemberCard, loadTasks, memberById, onOpenMember,
+  PRESENCE_LABEL, STATUS_LABEL, firstName, loadMemberBundle, onOpenActivity, peekMemberBundle, shiftSummary, isLate, memberById, onOpenMember,
   type Handoff, type MemberCard, type TeamTask,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
@@ -47,17 +47,17 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
   const me = user?.id ?? "";
   const members = useMembers();
   const m = members.find((x) => x.userId === userId) ?? memberById(userId);
-  const [card, setCard] = useState<MemberCard | null | undefined>(undefined);
-  const [tasks, setTasks] = useState<TeamTask[] | null>(null);
-  const [handoffs, setHandoffs] = useState<Handoff[]>([]);
+  // Déjà en mémoire (préchargée au survol ou au toucher de l'avatar) : la fiche s'ouvre remplie, puis se met à jour.
+  const cached = peekMemberBundle(userId);
+  const [card, setCard] = useState<MemberCard | null | undefined>(cached ? cached.card : undefined);
+  const [tasks, setTasks] = useState<TeamTask[] | null>(cached?.tasks ?? null);
+  const [handoffs, setHandoffs] = useState<Handoff[]>(cached?.handoffs ?? []);
   const [profile, setProfile] = useState(false);
   const [giving, setGiving] = useState(false);
   const { shifts } = useShifts();
 
   const load = useCallback(() => {
-    loadMemberCard(userId).then(setCard).catch(() => setCard(null));
-    loadTasks(false).then((l) => setTasks(l.filter((t) => t.assigneeId === userId && t.status !== "done"))).catch(() => setTasks([]));
-    loadHandoffs().then((l) => setHandoffs(l.filter((h) => h.authorId === userId).slice(0, 3))).catch(() => setHandoffs([]));
+    loadMemberBundle(userId).then((b) => { setCard(b.card); setTasks(b.tasks); setHandoffs(b.handoffs); });
   }, [userId]);
   useEffect(() => { load(); }, [load]);
   useTeamLive(load, ["team_tasks", "team_handoffs", "team_profiles"]);
@@ -85,7 +85,13 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
 
   return (
     <SidePanel title={self ? "Ma fiche" : `Fiche de ${firstName(m.name)}`} subtitle={roles || "Membre de l'équipe"} onClose={onClose} width={540}>
-      <style>{TV_CSS}</style>
+      <style>{TV_CSS + `
+.mb-sk { display: block; border-radius: 6px; background: var(--a-hover3); animation: mb-pulse 1.2s ease-in-out infinite; }
+@keyframes mb-pulse { 50% { opacity: .5; } }
+.mb-in { animation: mb-fade .25s ease-out; }
+@keyframes mb-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mb-sk, .mb-in { animation: none; } }
+`}</style>
       <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
         <TeamAvatar id={m.userId} name={m.name} size={84} presence />
         <div style={{ minWidth: 0 }}>
@@ -109,6 +115,16 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
       </div>
 
       {head("En ce moment")}
+      {card === undefined && (
+        <div aria-hidden="true">
+          {[0, 1].map((i) => (
+            <div key={i} style={{ padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
+              <span className="mb-sk" style={{ width: "62%", height: 14 }} />
+              <span className="mb-sk" style={{ width: "38%", height: 11, marginTop: 7 }} />
+            </div>
+          ))}
+        </div>
+      )}
       {card !== undefined && openOrders.length === 0 && (tasks?.length ?? 0) === 0 && <p style={{ margin: 0, padding: "10px 0", fontSize: 14, color: C.t3 }}>Rien en cours.</p>}
       {openOrders.map((o) => (
         <button key={o.id} type="button" style={row} disabled={!onOpenOrder} onClick={() => onOpenOrder?.(o.id)}>

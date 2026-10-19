@@ -440,3 +440,27 @@ export async function loadActivity(before?: string): Promise<ActivityItem[]> {
 const ACTIVITY_EVENT = "ooble:open-activity";
 export const openActivity = () => window.dispatchEvent(new CustomEvent(ACTIVITY_EVENT));
 export const onOpenActivity = (fn: () => void) => { window.addEventListener(ACTIVITY_EVENT, fn); return () => window.removeEventListener(ACTIVITY_EVENT, fn); };
+
+/* ─── Fiche d'un membre : données gardées en mémoire, préchargées au survol ou au toucher ─── */
+export interface MemberBundle { card: MemberCard | null; tasks: TeamTask[]; handoffs: Handoff[] }
+const bundles = new Map<string, MemberBundle>();
+const inflightBundles = new Map<string, Promise<MemberBundle>>();
+/** Ce qu'on sait déjà de ce membre (affiché tout de suite, puis remis à jour). */
+export const peekMemberBundle = (userId: string) => bundles.get(userId) ?? null;
+export function loadMemberBundle(userId: string): Promise<MemberBundle> {
+  const running = inflightBundles.get(userId);
+  if (running) return running;
+  const p = Promise.all([
+    loadMemberCard(userId).catch(() => null),
+    loadTasks(false).then((l) => l.filter((t) => t.assigneeId === userId && t.status !== "done")).catch(() => [] as TeamTask[]),
+    loadHandoffs().then((l) => l.filter((h) => h.authorId === userId).slice(0, 3)).catch(() => [] as Handoff[]),
+  ]).then(([card, tasks, handoffs]) => {
+    const b = { card, tasks, handoffs };
+    bundles.set(userId, b);
+    return b;
+  }).finally(() => inflightBundles.delete(userId));
+  inflightBundles.set(userId, p);
+  return p;
+}
+/** Précharge la fiche (au survol d'un avatar, ou dès qu'on le touche) : elle s'ouvre déjà remplie. */
+export const prefetchMember = (userId: string) => { if (!bundles.has(userId)) void loadMemberBundle(userId); };

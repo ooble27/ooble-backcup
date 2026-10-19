@@ -14,7 +14,7 @@ import { KeyValues, Pill } from "./layout";
 import { DEPOSIT_PILL, OrderChannel, OrderStatusPill, PAYOUT_PILL } from "./orderBits";
 import { LinkedTasks, TeamAvatar } from "./TeamViews";
 import { ApprovalForm } from "./TeamApprovals";
-import { openMember } from "@/lib/teamSpace";
+import { openMember, prefetchMember } from "@/lib/teamSpace";
 
 interface Props {
   order: AdminOrder;
@@ -361,7 +361,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
           {/* Qui traite la commande : son avatar, en haut. */}
           {order.assignedId && order.assignedTo ? (
             <p style={{ margin: "14px 0 0", display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.t2 }}>
-              <button type="button" title="Voir sa fiche" onClick={() => openMember(order.assignedId!)} style={{ all: "unset", cursor: "pointer", display: "inline-flex", borderRadius: 99 }}>
+              <button type="button" title="Voir sa fiche" onPointerEnter={() => prefetchMember(order.assignedId!)} onPointerDown={() => prefetchMember(order.assignedId!)} onClick={() => openMember(order.assignedId!)} style={{ all: "unset", cursor: "pointer", display: "inline-flex", borderRadius: 99 }}>
                 <TeamAvatar id={order.assignedId} name={order.assignedTo} size={32} presence />
               </button>
               <span>{order.assignedTo === CURRENT_OPERATOR

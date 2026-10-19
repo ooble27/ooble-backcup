@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, takeTask, openMember, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, onMembersChange, peekMembers, removeTask, saveTask,
+  PRESENCE_LABEL, STATUS_LABEL, archiveTask, checkTaskStep, takeTask, openMember, prefetchMember, firstName, commentTask, findOrder, hideChecklistTemplate, loadChecklistTemplates, saveChecklistTemplate, setTaskSteps, isLate, isMine, loadMembers, loadTasks, memberById, onMembersChange, peekMembers, removeTask, saveTask,
   searchClients, setTaskStatus, todayToronto,
   type AvatarBg, type Audience, type ChecklistTemplate, type NameColor, type TaskInput, type TaskStatus, type TeamMember, type TeamTask,
 } from "@/lib/teamSpace";
@@ -144,6 +144,7 @@ export function TeamFaces({ title, rows, onPick }: { title: string; rows: { id: 
       <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>{title}</p>
       {rows.map((r) => (
         <div key={r.id} className="tv-face" role="button" tabIndex={0} title={`Voir la fiche de ${r.name}`}
+          onPointerEnter={() => prefetchMember(r.id)} onPointerDown={() => prefetchMember(r.id)}
           onClick={() => (onPick ?? openMember)(r.id)} onKeyDown={(e) => { if (e.key === "Enter") (onPick ?? openMember)(r.id); }} style={{ cursor: "pointer" }}>
           <TeamAvatar name={r.name} id={r.id} size={32} presence />
           <span className="tv-face-b">
