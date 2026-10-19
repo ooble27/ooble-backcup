@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { prefetchOrder } from "@/lib/orderDetailCache";
 import { Download, Inbox } from "lucide-react";
-import { CURRENT_OPERATOR, STATUS_META, TYPE_META, nfCad, nfUsdt, type AdminOrder, type OrderStatus } from "@/lib/adminOrders";
-import { TeamAvatar } from "./TeamViews";
+import { STATUS_META, TYPE_META, nfCad, nfUsdt, type AdminOrder, type OrderStatus } from "@/lib/adminOrders";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { Avatar, DataTable, EmptyState, SearchField, Tabs, Toolbar, TwoLine, type Column } from "./layout";
@@ -57,9 +56,6 @@ const OrdersList = ({ orders, onOpen }: Props) => {
     { key: "ref", header: "Référence", sort: (o) => o.ref, hideBelow: 1100, render: (o) => <span style={{ color: C.t2 }}>{o.ref}</span> },
     { key: "type", header: "Opération", hideBelow: 900, render: (o) => <TwoLine primary={typeLabel(o)} secondary={<OrderChannel order={o} />} /> },
     { key: "status", header: "Statut", sort: (o) => o.status, render: (o) => <OrderStatusPill status={o.status} /> },
-    { key: "by", header: "Traitée par", hideBelow: 1000, sort: (o) => o.assignedTo ?? (o.status === "termine" ? "~Système" : "~~"), render: (o) => o.assignedId && o.assignedTo
-        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}><TeamAvatar id={o.assignedId} name={o.assignedTo} size={24} /><span style={{ color: o.assignedTo === CURRENT_OPERATOR ? C.t1 : C.t2, fontWeight: o.assignedTo === CURRENT_OPERATOR ? 500 : 400 }}>{o.assignedTo}</span></span>
-        : <span style={{ color: C.t3 }}>{o.status === "termine" ? "Système" : "—"}</span> },
     { key: "amount", header: "Montant", align: "right", sort: (o) => o.cad, render: (o) => <TwoLine primary={`${nfCad.format(o.cad)} $`} secondary={`${nfUsdt.format(o.usdt)} USDT`} /> },
     { key: "date", header: "Date", align: "right", sort: (o) => -o.createdMinsAgo, hideBelow: 760, render: (o) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateOf(o.createdMinsAgo)}</span> },
   ];
