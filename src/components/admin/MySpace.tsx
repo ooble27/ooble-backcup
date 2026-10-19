@@ -15,6 +15,7 @@ import { ProfilePanel } from "./TeamProfile";
 import { PersonPicker } from "./TeamViews";
 import { Opts } from "./GrowthPanel";
 import { ApprovalsBlock } from "./TeamApprovals";
+import { OnCallLine } from "./TeamPlanning";
 
 /**
  * Mon espace : la page d'accueil de chaque membre, dans le style du back-office (grande phrase,
@@ -156,6 +157,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
               <button type="button" className="tv-link" style={{ marginTop: 3 }} onClick={() => setProfile(true)}>Modifier mon profil</button>
             </span>
           </div>
+          <OnCallLine />
           <h2 className="hz-title tv-rise" style={{ animationDelay: "60ms" }}>
             {hello()}{first ? <>, <span style={{ color: nameColor(myself?.color) }}>{first}</span></> : ""}.{" "}
             {!ready ? <span className="mute">…</span>

@@ -4,13 +4,14 @@ import { useAuth } from "@/lib/auth";
 import { orderRef } from "@/lib/orders";
 import { roleLabel, sortRoles } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, firstName, isLate, loadHandoffs, loadMemberCard, loadTasks, memberById, onOpenMember,
+  PRESENCE_LABEL, STATUS_LABEL, firstName, shiftSummary, isLate, loadHandoffs, loadMemberCard, loadTasks, memberById, onOpenMember,
   type Handoff, type MemberCard, type TeamTask,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
 import { SidePanel } from "./ui";
 import { TaskForm, TeamAvatar, TV_CSS, dueLabel, nameColor, plural, useMembers, useTeamLive, when } from "./TeamViews";
 import { ProfilePanel } from "./TeamProfile";
+import { useShifts } from "./TeamPlanning";
 
 /**
  * Fiche d'un membre de l'équipe, ouverte en touchant son avatar (L'équipe, Qui a quoi, Dans ce canal, une commande) :
@@ -42,6 +43,7 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
   const [handoffs, setHandoffs] = useState<Handoff[]>([]);
   const [profile, setProfile] = useState(false);
   const [giving, setGiving] = useState(false);
+  const { shifts } = useShifts();
 
   const load = useCallback(() => {
     loadMemberCard(userId).then(setCard).catch(() => setCard(null));
@@ -83,6 +85,7 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
             <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, marginRight: 7, background: m.status === "available" ? "var(--a-sage)" : m.status === "busy" ? "var(--a-sun)" : "var(--a-t3)" }} />
             {presence}{m.status !== "available" && m.statusNote ? ` · ${m.statusNote}` : ""}
           </p>
+          {shifts && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.t3 }}>{shiftSummary(shifts, m.userId) ? `De garde : ${shiftSummary(shifts, m.userId)}` : "Aucune heure de garde"}</p>}
           {card?.joined && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.t3 }}>Dans l'équipe depuis le {new Date(card.joined).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })}</p>}
         </div>
       </div>

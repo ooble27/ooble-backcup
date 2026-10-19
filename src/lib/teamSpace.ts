@@ -381,3 +381,48 @@ export async function loadMemberCard(userId: string): Promise<MemberCard | null>
     ordersOpen: ((d.orders_open as Record<string, unknown>[]) ?? []).map((o) => ({ id: String(o.id), side: String(o.side), cad: Number(o.cad), status: String(o.status), client: String(o.client) })),
   };
 }
+
+/* ─── Planning de garde ─── */
+export interface Shift { userId: string; dow: number; starts: string; ends: string }
+export const DOW_LABEL = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+export const DOW_SHORT = ["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+export async function loadShifts(): Promise<Shift[]> {
+  const { data, error } = await table("team_shifts").select("user_id, dow, starts, ends").eq("active", true);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ userId: String(r.user_id), dow: Number(r.dow), starts: String(r.starts).slice(0, 5), ends: String(r.ends).slice(0, 5) }));
+}
+/** Administrateurs : écrit la plage d'un membre pour un jour (starts nul : pas de garde ce jour-là). */
+export const setShift = (userId: string, dow: number, starts: string | null, ends: string | null) =>
+  rpc("team_shift_set", { _user: userId, _dow: dow, _starts: starts, _ends: ends }).then(done);
+/** « 9 h », « 17 h 30 ». */
+export const hourLabel = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return m ? `${h} h ${String(m).padStart(2, "0")}` : `${h} h`; };
+export const shiftLabel = (s: Pick<Shift, "starts" | "ends">) => `${hourLabel(s.starts)} – ${hourLabel(s.ends)}`;
+/** Jour (1 = lundi) et heure à Montréal. */
+export function nowMontreal() {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
+  const wd = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
+  const dow = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(wd) + 1;
+  const hh = (parts.find((p) => p.type === "hour")?.value ?? "00").replace("24", "00");
+  return { dow, time: `${hh}:${parts.find((p) => p.type === "minute")?.value ?? "00"}` };
+}
+/** La plage qui couvre maintenant ce membre (garde de nuit comprise), sinon null. Même règle que la base. */
+export function currentShift(shifts: Shift[], userId: string): Shift | null {
+  const { dow, time } = nowMontreal();
+  const prev = dow === 1 ? 7 : dow - 1;
+  for (const s of shifts) {
+    if (s.userId !== userId) continue;
+    if (s.dow === dow && ((s.starts < s.ends && time >= s.starts && time < s.ends) || (s.starts > s.ends && time >= s.starts))) return s;
+    if (s.dow === prev && s.starts > s.ends && time < s.ends) return s;
+  }
+  return null;
+}
+/** Résumé lisible des heures d'un membre : « Lun – Ven · 9 h – 17 h ; Sam · 10 h – 14 h ». */
+export function shiftSummary(shifts: Shift[], userId: string): string {
+  const mine = shifts.filter((s) => s.userId === userId).sort((a, b) => a.dow - b.dow);
+  const groups: { from: number; to: number; label: string }[] = [];
+  for (const s of mine) {
+    const label = shiftLabel(s), last = groups[groups.length - 1];
+    if (last && last.label === label && last.to === s.dow - 1) last.to = s.dow; else groups.push({ from: s.dow, to: s.dow, label });
+  }
+  return groups.map((g) => `${g.from === g.to ? DOW_SHORT[g.from] : `${DOW_SHORT[g.from]} – ${DOW_SHORT[g.to]}`} · ${g.label}`).join(" ; ");
+}
