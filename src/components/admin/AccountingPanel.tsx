@@ -147,7 +147,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
 
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
 
-      <Section title="Bénéfice net" description="Au coût moyen pondéré : chaque unité vendue sort au coût moyen du stock (recharges et cryptomonnaie rachetée aux clients ; USDC et USDT forment un même stock de dollars américains numériques), puis les dépenses sont déduites.">
+      <Section title="Bénéfice net" description="Au coût moyen pondéré : chaque unité vendue sort au coût moyen du stock (recharges et USDC rachetés aux clients), puis les dépenses sont déduites.">
         <ProfitStatement pnl={pnl} />
       </Section>
 
