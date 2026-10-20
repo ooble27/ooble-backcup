@@ -361,6 +361,7 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          assets: Json
           buy_margin_pct: number
           id: number
           interac_email: string
@@ -384,6 +385,7 @@ export type Database = {
           verification_enabled: boolean
         }
         Insert: {
+          assets?: Json
           buy_margin_pct?: number
           id?: number
           interac_email?: string
@@ -407,6 +409,7 @@ export type Database = {
           verification_enabled?: boolean
         }
         Update: {
+          assets?: Json
           buy_margin_pct?: number
           id?: number
           interac_email?: string
@@ -484,6 +487,7 @@ export type Database = {
       }
       blockchain_transactions: {
         Row: {
+          asset: Database["public"]["Enums"]["crypto_asset"]
           confirmations: number
           confirmed: boolean
           created_at: string
@@ -496,6 +500,7 @@ export type Database = {
           usdt_amount: number
         }
         Insert: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           confirmations?: number
           confirmed?: boolean
           created_at?: string
@@ -508,6 +513,7 @@ export type Database = {
           usdt_amount: number
         }
         Update: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           confirmations?: number
           confirmed?: boolean
           created_at?: string
@@ -776,6 +782,7 @@ export type Database = {
       }
       chain_deposits: {
         Row: {
+          asset: Database["public"]["Enums"]["crypto_asset"]
           block_time: string
           created_at: string
           from_address: string | null
@@ -793,6 +800,7 @@ export type Database = {
           usdt_amount: number
         }
         Insert: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           block_time: string
           created_at?: string
           from_address?: string | null
@@ -810,6 +818,7 @@ export type Database = {
           usdt_amount: number
         }
         Update: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           block_time?: string
           created_at?: string
           from_address?: string | null
@@ -1304,6 +1313,7 @@ export type Database = {
       }
       exchange_rates: {
         Row: {
+          asset: Database["public"]["Enums"]["crypto_asset"]
           buy_rate: number
           fetched_at: string
           id: number
@@ -1312,6 +1322,7 @@ export type Database = {
           source: string
         }
         Insert: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           buy_rate: number
           fetched_at?: string
           id?: never
@@ -1320,6 +1331,7 @@ export type Database = {
           source: string
         }
         Update: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           buy_rate?: number
           fetched_at?: string
           id?: never
@@ -1959,6 +1971,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          asset: Database["public"]["Enums"]["crypto_asset"]
           hidden: boolean
           is_test: boolean
           assigned_at: string | null
@@ -1986,6 +1999,7 @@ export type Database = {
           bonus_reason: string | null
         }
         Insert: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           hidden?: boolean
           is_test?: boolean
           assigned_at?: string | null
@@ -2013,6 +2027,7 @@ export type Database = {
           bonus_reason?: string | null
         }
         Update: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           hidden?: boolean
           is_test?: boolean
           assigned_at?: string | null
@@ -2660,6 +2675,7 @@ export type Database = {
       }
       usdt_payouts: {
         Row: {
+          asset: Database["public"]["Enums"]["crypto_asset"]
           created_at: string
           error: string | null
           from_address: string | null
@@ -2675,6 +2691,7 @@ export type Database = {
           usdt_amount: number
         }
         Insert: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           created_at?: string
           error?: string | null
           from_address?: string | null
@@ -2690,6 +2707,7 @@ export type Database = {
           usdt_amount: number
         }
         Update: {
+          asset?: Database["public"]["Enums"]["crypto_asset"]
           created_at?: string
           error?: string | null
           from_address?: string | null
@@ -3035,6 +3053,7 @@ export type Database = {
       wallet_sanctioned: { Args: { _address: string }; Returns: boolean }
     }
     Enums: {
+      crypto_asset: "usdt" | "usdc"
       account_type: "individual" | "business"
       announcement_kind: "info" | "warning" | "critical"
       app_role:
@@ -3192,6 +3211,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      crypto_asset: ["usdt", "usdc"],
       account_type: ["individual", "business"],
       announcement_kind: ["info", "warning", "critical"],
       app_role: [

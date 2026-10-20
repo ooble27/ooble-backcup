@@ -106,6 +106,7 @@ async function complete(db: SupabaseClient, payoutId: string) {
     ref: ref(o.id),
     summaryLabel: "Vous avez reçu",
     summaryValue: `${nfUsdt(Number(o.usdt_amount))} ${SYM(o.asset)}`,
+    asset: SYM(o.asset),
     network: NET_LABEL[o.network] ?? o.network,
     txHash: p.tx_hash,
     txLinkHtml: txLinkHtml(o.network, p.tx_hash),

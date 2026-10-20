@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { TKey } from "@/lib/translations";
 import type { Database } from "@/integrations/supabase/types";
 import { EXPLORER_NAME, fetchOutboundTx, txUrl } from "@/lib/settlement";
+import { assetSymbol } from "@/lib/assets";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
 
@@ -92,7 +93,7 @@ export const OrderDetailContent = ({ o }: { o: OrderRow }) => {
   const link = tx ? txUrl(tx.network, tx.tx_hash) : "";
   const rows: { label: string; value: string; mono?: boolean; copy?: boolean }[] = [
     { label: t("act.ref"), value: orderRef(o.id), copy: true },
-    { label: t("act.rate"), value: `1 USDT = ${nf.format(Number(o.locked_rate))} CAD` },
+    { label: t("act.rate"), value: `1 ${assetSymbol(o.asset)} = ${nf.format(Number(o.locked_rate))} CAD` },
     { label: t("act.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
     ...(buy && o.wallet_address && o.wallet_address !== "à générer"
       ? [{ label: t("act.recvAddr"), value: o.wallet_address, mono: true, copy: true }]
@@ -107,7 +108,7 @@ export const OrderDetailContent = ({ o }: { o: OrderRow }) => {
       <div className="mb-8">
         <p className="flex items-center gap-2.5 font-display text-[40px] font-semibold leading-none tracking-tight tabular-nums">
           <img src="/coins/usdt.svg" alt="" className="h-8 w-8 shrink-0" />
-          {nfUsdt.format(Number(o.usdt_amount))} <span className="text-[20px] font-medium text-muted-foreground">USDT</span>
+          {nfUsdt.format(Number(o.usdt_amount))} <span className="text-[20px] font-medium text-muted-foreground">{assetSymbol(o.asset)}</span>
         </p>
         <p className="mt-2 text-[15px] text-muted-foreground">{nf.format(Number(o.cad_amount))} CAD · <span className="text-foreground">{t(statusKey(o))}</span></p>
       </div>

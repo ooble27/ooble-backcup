@@ -4,6 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 import type { NetId } from "@/components/app/networks";
 import { getLang } from "@/lib/i18n";
 import { peekCache, putCache } from "@/lib/cache";
+import type { AssetId } from "@/lib/settings";
 
 type DbNetwork = Database["public"]["Enums"]["usdt_network"];
 type DbSide = Database["public"]["Enums"]["order_side"];
@@ -53,6 +54,7 @@ export interface CreateOrderInput {
   senderAddress?: string;  // vente : adresse d'où le client envoie ses USDT
   senderPlatform?: string; // vente : plateforme d'échange utilisée à la place
   promoCode?: string;      // code promo saisi (la base l'applique, ou refuse la commande)
+  asset?: AssetId;         // cryptomonnaie : USDT (par défaut) ou USDC
 }
 
 export interface TradeAllowance {
@@ -145,6 +147,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
       usdt_amount: round6(input.usdt),
       locked_rate: round6(input.rate),
       network: input.network ? NET_TO_DB[input.network] : "trc20",
+      asset: input.asset ?? "usdt",
       wallet_address: walletAddress,
       interac_email: input.side === "sell" ? (input.interacEmail ?? null) : null,
       sender_address: input.side === "sell" ? (input.senderAddress?.trim() || null) : null,
@@ -158,7 +161,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
 
   if (error) {
     // Réseau fermé dans Réglages : message de la base, sans son code technique.
-    const m = error.message.replace(/^NETWORK_CLOSED:\s*/, "");
+    const m = error.message.replace(/^(NETWORK_CLOSED|ASSET_CLOSED|ASSET_NETWORK):\s*/, "");
     return { error: m.charAt(0).toUpperCase() + m.slice(1) };
   }
   return { id: data.id };

@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
   const db = createClient(supabaseUrl, serviceKey);
   const { data: row } = await db
     .from("orders")
-    .select("id, user_id, side, cad_amount, usdt_amount, status, hidden")
+    .select("id, user_id, side, cad_amount, usdt_amount, status, hidden, asset")
     .eq("id", orderId)
     .maybeSingle();
   if (!row || row.status !== newStatus) return json({ ok: true, skipped: "mismatch" });
@@ -83,10 +83,12 @@ Deno.serve(async (req) => {
   const ref = `OOB-${orderId.slice(0, 8).toUpperCase()}`;
   const nf = (n: number, loc: string) => Number(n).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ");
   const usdt = row.usdt_amount as number, cad = row.cad_amount as number;
-  const i18n = messages(row.side as string, newStatus,
+  const base = messages(row.side as string, newStatus,
     { ref, usdt: nf(usdt, "fr-CA"), cad: nf(cad, "fr-CA") },
     { ref, usdt: nf(usdt, "en-CA"), cad: nf(cad, "en-CA") });
-  if (!i18n) return json({ ok: true, skipped: "silent_status" });
+  if (!base) return json({ ok: true, skipped: "silent_status" });
+  // Commande en USDC : les messages parlent d'USDT ; on nomme l'actif réel.
+  const i18n = row.asset === "usdc" ? JSON.parse(JSON.stringify(base).replace(/\bUSDT\b/g, "USDC")) as typeof base : base;
 
   // Envoyer la notification push via push-notify
   try {

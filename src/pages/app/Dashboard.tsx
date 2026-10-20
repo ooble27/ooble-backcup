@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import InAppMessage from "@/components/app/InAppMessage";
+import { openAssets, primaryAsset } from "@/lib/assets";
 
 /** Le taux d'achat (cours du marché + marge d'achat), à 4 décimales. */
 const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
@@ -83,12 +84,17 @@ const Trade = ({ to, icon: Icon, name, desc, open }: { to: string; icon: React.E
 const Dashboard = () => {
   const t = useT();
   // Relu toutes les 5 secondes : le serveur le recalcule toutes les 10 secondes.
-  const rate = useUsdtRate({ live: true });
+  const settings = useAppSettings();
+  const { tradingEnabled, networks } = settings;
+  // Taux de la cryptomonnaie principale (la seule ouverte, sinon l'USDC) ; réseaux où elle existe.
+  const coin = primaryAsset(settings);
+  const single = openAssets(settings).length === 1;
+  const rate = useUsdtRate({ live: true, asset: coin.id });
   const history = useUsdtHistory();
 
   const { user, isStaff } = useAuth();
-  const { tradingEnabled, networks } = useAppSettings();
-  const openCount = openNetworks(networks).length;
+  const nets = openNetworks(networks, undefined, single ? coin.id : undefined);
+  const openCount = nets.length;
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
   useEffect(() => { getMyProfile().then(setProfile); }, []);
   const kybPending = profile?.businessStatus === "pending";
@@ -133,9 +139,9 @@ const Dashboard = () => {
       )}
 
       <div className="grid grid-cols-1 gap-x-16 gap-y-12 md:grid-cols-2">
-        {/* Taux USDT / CAD — toujours en premier */}
+        {/* Taux de la cryptomonnaie en CAD — toujours en premier */}
         <section className="flex flex-col">
-          <p className="ac-k">{t("dash.rate")}</p>
+          <p className="ac-k">{t("dash.rate").replace("USDT", coin.symbol)}</p>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="font-display text-[44px] font-light leading-none tracking-tight tabular-nums">
               {nfRate.format(rate.buy)}
@@ -162,7 +168,7 @@ const Dashboard = () => {
                 {openCount === 1 ? t("dash.networksOne") : t("dash.networks").replace("{n}", String(openCount))}
               </p>
               <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
-                {openNetworks(networks).map((n) => (
+                {nets.map((n) => (
                   <span key={n.id} className="flex items-center gap-2.5">
                     <img src={`/coins/${n.id}.svg`} alt="" className="h-6 w-6 rounded-full" draggable={false} />
                     <span className="whitespace-nowrap text-[14px]">{n.name}</span>

@@ -9,6 +9,7 @@ import AppShell from "@/components/app/AppShell";
 import type { Network } from "@/components/app/networks";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import type { AssetId } from "@/lib/settings";
 
 /** Titre d'une étape : « ← Retour » au-dessus, le titre en grand, une phrase. */
 export const StepHeader = ({ title, sub, onBack }: { title: string; sub?: string; onBack?: () => void }) => {
@@ -41,18 +42,21 @@ export const ClosedPage = ({ title, message }: { title: string; message: string 
   );
 };
 
-/** Le montant : étiquette, CAD / USDT et Min / Max en mots soulignés, le nombre en très grand. */
-export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, children }: {
+/**
+ * Le montant : étiquette, CAD / cryptomonnaie et Min / Max en mots soulignés, le nombre en très grand.
+ * L'unité « USDT » désigne la cryptomonnaie de la commande : `coin` donne son symbole affiché (USDC…).
+ */
+export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, coin = "USDT", children }: {
   label: string; units: U[]; unit: U; onUnit: (u: U) => void; value: string; onChange: (v: string) => void; disabled?: boolean;
-  onMin?: () => void; onMax?: () => void; children?: React.ReactNode;
+  onMin?: () => void; onMax?: () => void; coin?: string; children?: React.ReactNode;
 }) => (
   <div>
     <div className="flex flex-wrap items-baseline justify-between gap-3">
       <p className="ac-k">{label}</p>
       <div className="flex items-baseline gap-5">
-        <div className="ac-opts" role="group" aria-label="CAD / USDT">
+        <div className="ac-opts" role="group" aria-label={`CAD / ${coin}`}>
           {units.map((u) => (
-            <button key={u} type="button" aria-pressed={unit === u} onClick={() => onUnit(u)}>{u}</button>
+            <button key={u} type="button" aria-pressed={unit === u} onClick={() => onUnit(u)}>{u === "USDT" ? coin : u}</button>
           ))}
         </div>
         {(onMin || onMax) && (
@@ -74,8 +78,8 @@ export const AmountField = <U extends string>({ label, units, unit, onUnit, valu
         className="ac-in ac-amount"
       />
       <span className="pointer-events-none absolute bottom-4 right-0 flex items-center gap-1.5 text-[17px] font-medium text-muted-foreground">
-        {unit === "USDT" && <img src="/coins/usdt.svg" alt="" className="h-5 w-5" />}
-        {unit}
+        {unit === "USDT" && <img src={`/coins/${coin.toLowerCase()}.svg`} alt="" className="h-5 w-5" />}
+        {unit === "USDT" ? coin : unit}
       </span>
     </div>
     {children}
@@ -99,14 +103,17 @@ export const NetworkPick = ({ list, value, onPick }: { list: Network[]; value: s
   </div>
 );
 
-/** Récapitulatif : libellé à gauche, valeur à droite, séparés par un trait fin. `usdt` : logo USDT devant la valeur. */
-export const Facts = ({ rows }: { rows: { label: string; value: string; mono?: boolean; usdt?: boolean }[] }) => (
+/**
+ * Récapitulatif : libellé à gauche, valeur à droite, séparés par un trait fin.
+ * `usdt` : logo de la cryptomonnaie devant la valeur (`coin` : son symbole, USDT par défaut).
+ */
+export const Facts = ({ rows }: { rows: { label: string; value: string; mono?: boolean; usdt?: boolean; coin?: string }[] }) => (
   <div className="ac-lines">
     {rows.map((r) => (
       <div key={r.label} className={cn("ac-kv", r.mono && "mono")}>
         <span>{r.label}</span>
         <span className={r.usdt ? "inline-flex items-center justify-end gap-1.5" : undefined}>
-          {r.usdt && <img src="/coins/usdt.svg" alt="" className="h-[18px] w-[18px] shrink-0" />}
+          {r.usdt && <img src={`/coins/${(r.coin ?? "USDT").toLowerCase()}.svg`} alt="" className="h-[18px] w-[18px] shrink-0" />}
           {r.value}
         </span>
       </div>
@@ -126,3 +133,18 @@ export const Action = ({ children, onClick, to, disabled, quiet }: {
   if (to) return <Link to={to} className={cn("ac-act", quiet && "quiet")}>{inner}</Link>;
   return <button type="button" className={cn("ac-act", quiet && "quiet")} disabled={disabled} onClick={onClick}>{inner}</button>;
 };
+
+/** Choix de la cryptomonnaie, en mots soulignés ; rien n'est affiché quand une seule est proposée. */
+export const AssetPick = ({ list, value, onPick, label }: { list: { id: AssetId; symbol: string }[]; value: AssetId; onPick: (a: AssetId) => void; label: string }) =>
+  list.length < 2 ? null : (
+    <div className="mb-8 flex flex-wrap items-baseline justify-between gap-3">
+      <p className="ac-k">{label}</p>
+      <div className="ac-opts" role="group" aria-label={label}>
+        {list.map((a) => (
+          <button key={a.id} type="button" aria-pressed={value === a.id} onClick={() => onPick(a.id)} className="inline-flex items-center gap-1.5">
+            <img src={`/coins/${a.id}.svg`} alt="" className="h-4 w-4" />{a.symbol}
+          </button>
+        ))}
+      </div>
+    </div>
+  );

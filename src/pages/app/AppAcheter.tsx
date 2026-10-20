@@ -5,7 +5,8 @@ import { ArrowRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { Action, Actions, AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
+import { Action, Actions, AmountField, AssetPick, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
+import { ASSET_BY_ID, openAssets, type AssetId } from "@/lib/assets";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { PromoField, useBonus } from "@/components/app/Promo";
@@ -40,9 +41,15 @@ const AppAcheter = () => {
 };
 
 const AppAcheterForm = () => {
-  const rate = useUsdtRate();
+  const settings = useAppSettings();
+  const { tradeMinCad, tradeDailyMaxCad, networks, interacEmail, buyExpiryMinutes } = settings;
+  // Cryptomonnaie de l'achat : la seule ouverte, ou au choix du client (USDC d'abord).
+  const assets = openAssets(settings);
+  const [assetChoice, setAsset] = useState<AssetId | null>(null);
+  const asset: AssetId = assetChoice && assets.some((a) => a.id === assetChoice) ? assetChoice : assets[0].id;
+  const coin = ASSET_BY_ID[asset].symbol;
+  const rate = useUsdtRate({ asset });
   const { user, isStaff } = useAuth();
-  const { tradeMinCad, tradeDailyMaxCad, networks, interacEmail, buyExpiryMinutes } = useAppSettings();
   const t = useT();
   const otc = useOtcVisible();
 
@@ -110,6 +117,7 @@ const AppAcheterForm = () => {
       network: net ?? undefined,
       address,
       promoCode: bonusState.codeForOrder,
+      asset,
     });
     setSaving(false);
     if ("error" in res) {
@@ -129,6 +137,7 @@ const AppAcheterForm = () => {
           ref,
           cadAmount: nfCad.format(cad),
           usdtAmount: nfUsdt.format(usdt),
+          asset: coin,
           network: network ? `${network.name} · ${network.tag}` : "N/D",
           receptionAddress: address,
           orderUrl: `${window.location.origin}/app`,
@@ -141,6 +150,7 @@ const AppAcheterForm = () => {
       side: "buy",
       cadAmount: nfCad.format(cad),
       usdtAmount: nfUsdt.format(usdt),
+      asset: coin,
       network: network ? `${network.name} · ${network.tag}` : "N/D",
       address,
       clientEmail: user?.email ?? "",
@@ -157,7 +167,9 @@ const AppAcheterForm = () => {
     return (
       <AppShell center>
         <StepHeader title={t("buy.title")} sub={t("buy.sub")} />
-        <AmountField label={t("buy.amount")} units={["CAD", "USDT"] as Unit[]} unit={unit} onUnit={(u) => { setUnit(u); setAmount(""); }}
+        <AssetPick list={assets} value={asset} label={getLang() === "en" ? "Cryptocurrency" : "Cryptomonnaie"}
+          onPick={(a) => { if (a !== asset) { setAsset(a); setNet(null); setAddress(""); } }} />
+        <AmountField label={t("buy.amount")} units={["CAD", "USDT"] as Unit[]} unit={unit} coin={coin} onUnit={(u) => { setUnit(u); setAmount(""); }}
           value={amount} onChange={onAmount} disabled={blocked} onMin={() => setPreset("min")} onMax={() => setPreset("max")}>
           {blocked ? (
             <p className="ac-note">{t("buy.limitReached").replace("{time}", nextAtText)}</p>
@@ -171,8 +183,8 @@ const AppAcheterForm = () => {
 
         <div className="mt-6">
           <Facts rows={[
-            { label: unit === "CAD" ? t("buy.youReceive") : t("buy.youPay"), value: unit === "CAD" ? `${nfUsdt.format(usdt)} USDT` : `${nfCad.format(cad)} CAD`, usdt: unit === "CAD" },
-            { label: t("buy.rate"), value: `1 USDT = ${nfCad.format(buyRate)} CAD` },
+            { label: unit === "CAD" ? t("buy.youReceive") : t("buy.youPay"), value: unit === "CAD" ? `${nfUsdt.format(usdt)} ${coin}` : `${nfCad.format(cad)} CAD`, usdt: unit === "CAD", coin },
+            { label: t("buy.rate"), value: `1 ${coin} = ${nfCad.format(buyRate)} CAD` },
           ]} />
           <PromoField state={bonusState} />
         </div>
@@ -186,7 +198,7 @@ const AppAcheterForm = () => {
     return (
       <AppShell center>
         <StepHeader title={t("buy.dest")} sub={t("buy.destSub")} onBack={() => setStep("amount")} />
-        <NetworkPick list={openNetworks(networks, "buy")} value={net} onPick={(id) => { if (id !== net) setAddress(""); setNet(id); }} />
+        <NetworkPick list={openNetworks(networks, "buy", asset)} value={net} onPick={(id) => { if (id !== net) setAddress(""); setNet(id); }} />
         {next(() => setStep("address"), !net)}
       </AppShell>
     );
@@ -225,8 +237,8 @@ const AppAcheterForm = () => {
         <StepHeader title={t("buy.recap")} sub={t("buy.recapSub")} onBack={() => setStep("address")} />
         <Facts rows={[
           { label: t("buy.youPay"), value: `${nfCad.format(cad)} CAD` },
-          { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} USDT`, usdt: true },
-          { label: t("buy.rate"), value: `1 USDT = ${nfCad.format(buyRate)} CAD` },
+          { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} ${coin}`, usdt: true, coin },
+          { label: t("buy.rate"), value: `1 ${coin} = ${nfCad.format(buyRate)} CAD` },
           { label: t("buy.network"), value: `${network?.name} · ${network?.tag}` },
           { label: t("buy.address"), value: short(address), mono: true },
         ]} />
@@ -241,7 +253,7 @@ const AppAcheterForm = () => {
   return (
     <AppShell header={<StepHeader title={t("buy.created")} sub={t("buy.payInterac")} />}>
       <Facts rows={[
-        { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} USDT`, usdt: true },
+        { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} ${coin}`, usdt: true, coin },
         { label: t("buy.toPay"), value: `${nfCad.format(cad)} CAD` },
         { label: t("buy.network"), value: `${network?.name} · ${network?.tag}` },
         { label: t("buy.address"), value: short(address), mono: true },

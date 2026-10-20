@@ -103,6 +103,8 @@ export async function sendCustomEmail(input: {
  */
 export interface StaffNewOrderInput {
   ref: string;
+  /** Cryptomonnaie de la commande (USDT par défaut) : le courriel la nomme. */
+  asset?: string;
   side: "buy" | "sell";
   cadAmount: string;
   usdtAmount: string;

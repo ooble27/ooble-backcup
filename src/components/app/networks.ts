@@ -1,6 +1,7 @@
-import type { DbNet, NetworkSwitches } from "@/lib/settings";
+import type { AssetId, DbNet, NetworkSwitches } from "@/lib/settings";
+import { assetOnNetwork } from "@/lib/assets";
 
-/** Réseaux sur lesquels recevoir/envoyer des USDT (USDT uniquement). */
+/** Réseaux sur lesquels recevoir/envoyer des USDT ou USDC (voir lib/assets : l'USDC n'est pas partout). */
 export type NetId = "trx" | "bnb" | "eth" | "matic" | "sol" | "avax";
 
 export interface Network {
@@ -30,8 +31,10 @@ export const NET_DB: Record<NetId, DbNet> = { trx: "trc20", bnb: "bep20", eth: "
  * Réseaux ouverts, d'après Back-office › Réglages › Réseaux : pour un sens (achat, vente),
  * ou ouverts dans au moins un sens. La base refuse aussi une commande sur un réseau fermé.
  */
-export function openNetworks(switches: NetworkSwitches, side?: "buy" | "sell"): Network[] {
+export function openNetworks(switches: NetworkSwitches, side?: "buy" | "sell", asset?: AssetId): Network[] {
   return NETWORKS.filter((n) => {
+    // L'USDC n'existe pas sur tous les réseaux (pas sur Tron ni BNB Chain).
+    if (asset && !assetOnNetwork(asset, n.id)) return false;
     const sw = switches[NET_DB[n.id]];
     return side ? !!sw?.[side] : !!(sw?.buy || sw?.sell);
   });

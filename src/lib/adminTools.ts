@@ -56,7 +56,7 @@ export interface LatestRate { market: number | null; buy: number; sell: number; 
 /** Dernier taux publié (celui que voient les clients). */
 export async function fetchLatestRate(): Promise<LatestRate | null> {
   const { data, error } = await supabase.from("exchange_rates").select("market_rate, buy_rate, sell_rate, fetched_at")
-    .eq("asset" as never, "usdt").order("fetched_at", { ascending: false }).limit(1).maybeSingle();
+    .eq("asset", "usdt").order("fetched_at", { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
   return data ? { market: data.market_rate == null ? null : Number(data.market_rate), buy: Number(data.buy_rate), sell: Number(data.sell_rate), at: data.fetched_at } : null;
 }

@@ -21,6 +21,8 @@ export interface AppSettings {
   sellMarginPct: number;
   /** Réseaux ouverts, par sens (clés de la base : trc20, bep20, erc20, polygon, spl, avalanche). */
   networks: NetworkSwitches;
+  /** Cryptomonnaies proposées (Réglages › Cryptomonnaies) : chacune s'ouvre ou se ferme sans rien supprimer. */
+  assets: AssetSwitches;
   signupsIndividual: boolean;
   signupsBusiness: boolean;
   /** Durée du taux garanti à la création d'une commande, en minutes. */
@@ -40,6 +42,9 @@ export interface AppSettings {
 
 export type DbNet = "trc20" | "bep20" | "erc20" | "polygon" | "spl" | "avalanche";
 export type NetworkSwitches = Record<DbNet, { buy: boolean; sell: boolean }>;
+export type AssetId = "usdt" | "usdc";
+export type AssetSwitches = Record<AssetId, boolean>;
+const ASSETS_DEFAULT: AssetSwitches = { usdt: true, usdc: false };
 const NETS_DEFAULT: NetworkSwitches = {
   trc20: { buy: true, sell: true }, bep20: { buy: true, sell: true }, erc20: { buy: false, sell: false },
   polygon: { buy: true, sell: true }, spl: { buy: true, sell: true }, avalanche: { buy: false, sell: false },
@@ -49,7 +54,7 @@ const NETS_DEFAULT: NetworkSwitches = {
 const DEFAULTS: AppSettings = {
   tradingEnabled: false, verificationEnabled: false, otcEnabled: false,
   tradeMinCad: 100, tradeDailyMaxCad: 9999, buyMarginPct: 2, sellMarginPct: 2,
-  networks: NETS_DEFAULT, signupsIndividual: true, signupsBusiness: true, rateLockMinutes: 15, sellExpiryHours: 48, buyExpiryMinutes: 30,
+  networks: NETS_DEFAULT, assets: ASSETS_DEFAULT, signupsIndividual: true, signupsBusiness: true, rateLockMinutes: 15, sellExpiryHours: 48, buyExpiryMinutes: 30,
   manualMarketRate: null, supportEmail: "support@ooble.ca", interacEmail: "interac@ooble.ca", otcEmail: "otc@ooble.ca",
   updatedAt: null, updatedByName: null,
 };
@@ -72,7 +77,7 @@ function publish(s: AppSettings) {
 type Row = Database["public"]["Tables"]["app_settings"]["Row"];
 type StaffPart = Pick<Row, "buy_margin_pct" | "sell_margin_pct" | "manual_market_rate" | "updated_by_name">;
 /** Colonnes lisibles par tout le monde (clients et visiteurs). */
-const PUBLIC_COLS = "id, trading_enabled, verification_enabled, otc_enabled, trade_min_cad, trade_daily_max_cad, updated_at, networks, signups_individual, signups_business, rate_lock_minutes, sell_expiry_hours, buy_expiry_minutes, support_email, interac_email, otc_email";
+const PUBLIC_COLS = "id, trading_enabled, verification_enabled, otc_enabled, trade_min_cad, trade_daily_max_cad, updated_at, networks, assets, signups_individual, signups_business, rate_lock_minutes, sell_expiry_hours, buy_expiry_minutes, support_email, interac_email, otc_email";
 
 /** Équipe seulement : marges, cours figé, auteur du dernier changement (rien pour les autres). */
 async function staffPart(): Promise<StaffPart | null> {
@@ -101,6 +106,7 @@ const fromRow = (r: Row): AppSettings => ({
   buyMarginPct: Number(r.buy_margin_pct),
   sellMarginPct: Number(r.sell_margin_pct),
   networks: { ...NETS_DEFAULT, ...((r.networks ?? {}) as Partial<NetworkSwitches>) },
+  assets: { ...ASSETS_DEFAULT, ...((r.assets ?? {}) as Partial<AssetSwitches>) },
   signupsIndividual: r.signups_individual,
   signupsBusiness: r.signups_business,
   rateLockMinutes: r.rate_lock_minutes,
@@ -154,6 +160,7 @@ export async function saveAppSettings(patch: SettingsPatch): Promise<{ error?: s
   if (patch.buyMarginPct !== undefined) row.buy_margin_pct = patch.buyMarginPct;
   if (patch.sellMarginPct !== undefined) row.sell_margin_pct = patch.sellMarginPct;
   if (patch.networks !== undefined) row.networks = patch.networks;
+  if (patch.assets !== undefined) row.assets = patch.assets;
   if (patch.signupsIndividual !== undefined) row.signups_individual = patch.signupsIndividual;
   if (patch.signupsBusiness !== undefined) row.signups_business = patch.signupsBusiness;
   if (patch.rateLockMinutes !== undefined) row.rate_lock_minutes = patch.rateLockMinutes;

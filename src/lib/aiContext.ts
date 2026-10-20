@@ -64,7 +64,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
     supabase
       .from("exchange_rates")
       .select("buy_rate, sell_rate")
-      .eq("asset" as never, "usdt")
+      .eq("asset", "usdt")
       .order("fetched_at", { ascending: false })
       .limit(1)
       .maybeSingle(),

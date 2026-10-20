@@ -7,7 +7,8 @@ import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { Action, Actions, AmountField, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
+import { Action, Actions, AmountField, AssetPick, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
+import { ASSET_BY_ID, openAssets, type AssetId } from "@/lib/assets";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { PromoField, useBonus } from "@/components/app/Promo";
@@ -18,7 +19,7 @@ import { sendEmail, notifyStaffOfNewOrder } from "@/lib/email";
 import { getMyProfile, peekMyProfile } from "@/lib/profile";
 import { useTestAccount } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
-import { useT } from "@/lib/i18n";
+import { getLang, useT } from "@/lib/i18n";
 import { useOtcVisible } from "@/lib/otc";
 import { cancelUnsentSell, declareSellSent, isSenderAddress } from "@/lib/sellProof";
 import { connectorFor } from "@/lib/walletLink";
@@ -46,7 +47,13 @@ const AppVendre = () => {
 };
 
 const AppVendreForm = () => {
-  const rate = useUsdtRate();
+  const settingsAll = useAppSettings();
+  // Cryptomonnaie vendue : la seule ouverte, ou au choix du client (USDC d'abord).
+  const assets = openAssets(settingsAll);
+  const [assetChoice, setAsset] = useState<AssetId | null>(null);
+  const asset: AssetId = assetChoice && assets.some((a) => a.id === assetChoice) ? assetChoice : assets[0].id;
+  const coin = ASSET_BY_ID[asset].symbol;
+  const rate = useUsdtRate({ asset });
   const { user, isStaff } = useAuth();
   const { tradeMinCad, tradeDailyMaxCad, networks } = useAppSettings();
   const t = useT();
@@ -147,6 +154,7 @@ const AppVendreForm = () => {
       interacEmail: email,
       senderAddress: sender.trim(),
       promoCode: bonusState.codeForOrder,
+      asset,
     });
     setSaving(false);
     if ("error" in res) {
@@ -190,6 +198,7 @@ const AppVendreForm = () => {
         vars: {
           ref,
           usdtAmount: nfUsdt.format(usdt),
+          asset: coin,
           cadAmount: nfCad.format(cad),
           network: network ? `${network.name} · ${network.tag}` : "N/D",
           depositAddress: depositAddr,
@@ -201,6 +210,7 @@ const AppVendreForm = () => {
     void notifyStaffOfNewOrder({
       ref,
       side: "sell",
+      asset: coin,
       cadAmount: nfCad.format(cad),
       usdtAmount: nfUsdt.format(usdt),
       network: network ? `${network.name} · ${network.tag}` : "N/D",
@@ -219,7 +229,9 @@ const AppVendreForm = () => {
     return (
       <AppShell center>
         <StepHeader title={t("sell.title")} sub={t("sell.sub")} />
-        <AmountField label={t("sell.amount")} units={["USDT", "CAD"] as Unit[]} unit={unit} onUnit={(u) => { setUnit(u); setAmount(""); }}
+        <AssetPick list={assets} value={asset} label={getLang() === "en" ? "Cryptocurrency" : "Cryptomonnaie"}
+          onPick={(a) => { if (a !== asset) { setAsset(a); setNet(null); setSender(""); setConnected(false); } }} />
+        <AmountField label={t("sell.amount")} units={["USDT", "CAD"] as Unit[]} unit={unit} coin={coin} onUnit={(u) => { setUnit(u); setAmount(""); }}
           value={amount} onChange={onAmount} disabled={blocked}
           onMin={isStaff ? undefined : () => setAmount(minText(unit))} onMax={isStaff ? undefined : () => setAmount(maxText(unit))}>
           {blocked ? (
@@ -234,8 +246,8 @@ const AppVendreForm = () => {
 
         <div className="mt-6">
           <Facts rows={[
-            { label: unit === "USDT" ? t("sell.youReceive") : t("sell.youSend"), value: unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} USDT`, usdt: unit !== "USDT" },
-            { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
+            { label: unit === "USDT" ? t("sell.youReceive") : t("sell.youSend"), value: unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} ${coin}`, usdt: unit !== "USDT", coin },
+            { label: t("sell.rate"), value: `1 ${coin} = ${nfCad.format(sellRate)} CAD` },
           ]} />
           <PromoField state={bonusState} />
         </div>
@@ -281,7 +293,7 @@ const AppVendreForm = () => {
     return (
       <AppShell center>
         <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} />
-        <NetworkPick list={openNetworks(networks, "sell")} value={net} onPick={(id) => { if (net !== id) { setSender(""); setConnected(false); } setNet(id); }} />
+        <NetworkPick list={openNetworks(networks, "sell", asset)} value={net} onPick={(id) => { if (net !== id) { setSender(""); setConnected(false); } setNet(id); }} />
         {next(() => setStep("from"), !net)}
       </AppShell>
     );
@@ -362,7 +374,7 @@ const AppVendreForm = () => {
         </div>
         <div className="ac-lines mt-1">
           <CopyRow label={t("sell.depositAddr")} value={depositAddr} mono />
-          <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} USDT`} />
+          <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} ${coin}`} />
         </div>
 
         <p className="ac-note flex items-start gap-2">
@@ -396,17 +408,17 @@ const AppVendreForm = () => {
       </p>
 
       <Facts rows={[
-        { label: t("sell.youSend"), value: `${nfUsdt.format(usdt)} USDT`, usdt: true },
+        { label: t("sell.youSend"), value: `${nfUsdt.format(usdt)} ${coin}`, usdt: true, coin },
         { label: t("sell.youReceive"), value: `${nfCad.format(cad)} CAD` },
         { label: t("sell.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
-        { label: t("sell.rate"), value: `1 USDT = ${nfCad.format(sellRate)} CAD` },
+        { label: t("sell.rate"), value: `1 ${coin} = ${nfCad.format(sellRate)} CAD` },
         { label: t("sell.receivedByInterac"), value: email, mono: true },
         { label: t("sell.sentFrom"), value: short(sender), mono: true },
       ]} />
 
       <p className="ac-k mt-10">{t("sell.orderDetail")}</p>
       <div className="ac-lines mt-1">
-        <CopyRow label={t("sell.amountSent")} value={`${nfUsdt.format(usdt)} USDT`} />
+        <CopyRow label={t("sell.amountSent")} value={`${nfUsdt.format(usdt)} ${coin}`} />
         <CopyRow label={t("sell.orderRef")} value={savedRef} mono />
       </div>
 

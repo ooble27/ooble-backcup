@@ -10,6 +10,7 @@ import { Action, Actions } from "@/components/app/Flat";
 import { useT } from "@/lib/i18n";
 import { DB_TO_NET, type OrderRow } from "@/lib/orders";
 import { cancelUnsentSell, declareSellSent } from "@/lib/sellProof";
+import { assetSymbol } from "@/lib/assets";
 
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
 
@@ -49,7 +50,7 @@ export default function SellPending({ order, onChange }: { order: OrderRow; onCh
           </div>
           <div className="ac-lines mt-1">
             <CopyRow label={t("sell.depositAddr")} value={order.wallet_address} mono />
-            <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(Number(order.usdt_amount))} USDT`} />
+            <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(Number(order.usdt_amount))} ${assetSymbol(order.asset)}`} />
           </div>
         </div>
       )}
