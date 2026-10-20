@@ -144,6 +144,12 @@ export function OliAvatar({ size = 30, preview }: { size?: number; preview?: { a
   );
 }
 
+/** Le nom d'Oli, dans la couleur choisie (Réglages › Oli). */
+export function OliName() {
+  const oli = useOli();
+  return <span className="tv-name" style={{ color: nameColor(oli.color), fontWeight: 500 }}>{oli.name}</span>;
+}
+
 /** Nom d'un membre, dans sa couleur (comme dans les groupes de messagerie). */
 export function TeamName({ id, name, you, full, style }: { id?: string | null; name: string; you?: boolean; full?: boolean; style?: React.CSSProperties }) {
   const m = memberById(id);
@@ -247,7 +253,7 @@ export function TaskPanel({ task: t, me, admin, canStatus, who, onClose, onEdit,
     </div>
   );
   return (
-    <SidePanel title={t.title} subtitle={<>Créée par <TeamName id={t.createdBy} name={t.createdByName} you={t.createdBy === me} style={{ fontWeight: 500 }} /> · {when(t.at)}</>} onClose={onClose} width={560}>
+    <SidePanel title={t.title} subtitle={<>Créée par {t.byOli ? <OliName /> : <TeamName id={t.createdBy} name={t.createdByName} you={t.createdBy === me} style={{ fontWeight: 500 }} />} · {when(t.at)}</>} onClose={onClose} width={560}>
       <style>{TV_CSS + GR_CSS}</style>
       {/* Une tâche libre (poste, toute l'équipe, ou remise par une passation) se prend d'abord. */}
       {!t.archived && free && t.status !== "done" && (

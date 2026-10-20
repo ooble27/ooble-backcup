@@ -10,7 +10,7 @@ import {
 } from "@/lib/teamSpace";
 import { C, FONT } from "./adminTheme";
 import { Notice } from "./ui";
-import { TeamAvatar, TeamFaces, TeamName, TV_CSS, nameColor, plural, presenceText, useMembers, useTeamLive } from "./TeamViews";
+import { OliAvatar, OliName, TeamAvatar, TeamFaces, TeamName, TV_CSS, nameColor, plural, presenceText, useMembers, useTeamLive } from "./TeamViews";
 import { ProfilePanel } from "./TeamProfile";
 import { PersonPicker } from "./TeamViews";
 import { GR_CSS, Opts } from "./GrowthPanel";
@@ -212,12 +212,12 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
                 <button type="button" onClick={() => onGo("tasks")} style={{ all: "unset", cursor: "pointer", flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 15, color: leaving.has(t.id) ? C.t3 : C.t1, textDecoration: leaving.has(t.id) ? "line-through" : undefined, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
                   <span style={{ display: "block", fontSize: 12.5, color: C.t3, marginTop: 2 }}>
-                    {t.assigneeRole ? `Poste ${roleLabel(t.assigneeRole)}` : !t.assigneeId ? (t.handedOffBy ? `À reprendre · passation de ${firstName(t.handedOffBy)}` : "Toute l'équipe") : t.createdBy !== me ? <>De <TeamName id={t.createdBy} name={t.createdByName} style={{ fontWeight: 500 }} /></> : "Pour moi"}{t.status === "doing" ? " · en cours" : ""}
+                    {t.assigneeRole ? `Poste ${roleLabel(t.assigneeRole)}` : !t.assigneeId ? (t.handedOffBy ? `À reprendre · passation de ${firstName(t.handedOffBy)}` : "Toute l'équipe") : t.byOli ? <>De <OliName /></> : t.createdBy !== me ? <>De <TeamName id={t.createdBy} name={t.createdByName} style={{ fontWeight: 500 }} /></> : "Pour moi"}{t.status === "doing" ? " · en cours" : ""}
                     {t.dueOn && <span className="ms-due-in" style={{ color: isLate(t) || t.dueOn === today ? C.t1 : C.t3, fontWeight: isLate(t) ? 600 : 400 }}> · {isLate(t) ? `En retard · ${shortDue(t.dueOn)}` : shortDue(t.dueOn)}</span>}
                   </span>
                 </button>
                 {t.dueOn && <span className="ms-due" style={{ fontSize: 13, whiteSpace: "nowrap", color: isLate(t) || t.dueOn === today ? C.t1 : C.t3, fontWeight: isLate(t) ? 600 : 400 }}>{isLate(t) ? `En retard · ${shortDue(t.dueOn)}` : shortDue(t.dueOn)}</span>}
-                {t.createdBy !== me && <TeamAvatar id={t.createdBy} name={t.createdByName} size={26} />}
+                {t.byOli ? <OliAvatar size={26} /> : t.createdBy !== me && <TeamAvatar id={t.createdBy} name={t.createdByName} size={26} />}
               </div>
             ))}
             {mine.length > 6 && <p style={{ margin: "10px 0 0", fontSize: 13, color: C.t3 }}>Et {mine.length - 6} de plus.</p>}

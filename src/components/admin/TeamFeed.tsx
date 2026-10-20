@@ -3,8 +3,7 @@ import { firstName, loadActivity, openMember, peekTeam, type ActivityItem } from
 import { C } from "./adminTheme";
 import { Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
-import { OliAvatar, TeamAvatar, TeamName, TV_CSS, nameColor, useMembers, useTeamLive } from "./TeamViews";
-import { useOli } from "@/lib/oli";
+import { OliAvatar, OliName, TeamAvatar, TeamName, TV_CSS, nameColor, useMembers, useTeamLive } from "./TeamViews";
 
 /**
  * Activité de l'équipe : ce que fait chacun (commandes prises et terminées, tâches créées et faites, passations,
@@ -107,8 +106,3 @@ export function ActivityPanel({ onClose, onOpenOrder, onGoTasks, onGoMe }: { onC
   );
 }
 
-/** Le nom d'Oli dans sa couleur (Réglages › Oli). */
-function OliName() {
-  const oli = useOli();
-  return <span className="tv-name" style={{ color: nameColor(oli.color) }}>{oli.name}</span>;
-}
