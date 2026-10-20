@@ -44,7 +44,7 @@ function load(): Promise<AppKit> {
       networks: [nets.bsc, nets.polygon, nets.avalanche, nets.mainnet, nets.solana],
       metadata: {
         name: "Ooble",
-        description: "Achat et vente d'USDT au Canada",
+        description: "Achat et vente d'USDC au Canada",
         url: window.location.origin,
         icons: [`${window.location.origin}/icons/icon-192.png`],
       },

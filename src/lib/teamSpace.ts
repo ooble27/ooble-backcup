@@ -248,7 +248,7 @@ export const BUILTIN_CHECKLISTS: ChecklistTemplate[] = [
   { id: "b-desjardins", builtIn: true, name: "Rapprochement bancaire Desjardins", steps: [
     "Importer le relevé Desjardins", "Rapprocher les dépôts Interac avec les commandes", "Rapprocher les virements envoyés",
     "Expliquer les lignes restantes", "Clôturer la période"] },
-  { id: "b-stock", builtIn: true, name: "Vérifier le stock USDT", steps: [
+  { id: "b-stock", builtIn: true, name: "Vérifier le stock de cryptomonnaie", steps: [
     "Vérifier les soldes du portefeuille d'envoi par réseau", "Comparer avec la Trésorerie", "Prévoir une recharge si un réseau est bas"] },
 ];
 export async function loadChecklistTemplates(me: string): Promise<ChecklistTemplate[]> {

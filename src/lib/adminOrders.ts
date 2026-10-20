@@ -59,7 +59,7 @@ export const STATUS_META: Record<OrderStatus, { label: string; text: string }> =
 };
 
 export const TYPE_META: Record<OrderType, { label: string; verb: string }> = {
-  buy:      { label: "Achat",  verb: "Envoyer les USDT" },
+  buy:      { label: "Achat",  verb: "Envoyer les fonds" },
   sell:     { label: "Vente",  verb: "Verser les CAD" },
   transfer: { label: "Envoi",  verb: "Exécuter l'envoi" },
 };

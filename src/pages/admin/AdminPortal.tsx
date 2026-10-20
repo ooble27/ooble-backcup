@@ -54,6 +54,7 @@ import { warmPages } from "@/components/admin/warmPages";
 import { fetchCached, peek, put } from "@/lib/adminCache";
 import { prefetchClient } from "@/lib/clientProfileCache";
 import { prefetchOrder } from "@/lib/orderDetailCache";
+import { assetSymbol } from "@/lib/assets";
 
 /** Téléphone : navigation en cadran (false = ancien menu latéral). */
 
@@ -76,7 +77,7 @@ const GROUPS: NavGroup[] = [
     { id: "control", label: "Salle de contrôle", desc: "Ce qui se passe maintenant : commandes en direct, taux, stock, équipe. L'écran à laisser ouvert au bureau.", icon: MonitorDot },
     { id: "queue", label: "File d'attente", desc: "Prenez une commande en charge avant de la traiter : elle se verrouille pour le reste de l'équipe.", icon: Inbox },
     { id: "orders", label: "Commandes", desc: "Toutes les commandes et leur historique.", icon: ShoppingCart },
-    { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi des USDT et réglages.", icon: AutoSettle },
+    { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi de la cryptomonnaie et réglages.", icon: AutoSettle },
   ] },
   { label: "Clients", menu: { label: "Clients", icon: CircleUserRound }, items: [
     { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: BookUser },
@@ -84,7 +85,7 @@ const GROUPS: NavGroup[] = [
   ] },
   { label: "Finance et conformité", menu: { label: "Finance et conformité", icon: Wallet }, items: [
     { id: "accounting", label: "Comptabilité", desc: "Bénéfice net, marges, recharges de stock, dépenses et exports pour le comptable.", icon: Calculator },
-    { id: "treasury", label: "Trésorerie", desc: "Stock d'USDT par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: Vault },
+    { id: "treasury", label: "Trésorerie", desc: "Stock de cryptomonnaie par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: Vault },
     { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: ShieldCheck },
   ] },
   { label: "Communication", menu: { label: "Communication", icon: Send }, items: [
@@ -378,7 +379,7 @@ const AdminPortal = () => {
   };
   // « Écrire au client » depuis une commande : brouillon prêt, puis la Messagerie.
   const writeClient = (o: AdminOrder) => {
-    const what = `${o.type === "buy" ? "achat" : "vente"} de ${nfUsdt.format(o.usdt)} USDT`;
+    const what = `${o.type === "buy" ? "achat" : "vente"} de ${nfUsdt.format(o.usdt)} ${assetSymbol(o.asset)}`;
     setPendingDraft({
       clientId: o.userId, email: o.clientEmail, fullName: o.clientName === "Client" ? "" : o.clientName,
       subject: `Votre commande ${o.ref}`,

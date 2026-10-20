@@ -21,7 +21,7 @@ export interface WalletState {
   configured: boolean;
   address?: string | null;
   usdt?: number;
-  /** Solde USDC, là où l'USDC existe (Ethereum, Polygon, Avalanche, Solana). */
+  /** Solde USDC, là où l'USDC existe (Ethereum, Polygon, Avalanche, Solana, BNB Chain). */
   usdc?: number | null;
   gas?: number;
   gasSymbol?: string;

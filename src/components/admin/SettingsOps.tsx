@@ -10,7 +10,8 @@ import { useDepositAddresses, familyOf } from "@/lib/depositAddresses";
 import { fetchLatestRate, refreshRateNow, type LatestRate } from "@/lib/adminTools";
 import { peek, put } from "@/lib/adminCache";
 import { logAdminAction } from "@/lib/audit";
-import { saveAppSettings, useAppSettings, type AssetId, type NetworkSwitches, type SettingsPatch } from "@/lib/settings";
+import { getAppSettingsNow, saveAppSettings, useAppSettings, type AssetId, type NetworkSwitches, type SettingsPatch } from "@/lib/settings";
+import { primaryAsset } from "@/lib/assets";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { Presets, Row, SaveBar, SettingsPage, Stepper, Toggle, ago, fmtDay } from "./settingsUi";
@@ -204,8 +205,8 @@ export function DelaysPage({ onBack }: { onBack: () => void }) {
 /* ─── 5. Taux de secours ─── */
 export function RateFallbackPage({ onBack, onOpening }: { onBack: () => void; onOpening: () => void }) {
   const s = useAppSettings();
-  const [r, setR] = useState<LatestRate | null>(() => peek<LatestRate>("st.rate")?.value ?? null);
-  const load = () => fetchLatestRate().then((x) => { if (x) { setR(x); put("st.rate", x); } }).catch(() => {});
+  const [r, setR] = useState<LatestRate | null>(() => peek<LatestRate>(`st.rate.${primaryAsset(getAppSettingsNow()).id}`)?.value ?? null);
+  const load = () => fetchLatestRate().then((x) => { if (x) { setR(x); put(`st.rate.${primaryAsset(getAppSettingsNow()).id}`, x); } }).catch(() => {});
   useEffect(() => { void load(); }, []);
   const market = r?.market ?? null;
   const [fixed, setFixed] = useState(() => Number((s.manualMarketRate ?? market ?? 1.4).toFixed(4)));
@@ -229,7 +230,7 @@ export function RateFallbackPage({ onBack, onOpening }: { onBack: () => void; on
       desc="Si la source du cours (CoinGecko) ne répond plus, Ooble garde le dernier taux. Ici, vous pouvez figer le cours vous-même ; les marges de Taux et marge s'y appliquent. Pour tout arrêter, fermez plutôt les achats et les ventes.">
       <section>
         <h3 className="st-h3">{manual ? "Changer le cours figé" : "Figer le cours du marché"}</h3>
-        <p className="st-hint">Prix d'un USDT en dollars canadiens, avant marges.{market ? ` Dernier cours connu : ${rate4.format(market)} $.` : ""}</p>
+        <p className="st-hint">Prix d'un {primaryAsset(s).symbol} en dollars canadiens, avant marges.{market ? ` Dernier cours connu : ${rate4.format(market)} $.` : ""}</p>
         <div style={{ marginTop: 18 }}>
           <Stepper value={fixed} onChange={setFixed} step={0.0005} min={0.6} max={4} unit="$" label="le cours figé" format={(n) => rate4.format(n)} />
         </div>

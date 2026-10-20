@@ -16,6 +16,7 @@ import { PersonPicker } from "./TeamViews";
 import { GR_CSS, Opts } from "./GrowthPanel";
 import { ApprovalsBlock } from "./TeamApprovals";
 import { OnCallLine } from "./TeamPlanning";
+import { assetSymbol } from "@/lib/assets";
 
 /**
  * Mon espace : la page d'accueil de chaque membre, dans le style du back-office (grande phrase,
@@ -245,7 +246,7 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
                   </span>
                   <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                     <span style={{ display: "block", fontSize: 15, color: C.t1 }}>{nfCad.format(o.cad)} $</span>
-                    <span style={{ display: "block", fontSize: 12, color: C.t3 }}>{nfUsdt.format(o.usdt)} USDT</span>
+                    <span style={{ display: "block", fontSize: 12, color: C.t3 }}>{nfUsdt.format(o.usdt)} {assetSymbol(o.asset)}</span>
                   </span>
                 </button>
               ))}

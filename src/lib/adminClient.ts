@@ -34,6 +34,8 @@ export interface ClientOrder {
   status: string;
   cadAmount: number;
   usdtAmount: number;
+  /** Cryptomonnaie de la commande (usdt, usdc). */
+  asset: string;
   createdAt: string;
 }
 
@@ -154,7 +156,7 @@ export async function fetchClientDirectory(limit = 200_000): Promise<ClientDirec
 export async function fetchClientOrders(userId: string): Promise<ClientOrder[]> {
   const { data, error } = await supabase
     .from("orders")
-    .select("id, side, status, cad_amount, usdt_amount, created_at")
+    .select("id, side, status, cad_amount, usdt_amount, asset, created_at")
     .eq("user_id", userId)
     .eq("hidden", false)
     .order("created_at", { ascending: false });
@@ -165,6 +167,7 @@ export async function fetchClientOrders(userId: string): Promise<ClientOrder[]> 
     status: o.status,
     cadAmount: Number(o.cad_amount),
     usdtAmount: Number(o.usdt_amount),
+    asset: o.asset ?? "usdt",
     createdAt: o.created_at,
   }));
 }

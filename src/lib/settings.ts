@@ -47,8 +47,8 @@ export type AssetSwitches = Record<AssetId, boolean>;
 // Avant toute lecture (pages publiques pré-rendues) : l'USDC, la cryptomonnaie proposée.
 const ASSETS_DEFAULT: AssetSwitches = { usdt: false, usdc: true };
 const NETS_DEFAULT: NetworkSwitches = {
-  trc20: { buy: true, sell: true }, bep20: { buy: true, sell: true }, erc20: { buy: false, sell: false },
-  polygon: { buy: true, sell: true }, spl: { buy: true, sell: true }, avalanche: { buy: false, sell: false },
+  trc20: { buy: false, sell: false }, bep20: { buy: true, sell: true }, erc20: { buy: false, sell: false },
+  polygon: { buy: true, sell: true }, spl: { buy: true, sell: true }, avalanche: { buy: true, sell: true },
 };
 
 /** Tant que rien n'est lu : tout fermé, limites légales par défaut. */

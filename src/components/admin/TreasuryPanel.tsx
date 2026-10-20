@@ -11,9 +11,10 @@ import { Button, Notice, SidePanel } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
 import { GR_CSS, Opts } from "./GrowthPanel";
 import { ago } from "./settingsUi";
+import { networkLive, openAssets } from "@/lib/assets";
 
 /**
- * Trésorerie : le stock d'USDT de chaque réseau, relevé sur la blockchain toutes les 5 minutes,
+ * Trésorerie : le stock de cryptomonnaie de chaque réseau ouvert, relevé sur la blockchain toutes les 5 minutes,
  * ce que réservent les achats en cours, et le seuil sous lequel l'équipe est prévenue.
  * Lecture seule : le stock n'empêche jamais un client de commander.
  */
@@ -40,8 +41,9 @@ const TreasuryPanel = () => {
   // Une cryptomonnaie à la fois : la principale ouverte d'abord (USDC si ouvert).
   const settings = useAppSettings();
   const [assetPick, setAsset] = useState<StockRow["asset"] | null>(null);
-  const asset: StockRow["asset"] = assetPick ?? (settings.assets.usdc ? "usdc" : "usdt");
-  const rows = all ? all.filter((r) => r.asset === asset) : null;
+  const open = openAssets(settings);
+  const asset: StockRow["asset"] = assetPick && settings.assets[assetPick] ? assetPick : open[0].id;
+  const rows = all ? all.filter((r) => r.asset === asset && networkLive(settings, r.network)) : null;
   const usdt = (n: number | null) => amt(n, asset);
   const [err, setErr] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -116,7 +118,7 @@ const TreasuryPanel = () => {
       </div>
 
       <p style={{ margin: "18px 0 0", fontSize: 15, lineHeight: 1.9, color: C.t2 }}>
-        Stock en <Opts value={asset} options={[{ v: "usdc", label: "USDC" }, { v: "usdt", label: "USDT" }]} onChange={(v) => setAsset(v as StockRow["asset"])} />
+        Stock en {open.length > 1 ? <Opts value={asset} options={open.map((a) => ({ v: a.id, label: a.symbol }))} onChange={(v) => setAsset(v as StockRow["asset"])} /> : <b style={{ color: C.t1, fontWeight: 600 }}>{SYM[asset]}</b>}
       </p>
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
       {low.length > 0 && (
@@ -125,7 +127,7 @@ const TreasuryPanel = () => {
         </p>
       )}
 
-      <Section title="Par réseau" description={`Disponible = solde − ${SYM[asset]} réservés par les achats pas encore envoyés. Sous le seuil, l'équipe reçoit une alerte par courriel (au plus une fois toutes les 6 heures). L'USDC n'existe pas sur Tron.`}>
+      <Section title="Par réseau" description={`Disponible = solde − ${SYM[asset]} réservés par les achats pas encore envoyés. Sous le seuil, l'équipe reçoit une alerte par courriel (au plus une fois toutes les 6 heures). Seuls les réseaux ouverts s'affichent.`}>
         <DataTable rows={rows ?? []} columns={cols} rowKey={(r) => `${r.network}:${r.asset}`}
           empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>Lecture du stock…</p>}
           mobile={(r) => (

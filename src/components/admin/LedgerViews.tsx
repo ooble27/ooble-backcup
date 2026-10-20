@@ -11,6 +11,8 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
 import { GR_CSS, Opts } from "./GrowthPanel";
+import { coinNow, networkLive, openAssets } from "@/lib/assets";
+import { getAppSettingsNow } from "@/lib/settings";
 const SYM = { usdt: "USDT", usdc: "USDC" } as const;
 /** Réseaux où l'USDC (Circle) existe. */
 const USDC_NETS = ["erc20", "polygon", "avalanche", "spl", "bep20"];
@@ -41,22 +43,22 @@ export function ProfitStatement({ pnl }: { pnl: Pnl | null }) {
   return (
     <div style={{ display: "grid", gap: 28, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", alignItems: "start" }}>
       <div style={{ maxWidth: 560 }}>
-        {line("Ventes d'USDC et d'USDT aux clients", pnl?.revenue ?? null)}
-        {line("Coût des USDC et USDT vendus (coût moyen)", pnl?.cogs ?? null, { minus: true })}
+        {line(`Ventes de ${coinNow()} aux clients`, pnl?.revenue ?? null)}
+        {line(`Coût des ${coinNow()} vendus (coût moyen)`, pnl?.cogs ?? null, { minus: true })}
         {line("Bénéfice brut", pnl?.gross ?? null, { color: C.t1 })}
         {line("Dépenses", pnl?.expenses ?? null, { minus: true })}
         {cats.map(([k, v]) => <div key={k}>{line(catLabel(k), v, { minus: true, sub: true })}</div>)}
         {line("Bénéfice net", pnl?.net ?? null, { strong: true, color: (pnl?.net ?? 0) >= 0 ? C.sage : C.coral })}
       </div>
       <div style={{ maxWidth: 420 }}>
-        <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Stock d'USDC et d'USDT en fin de période (un même stock de dollars américains numériques)</p>
+        <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Stock de cryptomonnaie en fin de période (dollars américains numériques)</p>
         <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color: C.t1, fontVariantNumeric: "tabular-nums" }}>{nfUsdt.format(pnl?.stock.usdt ?? 0)} $ US</p>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: C.t2, lineHeight: 1.6 }}>
           Coût moyen {pnl?.stock.unit != null ? `${pnl.stock.unit.toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $` : "–"} · valeur {money(pnl?.stock.cost ?? 0)}
           {pnl?.stock.market != null && <><br />Au cours du marché : {money(pnl.stock.market)}</>}
         </p>
         <p style={{ margin: "14px 0 0", fontSize: 13, color: C.t3, lineHeight: 1.6 }}>
-          Recharges : {money(pnl?.purchasesCad ?? 0)} · USDC et USDT rachetés aux clients : {money(pnl?.sellsCad ?? 0)}
+          Recharges : {money(pnl?.purchasesCad ?? 0)} · {coinNow()} rachetés aux clients : {money(pnl?.sellsCad ?? 0)}
         </p>
         {(pnl?.uncovered ?? 0) > 0 && (
           <p style={{ margin: "14px 0 0", fontSize: 13, color: C.t2, lineHeight: 1.6 }}>
@@ -147,12 +149,12 @@ export function PurchasesView({ from, to, onChanged }: { from: string; to: strin
       <style>{GR_CSS}</style>
       <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
         <p style={{ margin: 0, flex: 1, fontSize: 15, color: C.t2 }}>
-          <b style={{ color: C.t1, fontWeight: 600 }}>{nfUsdt.format(qty)} USDC et USDT</b> rechargés pour {money(cad)}{qty > 0 ? `, soit ${(cad / qty).toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $ par unité` : ""}.
+          <b style={{ color: C.t1, fontWeight: 600 }}>{nfUsdt.format(qty)} {coinNow()}</b> rechargés pour {money(cad)}{qty > 0 ? `, soit ${(cad / qty).toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $ par unité` : ""}.
         </p>
         {can("accounting.entries") && <Button size="sm" variant="primary" onClick={() => setAdding(true)} icon={<Plus style={{ width: 14, height: 14 }} />}>Ajouter une recharge</Button>}
       </div>
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
-      <Section title="Recharges de la période" description="Achats d'USDC et d'USDT chez vos fournisseurs, et le stock d'ouverture. Ils entrent en stock à leur coût, frais compris.">
+      <Section title="Recharges de la période" description="Achats de cryptomonnaie chez vos fournisseurs, et le stock d'ouverture. Ils entrent en stock à leur coût, frais compris.">
         <DataTable rows={rows ?? []} columns={cols} rowKey={(r) => r.id} onRowClick={(r) => setOpen(r)} initialSort={{ key: "d", dir: "desc" }}
           empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>{rows === null ? "Chargement…" : "Aucune recharge sur cette période."}</p>}
           mobile={(r) => (
@@ -189,8 +191,9 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   const [funding, setFunding] = useState<Funding>("bank");
   const [date, setDate] = useState(today());
   const [supplier, setSupplier] = useState("");
-  const [net, setNet] = useState("trc20");
-  const [asset, setAsset] = useState<"usdt" | "usdc">("usdt");
+  const open = openAssets(getAppSettingsNow());
+  const [asset, setAsset] = useState<"usdt" | "usdc">(open[0].id);
+  const [net, setNet] = useState(open[0].id === "usdc" ? "polygon" : "trc20");
   const [usdt, setUsdt] = useState(""); const [cad, setCad] = useState(""); const [fee, setFee] = useState("");
   const [tx, setTx] = useState(""); const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -208,7 +211,7 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
     setBusy(false);
   };
   return (
-    <SidePanel title="Nouvelle recharge" subtitle="USDC ou USDT achetés chez un fournisseur, ou stock de départ" onClose={onClose}
+    <SidePanel title="Nouvelle recharge" subtitle={`${coinNow()} achetés chez un fournisseur, ou stock de départ`} onClose={onClose}
       footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={save} disabled={busy || !ok}>{busy ? "Enregistrement…" : "Enregistrer"}</Button></>}>
       <style>{GR_CSS}</style>
       <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: C.t2 }}>
@@ -224,10 +227,10 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
               : "Le fournisseur t'a livré et tu le paieras plus tard : c'est une dette envers lui."}
       </p>
       <p style={{ margin: "16px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
-        Cryptomonnaie <Opts value={asset} options={[{ v: "usdc", label: "USDC" }, { v: "usdt", label: "USDT" }]} onChange={(v) => { setAsset(v as "usdt" | "usdc"); if (v === "usdc" && !USDC_NETS.includes(net)) setNet("polygon"); }} />
+        Cryptomonnaie {open.length > 1 ? <Opts value={asset} options={open.map((a) => ({ v: a.id, label: a.symbol }))} onChange={(v) => { setAsset(v as "usdt" | "usdc"); if (v === "usdc" && !USDC_NETS.includes(net)) setNet("polygon"); }} /> : <b style={{ color: C.t1, fontWeight: 600 }}>{SYM[asset]}</b>}
       </p>
       <p style={{ margin: "4px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
-        Réseau <Opts value={net} options={NETS.filter((n) => asset === "usdt" || USDC_NETS.includes(n)).map((n) => ({ v: n, label: NET_NAME[n] ?? n }))} onChange={setNet} />
+        Réseau <Opts value={net} options={NETS.filter((n) => (asset === "usdt" || USDC_NETS.includes(n)) && networkLive(getAppSettingsNow(), n)).map((n) => ({ v: n, label: NET_NAME[n] ?? n }))} onChange={setNet} />
       </p>
       <In label="Date" type="date" value={date} onChange={setDate} />
       {kind === "purchase" && <In label="Fournisseur" value={supplier} onChange={setSupplier} placeholder="Ex. nom du desk OTC" />}

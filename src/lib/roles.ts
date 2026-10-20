@@ -37,7 +37,7 @@ export interface RoleDef {
 /** Dans l'ordre d'affichage (du plus large au plus ciblé). */
 export const ROLES: RoleDef[] = [
   { id: "admin", label: "Administrateur", mission: "Dirige tout : opérations, finances, équipe et plateforme.", home: "dashboard", tabs: ALL_TABS },
-  { id: "operator", label: "Opérateur", mission: "Traite les commandes : prend les paiements reçus, envoie les USDT, verse les CAD.", home: "queue",
+  { id: "operator", label: "Opérateur", mission: "Traite les commandes : prend les paiements reçus, envoie la cryptomonnaie, verse les CAD.", home: "queue",
     tabs: ["control", "queue", "orders", "settlement", "treasury", "clients", "mailbox", ...TEAM, ...HELP] },
   { id: "compliance", label: "Conformité", mission: "Fait respecter les règles du CANAFE : alertes, déclarations, registres, vérifications d'identité.", home: "compliance",
     tabs: ["compliance", "kyc", "clients", "orders", "accounting", "mailbox", ...TEAM, ...HELP] },

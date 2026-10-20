@@ -61,14 +61,14 @@ export const ALERT_GUIDE: Record<AlertType, { why: string; steps: string[] }> = 
   doimv: {
     why: "Ooble a reçu 10 000 $ ou plus en monnaie virtuelle en une opération : la loi oblige à le déclarer au CANAFE, même si rien n'est suspect.",
     steps: [
-      "Vérifiez que l'opération est bien une réception d'USDT de 10 000 $ CA ou plus.",
+      "Vérifiez que l'opération est bien une réception de cryptomonnaie de 10 000 $ CA ou plus.",
       "Vérifiez que le dossier du client est complet : nom, date de naissance, adresse, profession, pièce d'identité, et si le client agit pour quelqu'un d'autre.",
       "Préparez la DOIMV avec « Déclarer » : Ooble remplit ce qu'il connaît.",
       "Soumettez-la sur le portail du CANAFE avant l'échéance (5 jours ouvrables après la réception), puis saisissez le numéro de confirmation dans la déclaration.",
     ],
   },
   doimv_24h: {
-    why: "Plusieurs réceptions d'USDT du même client totalisent 10 000 $ ou plus en 24 heures : la règle des 24 heures les traite comme une seule opération à déclarer.",
+    why: "Plusieurs réceptions de cryptomonnaie du même client totalisent 10 000 $ ou plus en 24 heures : la règle des 24 heures les traite comme une seule opération à déclarer.",
     steps: [
       "Vérifiez que les commandes en cause appartiennent bien au même client (ou au même bénéficiaire).",
       "Vérifiez que le dossier du client est complet : nom, date de naissance, adresse, profession, pièce d'identité.",
@@ -200,7 +200,7 @@ export const RECORD_CATEGORIES = [
   { id: "operations",   label: "Opérations",                description: "Achats et ventes payés : client, montants, taux, réseau, adresse, références Interac et blockchain." },
   { id: "identites",    label: "Vérifications d'identité",  description: "Résultats de vérification (fournisseur, référence, document, date)." },
   { id: "interac",      label: "Virements Interac reçus",   description: "Avis Interac lus automatiquement : expéditeur, montant, référence, rapprochement." },
-  { id: "envois",       label: "Envois d'USDT",             description: "Transferts de monnaie virtuelle : adresses émettrice et bénéficiaire, montant, hash." },
+  { id: "envois",       label: "Envois de cryptomonnaie",             description: "Transferts de monnaie virtuelle : adresses émettrice et bénéficiaire, montant, hash." },
   { id: "declarations", label: "Déclarations CANAFE",       description: "DOIMV, DOT et DBT préparées ici, avec la référence CANAFE." },
   { id: "alertes",      label: "Alertes et classements",    description: "Alertes de conformité et motif de chaque classement sans suite." },
 ] as const;

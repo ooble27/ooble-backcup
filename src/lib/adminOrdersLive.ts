@@ -16,6 +16,7 @@ import { NETWORKS } from "@/components/app/networks";
 import { logAdminAction } from "@/lib/audit";
 import { EXPLORER_NAME, fetchOutboundTx, txUrl } from "@/lib/settlement";
 import { firstName, loadMembers, peekMembers } from "@/lib/teamSpace";
+import { assetSymbol } from "@/lib/assets";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
@@ -261,7 +262,7 @@ async function notifyClient(orderId: string, newStatus: "recu" | "termine") {
   } else if (newStatus === "recu") {
     const amount = row.side === "buy"
       ? `${nfCad.format(Number(row.cad_amount))} CAD`
-      : `${nfUsdt.format(Number(row.usdt_amount))} USDT`;
+      : `${nfUsdt.format(Number(row.usdt_amount))} ${assetSymbol(row.asset)}`;
     void sendEmail({
       to,
       template: "payment-received",
@@ -283,7 +284,7 @@ async function notifyClient(orderId: string, newStatus: "recu" | "termine") {
         ref,
         summaryLabel: "Vous avez reçu",
         summaryValue: isBuy
-          ? `${nfUsdt.format(Number(row.usdt_amount))} USDT`
+          ? `${nfUsdt.format(Number(row.usdt_amount))} ${assetSymbol(row.asset)}`
           : `${nfCad.format(Number(row.cad_amount))} CAD`,
         network: networkLabel,
         txLabel: isBuy ? "Transaction" : "Virement Interac",

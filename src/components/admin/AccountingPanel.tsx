@@ -12,6 +12,7 @@ import { BankReconView } from "./BankReconView";
 import { AccountingTodo } from "./AccountingTodo";
 import AccountingMonth from "./AccountingMonth";
 import { replayRise } from "@/lib/pageMotion";
+import { coinNow } from "@/lib/assets";
 
 /**
  * Comptabilité réelle : marge calculée commande par commande à partir du taux du marché au moment
@@ -146,7 +147,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
 
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
 
-      <Section title="Bénéfice net" description="Au coût moyen pondéré : chaque USDC ou USDT vendu sort au coût moyen du stock (recharges et cryptomonnaie rachetée aux clients ; USDC et USDT forment un même stock de dollars américains numériques), puis les dépenses sont déduites.">
+      <Section title="Bénéfice net" description="Au coût moyen pondéré : chaque unité vendue sort au coût moyen du stock (recharges et cryptomonnaie rachetée aux clients ; USDC et USDT forment un même stock de dollars américains numériques), puis les dépenses sont déduites.">
         <ProfitStatement pnl={pnl} />
       </Section>
 
@@ -155,7 +156,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
         {[
           ["Achats", money(t?.vol_buy ?? 0), `${t?.n_buy ?? 0} commande${(t?.n_buy ?? 0) > 1 ? "s" : ""}`, C.sage],
           ["Ventes", money(t?.vol_sell ?? 0), `${t?.n_sell ?? 0} commande${(t?.n_sell ?? 0) > 1 ? "s" : ""}`, C.coral],
-          ["USDC et USDT échangés", nfUsdt.format(t?.usdt ?? 0), "achats et ventes", C.t1],
+          [`${coinNow()} échangés`, nfUsdt.format(t?.usdt ?? 0), "achats et ventes", C.t1],
         ].map(([label, value, note, color]) => (
           <div key={label}>
             <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>{label}</p>

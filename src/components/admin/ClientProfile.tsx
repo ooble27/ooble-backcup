@@ -22,6 +22,7 @@ import ClientAccess from "./ClientAccess";
 import ClientTestAccount from "./ClientTestAccount";
 import ClientLimit from "./ClientLimit";
 import ClientWallets from "./ClientWallets";
+import { assetSymbol } from "@/lib/assets";
 
 interface Props {
   userId: string;
@@ -137,7 +138,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
 
   const completed = orders.filter((o) => o.status === "completed");
   const columns: Column<ClientOrder>[] = [
-    { key: "op", header: "Opération", render: (o) => <TwoLine primary={`${o.side === "buy" ? "Achat" : "Vente"} · ${nfUsdt.format(o.usdtAmount)} USDT`} secondary={orderRef(o.id)} /> },
+    { key: "op", header: "Opération", render: (o) => <TwoLine primary={`${o.side === "buy" ? "Achat" : "Vente"} · ${nfUsdt.format(o.usdtAmount)} ${assetSymbol(o.asset)}`} secondary={orderRef(o.id)} /> },
     { key: "status", header: "Statut", render: (o) => { const s = ORDER_STATUS[o.status] ?? [o.status, "neutral" as Tone]; return <Pill tone={s[1]} dot>{s[0]}</Pill>; } },
     { key: "amount", header: "Montant", align: "right", sort: (o) => o.cadAmount, render: (o) => `${nfCad.format(o.cadAmount)} $` },
     { key: "date", header: "Date", align: "right", sort: (o) => o.createdAt, hideBelow: 700, render: (o) => <span style={{ color: C.t2 }}>{dateShort.format(new Date(o.createdAt))}</span> },

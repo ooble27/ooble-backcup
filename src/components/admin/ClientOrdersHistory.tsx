@@ -7,6 +7,7 @@ import type { ClientOrder } from "@/lib/adminClient";
 import { C, FONT } from "./adminTheme";
 import { Button, Workspace, WsPane } from "./ui";
 import { DataTable, EmptyState, Pill, SearchField, TwoLine, type Column, type Tone } from "./layout";
+import { assetSymbol } from "@/lib/assets";
 
 /**
  * Historique complet des commandes d'un client, sur sa propre page (la fiche n'en montre que 6).
@@ -74,7 +75,7 @@ export default function ClientOrdersHistory({ clientName, orders, onClose, onOpe
   const volume = done.reduce((n, o) => n + o.cadAmount, 0);
 
   const columns: Column<ClientOrder>[] = [
-    { key: "op", header: "Opération", render: (o) => <TwoLine primary={`${o.side === "buy" ? "Achat" : "Vente"} de ${nfUsdt.format(o.usdtAmount)} USDT`} secondary={orderRef(o.id)} /> },
+    { key: "op", header: "Opération", render: (o) => <TwoLine primary={`${o.side === "buy" ? "Achat" : "Vente"} de ${nfUsdt.format(o.usdtAmount)} ${assetSymbol(o.asset)}`} secondary={orderRef(o.id)} /> },
     { key: "status", header: "Statut", render: (o) => { const s = STATUS[o.status] ?? [o.status, "neutral" as Tone]; return <Pill tone={s[1]}>{s[0]}</Pill>; } },
     { key: "amount", header: "Montant", align: "right", render: (o) => `${nfCad.format(o.cadAmount)} $` },
     { key: "date", header: "Date", align: "right", hideBelow: 700, render: (o) => <TwoLine primary={dateFmt.format(new Date(o.createdAt))} secondary={timeFmt.format(new Date(o.createdAt))} /> },

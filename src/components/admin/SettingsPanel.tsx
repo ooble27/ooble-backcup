@@ -72,9 +72,9 @@ const readPage = (): PageId | null => {
 /** Nom et rythme de chaque tâche automatique, dits simplement. */
 const JOBS: Record<string, { name: string; every: string }> = {
   "compliance-scan": { name: "Analyse de conformité et sanctions", every: "toutes les 10 minutes" },
-  "sell-watch": { name: "Surveillance des USDT reçus (ventes)", every: "toutes les 2 minutes" },
-  "drain-usdt-payouts": { name: "Envois d'USDT aux acheteurs", every: "chaque minute" },
-  "reconcile-usdt-payouts": { name: "Confirmation des envois d'USDT", every: "toutes les 2 minutes" },
+  "sell-watch": { name: "Surveillance des fonds reçus (ventes)", every: "toutes les 2 minutes" },
+  "drain-usdt-payouts": { name: "Envois de cryptomonnaie aux acheteurs", every: "chaque minute" },
+  "reconcile-usdt-payouts": { name: "Confirmation des envois de cryptomonnaie", every: "toutes les 2 minutes" },
   "refresh-usdt-rate": { name: "Mise à jour du taux (cours Kraken)", every: "toutes les 10 secondes" },
   "expire-unpaid-buys": { name: "Annulation des achats non payés", every: "chaque minute" },
   "sanctions-fetch": { name: "Téléchargement des listes de sanctions", every: "chaque jour" },
@@ -370,10 +370,10 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       title: "Cryptomonnaies et réseaux",
       desc: "Ce que les clients achètent et vendent, et sur quelles blockchains.",
       rows: [
-        { id: "cryptos", icon: Coins, name: "Cryptomonnaies", desc: "USDC et USDT : proposés ou non aux clients.", value: [s.assets.usdc && "USDC", s.assets.usdt && "USDT"].filter(Boolean).join(" · ") || "Aucune", onOpen: () => go("cryptos") },
+        { id: "cryptos", icon: Coins, name: "Cryptomonnaies", desc: "Proposées ou non aux clients.", value: [s.assets.usdc && "USDC", s.assets.usdt && "USDT"].filter(Boolean).join(" · ") || "Aucune", onOpen: () => go("cryptos") },
         { id: "reseaux", icon: Network, name: "Réseaux", desc: "Ouverts ou fermés, à l'achat et à la vente.", value: `${netOpen("buy")} à l'achat · ${netOpen("sell")} à la vente`, onOpen: () => go("reseaux") },
-        { id: "adresses", icon: QrCode, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDC ou USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
-        ...ext("settlement", { icon: Send, name: "Règlement automatique", desc: "Envoi automatique des USDC et USDT, plafonds, portefeuille d'envoi." }),
+        { id: "adresses", icon: QrCode, name: "Adresses de dépôt", desc: "Où les clients envoient leur cryptomonnaie, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
+        ...ext("settlement", { icon: Send, name: "Règlement automatique", desc: "Envoi automatique de la cryptomonnaie, plafonds, portefeuille d'envoi." }),
       ],
     },
     {

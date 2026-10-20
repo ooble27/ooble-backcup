@@ -22,9 +22,9 @@ export const TABLE_LABELS: Record<string, string> = {
   saved_recipients: "Portefeuilles enregistrés",
   payment_confirmations: "Confirmations de paiement",
   interac_receipts: "Virements Interac reçus",
-  usdt_payouts: "Envois USDT",
+  usdt_payouts: "Envois de cryptomonnaie",
   blockchain_transactions: "Transactions blockchain",
-  chain_deposits: "Dépôts USDT reçus",
+  chain_deposits: "Dépôts de cryptomonnaie reçus",
   compliance_alerts: "Alertes de conformité",
   compliance_flags: "Signalements de conformité",
   compliance_declarations: "Déclarations CANAFE",
@@ -66,7 +66,7 @@ const COLUMN_LABELS: Record<string, string> = {
   account_type: "Type de compte", business_name: "Entreprise", business_number: "NEQ / numéro",
   business_address: "Adresse de l'entreprise", business_phone: "Téléphone de l'entreprise", business_status: "Statut entreprise",
   closed_at: "Fermé le", preferred_lang: "Langue", daily_limit_cad: "Limite quotidienne ($)",
-  cad_amount: "Montant ($ CAD)", usdt_amount: "Montant (USDT)", network: "Réseau", wallet_address: "Adresse",
+  cad_amount: "Montant ($ CAD)", usdt_amount: "Montant (cryptomonnaie)", network: "Réseau", wallet_address: "Adresse",
   rate: "Taux", pair: "Paire", fee: "Frais", reference: "Référence", note: "Note", reason: "Motif", amount: "Montant",
 };
 

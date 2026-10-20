@@ -4,7 +4,7 @@
  * - Comptabilité : revenus des 12 derniers mois (colonnes) et part de chaque réseau ;
  * - Vérifications : jauge du taux d'approbation ;
  * - Conformité : le programme, un tiret par point ;
- * - Règlement auto : un réservoir par réseau (USDT et frais) ;
+ * - Règlement auto : un réservoir par réseau (solde de la cryptomonnaie ouverte et frais) ;
  * - Messagerie : les messages du site des 14 derniers jours, une pastille par message ;
  * - Bannière : aperçu du site tel que les clients le voient ;
  * - Équipe : les visages de l'équipe ;
@@ -250,24 +250,26 @@ export function ComplianceHero({ alerts, pendingDecl, nextDeadline, checklist, l
 
 const gasText = (g: number) => new Intl.NumberFormat("fr-CA", { maximumSignificantDigits: g < 1 ? 2 : 4 }).format(g);
 
-export interface Tank { network: string; label: string; usdt: number; gas: number; minGas: number; gasSymbol?: string; ok: boolean; logo: React.ReactNode }
+/** Un réseau du portefeuille d'envoi : son solde (dans la cryptomonnaie `unit`) et ses frais. */
+export interface Tank { network: string; label: string; amount: number; unit: string; gas: number; minGas: number; gasSymbol?: string; ok: boolean; logo: React.ReactNode }
 
-export function SettlementHero({ tanks, auto, maxCad, loading, toReview }: { tanks: Tank[]; auto: boolean; maxCad: number | null; loading: boolean; toReview: number }) {
-  const total = tanks.reduce((s, t) => s + (t.ok ? t.usdt : 0), 0);
+export function SettlementHero({ tanks, units, auto, maxCad, loading, toReview }: { tanks: Tank[]; units: string[]; auto: boolean; maxCad: number | null; loading: boolean; toReview: number }) {
+  // Un total par cryptomonnaie ouverte (une seule en temps normal).
+  const totals = units.map((u) => `${nf0.format(tanks.reduce((s, t) => s + (t.ok && t.unit === u ? t.amount : 0), 0))} ${u}`).join(" et ");
   return (
     <Hero
       title={loading ? <span className="mute">Lecture des portefeuilles…</span> : (
-        <><span style={{ color: C.sun }}>{nf0.format(total)} USDT</span> <span className="mute">prêts à partir, envoi</span> <span style={{ color: auto ? C.sage : C.coral }}>{auto ? "automatique" : "manuel"}</span><span className="mute">.</span></>
+        <><span style={{ color: C.sun }}>{totals}</span> <span className="mute">prêts à partir, envoi</span> <span style={{ color: auto ? C.sage : C.coral }}>{auto ? "automatique" : "manuel"}</span><span className="mute">.</span></>
       )}
       sub={<>{auto && maxCad ? `Jusqu'à ${nf0.format(maxCad)} $ par commande sans intervention. ` : "Chaque envoi attend un clic de l'équipe. "}{toReview ? <b style={{ color: C.coral, fontWeight: 600 }}>{toReview} élément{toReview > 1 ? "s" : ""} à vérifier.</b> : "Rien en suspens."}</>}
     >
       {tanks.length > 0 && (
-        /* Chaque réseau : son logo, ses USDT, ses frais. Pas de jauge. */
+        /* Chaque réseau : son logo, son solde, ses frais. Pas de jauge. */
         <div style={{ display: "grid", gap: 2 }}>
           {tanks.map((t) => {
             const low = t.ok && t.gas < t.minGas;
             return (
-              <div key={t.network} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0" }}>
+              <div key={`${t.network}-${t.unit}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0" }}>
                 <span style={{ flexShrink: 0, display: "inline-flex" }}>{t.logo}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, color: C.t1 }}>{t.label}</div>
@@ -276,8 +278,8 @@ export function SettlementHero({ tanks, auto, maxCad, loading, toReview }: { tan
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.03em", color: t.ok && t.usdt > 0 ? C.t1 : C.t3, fontVariantNumeric: "tabular-nums" }}>{t.ok ? nf.format(Math.round(t.usdt * 100) / 100) : "N/D"}</span>
-                  <span style={{ fontSize: 11.5, color: C.t3, marginLeft: 4 }}>USDT</span>
+                  <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.03em", color: t.ok && t.amount > 0 ? C.t1 : C.t3, fontVariantNumeric: "tabular-nums" }}>{t.ok ? nf.format(Math.round(t.amount * 100) / 100) : "N/D"}</span>
+                  <span style={{ fontSize: 11.5, color: C.t3, marginLeft: 4 }}>{t.unit}</span>
                 </div>
               </div>
             );

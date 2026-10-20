@@ -3,6 +3,7 @@ import { fetchCached, peek } from "@/lib/adminCache";
 import { orderRef } from "@/lib/orders";
 import { ACCOUNT_TYPE_LABEL, SOURCE_LABEL, catLabel, listExpenses, listPurchases, loadJournal, loadPnl, loadStatements } from "@/lib/ledger";
 import { downloadXlsx } from "@/lib/xlsx";
+import { coinNow } from "@/lib/assets";
 
 /**
  * Comptabilité réelle, calculée par la base (admin_accounting_summary / admin_accounting_orders) :
@@ -112,32 +113,32 @@ export async function exportAccountingXlsx(from: string, to: string, name: strin
   downloadXlsx(`ooble-comptabilite-${name}`, [
     { name: "Résumé", columns: [{ header: "Rubrique", width: 46 }, { header: "Montant (CAD)", fmt: "money", width: 18 }], rows: [
       ["Période", periodLabel], ["Du", day(from)], ["Au (exclu)", day(to)], ["", null],
-      ["Ventes de USDT aux clients (achats clients)", pnl.revenue],
-      ["Coût des USDT vendus (coût moyen pondéré)", -pnl.cogs],
+      [`Ventes de ${coinNow()} aux clients (achats clients)`, pnl.revenue],
+      [`Coût des ${coinNow()} vendus (coût moyen pondéré)`, -pnl.cogs],
       ["Bénéfice brut", pnl.gross],
       ...Object.entries(pnl.expensesBy).map(([k, v]) => [`Dépenses · ${catLabel(k)}`, -v] as [string, number]),
       ["Total des dépenses", -pnl.expenses],
       ["Bénéfice net", pnl.net], ["", null],
       ["Marge réelle (écart avec le taux du marché)", margin],
       ["Recharges chez les fournisseurs (CAD, frais compris)", pnl.purchasesCad],
-      ["USDT rachetés aux clients (ventes clients, CAD versés)", pnl.sellsCad],
-      ["Stock d'USDT en fin de période (USDT)", pnl.stock.usdt],
+      [`${coinNow()} rachetés aux clients (ventes clients, CAD versés)`, pnl.sellsCad],
+      [`Stock d'${coinNow()} en fin de période (${coinNow()})`, pnl.stock.usdt],
       ["Valeur du stock au coût moyen", pnl.stock.cost],
       ["Valeur du stock au cours du marché", pnl.stock.market ?? null],
       ["Achats clients sans stock enregistré (évalués au cours du marché)", pnl.uncovered],
     ] },
     { name: "Commandes", columns: [
       { header: "Date", width: 20 }, { header: "Référence", width: 14 }, { header: "Client", width: 26 }, { header: "Opération" }, { header: "Réseau" },
-      { header: "Montant CAD", fmt: "money" }, { header: "USDT", fmt: "usdt" }, { header: "Taux appliqué", fmt: "rate" }, { header: "Taux du marché", fmt: "rate" },
+      { header: "Montant CAD", fmt: "money" }, { header: `${coinNow()}`, fmt: "usdt" }, { header: "Taux appliqué", fmt: "rate" }, { header: "Taux du marché", fmt: "rate" },
       { header: "Marge CAD", fmt: "money" }, { header: "Frais facturés CAD", fmt: "money" }, { header: "Rapprochement", width: 18 },
-      { header: "Interac reçu CAD", fmt: "money" }, { header: "USDT envoyés", fmt: "usdt" }, { header: "USDT reçus", fmt: "usdt" }, { header: "Transaction", width: 40 },
+      { header: "Interac reçu CAD", fmt: "money" }, { header: `${coinNow()} envoyés`, fmt: "usdt" }, { header: `${coinNow()} reçus`, fmt: "usdt" }, { header: "Transaction", width: 40 },
     ], rows: orders.map((o) => [
       new Date(o.created_at).toLocaleString("fr-CA"), orderRef(o.id), o.client ?? "", o.side === "buy" ? "Achat" : "Vente", NET_NAME[o.network] ?? o.network,
       o.cad, o.usdt, o.rate, o.mid, o.margin, o.fee, RECON_LABEL[o.recon.state], o.recon.in_cad, o.recon.out_usdt, o.recon.in_usdt, o.recon.tx ?? "",
     ]) },
     { name: "Recharges", columns: [
-      { header: "Date", width: 14 }, { header: "Type" }, { header: "Fournisseur", width: 24 }, { header: "Réseau" }, { header: "USDT", fmt: "usdt" },
-      { header: "CAD payés", fmt: "money" }, { header: "Frais CAD", fmt: "money" }, { header: "Coût par USDT", fmt: "rate" }, { header: "Transaction", width: 40 },
+      { header: "Date", width: 14 }, { header: "Type" }, { header: "Fournisseur", width: 24 }, { header: "Réseau" }, { header: `${coinNow()}`, fmt: "usdt" },
+      { header: "CAD payés", fmt: "money" }, { header: "Frais CAD", fmt: "money" }, { header: `Coût par ${coinNow()}`, fmt: "rate" }, { header: "Transaction", width: 40 },
       { header: "Justificatif" }, { header: "Saisi par", width: 20 }, { header: "Annulée", width: 30 },
     ], rows: purchases.map((p) => [
       day(p.at), p.kind === "opening" ? "Stock d'ouverture" : "Recharge", p.supplier, NET_NAME[p.network] ?? p.network, p.usdt, p.cad, p.fee,
@@ -150,7 +151,7 @@ export async function exportAccountingXlsx(from: string, to: string, name: strin
       e.on, catLabel(e.category), e.label, e.amount, e.tax, e.recurring ? "Chaque mois" : e.auto ? "Copie mensuelle" : "", e.receipt ? "Oui" : "Non", e.by ?? "", e.voided ? `Oui : ${e.voidReason ?? ""}` : "",
     ]) },
     { name: "Mois", columns: [
-      { header: "Mois", width: 16 }, { header: "Achats clients", fmt: "int" }, { header: "Ventes CAD", fmt: "money" }, { header: "Coût des USDT", fmt: "money" },
+      { header: "Mois", width: 16 }, { header: "Achats clients", fmt: "int" }, { header: "Ventes CAD", fmt: "money" }, { header: `Coût des ${coinNow()}`, fmt: "money" },
       { header: "Bénéfice brut", fmt: "money" }, { header: "Dépenses", fmt: "money" }, { header: "Bénéfice net", fmt: "money" },
     ], rows: pnl.months.map((m) => [monthLabel(m.month), m.n, m.revenue, m.cogs, m.gross, m.expenses, m.net]) },
     { name: "Journal", columns: [
@@ -193,8 +194,8 @@ export async function exportJournalCsv(from: string, to: string, name: string) {
 /** Export CSV (une ligne par commande terminée), conservé pour les outils qui n'ouvrent que le CSV. */
 export async function exportAccountingCsv(from: string, to: string, name: string) {
   const all = await allOrders(from, to);
-  const head = ["Date", "Référence", "Client", "Opération", "Réseau", "Montant CAD", "USDT", "Taux appliqué", "Taux du marché", "Marge CAD", "Frais facturés CAD",
-    "Rapprochement", "Interac reçu CAD", "USDT envoyés", "USDT reçus", "Transaction"];
+  const head = ["Date", "Référence", "Client", "Opération", "Réseau", "Montant CAD", `${coinNow()}`, "Taux appliqué", "Taux du marché", "Marge CAD", "Frais facturés CAD",
+    "Rapprochement", "Interac reçu CAD", `${coinNow()} envoyés`, `${coinNow()} reçus`, "Transaction"];
   const cell = (v: string) => (/[";\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const f = (v: number | null, d: number) => (v == null ? "" : v.toFixed(d));
   const lines = all.map((o) => [

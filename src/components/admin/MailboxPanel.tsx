@@ -61,6 +61,7 @@ import { MailboxHero } from "./heroes";
 import ClientCard from "./ClientCard";
 import { OrderStatusPill } from "./orderBits";
 import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, type Column } from "./layout";
+import { assetSymbol } from "@/lib/assets";
 
 // ──────────────────── Recipient model ────────────────────
 //
@@ -141,7 +142,7 @@ Merci,`,
     subject: "Bienvenue sur Ooble",
     body: `Bonjour {{prenom}},
 
-Bienvenue chez Ooble. Votre compte est actif : vous pouvez dès maintenant acheter ou vendre des USDT contre des dollars canadiens.
+Bienvenue chez Ooble. Votre compte est actif : vous pouvez dès maintenant acheter ou vendre des USDC contre des dollars canadiens.
 
 Quelques repères pour bien démarrer :
 
@@ -192,7 +193,7 @@ Restez à l'écoute et n'hésitez pas si autre chose,`,
 
 Bonne nouvelle : votre vérification d'identité est **approuvée**. Vous pouvez désormais acheter et vendre sans limite quotidienne réduite.
 
-[Acheter des USDT](https://ooble.ca/app/acheter)
+[Acheter des USDC](https://ooble.ca/app/acheter)
 
 Bonne journée,`,
   },
@@ -222,7 +223,7 @@ Cordialement,`,
 
 Nous confirmons la réception de votre paiement Interac pour l'ordre **{{ref}}**.
 
-Nous procédons à l'envoi de vos USDT à l'adresse indiquée. Vous recevrez un dernier mail avec le hash de transaction dès que c'est envoyé.
+Nous procédons à l'envoi de vos USDC à l'adresse indiquée. Vous recevrez un dernier mail avec le hash de transaction dès que c'est envoyé.
 
 [Suivre ma commande](https://ooble.ca/app/activite/{{ref}})
 
@@ -231,7 +232,7 @@ Merci de votre confiance,`,
   {
     id: "order-completed-manual",
     name: "Transaction terminée",
-    description: "Confirmation manuelle après envoi USDT.",
+    description: "Confirmation manuelle après envoi USDC.",
     subject: "Transaction terminée · ordre {{ref}}",
     body: `Bonjour {{prenom}},
 
@@ -283,7 +284,7 @@ Merci pour votre patience,`,
     subject: "Ooble pour {{entreprise}} · un mot rapide",
     body: `Bonjour {{prenom}},
 
-Je suis {{agent}} chez Ooble. Nous accompagnons plusieurs entreprises comme {{entreprise}} dans leurs opérations USDT/CAD au Canada : règlement par Interac, tarification transparente, aucune garde des fonds.
+Je suis {{agent}} chez Ooble. Nous accompagnons plusieurs entreprises comme {{entreprise}} dans leurs opérations USDC/CAD au Canada : règlement par Interac, tarification transparente, aucune garde des fonds.
 
 Auriez-vous 15 minutes cette semaine pour un rapide échange sur vos besoins ? Je peux vous proposer des créneaux ou vous laisser choisir.
 
@@ -329,12 +330,12 @@ Cordialement,`,
   },
   {
     id: "wrong-network",
-    name: "Mauvais réseau USDT",
-    description: "Le client a envoyé USDT sur le mauvais réseau blockchain.",
+    name: "Mauvais réseau USDC",
+    description: "Le client a envoyé USDC sur le mauvais réseau blockchain.",
     subject: "Réseau blockchain · action requise sur votre vente",
     body: `Bonjour {{prenom}},
 
-Nous détectons que le dépôt USDT associé à votre ordre **{{ref}}** a été effectué sur le réseau **{{reseauRecu}}**, alors que l'ordre était configuré pour **{{reseauAttendu}}**.
+Nous détectons que le dépôt USDC associé à votre ordre **{{ref}}** a été effectué sur le réseau **{{reseauRecu}}**, alors que l'ordre était configuré pour **{{reseauAttendu}}**.
 
 Selon le réseau utilisé, la récupération des fonds est parfois possible mais nécessite des frais supplémentaires et un délai de traitement plus long.
 
@@ -351,10 +352,10 @@ Cordialement,`,
     id: "address-format",
     name: "Adresse wallet invalide",
     description: "L'adresse de réception fournie n'est pas valide pour le réseau choisi.",
-    subject: "Vérification de votre adresse USDT · ordre {{ref}}",
+    subject: "Vérification de votre adresse USDC · ordre {{ref}}",
     body: `Bonjour {{prenom}},
 
-Avant d'envoyer vos USDT pour l'ordre **{{ref}}**, nous vérifions systématiquement le format de l'adresse de réception. Celle que vous avez fournie ne correspond pas au format attendu pour le réseau **{{reseau}}**.
+Avant d'envoyer vos USDC pour l'ordre **{{ref}}**, nous vérifions systématiquement le format de l'adresse de réception. Celle que vous avez fournie ne correspond pas au format attendu pour le réseau **{{reseau}}**.
 
 Pouvez-vous nous confirmer que vous vouliez bien recevoir sur **{{reseau}}** ? Si oui, envoyez-nous en réponse la bonne adresse pour ce réseau.
 
@@ -425,7 +426,7 @@ Cordialement,`,
     subject: "Bienvenue chez Ooble, {{prenom}} · compte entreprise",
     body: `Bonjour {{prenom}},
 
-Merci d'avoir créé un compte entreprise chez Ooble pour **{{entreprise}}**. Nous accompagnons vos opérations USDT/CAD avec une tarification adaptée aux volumes professionnels.
+Merci d'avoir créé un compte entreprise chez Ooble pour **{{entreprise}}**. Nous accompagnons vos opérations USDC/CAD avec une tarification adaptée aux volumes professionnels.
 
 Prochaines étapes pour finaliser votre dossier :
 
@@ -1404,7 +1405,7 @@ function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove
                   <span style={{ flex: 1, fontSize: 14, color: C.t1 }}>Commande {order.ref}</span>
                   {onOpenOrder && <ChevronRight style={{ width: 16, height: 16, color: C.t3 }} />}
                 </span>
-                <span style={{ fontSize: 13, color: C.t2 }}>{order.type === "buy" ? "Achat" : "Vente"} · {nfCad.format(order.cad)} $ · {nfUsdt.format(order.usdt)} USDT</span>
+                <span style={{ fontSize: 13, color: C.t2 }}>{order.type === "buy" ? "Achat" : "Vente"} · {nfCad.format(order.cad)} $ · {nfUsdt.format(order.usdt)} {assetSymbol(order.asset)}</span>
                 <span><OrderStatusPill status={order.status} /></span>
               </button>
             ) : (

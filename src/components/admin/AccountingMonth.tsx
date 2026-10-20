@@ -12,6 +12,7 @@ import {
 import { C, FONT } from "./adminTheme";
 import { Button, Notice, TextArea, Workspace, WsPane } from "./ui";
 import { DataTable, Pill, TwoLine, type Column, type Tone } from "./layout";
+import { coinNow } from "@/lib/assets";
 
 /**
  * Un mois de comptabilité sur sa propre page.
@@ -45,13 +46,13 @@ function useWide() {
 /** Pourquoi une commande n'est pas rapprochée, en une phrase. */
 function reconWhy(o: AcctOrder): string {
   const r = o.recon;
-  if (r.state === "ok") return o.side === "buy" ? `Interac reçu ${money(r.in_cad ?? 0)} · ${nfUsdt.format(r.out_usdt ?? 0)} USDT envoyés` : `${nfUsdt.format(r.in_usdt ?? 0)} USDT reçus`;
+  if (r.state === "ok") return o.side === "buy" ? `Interac reçu ${money(r.in_cad ?? 0)} · ${nfUsdt.format(r.out_usdt ?? 0)} ${coinNow()} envoyés` : `${nfUsdt.format(r.in_usdt ?? 0)} ${coinNow()} reçus`;
   if (r.state === "manual") return o.side === "buy"
     ? `Terminée sans ${r.in_cad == null ? "virement Interac enregistré" : "envoi de cryptomonnaie confirmé"}`
     : "Terminée sans réception de cryptomonnaie enregistrée";
   return o.side === "buy"
-    ? `Reçu ${money(r.in_cad ?? 0)} pour ${money(o.cad)} · envoyé ${nfUsdt.format(r.out_usdt ?? 0)} pour ${nfUsdt.format(o.usdt)} USDT`
-    : `Reçu ${nfUsdt.format(r.in_usdt ?? 0)} pour ${nfUsdt.format(o.usdt)} USDT`;
+    ? `Reçu ${money(r.in_cad ?? 0)} pour ${money(o.cad)} · envoyé ${nfUsdt.format(r.out_usdt ?? 0)} pour ${nfUsdt.format(o.usdt)} ${coinNow()}`
+    : `Reçu ${nfUsdt.format(r.in_usdt ?? 0)} pour ${nfUsdt.format(o.usdt)} ${coinNow()}`;
 }
 
 export default function AccountingMonth({ month, summary, initialCheck = false, onClose, onOpenOrder, onChanged }: {
@@ -92,7 +93,7 @@ export default function AccountingMonth({ month, summary, initialCheck = false, 
   const cols: Column<AcctOrder>[] = [
     { key: "d", header: "Date", render: (o) => <TwoLine primary={dayFmt.format(new Date(o.created_at))} secondary={timeFmt.format(new Date(o.created_at))} /> },
     { key: "c", header: "Commande", render: (o) => <TwoLine primary={`${o.side === "buy" ? "Achat" : "Vente"} · ${o.client ?? "Client"}`} secondary={`${orderRef(o.id)} · ${NET_NAME[o.network] ?? o.network}`} /> },
-    { key: "a", header: "Montant", align: "right", render: (o) => <TwoLine primary={money(o.cad)} secondary={`${nfUsdt.format(o.usdt)} USDT`} /> },
+    { key: "a", header: "Montant", align: "right", render: (o) => <TwoLine primary={money(o.cad)} secondary={`${nfUsdt.format(o.usdt)} ${coinNow()}`} /> },
     { key: "r", header: "Taux appliqué · marché", align: "right", hideBelow: 1100, render: (o) => <span style={{ color: C.t2 }}>{rateFmt(o.rate)} · {o.mid == null ? "–" : rateFmt(o.mid)}</span> },
     { key: "m", header: "Marge", align: "right", render: (o) => o.margin == null ? <span style={{ color: C.t3 }}>–</span> : <span style={{ color: o.margin >= 0 ? C.successText : C.dangerText }}>{money(o.margin)}</span> },
     { key: "k", header: "Rapprochement", align: "right", hideBelow: 760, render: (o) => <span title={reconWhy(o)}><Pill tone={RECON_TONE[o.recon.state]}>{RECON_LABEL[o.recon.state]}</Pill></span> },
@@ -188,7 +189,7 @@ export default function AccountingMonth({ month, summary, initialCheck = false, 
         {[
           ["Achats", `${money(summary?.vol_buy ?? 0)} · ${summary?.n_buy ?? 0}`],
           ["Ventes", `${money(summary?.vol_sell ?? 0)} · ${summary?.n_sell ?? 0}`],
-          ["USDC et USDT échangés", nfUsdt.format(summary?.usdt ?? 0)],
+          [`${coinNow()} échangés`, nfUsdt.format(summary?.usdt ?? 0)],
           ["Frais facturés", money(summary?.fees ?? 0)],
         ].map(([k, v]) => (
           <div key={k}>

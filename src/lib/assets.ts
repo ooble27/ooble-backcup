@@ -4,7 +4,7 @@
  * sur un actif fermé, ou sur un réseau où il n'existe pas.
  */
 import type { NetId } from "@/components/app/networks";
-import type { AppSettings, AssetId } from "@/lib/settings";
+import { getAppSettingsNow, type AppSettings, type AssetId, type DbNet } from "@/lib/settings";
 
 export type { AssetId };
 
@@ -31,3 +31,24 @@ export function openAssets(s: Pick<AppSettings, "assets">): AssetMeta[] {
 
 /** L'actif « par défaut » des textes généraux : le seul ouvert, sinon l'USDC s'il l'est. */
 export const primaryAsset = (s: Pick<AppSettings, "assets">): AssetMeta => openAssets(s)[0];
+
+/** Symboles des actifs ouverts, pour les textes : « USDC », ou « USDC et USDT » si les deux sont ouverts. */
+export const openSymbols = (s: Pick<AppSettings, "assets">) => openAssets(s).map((a) => a.symbol).join(" et ");
+
+const NET_OF_DB: Record<DbNet, NetId> = { trc20: "trx", bep20: "bnb", erc20: "eth", polygon: "matic", spl: "sol", avalanche: "avax" };
+
+/**
+ * Réseau affiché au back-office (soldes, règlement) : ouvert dans au moins un sens dans Réglages › Réseaux,
+ * et portant au moins une cryptomonnaie ouverte. Un réseau fermé ou sans actif ouvert disparaît des écrans.
+ */
+export function networkLive(s: Pick<AppSettings, "assets" | "networks">, db: string): boolean {
+  const net = NET_OF_DB[db as DbNet];
+  if (!net) return false;
+  const sw = s.networks[db as DbNet];
+  return !!(sw?.buy || sw?.sell) && openAssets(s).some((a) => assetOnNetwork(a.id, net));
+}
+
+/** Symbole de l'actif principal, d'après les réglages déjà chargés (textes du back-office). */
+export const coinNow = () => primaryAsset(getAppSettingsNow()).symbol;
+/** Symbole d'une ligne : son actif s'il est connu, sinon l'actif principal. */
+export const coinOf = (a: string | null | undefined) => (a ? assetSymbol(a) : coinNow());

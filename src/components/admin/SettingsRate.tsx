@@ -8,6 +8,7 @@ import { fetchLatestRate, refreshRateNow, type LatestRate } from "@/lib/adminToo
 import { peek, put } from "@/lib/adminCache";
 import { logAdminAction } from "@/lib/audit";
 import { saveAppSettings, useAppSettings } from "@/lib/settings";
+import { primaryAsset } from "@/lib/assets";
 import { C } from "./adminTheme";
 import { Presets, SaveBar, SettingsPage, Stepper, ago, fmtDay } from "./settingsUi";
 
@@ -25,13 +26,14 @@ function Advice({ m }: { m: number }) {
 
 export default function SettingsRate({ onBack }: { onBack: () => void }) {
   const s = useAppSettings();
-  const [r, setR] = useState<LatestRate | null>(() => peek<LatestRate>("st.rate")?.value ?? null);
+  const coin = primaryAsset(s).symbol;
+  const [r, setR] = useState<LatestRate | null>(() => peek<LatestRate>(`st.rate.${primaryAsset(s).id}`)?.value ?? null);
   const [buy, setBuy] = useState(s.buyMarginPct);
   const [sell, setSell] = useState(s.sellMarginPct);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const load = () => fetchLatestRate().then((x) => { if (x) { setR(x); put("st.rate", x); } }).catch(() => {});
+  const load = () => fetchLatestRate().then((x) => { if (x) { setR(x); put(`st.rate.${primaryAsset(s).id}`, x); } }).catch(() => {});
   useEffect(() => { void load(); }, []);
   useEffect(() => { setBuy(s.buyMarginPct); setSell(s.sellMarginPct); }, [s.buyMarginPct, s.sellMarginPct]);
 
@@ -59,12 +61,12 @@ export default function SettingsRate({ onBack }: { onBack: () => void }) {
   return (
     <SettingsPage onBack={onBack}
       title={buyRate && sellRate ? (
-        <>Ooble vend l'USDT à <span style={{ color: C.sun }}>{rate.format(buyRate)}&nbsp;$</span> <span className="mute">et le rachète à</span> <span style={{ color: C.sage }}>{rate.format(sellRate)}&nbsp;$</span><span className="mute">.</span></>
+        <>Ooble vend l'{coin} à <span style={{ color: C.sun }}>{rate.format(buyRate)}&nbsp;$</span> <span className="mute">et le rachète à</span> <span style={{ color: C.sage }}>{rate.format(sellRate)}&nbsp;$</span><span className="mute">.</span></>
       ) : <span className="mute">Taux et marge</span>}
-      desc={market ? <>Cours du marché : <b style={{ color: C.t1, fontWeight: 500 }}>{rate.format(market)}&nbsp;$</b> pour 1 USDT, relu {ago(r!.at)}. La marge s'ajoute à ce cours quand le client achète, et s'en retire quand il vend.</> : "La marge s'ajoute au cours du marché quand le client achète, et s'en retire quand il vend."}>
+      desc={market ? <>Cours du marché : <b style={{ color: C.t1, fontWeight: 500 }}>{rate.format(market)}&nbsp;$</b> pour 1 {coin}, relu {ago(r!.at)}. La marge s'ajoute à ce cours quand le client achète, et s'en retire quand il vend.</> : "La marge s'ajoute au cours du marché quand le client achète, et s'en retire quand il vend."}>
 
       <section>
-        <h3 className="st-h3">Quand un client achète des USDT</h3>
+        <h3 className="st-h3">Quand un client achète des {coin}</h3>
         <p className="st-hint">Ooble ajoute ce pourcentage au cours du marché.</p>
         <div style={{ marginTop: 18 }}>
           <Stepper value={buy} onChange={setBuy} step={0.25} min={0} max={10} unit="%" label="la marge à l'achat" format={(n) => pct.format(n)} />
@@ -72,14 +74,14 @@ export default function SettingsRate({ onBack }: { onBack: () => void }) {
         </div>
         {buyRate && market && (
           <p className="st-desc" style={{ marginTop: 16 }}>
-            Le client paie <b style={{ color: C.t1, fontWeight: 500 }}>{rate.format(buyRate)}&nbsp;$</b> par USDT. Pour 1&nbsp;000&nbsp;$, il reçoit {money.format(1000 / buyRate)}&nbsp;USDT et Ooble garde <span style={{ color: C.sage }}>{money.format(1000 - (1000 / buyRate) * market)}&nbsp;$</span>.
+            Le client paie <b style={{ color: C.t1, fontWeight: 500 }}>{rate.format(buyRate)}&nbsp;$</b> par {coin}. Pour 1&nbsp;000&nbsp;$, il reçoit {money.format(1000 / buyRate)}&nbsp;{coin} et Ooble garde <span style={{ color: C.sage }}>{money.format(1000 - (1000 / buyRate) * market)}&nbsp;$</span>.
           </p>
         )}
         <Advice m={buy} />
       </section>
 
       <section>
-        <h3 className="st-h3">Quand un client vend des USDT</h3>
+        <h3 className="st-h3">Quand un client vend des {coin}</h3>
         <p className="st-hint">Ooble retire ce pourcentage du cours du marché.</p>
         <div style={{ marginTop: 18 }}>
           <Stepper value={sell} onChange={setSell} step={0.25} min={0} max={10} unit="%" label="la marge à la vente" format={(n) => pct.format(n)} />
@@ -87,7 +89,7 @@ export default function SettingsRate({ onBack }: { onBack: () => void }) {
         </div>
         {sellRate && market && (
           <p className="st-desc" style={{ marginTop: 16 }}>
-            Le client reçoit <b style={{ color: C.t1, fontWeight: 500 }}>{rate.format(sellRate)}&nbsp;$</b> par USDT. Pour 1&nbsp;000&nbsp;USDT, il reçoit {money.format(1000 * sellRate)}&nbsp;$ et Ooble garde <span style={{ color: C.sage }}>{money.format(1000 * (market - sellRate))}&nbsp;$</span>.
+            Le client reçoit <b style={{ color: C.t1, fontWeight: 500 }}>{rate.format(sellRate)}&nbsp;$</b> par {coin}. Pour 1&nbsp;000&nbsp;{coin}, il reçoit {money.format(1000 * sellRate)}&nbsp;$ et Ooble garde <span style={{ color: C.sage }}>{money.format(1000 * (market - sellRate))}&nbsp;$</span>.
           </p>
         )}
         <Advice m={sell} />

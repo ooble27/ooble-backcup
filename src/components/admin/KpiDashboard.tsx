@@ -18,6 +18,7 @@ import { C, FONT } from "./adminTheme";
 import { FilterChips, Section, StatStrip } from "./layout";
 import OriginsCard from "./OriginsCard";
 import { HundredSignups } from "./viz";
+import { coinNow } from "@/lib/assets";
 
 interface KpiDashboardProps {
   orders: AdminOrder[];
@@ -122,7 +123,7 @@ const KpiDashboard = ({ onNavigate }: KpiDashboardProps) => {
         { label: "Achats", color: C.sage, value: loading || !volume ? "…" : money(volume.period.buyCad), hint: volume ? `${volume.period.buyCount} commande${volume.period.buyCount > 1 ? "s" : ""}${pct(volume.changePct) ? ` · volume ${pct(volume.changePct)}` : ""}` : undefined },
         { label: "Ventes", color: C.coral, value: loading || !volume ? "…" : money(volume.period.sellCad), hint: volume ? `${volume.period.sellCount} commande${volume.period.sellCount > 1 ? "s" : ""}` : undefined },
         { label: "Marge brute", color: C.sun, value: loading || !margin ? "…" : money(margin.marginCad), hint: margin ? `${margin.completedCount} terminée${margin.completedCount > 1 ? "s" : ""}${pct(margin.changePct) ? ` · ${pct(margin.changePct)}` : ""}` : undefined },
-        { label: "USDT échangés", value: loading || !volume ? "…" : nfUsdt.format(volume.totalUsdt), hint: label },
+        { label: `${coinNow()} échangés`, value: loading || !volume ? "…" : nfUsdt.format(volume.totalUsdt), hint: label },
       ]} />
 
       <style>{`

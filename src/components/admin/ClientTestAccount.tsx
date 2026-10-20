@@ -45,7 +45,7 @@ export default function ClientTestAccount({ userId }: { userId: string }) {
       {on ? (
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: C.t2 }}>
           <span style={{ color: C.sun }}>Compte de test.</span> Ce client achète et vend sans vérification d'identité, même commandes fermées,
-          de 2 $ à 200 $ par jour ; taux et avantages réels. Les USDT d'un achat partent avec « Envoyer les USDT ».{" "}
+          de 2 $ à 200 $ par jour ; taux et avantages réels. La cryptomonnaie d'un achat part avec « Envoyer les fonds ».{" "}
           {isAdmin && <button type="button" style={link} disabled={busy} onClick={() => void flip(false)}>Désactiver</button>}
         </p>
       ) : (

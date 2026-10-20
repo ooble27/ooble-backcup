@@ -17,7 +17,7 @@ export const REGISTER_TITLES: Record<RegisterKind, string> = {
   operations: "Registre des opérations",
   identites: "Registre des vérifications d'identité",
   interac: "Registre des virements Interac reçus",
-  envois: "Registre des envois d'USDT",
+  envois: "Registre des envois de cryptomonnaie",
   declarations: "Registre des déclarations CANAFE",
   alertes: "Registre des alertes et classements",
 };
@@ -76,7 +76,7 @@ const SECTIONS: Record<RegisterKind, Section[]> = {
 
 const LABELS: Record<string, string> = {
   date: "Date", reference: "Référence", type: "Type", statut: "Statut", client: "Client", courriel: "Courriel",
-  type_compte: "Compte", identite: "Identité", montant_cad: "Montant CAD", montant_usdt: "Montant USDT", taux: "Taux",
+  type_compte: "Compte", identite: "Identité", montant_cad: "Montant CAD", montant_usdt: "Montant en cryptomonnaie", taux: "Taux",
   frais_cad: "Frais CAD", reseau: "Réseau", adresse_portefeuille: "Adresse du portefeuille du client",
   courriel_interac: "Courriel Interac", expediteur_interac: "Expéditeur Interac", reference_interac: "Référence Interac",
   hash_transaction: "Hash de la transaction", paiement_recu_le: "Paiement reçu le", termine_le: "Terminé le",
@@ -117,7 +117,7 @@ function fmt(key: string, v: unknown): string {
   if (typeof v === "number" || (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v) && /montant|frais|taux/.test(key))) {
     const n = Number(v);
     if (key === "taux") return num(n, 4, 4);
-    if (key.includes("usdt")) return `${num(n, 2, 6)} USDT`;
+    if (key.includes("usdt")) return num(n, 2, 6);
     if (key.includes("cad")) return `${num(n, 2, 2)} $`;
     return String(v);
   }
@@ -200,7 +200,7 @@ export async function buildRegisterPdf({ kind, rows, from, to, retentionYears, p
   const has = (k: string) => rows.some((r) => r[k] !== null && r[k] !== undefined && r[k] !== "");
   const stats: [string, string][] = [[kind === "operations" ? "Opérations" : "Entrées", String(rows.length)]];
   if (has("montant_cad")) stats.push(["Total CAD", `${num(sum("montant_cad"), 2, 2)} $`]);
-  if (has("montant_usdt")) stats.push(["Total USDT", num(sum("montant_usdt"), 2, 2)]);
+  if (has("montant_usdt")) stats.push(["Total en cryptomonnaie", num(sum("montant_usdt"), 2, 2)]);
   if (kind === "operations") {
     stats.push(["Achats / ventes", `${rows.filter((r) => r.type === "Achat").length} / ${rows.filter((r) => r.type === "Vente").length}`]);
   }

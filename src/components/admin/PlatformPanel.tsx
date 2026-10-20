@@ -115,7 +115,7 @@ export function LaunchSections({ p, reload }: { p: PlatformPreview; reload: () =
               <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>Effacé</p>
               <div>
                 <Line right={<Num n={orders} />}>Commandes et leur historique</Line>
-                <Line right={<Num n={linked} />}>Virements reçus, envois USDT, dépôts reçus</Line>
+                <Line right={<Num n={linked} />}>Virements reçus, envois de cryptomonnaie, dépôts reçus</Line>
                 <Line>
                   <Switch checked={mail} onChange={setMail} label="Messagerie"
                     hint={`${sum(p.mail)} conversations. Décochez si un vrai contact y figure.`} />

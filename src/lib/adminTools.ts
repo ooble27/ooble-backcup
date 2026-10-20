@@ -3,6 +3,8 @@
  * quota de courriels, état et accès au compte d'un client, dossier de vérification de test, santé des tâches.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { primaryAsset } from "@/lib/assets";
+import { getAppSettingsNow } from "@/lib/settings";
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("admin-tools", { body });
@@ -54,9 +56,10 @@ export async function fetchPlatformHealth(): Promise<JobHealth[]> {
 export interface LatestRate { market: number | null; buy: number; sell: number; at: string }
 
 /** Dernier taux publié (celui que voient les clients). */
+/** Dernier taux publié de la cryptomonnaie principale ouverte (USDC si ouverte). */
 export async function fetchLatestRate(): Promise<LatestRate | null> {
   const { data, error } = await supabase.from("exchange_rates").select("market_rate, buy_rate, sell_rate, fetched_at")
-    .eq("asset", "usdt").order("fetched_at", { ascending: false }).limit(1).maybeSingle();
+    .eq("asset", primaryAsset(getAppSettingsNow()).id).order("fetched_at", { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
   return data ? { market: data.market_rate == null ? null : Number(data.market_rate), buy: Number(data.buy_rate), sell: Number(data.sell_rate), at: data.fetched_at } : null;
 }

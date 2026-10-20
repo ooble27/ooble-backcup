@@ -32,6 +32,11 @@ import {
   DataTable, EmptyState, FilterChips, KeyValues, Pill, Section, Tabs, Toolbar, TwoLine,
   type Column, type Tone,
 } from "./layout";
+import { coinNow, openAssets } from "@/lib/assets";
+import { getAppSettingsNow } from "@/lib/settings";
+
+/** Cryptomonnaies proposées dans une déclaration : celles ouvertes, plus celle déjà choisie. */
+const chipAssets = (cur?: string) => [...new Set([...openAssets(getAppSettingsNow()).map((a) => a.symbol), ...(cur ? [cur] : [])])];
 
 /*
  * Conformité CANAFE : alertes (analyse automatique toutes les 10 minutes et
@@ -179,11 +184,11 @@ function DeclarationWorkspace({ sourceRef, dueDate, form, onChange, onSubmit, on
               <Group title="Opération">
                 <FilterChips value={form.operationType} onChange={(v) => set("operationType", v)}
                   options={[{ id: "buy", label: "Achat" }, { id: "sell", label: "Vente" }]} />
-                <FilterChips value={form.asset ?? "USDT"} onChange={(v) => set("asset", v as "USDT" | "USDC")}
-                  options={[{ id: "USDC", label: "USDC" }, { id: "USDT", label: "USDT" }]} />
+                {chipAssets(form.asset).length > 1 && <FilterChips value={form.asset ?? coinNow()} onChange={(v) => set("asset", v as "USDT" | "USDC")}
+                  options={chipAssets(form.asset).map((a) => ({ id: a, label: a }))} />}
                 <div style={two}>
                   <Field label={req("Montant CAD")}>{input("amountCad", { inputMode: "decimal" })}</Field>
-                  <Field label={`Montant en ${form.asset ?? "USDT"}`} right={<span style={{ color: C.t3 }}>Facultatif</span>}>{input("amountUsdt", { inputMode: "decimal", placeholder: "0" })}</Field>
+                  <Field label={`Montant en ${form.asset ?? coinNow()}`} right={<span style={{ color: C.t3 }}>Facultatif</span>}>{input("amountUsdt", { inputMode: "decimal", placeholder: "0" })}</Field>
                 </div>
                 <div style={two}>
                   <Field label={req("Date de l'opération")} right={<span style={{ color: C.t3 }}>AAAA-MM-JJ</span>}>{input("operationDate", { placeholder: "2026-08-01" })}</Field>
@@ -287,7 +292,7 @@ function DeclarationWorkspace({ sourceRef, dueDate, form, onChange, onSubmit, on
                   ["Type", <TypePill key="t" type={form.type} />],
                   ["Opération", form.operationType === "buy" ? "Achat" : "Vente"],
                   ["Montant", `${nfCad.format(Number(form.amountCad))} $`],
-                  ...(form.amountUsdt ? [[form.asset ?? "USDT", form.amountUsdt] as [string, string]] : []),
+                  ...(form.amountUsdt ? [[form.asset ?? coinNow(), form.amountUsdt] as [string, string]] : []),
                   ["Date", form.operationDate],
                   ["Paiement", form.paymentMethod || "N/D"],
                   ...(form.network ? [["Réseau", form.network] as [string, string]] : []),

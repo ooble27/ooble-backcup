@@ -13,15 +13,17 @@ import { Button, Field, Notice, SidePanel, Switch, TextInput, fieldInput } from 
 import { DataTable, EmptyState, KeyValues, Pill, Section, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
 import { SettlementHero } from "./heroes";
 import { DEPOSIT_PILL, PAYOUT_PILL } from "./orderBits";
-import { assetSymbol } from "@/lib/assets";
+import { assetOnNetwork, assetSymbol, networkLive, openAssets, openSymbols, type AssetId } from "@/lib/assets";
+import { useAppSettings } from "@/lib/settings";
+import type { NetId } from "@/components/app/networks";
 
 /*
  * Règlement des achats et des ventes : portefeuille d'envoi (soldes par
  * réseau), réglages de l'envoi automatique, avis Interac lus sur
- * interac@ooble.ca, envois d'USDT, et USDT reçus pour les ventes (lus sur la
- * blockchain toutes les 2 minutes). Un virement rapproché déclenche l'envoi
- * seul si les réglages le permettent ; sinon l'équipe clique « Envoyer les
- * USDT » dans la fiche. Une vente dont les USDT sont rapprochés passe à
+ * interac@ooble.ca, envois de cryptomonnaie, et fonds reçus pour les ventes (lus
+ * sur la blockchain toutes les 2 minutes). Un virement rapproché déclenche l'envoi
+ * seul si les réglages le permettent ; sinon l'équipe envoie depuis la fiche.
+ * Seuls les cryptomonnaies et réseaux ouverts (Réglages) s'affichent. Une vente dont les fonds sont rapprochés passe à
  * « paiement reçu » : il reste à envoyer le virement Interac (fiche).
  */
 
@@ -40,6 +42,7 @@ const RECEIPT: Record<InteracReceipt["status"], { label: string; tone: Tone }> =
 };
 const NET_NAME: Record<string, string> = { trc20: "Tron", bep20: "BNB Chain", polygon: "Polygon", avalanche: "Avalanche", erc20: "Ethereum", spl: "Solana" };
 const netName = (n: string) => NET_NAME[n] ?? n.toUpperCase();
+const NET_ID: Record<string, NetId> = { trc20: "trx", bep20: "bnb", erc20: "eth", polygon: "matic", spl: "sol", avalanche: "avax" };
 /** Logo du réseau (fichiers de /public/coins). */
 const COIN: Record<string, string> = { trc20: "trx", trx: "trx", bep20: "bnb", bnb: "bnb", polygon: "matic", matic: "matic", erc20: "eth", eth: "eth", avalanche: "avax", avax: "avax", spl: "sol", sol: "sol", solana: "sol" };
 function NetLogo({ network, size = 22 }: { network: string; size?: number }) {
@@ -142,6 +145,11 @@ const SettlementPanel = () => {
   const can = useCan();
   const isAdmin = can("settlement.configure");
   const canAct = can("settlement.act");
+  // Cryptomonnaies et réseaux ouverts (Réglages) : une cryptomonnaie ou un réseau fermé n'apparaît pas ici.
+  const appSettings = useAppSettings();
+  const assets = openAssets(appSettings);
+  const coins = openSymbols(appSettings);
+  const unit = assets.length === 1 ? assets[0].symbol : "$ US";
   const [tab, setTab] = useState<Tab>("wallet");
   // Les dernières données connues s'affichent tout de suite ; la mise à jour arrive ensuite.
   const cachedW = peek<Awaited<ReturnType<typeof loadWallets>>>("st.wallets")?.value;
@@ -197,7 +205,10 @@ const SettlementPanel = () => {
     void load();
   };
 
-  const all = wallets ?? [];
+  const all = (wallets ?? []).filter((w) => networkLive(appSettings, w.network));
+  /** Solde d'un réseau pour un actif ouvert (null si l'actif n'existe pas sur ce réseau). */
+  const bal = (w: WalletState, a: AssetId) => (!assetOnNetwork(a, NET_ID[w.network]) ? null : a === "usdc" ? w.usdc ?? null : w.usdt ?? 0);
+  const balText = (w: WalletState) => assets.filter((a) => bal(w, a.id) != null).map((a) => `${nf(bal(w, a.id) ?? 0)} ${a.symbol}`).join(" · ") || "–";
   const lowGas = (w: WalletState) => w.configured && !w.error && (w.gas ?? 0) < (w.minGas ?? 0);
   const receiptsToCheck = receipts.filter((r) => r.status === "mismatch" || r.status === "unmatched").length;
   const payoutsToCheck = payouts.filter((p) => p.status === "review" || p.status === "failed").length;
@@ -223,8 +234,8 @@ const SettlementPanel = () => {
     { key: "addr", header: "Adresse d'envoi", hideBelow: 900, render: (w) => w.address
       ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.t2, ...mono }} title={w.address}>{short(w.address)}<CopyBtn value={w.address} /></span>
       : <span style={{ color: C.t3 }}>Non configurée</span> },
-    { key: "usdt", header: "USDT", align: "right", sort: (w) => w.usdt ?? -1, render: (w) => (w.configured && !w.error ? nf(w.usdt ?? 0) : <span style={{ color: C.t3 }}>N/D</span>) },
-    { key: "usdc", header: "USDC", align: "right", sort: (w) => w.usdc ?? -1, render: (w) => (w.usdc == null ? <span style={{ color: C.t3 }}>–</span> : w.configured && !w.error ? nf(w.usdc) : <span style={{ color: C.t3 }}>N/D</span>) },
+    ...assets.map((a): Column<WalletState> => ({ key: a.id, header: a.symbol, align: "right", sort: (w) => bal(w, a.id) ?? -1,
+      render: (w) => (bal(w, a.id) == null ? <span style={{ color: C.t3 }}>–</span> : w.configured && !w.error ? nf(bal(w, a.id) ?? 0) : <span style={{ color: C.t3 }}>N/D</span>) })),
     { key: "gas", header: "Frais", align: "right", render: (w) => (w.configured && !w.error
       ? <span style={{ color: lowGas(w) ? C.dangerText : C.t2 }}>{nf(w.gas ?? 0, 4)} {w.gasSymbol}</span>
       : <span style={{ color: C.t3 }}>N/D</span>) },
@@ -275,10 +286,11 @@ const SettlementPanel = () => {
       {err && <div style={{ marginBottom: 16 }}><Notice tone="err">{err}</Notice></div>}
 
       <SettlementHero loading={wallets === null && !err} auto={!!settings?.auto_payout} maxCad={settings ? Number(settings.auto_payout_max_cad) : null} toReview={toReview}
-        tanks={all.filter((w) => w.configured).map((w) => ({
-          network: w.network, label: w.label, usdt: w.usdt ?? 0, gas: w.gas ?? 0, minGas: w.minGas ?? 0, gasSymbol: w.gasSymbol,
-          ok: !w.error, logo: <NetLogo network={w.network} size={20} />,
-        }))} />
+        units={assets.map((a) => a.symbol)}
+        tanks={all.filter((w) => w.configured).flatMap((w) => assets.filter((a) => bal(w, a.id) != null).map((a) => ({
+          network: w.network, label: assets.length > 1 ? `${w.label} · ${a.symbol}` : w.label, amount: bal(w, a.id) ?? 0, unit: a.symbol,
+          gas: w.gas ?? 0, minGas: w.minGas ?? 0, gasSymbol: w.gasSymbol, ok: !w.error, logo: <NetLogo network={w.network} size={20} />,
+        })))} />
 
       <Tabs value={tab} onChange={setTab} items={[
         { id: "wallet", label: "Portefeuille et réglages" },
@@ -299,12 +311,12 @@ const SettlementPanel = () => {
               rowKey={(w) => w.network}
               empty={<EmptyState title={wallets === null ? "Chargement des soldes…" : "Aucun réseau"} />}
               mobile={(w) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={w.network} size={20} />{w.label}</span>, w.address ? short(w.address) : "Non configurée",
-                w.configured && !w.error ? `${nf(w.usdt ?? 0)} USDT${w.usdc != null ? ` · ${nf(w.usdc)} USDC` : ""}` : "N/D",
+                w.configured && !w.error ? balText(w) : "N/D",
                 !w.configured ? <Pill>Clé absente</Pill> : w.error ? <Pill tone="danger">Erreur</Pill> : lowGas(w) ? <Pill tone="warn">Frais bas</Pill> : <Pill tone="ok">Prêt</Pill>)}
             />
             <p style={{ margin: "14px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 640 }}>
-              Approvisionnez chaque adresse en USDT ou USDC (l'USDC partout sauf sur Tron) et en jeton de frais (TRX, BNB, POL, AVAX, ETH ou SOL)
-              depuis votre réserve. Sur Solana, chaque envoi vers un nouveau portefeuille coûte environ 0,002 SOL de plus. Gardez-y seulement le nécessaire aux envois du moment.
+              Approvisionnez chaque adresse en {coins} et en jeton de frais ({[...new Set(all.map((w) => w.gasSymbol).filter(Boolean))].join(", ") || "jeton du réseau"})
+              depuis votre réserve. Seuls les réseaux ouverts dans Réglages › Réseaux s'affichent. Sur Solana, chaque envoi vers un nouveau portefeuille coûte environ 0,002 SOL de plus. Gardez-y seulement le nécessaire aux envois du moment.
             </p>
           </div>
 
@@ -317,13 +329,13 @@ const SettlementPanel = () => {
                   checked={draft.auto_payout}
                   disabled={!isAdmin}
                   onChange={(v) => setDraft({ ...draft, auto_payout: v })}
-                  label="Envoyer les USDT et USDC sans clic de l'équipe"
+                  label={`Envoyer les ${coins} sans clic de l'équipe`}
                   hint="Dès qu'un virement Interac est reçu et rapproché d'un achat."
                 />
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10 }}>
                   <AmountPicker label="Par commande" unit="$ CA" choices={MAX_ORDER_CHOICES}
                     value={draft.auto_payout_max_cad} disabled={!isAdmin} onChange={(v) => setDraft({ ...draft, auto_payout_max_cad: v })} />
-                  <AmountPicker label="Sur 24 heures" unit="USDT" choices={DAILY_CHOICES}
+                  <AmountPicker label="Sur 24 heures" unit={unit} choices={DAILY_CHOICES}
                     value={draft.daily_payout_max_usdt} disabled={!isAdmin} onChange={(v) => setDraft({ ...draft, daily_payout_max_usdt: v })} />
                 </div>
                 <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: C.t3 }}>
@@ -367,7 +379,7 @@ const SettlementPanel = () => {
       {tab === "payouts" && (
         <>
           <Toolbar right={refresh}>
-            <span style={{ fontSize: 12.5, color: C.t3 }}>Les 30 derniers envois d'USDT et d'USDC depuis le portefeuille.</span>
+            <span style={{ fontSize: 12.5, color: C.t3 }}>Les 30 derniers envois de {coins} depuis le portefeuille.</span>
           </Toolbar>
           <DataTable
             rows={payouts}

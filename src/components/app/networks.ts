@@ -33,7 +33,7 @@ export const NET_DB: Record<NetId, DbNet> = { trx: "trc20", bnb: "bep20", eth: "
  */
 export function openNetworks(switches: NetworkSwitches, side?: "buy" | "sell", asset?: AssetId): Network[] {
   return NETWORKS.filter((n) => {
-    // L'USDC n'existe pas sur tous les réseaux (pas sur Tron ni BNB Chain).
+    // L'USDC n'existe pas sur tous les réseaux (pas sur Tron).
     if (asset && !assetOnNetwork(asset, n.id)) return false;
     const sw = switches[NET_DB[n.id]];
     return side ? !!sw?.[side] : !!(sw?.buy || sw?.sell);

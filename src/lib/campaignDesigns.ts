@@ -24,7 +24,7 @@ const BASE = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, 
 const FOOTER = `
 <tr>
   <td style="padding:24px 32px 28px;border-top:1px solid #eef0ee;color:#8a97a0;font:12px/1.55 ${BASE};text-align:center;">
-    Ooble Technologies Inc. Achat et vente d'USDT en dollars canadiens, payé par Interac e-Transfer.<br />
+    Ooble Technologies Inc. Achat et vente d'USDC en dollars canadiens, payé par Interac e-Transfer.<br />
     <a href="https://ooble.ca" style="color:#8a97a0;text-decoration:underline">ooble.ca</a>
     &nbsp;·&nbsp;
     <a href="https://ooble.ca/aide" style="color:#8a97a0;text-decoration:underline">Aide</a>

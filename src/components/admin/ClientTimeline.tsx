@@ -22,6 +22,7 @@ import {
 import { orderRef } from "@/lib/orders";
 import { KYC_LABEL, type ClientOrder, type ClientProfile } from "@/lib/adminClient";
 import { C, FONT } from "./adminTheme";
+import { assetSymbol } from "@/lib/assets";
 
 // ────────────────────────────────────────────────────────────
 // Modèle interne d'un événement de timeline
@@ -122,7 +123,7 @@ function buildEvents(profile: ClientProfile, orders: ClientOrder[], userId: stri
       at: o.createdAt,
       icon: Icon,
       title: (
-        <>{buy ? "Achat" : "Vente"} de {nfUsdt.format(o.usdtAmount)} USDT</>
+        <>{buy ? "Achat" : "Vente"} de {nfUsdt.format(o.usdtAmount)} {assetSymbol(o.asset)}</>
       ),
       amount: <>{nfCad.format(o.cadAmount)} $</>,
       meta: <>{orderRef(o.id)}</>,

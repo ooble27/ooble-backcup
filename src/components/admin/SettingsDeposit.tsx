@@ -1,10 +1,10 @@
 /**
- * Réglages › Adresses de dépôt : où les clients envoient leurs USDT quand ils vendent.
+ * Réglages › Adresses de dépôt : où les clients envoient leur cryptomonnaie quand ils vendent.
  *
  * Une adresse par famille de réseaux. Changer une adresse se fait en deux temps : on colle la
  * nouvelle (le format est vérifié en direct), puis on retape ses 6 derniers caractères en la
  * comparant au portefeuille. L'ancienne adresse reste surveillée 7 jours par sell-watch, pour
- * qu'un client qui y envoie encore ses USDT soit quand même reconnu.
+ * qu'un client qui y envoie encore ses fonds soit quand même reconnu.
  */
 import { useEffect, useState } from "react";
 import { peek, put } from "@/lib/adminCache";
@@ -16,6 +16,7 @@ import {
 import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { SettingsPage, fmtDay } from "./settingsUi";
+import { coinNow } from "@/lib/assets";
 
 const FAMILIES: AddressFamily[] = ["evm", "tron", "solana"];
 const WATCH_DAYS = 7;
@@ -121,7 +122,7 @@ function Family({ family, entries, onChanged }: { family: AddressFamily; entries
           <Addr value={candidate} />
           <input className="dp-in short" autoFocus spellCheck={false} autoComplete="off" maxLength={6} value={tail} aria-label="6 derniers caractères"
             onChange={(e) => setTail(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && tailOk && !busy) void replace(); if (e.key === "Escape") reset(); }} />
-          <p className="st-hint" style={{ margin: 0, color: C.sun }}>Une adresse fausse fait perdre les USDT que les clients y envoient. Elle s'applique tout de suite aux nouvelles ventes.</p>
+          <p className="st-hint" style={{ margin: 0, color: C.sun }}>Une adresse fausse fait perdre les fonds que les clients y envoient. Elle s'applique tout de suite aux nouvelles ventes.</p>
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
             <Button variant="primary" disabled={!tailOk || busy} onClick={replace}>{active ? "Remplacer l'adresse" : "Enregistrer l'adresse"}</Button>
             <button type="button" className="st-link" onClick={() => { setStep(1); setTail(""); }}>Retour</button>
@@ -162,9 +163,9 @@ export default function SettingsDeposit({ onBack }: { onBack: () => void }) {
       title={!book ? <span className="mute">Adresses de dépôt</span> : missing.length ? (
         <><span style={{ color: C.coral }}>{missing.map((f) => FAMILY_LABEL[f].name).join(" et ")}</span> <span className="mute">{missing.length > 1 ? "n'ont" : "n'a"} pas d'adresse de dépôt.</span></>
       ) : (
-        <>Les clients envoient leurs USDT à <span style={{ color: C.sage }}>3 adresses</span><span className="mute">, une par famille de réseaux.</span></>
+        <>Les clients envoient leurs {coinNow()} à <span style={{ color: C.sage }}>3 adresses</span><span className="mute">, une par famille de réseaux.</span></>
       )}
-      desc={`Quand un client vend, l'app lui montre l'adresse de son réseau. En cas de changement, l'ancienne reste surveillée ${WATCH_DAYS} jours : un client qui y envoie encore ses USDT est quand même reconnu.`}>
+      desc={`Quand un client vend, l'app lui montre l'adresse de son réseau. En cas de changement, l'ancienne reste surveillée ${WATCH_DAYS} jours : un client qui y envoie encore ses fonds est quand même reconnu.`}>
       <style>{CSS}</style>
       {err && <p className="st-hint" style={{ color: C.coral }}>{err}</p>}
       {book && FAMILIES.map((f) => <Family key={f} family={f} entries={book.filter((e) => e.family === f)} onChanged={() => void load()} />)}

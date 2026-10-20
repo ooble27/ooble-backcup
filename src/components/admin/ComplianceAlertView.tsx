@@ -17,6 +17,7 @@ import {
 } from "@/lib/compliance";
 import { C, FONT } from "./adminTheme";
 import { Button, TextArea, Workspace, WsPane } from "./ui";
+import { assetSymbol } from "@/lib/assets";
 
 const dayFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric" });
 const day = (iso?: string | null) => (iso ? dayFmt.format(new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)) : "");
@@ -117,7 +118,7 @@ export default function ComplianceAlertView({ alert, alerts, orders, busy, onClo
                     <button key={id} type="button" className="ca-link ui-row" onClick={() => onOpenOrder?.(id)} disabled={!onOpenOrder || !o}>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 14.5, color: C.t1 }}>
-                          {o ? <>{o.type === "buy" ? "Achat" : "Vente"} de {nfCad.format(o.cad)} $ <span style={{ color: C.t3 }}>· {nfUsdt.format(o.usdt)} USDT{o.network ? ` ${o.network.toUpperCase()}` : ""}</span></> : ref}
+                          {o ? <>{o.type === "buy" ? "Achat" : "Vente"} de {nfCad.format(o.cad)} $ <span style={{ color: C.t3 }}>· {nfUsdt.format(o.usdt)} {assetSymbol(o.asset)}{o.network ? ` ${o.network.toUpperCase()}` : ""}</span></> : ref}
                         </span>
                         <span style={{ display: "block", marginTop: 2, fontSize: 12.5, color: C.t3 }}>
                           {o ? <>{o.ref} · {STATUS_META[o.status].label.toLowerCase()}{o.interacEmail ? ` · Interac ${o.interacEmail}` : ""}</> : "Commande hors de la liste chargée"}
