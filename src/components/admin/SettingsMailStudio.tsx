@@ -9,6 +9,7 @@
  * L'aperçu et l'envoi passent par le même moteur (supabase/functions/_shared/mailStudio.ts) :
  * ce qu'on voit ici est exactement ce que reçoit le client.
  */
+import { restoreFor, scrollAdminTop } from "@/lib/pageMotion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -488,8 +489,8 @@ export default function SettingsMailStudio({ onBack }: { onBack: () => void }) {
     if (k) url.searchParams.set(PARAM, k); else url.searchParams.delete(PARAM);
     window.history.pushState(window.history.state, "", url);
     setMailState(k);
-    document.querySelector("[data-admin-scroll]")?.scrollTo({ top: 0 });
-    window.scrollTo({ top: 0 });
+    // Ouvrir un courriel : en haut. Revenir au studio : là où on l'avait laissé.
+    if (k) scrollAdminTop(); else restoreFor();
   };
   const leave = () => {
     const url = new URL(window.location.href);

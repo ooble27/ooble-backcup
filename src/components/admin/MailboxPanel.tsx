@@ -55,6 +55,7 @@ import {
   createThread, insertOutboundMessage, threadReplyTo, countUnread, fetchSentMessages, type SentRow,
   type MailThread, type MailMessage, type MailboxId,
 } from "@/lib/mailThreads";
+import { enterView, returnTo } from "@/lib/pageMotion";
 import { C, FONT, inputStyle } from "./adminTheme";
 import { Button, Notice, Workspace } from "./ui";
 import { MailboxHero } from "./heroes";
@@ -1479,6 +1480,8 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
   });
 
   const openThread = async (t: MailThread) => {
+    // Téléphone : la conversation remplace la liste ; « retour » rend la liste à sa position.
+    if (!wide) enterView("mail");
     setSelectedId(t.id);
     setMsgsLoading(true);
     const msgs = await fetchMessages(t.id);
@@ -1522,7 +1525,7 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
 
   const conversation = selected && (
     <Conversation thread={selected} messages={messages} loading={msgsLoading} me={me}
-      onBack={wide ? undefined : () => setSelectedId(null)}
+      onBack={wide ? undefined : () => { setSelectedId(null); returnTo("mail"); }}
       onReply={(ref) => onReply(selected, ref)} onRemove={remove} onAssign={changeAssign}
       onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
   );

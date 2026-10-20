@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useCan } from "@/lib/roles";
+import { enterView, returnTo } from "@/lib/pageMotion";
 import { peek, put } from "@/lib/adminCache";
 import {
   fetchCampaignResults, fetchJourneyPreview, fetchSummaries, loadJourneyTexts, loadJourneys, queueCampaign, saveJourney, saveJourneyText, saveStepDelay,
@@ -140,7 +141,7 @@ export function JourneysPanel({ onControl }: { onControl: () => void }) {
     void data.reload();
   };
 
-  if (current) return <JourneyEditor j={current} texts={data.texts} admin={admin} onBack={() => { setOpen(null); void data.reload(); }} reload={data.reload} />;
+  if (current) return <JourneyEditor j={current} texts={data.texts} admin={admin} onBack={() => { setOpen(null); returnTo("journey"); void data.reload(); }} reload={data.reload} />;
 
   return (
     <div>
@@ -181,7 +182,7 @@ export function JourneysPanel({ onControl }: { onControl: () => void }) {
               </p>
               <div className="jr-acts">
                 <span>Parcours <Word on={j.enabled} yes="allumé" no="éteint" disabled={!admin || busy === j.id} onFlip={(v) => void flip(j, v)} /></span>
-                <button type="button" className="mk-link" onClick={() => setOpen(j.id)}>Voir et modifier {j.steps.length > 1 ? "les courriels" : "le courriel"} <ArrowRight style={{ width: 14, height: 14 }} /></button>
+                <button type="button" className="mk-link" onClick={() => { enterView("journey"); setOpen(j.id); }}>Voir et modifier {j.steps.length > 1 ? "les courriels" : "le courriel"} <ArrowRight style={{ width: 14, height: 14 }} /></button>
               </div>
             </div>
           );

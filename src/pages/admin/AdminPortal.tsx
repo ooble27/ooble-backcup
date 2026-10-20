@@ -56,6 +56,7 @@ import { prefetchClient } from "@/lib/clientProfileCache";
 import { prefetchOrder } from "@/lib/orderDetailCache";
 import { assetSymbol } from "@/lib/assets";
 import { loadOli } from "@/lib/oli";
+import { enterView, installScrollMemory, returnTo } from "@/lib/pageMotion";
 
 /** Téléphone : navigation en cadran (false = ancien menu latéral). */
 
@@ -210,6 +211,10 @@ const AdminPortal = () => {
   const [vw] = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
+  // Retour à la position d'avant, comme dans les applications (lib/pageMotion).
+  useEffect(() => { installScrollMemory(); }, []);
+  // Fil des vues ouvertes (commande, fiche client) : « retour » ramène à la précédente, à sa position.
+  const trail = useRef<{ selected: AdminOrder | null; clientView: { userId: string; name: string } | null }[]>([]);
   // Ordinateur et tablette : barre d'icônes toujours visible. Téléphone : le cadran sort du bord gauche.
   const mode: "full" | "drawer" = vw < 768 ? "drawer" : "full";
 
@@ -235,6 +240,7 @@ const AdminPortal = () => {
     setTabState(id);
     setSelected(null);
     setClientView(null);
+    trail.current = [];
     const url = new URL(window.location.href);
     url.searchParams.set("tab", id);
     url.searchParams.delete("doc");
@@ -243,7 +249,7 @@ const AdminPortal = () => {
     toTop();
   }, [toTop]);
   useEffect(() => {
-    const on = () => { const t = readTab(); if (t) { setTabState(t); setSelected(null); setClientView(null); } };
+    const on = () => { const t = readTab(); if (t) { setTabState(t); setSelected(null); setClientView(null); trail.current = []; } };
     window.addEventListener("popstate", on);
     return () => window.removeEventListener("popstate", on);
   }, []);
@@ -363,7 +369,7 @@ const AdminPortal = () => {
   };
 
   const remove = (id: string) => {
-    setSelected(null);
+    goBack();
     setOrders((prev) => prev.filter((o) => o.id !== id));
     deleteOrder(id).then((res) => { if (res.error) refresh(); });
   };
@@ -372,8 +378,20 @@ const AdminPortal = () => {
   const toProcess = orders.filter((o) => o.status === "recu").length;
   const badges: Partial<Record<TabId, number>> = { queue: toProcess, notes: team?.unreadNotes, tasks: team?.myTasks };
 
-  const openOrder = (o: AdminOrder) => { setClientView(null); setSelected(o); toTop(); prefetchClient(o.userId); prefetchOrder(o.id, o.userId); };
-  const openClient = (userId: string, name: string) => { setSelected(null); setClientView({ userId, name }); toTop(); };
+  // Ouvrir : la vue d'où l'on vient garde sa position ; la nouvelle s'ouvre en haut.
+  const enter = () => { trail.current.push({ selected, clientView }); enterView(`d${trail.current.length}`); };
+  const openOrder = (o: AdminOrder) => { enter(); setClientView(null); setSelected(o); prefetchClient(o.userId); prefetchOrder(o.id, o.userId); };
+  const openClient = (userId: string, name: string) => { enter(); setSelected(null); setClientView({ userId, name }); };
+  // Retour : la vue précédente (la liste, ou la fiche d'où l'on venait), là où on l'avait laissée.
+  const goBack = () => {
+    const depth = trail.current.length;
+    const prev = trail.current.pop();
+    const fresh = prev?.selected ? orders.find((x) => x.id === prev.selected!.id) ?? prev.selected : null;
+    setSelected(fresh);
+    setClientView(prev?.clientView ?? null);
+    returnTo(`d${depth}`);
+  };
+  const backToList = () => { setSelected(null); setClientView(null); trail.current = []; returnTo("d1"); };
   const showClient = (userId: string) => openClient(userId, selected?.clientName ?? "Client");
   const showClientById = (userId: string) => openClient(userId, "Client");
   const openOrderById = (orderId: string) => {
@@ -398,7 +416,7 @@ const AdminPortal = () => {
   const crumbs: { label: string; onClick?: () => void }[] = [];
   const group = GROUP_OF.get(active.id);
   if (group && group !== active.label) crumbs.push({ label: group });
-  crumbs.push({ label: active.label, onClick: selected || clientView ? () => { setSelected(null); setClientView(null); toTop(); } : undefined });
+  crumbs.push({ label: active.label, onClick: selected || clientView ? backToList : undefined });
   if (selected) crumbs.push({ label: `Commande ${selected.ref}` });
   if (clientView) crumbs.push({ label: clientView.name });
 
@@ -545,9 +563,9 @@ const AdminPortal = () => {
   const memberSheet = <MemberSheetHost onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onGoTasks={() => { setSelected(null); setClientView(null); setTab("tasks"); }}
     onGoMe={() => { setSelected(null); setClientView(null); setTab("me"); }} />;
   const page = clientView ? (
-            <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={() => setClientView(null)} onOpenOrder={openOrderById} />
+            <ClientProfile userId={clientView.userId} clientName={clientView.name} onBack={goBack} onOpenOrder={openOrderById} />
           ) : selected ? (
-            <OrderDetail order={selected} onBack={() => setSelected(null)} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
+            <OrderDetail order={selected} onBack={goBack} onPatch={patch} onDelete={remove} onShowClient={showClient} onRefresh={refresh} onWriteClient={allowedTabs.has("mailbox") ? writeClient : undefined} />
           ) : (
             <>
               {/* Téléphone : la messagerie prend toute la hauteur (le nom de la page est déjà dans la barre du haut). */}

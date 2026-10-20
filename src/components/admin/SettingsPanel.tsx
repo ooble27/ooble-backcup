@@ -30,7 +30,7 @@ import { OliAvatar } from "./TeamViews";
 import { NETWORKS, NET_DB } from "@/components/app/networks";
 import SettingsMailStudio, { MailStudioEntry } from "./SettingsMailStudio";
 import { Presets, Row, SaveBar, SettingsNavContext, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf, type SettingsNav } from "./settingsUi";
-import { scrollAdminTop } from "@/lib/pageMotion";
+import { restoreFor, scrollAdminTop } from "@/lib/pageMotion";
 
 const INDEX_CSS = `
 .sx-hero { margin: 0; font-size: clamp(32px, 4.2vw, 52px); line-height: 1.06; font-weight: 600; letter-spacing: -0.045em; color: var(--a-t1); text-wrap: balance; max-width: 980px; }
@@ -338,7 +338,8 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
     if (id) url.searchParams.set(PARAM, id); else url.searchParams.delete(PARAM);
     window.history.pushState(window.history.state, "", url);
     setPageState(id);
-    scrollAdminTop();
+    // Entrer dans un réglage : en haut. Revenir à la liste : là où on l'avait laissée.
+    if (id) scrollAdminTop(); else restoreFor();
   };
   const back = () => go(null);
 

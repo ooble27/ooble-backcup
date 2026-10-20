@@ -9,6 +9,7 @@ import { C, FONT } from "./adminTheme";
 import { Button, Field, Notice, TextArea, TextInput, Workspace, WsPane } from "./ui";
 import { EmptyState, FilterChips, SearchField } from "./layout";
 import Markdown, { MARKDOWN_CSS } from "./Markdown";
+import { enterView, returnTo, scrollAdminTop } from "@/lib/pageMotion";
 
 /**
  * Ressources : trois pages construites sur le même modèle.
@@ -274,9 +275,10 @@ export default function DocsPanel({ section }: { section: DocSection }) {
   useEffect(() => { readRef.current?.scrollTo({ top: 0 }); }, [current?.id]);
 
   const open = (d: DocArticle | null) => {
+    // Téléphone : la fiche remplace la liste. L'ouvrir : en haut ; la fermer : la liste reprend là où elle était.
+    if (!wide) { if (d && !openSlug) enterView("doc"); else if (!d) returnTo("doc"); else scrollAdminTop(); }
     setOpenSlug(d?.slug ?? null);
     writeDoc(d?.slug ?? null);
-    if (!wide) window.scrollTo({ top: 0 });
   };
   const replace = (next: DocArticle[]) => { setDocs(next); put(key, next); };
 
