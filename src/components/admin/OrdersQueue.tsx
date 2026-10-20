@@ -48,7 +48,7 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
       {tab === "queue" && (claimable(o)
         ? <Button size="sm" variant="primary" icon={<Hand style={{ width: 14, height: 14 }} />} onClick={() => onPatch(o.id, { assignedTo: CURRENT_OPERATOR })}>Prendre</Button>
         : <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: C.t3, whiteSpace: "nowrap" }}>
-            {o.autoSending || o.status === "cours" ? <><Loader2 style={{ width: 13, height: 13, animation: "spin 1.2s linear infinite" }} />Envoi automatique</> : "Attend le paiement"}
+            {o.autoSending || o.status === "cours" ? <><Loader2 style={{ width: 13, height: 13, animation: "spin 1.2s linear infinite" }} />Oli envoie</> : "Attend le paiement"}
           </span>)}
       {tab === "mine" && <>
         <Button size="sm" variant="ghost" onClick={() => onPatch(o.id, { assignedTo: null })}>Libérer</Button>

@@ -322,7 +322,7 @@ export function QueueWait({ orders, onOpen, mine, unassigned }: { orders: AdminO
         {paid.length ? (
           <><span style={{ color: C.coral }}>{paid.length}</span> {plural(paid.length, "commande payée vous attend", "commandes payées vous attendent")}.</>
         ) : sending ? (
-          <><span style={{ color: C.vzIndigo }}>{sending}</span> {plural(sending, "envoi automatique en cours", "envois automatiques en cours")}. <span className="mute">Rien à faire.</span></>
+          <><span style={{ color: C.vzIndigo }}>{sending}</span> {plural(sending, "envoi d'Oli en cours", "envois d'Oli en cours")}. <span className="mute">Rien à faire.</span></>
         ) : waiting ? (
           <><span style={{ color: C.sun }}>{waiting}</span> {plural(waiting, "commande attend", "commandes attendent")} <span className="mute">le paiement du client.</span></>
         ) : (

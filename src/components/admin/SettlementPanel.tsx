@@ -254,7 +254,7 @@ const SettlementPanel = () => {
   ];
 
   const payoutCols: Column<UsdtPayout>[] = [
-    { key: "order", header: "Commande", sort: (p) => p.order_id, render: (p) => <TwoLine primary={ref(p.order_id)} secondary={p.trigger === "auto" ? "Envoi automatique" : "Envoyé par l'équipe"} /> },
+    { key: "order", header: "Commande", sort: (p) => p.order_id, render: (p) => <TwoLine primary={ref(p.order_id)} secondary={p.trigger === "auto" ? "Envoyé par Oli" : "Envoyé par l'équipe"} /> },
     { key: "status", header: "État", render: (p) => <Pill tone={PAYOUT_PILL[p.status]?.tone}>{PAYOUT_PILL[p.status]?.label ?? p.status}</Pill> },
     { key: "to", header: "Destination", hideBelow: 1000, render: (p) => p.error
       ? <span style={{ color: C.dangerText, display: "block", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.error}>{p.error}</span>

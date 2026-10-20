@@ -12,7 +12,8 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice } from "./ui";
 import { KeyValues, Pill } from "./layout";
 import { DEPOSIT_PILL, OrderChannel, OrderStatusPill, PAYOUT_PILL } from "./orderBits";
-import { LinkedTasks, TeamAvatar } from "./TeamViews";
+import { LinkedTasks, OliAvatar, TeamAvatar } from "./TeamViews";
+import { OLI_NAME } from "@/lib/oli";
 import { ApprovalForm } from "./TeamApprovals";
 import { openMember, prefetchMember } from "@/lib/teamSpace";
 import { assetSymbol } from "@/lib/assets";
@@ -101,7 +102,7 @@ function PayoutStep({ order, list, onChanged, readOnly }: { order: AdminOrder; l
           {last ? (
             <span style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
               <Pill tone={PAYOUT_PILL[last.status]?.tone}>{PAYOUT_PILL[last.status]?.label ?? last.status}</Pill>
-              {last.trigger === "auto" ? "Envoyé automatiquement" : "Lancé par l'équipe"}
+              {last.trigger === "auto" ? `Envoyé par ${OLI_NAME}` : "Lancé par l'équipe"}
               {last.tx_hash && txUrl(last.network, last.tx_hash) && (
                 <a href={txUrl(last.network, last.tx_hash)} target="_blank" rel="noreferrer" style={{ color: C.t1, display: "inline-flex", alignItems: "center", gap: 4 }}>
                   Voir la transaction <ExternalLink style={{ width: 12, height: 12 }} />
@@ -370,7 +371,10 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
                 : <>{stillOpen ? "En cours de traitement par" : "Traitée par"} <span style={{ color: C.t1, fontWeight: 500 }}>{order.assignedTo}</span></>}</span>
             </p>
           ) : order.status === "termine" ? (
-            <p style={{ margin: "14px 0 0", fontSize: 14, color: C.t3 }}>Traitée automatiquement par le système.</p>
+            <p style={{ margin: "14px 0 0", display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.t2 }}>
+              <OliAvatar size={32} />
+              <span>Traitée par <span style={{ color: C.t1, fontWeight: 500 }}>{OLI_NAME}</span>, sans intervention de l'équipe</span>
+            </p>
           ) : null}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{actions}</div>
