@@ -107,7 +107,7 @@ export const OrderDetailContent = ({ o }: { o: OrderRow }) => {
     <>
       <div className="mb-8">
         <p className="flex items-center gap-2.5 font-display text-[40px] font-semibold leading-none tracking-tight tabular-nums">
-          <img src="/coins/usdt.svg" alt="" className="h-8 w-8 shrink-0" />
+          <img src={`/coins/${assetSymbol(o.asset).toLowerCase()}.svg`} alt="" className="h-8 w-8 shrink-0" />
           {nfUsdt.format(Number(o.usdt_amount))} <span className="text-[20px] font-medium text-muted-foreground">{assetSymbol(o.asset)}</span>
         </p>
         <p className="mt-2 text-[15px] text-muted-foreground">{nf.format(Number(o.cad_amount))} CAD · <span className="text-foreground">{t(statusKey(o))}</span></p>

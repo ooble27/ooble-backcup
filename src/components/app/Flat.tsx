@@ -105,7 +105,7 @@ export const NetworkPick = ({ list, value, onPick }: { list: Network[]; value: s
 
 /**
  * Récapitulatif : libellé à gauche, valeur à droite, séparés par un trait fin.
- * `usdt` : logo de la cryptomonnaie devant la valeur (`coin` : son symbole, USDT par défaut).
+ * `usdt` : logo de la cryptomonnaie devant la valeur (`coin` : son symbole, USDC par défaut).
  */
 export const Facts = ({ rows }: { rows: { label: string; value: string; mono?: boolean; usdt?: boolean; coin?: string }[] }) => (
   <div className="ac-lines">
