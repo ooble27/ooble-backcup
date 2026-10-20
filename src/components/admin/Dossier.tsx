@@ -307,10 +307,12 @@ export function Section({ title, hint, children, first }: { title: string; hint?
   );
 }
 
-export function Checklist({ items, value, onChange, focus }: {
+export function Checklist({ items, value, onChange, focus, notes }: {
   items: string[]; value: boolean[]; onChange: (v: boolean[]) => void;
   /** Points concernés par le document affiché : les autres s'effacent un peu. */
   focus?: boolean[];
+  /** Une ligne sous chaque point (ce qu'Oli a lu), facultative. */
+  notes?: React.ReactNode[];
 }) {
   return (
     <div style={{ display: "grid" }}>
@@ -319,7 +321,7 @@ export function Checklist({ items, value, onChange, focus }: {
         <button key={c} type="button" role="checkbox" aria-checked={value[i]} className="dz-check" data-on={value[i]} style={{ opacity: focus && !focus[i] && !value[i] ? 0.45 : 1, transition: "opacity .3s, color .15s" }}
           onClick={() => onChange(value.map((x, j) => (j === i ? !x : x)))}>
           <span>{value[i] && <Check style={{ width: 12, height: 12 }} strokeWidth={3} />}</span>
-          <span>{c}</span>
+          <span>{c}{notes?.[i] && <span style={{ display: "block", marginTop: 3, fontSize: 12.5, lineHeight: 1.45 }}>{notes[i]}</span>}</span>
         </button>
       ))}
     </div>

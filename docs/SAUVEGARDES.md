@@ -107,7 +107,7 @@ done
 ### 4. Rebrancher la plateforme
 
 Sur le nouveau projet : redéployer les fonctions edge (workflow « Déploiement fonctions edge
-Supabase » avec le nouveau `--project-ref`), recopier leurs secrets (Resend, Sumsub,
+Supabase » avec le nouveau `--project-ref`), recopier leurs secrets (Resend, Anthropic,
 portefeuilles…), puis mettre à jour l'URL et la clé publique Supabase dans Vercel.
 
 ---

@@ -12,6 +12,8 @@ import { Avatar, DataTable, EmptyState, FilterChips, Pill, Tabs, TwoLine, type C
 import { KycHero } from "./heroes";
 import { Checklist, COMPARE, DocViewer, Section } from "./Dossier";
 import BusinessKycPanel from "./BusinessKycPanel";
+import { OliAvatar } from "./TeamViews";
+import { fetchOliReport, runOliCheck, type OliCheck, type OliReport } from "@/lib/oliKyc";
 
 const STATUS: Record<KycStatus, [string, Tone]> = { attente: ["À vérifier", "warn"], verifie: ["Vérifiée", "ok"], refuse: ["Refusée", "danger"] };
 const DOC_LABEL: Record<string, string> = { selfie: "Selfie", id_front: "Recto", id_back: "Verso", address_proof: "Preuve d'adresse" };
@@ -19,14 +21,28 @@ const DOC_ORDER = ["selfie", "id_front", "id_back", "address_proof"];
 const DOC_TYPE: Record<string, string> = { passport: "Passeport", drivers_license: "Permis de conduire", id_card: "Carte d'identité", pr_card: "Carte de résident permanent" };
 /** Chaque point à contrôler montre le document qui permet de le vérifier. */
 /** Chaque point à contrôler montre le document qui permet de le vérifier (`needs` : seulement si le dossier l'a). */
-const CHECKS: { text: string; view: string; needs?: string }[] = [
-  { text: "Le visage du selfie correspond à la photo de la pièce", view: COMPARE },
-  { text: "Le nom correspond à celui du compte", view: "id_front" },
-  { text: "La date de naissance correspond à celle déclarée", view: "id_front", needs: "address_proof" },
-  { text: "La pièce n'est pas expirée", view: "id_front" },
-  { text: "Les photos sont nettes et complètes", view: "id_back" },
-  { text: "La preuve d'adresse a moins de 3 mois, au nom du client et à l'adresse déclarée", view: "address_proof", needs: "address_proof" },
+// `oli` : le point du rapport d'Oli qui s'affiche sous la ligne.
+const CHECKS: { text: string; view: string; needs?: string; oli: string }[] = [
+  { text: "Le visage du selfie correspond à la photo de la pièce", view: COMPARE, oli: "face" },
+  { text: "Le nom correspond à celui du compte", view: "id_front", oli: "name" },
+  { text: "La date de naissance correspond à celle déclarée", view: "id_front", needs: "address_proof", oli: "birth" },
+  { text: "La pièce n'est pas expirée", view: "id_front", oli: "expiry" },
+  { text: "Les photos sont nettes et complètes", view: "id_back", oli: "quality" },
+  { text: "La preuve d'adresse a moins de 3 mois, au nom du client et à l'adresse déclarée", view: "address_proof", needs: "address_proof", oli: "address" },
 ];
+const OLI_MARK: Record<OliCheck["state"], [string, string]> = {
+  ok: ["Concorde", C.sage], look: ["À regarder", C.sun], unknown: ["Illisible", C.t3], manual: ["À vous", C.t3],
+};
+/** Ligne d'Oli sous un point : « Oli · Concorde : … ». Plusieurs constats d'un même point à la suite. */
+function oliNote(list: OliCheck[]) {
+  if (!list.length) return null;
+  const worst = list.find((c) => c.state === "look") ?? list.find((c) => c.state === "unknown") ?? list[0];
+  return (
+    <span style={{ color: C.t3 }}>
+      <span style={{ color: OLI_MARK[worst.state][1], fontWeight: 500 }}>Oli</span> · {list.map((c) => c.text).join(" ")}
+    </span>
+  );
+}
 const REASONS = [
   "La photo de la pièce est floue : le texte n'est pas lisible.",
   "La pièce d'identité est expirée.",
@@ -80,6 +96,32 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => { setNote(""); setChecks(items.map(() => false)); setView(COMPARE); setRefusing(false); setError(null); }, [r?.id, items]);
+
+  // Rapport d'Oli : relu toutes les 3 secondes tant qu'il lit les documents.
+  const [oli, setOli] = useState<OliReport | null | undefined>(undefined);
+  const [oliBusy, setOliBusy] = useState(false);
+  useEffect(() => {
+    if (!r?.id) return;
+    let alive = true, timer: number | undefined;
+    setOli(undefined);
+    const tick = () => fetchOliReport(r.id).then((x) => {
+      if (!alive) return;
+      setOli(x);
+      if (x?.status === "pending") timer = window.setTimeout(tick, 3000);
+    });
+    void tick();
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [r?.id]);
+  const relaunch = async () => {
+    if (!r) return;
+    setOliBusy(true);
+    const res = await runOliCheck(r.id);
+    setOliBusy(false);
+    if (res.error) { setOli({ status: "error", verdict: null, checks: [], error: res.error, finishedAt: null }); return; }
+    setOli({ status: "pending", verdict: null, checks: [], error: null, finishedAt: null });
+    const poll = () => fetchOliReport(r.id).then((x) => { setOli(x); if (x?.status === "pending") window.setTimeout(poll, 3000); });
+    window.setTimeout(poll, 3000);
+  };
   const load = useCallback((p: string) => getDocumentUrl(p), []);
 
   // Ouvrir un dossier, c'est le prendre : les collègues voient qui l'examine. Le fermer le libère.
@@ -97,6 +139,13 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
   const lastRefusal = before.find((x) => x.status === "refuse");
   const byOther = pending && r.assignedTo && me && r.assignedTo !== me.id;
   const done = checks.filter(Boolean).length;
+  const oliDone = oli?.status === "done" ? oli : null;
+  const oliFor = (key: string) => (oliDone?.checks ?? []).filter((c) => c.key === key);
+  const oliExtra = (oliDone?.checks ?? []).filter((c) => !CHECKS.some((x) => x.oli === c.key));
+  // Points qu'Oli a confirmés, à cocher d'un coup après un coup d'œil.
+  const oliOk = items.map((c) => { const l = oliFor(c.oli); return l.length > 0 && l.every((x) => x.state === "ok"); });
+  const oliOkCount = oliOk.filter((v, i) => v && !checks[i]).length;
+  const oliLook = (oliDone?.checks ?? []).filter((c) => c.state === "look").length;
 
   // Cocher un point montre le document du point suivant.
   const tick = (next: boolean[]) => {
@@ -183,9 +232,27 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
                     <span key={done} className="kv-count" style={{ color: done === items.length ? C.sage : C.t1 }}>{done}</span>
                     <span style={{ fontSize: 15, color: C.t3 }}>sur {items.length} points vérifiés</span>
                   </p>
+                  <OliLine report={oli} busy={oliBusy} onRun={canDecide ? relaunch : undefined} look={oliLook} />
                   <div style={{ marginTop: 8 }}>
-                    <Checklist items={items.map((c) => c.text)} value={checks} onChange={tick} focus={items.map((c) => c.view === view)} />
+                    <Checklist items={items.map((c) => c.text)} value={checks} onChange={tick} focus={items.map((c) => c.view === view)}
+                      notes={items.map((c) => oliNote(oliFor(c.oli)))} />
                   </div>
+                  {oliExtra.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Oli a aussi remarqué</p>
+                      {oliExtra.map((c) => (
+                        <p key={c.key} style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.5, color: C.t1 }}>
+                          <span style={{ color: OLI_MARK[c.state][1], fontWeight: 500 }}>{OLI_MARK[c.state][0]}</span> · {c.text}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {oliOkCount > 0 && canDecide && (
+                    <button type="button" className="ui-step" onClick={() => tick(checks.map((v, i) => v || oliOk[i]))}
+                      style={{ all: "unset", cursor: "pointer", marginTop: 14, fontSize: 13, color: C.t2, textDecoration: "underline", textUnderlineOffset: 3, fontFamily: FONT }}>
+                      Cocher les {oliOkCount} point{oliOkCount > 1 ? "s" : ""} qu'Oli a confirmé{oliOkCount > 1 ? "s" : ""}, après les avoir regardés
+                    </button>
+                  )}
                 </div>
                 {refusing && (
                   <Section title="Motif pour le client" hint="Il figure dans le courriel envoyé au client.">
@@ -243,6 +310,28 @@ function Review({ list, all, index, me, canDecide, onIndex, onClose, onDecide, o
         </WsPane>
       </div>
     </Workspace>
+  );
+}
+
+/** Une ligne d'état d'Oli au-dessus des points : il lit, il a fini, ou il n'a pas pu lire. */
+function OliLine({ report, busy, onRun, look }: { report: OliReport | null | undefined; busy: boolean; onRun?: () => void; look: number }) {
+  if (report === undefined) return null;
+  const run = onRun && (
+    <button type="button" disabled={busy} onClick={onRun}
+      style={{ all: "unset", cursor: busy ? "default" : "pointer", marginLeft: 8, color: C.t2, textDecoration: "underline", textUnderlineOffset: 3 }}>
+      {busy ? "Envoi…" : report ? "Relancer l'analyse" : "Lancer l'analyse"}
+    </button>
+  );
+  const text = !report ? "Oli n'a pas encore lu ce dossier."
+    : report.status === "pending" ? "Oli lit les documents…"
+      : report.status === "error" ? `Oli n'a pas pu lire ce dossier : ${report.error ?? "erreur inconnue"}`
+        : report.verdict === "clear" ? "Oli a lu le dossier : tout concorde. Regardez le visage, puis décidez."
+          : `Oli a lu le dossier : ${look ? `${look} point${look > 1 ? "s" : ""} à regarder` : "certains points sont illisibles"}.`;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, fontSize: 13.5, lineHeight: 1.45, color: C.t2 }}>
+      <OliAvatar size={26} />
+      <span style={{ flex: 1, minWidth: 0 }}>{text}{report?.status !== "pending" && run}</span>
+    </div>
   );
 }
 

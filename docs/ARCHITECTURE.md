@@ -95,7 +95,7 @@ Sécurité : Row Level Security (RLS) activée partout. Un client ne voit que se
 ### Intégrations externes
 | Rôle | Fournisseur (candidats) | Notes |
 | --- | --- | --- |
-| KYC | Persona / SumSub / Veriff | Webhook de résultat → met à jour `kyc_verifications` |
+| KYC | Interne (équipe Ooble) | Documents dans le stockage privé ; pré-analyse par Oli (`kyc-check`, Anthropic) ; décision par l'équipe dans `kyc_verifications` |
 | Paiement CAD | Interac e-Transfer (via VoPay ou équivalent) | Réconciliation automatique des paiements entrants/sortants |
 | Taux CAD/USDT | Agrégateur (CoinGecko/Kraken) + marge Ooble | Rafraîchi en continu, verrouillé par ordre |
 | Blockchain | Nœud/API (Tron pour TRC20, ou ERC20) | Envoi des USDT + surveillance des dépôts |

@@ -12,6 +12,7 @@ import { peek, put } from "@/lib/adminCache";
 import { logAdminAction } from "@/lib/audit";
 import { getAppSettingsNow, saveAppSettings, useAppSettings, type AssetId, type NetworkSwitches, type SettingsPatch } from "@/lib/settings";
 import { primaryAsset } from "@/lib/assets";
+import { fetchOliSettings, saveOliKycCheck } from "@/lib/oliKyc";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { Presets, Row, SaveBar, SettingsPage, Stepper, Toggle, ago, fmtDay } from "./settingsUi";
@@ -337,6 +338,38 @@ export function StaffAlertsPage({ onBack }: { onBack: () => void }) {
           <Button variant="primary" disabled={!canAdd || busy} onClick={() => { void write([...(list ?? []), clean], `${clean} reçoit maintenant les alertes.`); setDraft(""); }}>Ajouter</Button>
         </div>
       </section>
+      <Msg m={msg} />
+    </SettingsPage>
+  );
+}
+
+/* ─── Analyse d'Oli (vérifications d'identité) ─── */
+export function OliPage({ onBack }: { onBack: () => void }) {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => { void fetchOliSettings().then((s) => setOn(s.kycCheck)); }, []);
+  const flip = async (v: boolean) => {
+    setBusy(true); setMsg(null);
+    const res = await saveOliKycCheck(v);
+    setBusy(false);
+    if (res.error) { setMsg({ ok: false, text: "Réservé aux administrateurs." }); return; }
+    setOn(v);
+    setMsg({ ok: true, text: v ? "Oli lit maintenant chaque nouveau dossier." : "Oli ne lit plus les nouveaux dossiers." });
+    void logAdminAction({ action: "settings.update", entityKind: "oli_settings", metadata: { kycCheck: v, what: "Analyse d'Oli" } });
+  };
+  return (
+    <SettingsPage onBack={onBack}
+      title={on === null ? <span className="mute">Analyse d'Oli</span>
+        : on ? <>Oli <span style={{ color: C.sage }}>prépare</span> <span className="mute">chaque dossier de vérification.</span></>
+        : <>Oli <span style={{ color: C.t3 }}>ne lit pas</span> <span className="mute">les dossiers.</span></>}
+      desc="Dès qu'un client envoie ses documents, Oli lit la pièce d'identité et la preuve d'adresse, puis les compare à ce que le client a déclaré : nom, date de naissance, expiration, netteté, chiffres de contrôle du passeport, pièce déjà utilisée par un autre compte, preuve d'adresse récente. Son rapport s'affiche dans le dossier, sous chaque point à vérifier. Oli ne décide jamais : l'équipe approuve ou refuse. Il ne compare pas les visages.">
+      <div className="st-rows">
+        <Row label="Lire chaque nouveau dossier" hint="Éteint, l'équipe peut toujours lancer l'analyse à la main depuis un dossier.">
+          <Toggle on={!!on} disabled={busy || on === null} label="Analyse d'Oli" onChange={flip} />
+        </Row>
+      </div>
+      <p className="st-hint">Les documents sont lus par le modèle d'IA d'Anthropic, comme l'assistant de l'équipe ; ils ne servent pas à entraîner de modèle.</p>
       <Msg m={msg} />
     </SettingsPage>
   );

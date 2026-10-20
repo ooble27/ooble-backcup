@@ -114,8 +114,8 @@ function Layers() {
   const rows: [string, string, string][] = [
     ["Clients et équipe", "site, app, back-office", C.vzGray],
     ["Vercel", "hébergement, mise en ligne", C.vzIndigo],
-    ["Supabase", "base, comptes, fichiers, 13 fonctions", C.vzGreen],
-    ["Fournisseurs", "Interac, blockchains, Resend, Sumsub", C.vzCoral],
+    ["Supabase", "base, comptes, fichiers, fonctions", C.vzGreen],
+    ["Fournisseurs", "Interac, blockchains, Resend, Anthropic", C.vzCoral],
   ];
   return (
     <div style={{ display: "grid", gap: 10 }}>
