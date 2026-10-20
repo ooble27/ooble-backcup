@@ -54,7 +54,7 @@ const SOL = {
   rpc: "https://api.mainnet-beta.solana.com",
   env: "RPC_SOLANA",
   usdt: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-  usdc: "EPjFWdd5AufqSSo1QZTDvbuohVL9xkYJFV41aT5wTkm",
+  usdc: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   ataProgram: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   explorer: "https://solscan.io/tx/",

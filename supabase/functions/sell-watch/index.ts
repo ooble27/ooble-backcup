@@ -177,7 +177,7 @@ async function scanEvm(net: EvmNet, asset: Asset, addresses: string[], cursor: n
 /** Jetons SPL sur Solana, 6 décimales : USDT (Tether) et USDC (Circle). */
 const SOL_MINT: Record<Asset, string> = {
   usdt: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-  usdc: "EPjFWdd5AufqSSo1QZTDvbuohVL9xkYJFV41aT5wTkm",
+  usdc: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
 };
 const SOL_RPC = "https://api.mainnet-beta.solana.com";
 /** Signatures lues par compte et par passage (les plus récentes d'abord). */
