@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { oliName } from "@/lib/oli";
 import { fetchCached, peek } from "@/lib/adminCache";
 import type { LiveTeamMember } from "@/lib/adminTeam";
 import { sendCustomEmail } from "@/lib/email";
@@ -194,8 +195,8 @@ export interface TeamTask {
   byOli: boolean;
   createdBy: string; createdByName: string; at: string; updatedAt: string; doneAt: string | null; doneByName: string | null; comments: TaskComment[];
 }
-/** Auteur des tâches d'accueil, écrit par la base (« Accueil Ooble » avant Oli). */
-const OLI_AUTHORS = new Set(["Oli", "Accueil Ooble"]);
+/** Auteur des tâches d'accueil, écrit par la base : le nom d'Oli (« Accueil Ooble » avant lui). */
+const byOliName = (n: string) => n === "Oli" || n === "Accueil Ooble" || n === oliName();
 /** Tâches non archivées (ou archivées), ou seulement celles d'un client ou d'une commande. */
 async function loadTasksRaw(archived = false, link?: { clientId?: string; orderId?: string }): Promise<TeamTask[]> {
   let q = table("team_tasks")
@@ -212,7 +213,7 @@ async function loadTasksRaw(archived = false, link?: { clientId?: string; orderI
       assigneeRole: (r.assignee_role as Role) ?? null, dueOn: (r.due_on as string) ?? null, status: r.status as TaskStatus,
       clientId: (r.client_id as string) ?? null, clientName: c ? (c.full_name?.trim() || c.email || "Client") : null,
       orderId: (r.order_id as string) ?? null, orderRef: r.order_id ? orderRef(String(r.order_id)) : null, archived: !!r.archived,
-      byOli: OLI_AUTHORS.has(String(r.created_by_name ?? "")),
+      byOli: byOliName(String(r.created_by_name ?? "")),
       createdBy: String(r.created_by), createdByName: String(r.created_by_name ?? "Membre"), at: String(r.created_at), updatedAt: String(r.updated_at),
       doneAt: (r.done_at as string) ?? null, doneByName: (r.done_by_name as string) ?? null,
       handedOffBy: (r.handed_off_by_name as string) ?? null,
