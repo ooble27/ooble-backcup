@@ -203,7 +203,7 @@ function useRateHistory(rate: { buy: number; sell: number; base: number; live: b
   useEffect(() => {
     let on = true;
     const since = new Date(Date.now() - 60 * 60_000).toISOString();
-    void supabase.from("exchange_rates").select("market_rate, buy_rate, sell_rate, fetched_at").gte("fetched_at", since)
+    void supabase.from("exchange_rates").select("market_rate, buy_rate, sell_rate, fetched_at").eq("asset" as never, "usdt").gte("fetched_at", since)
       .order("fetched_at", { ascending: false }).limit(400)
       .then(({ data }) => {
         if (!on || !data) return;

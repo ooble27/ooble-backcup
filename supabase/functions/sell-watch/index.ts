@@ -1,4 +1,8 @@
-// Fonction edge Ooble — surveillance des USDT reçus pour les ventes.
+// Fonction edge Ooble — surveillance des USDT et USDC reçus pour les ventes.
+//
+// Chaque réseau est lu pour l'USDT et, là où il existe, pour l'USDC (Ethereum, Polygon, Avalanche,
+// Solana), avec un curseur par réseau et par actif (chain_scan_cursors). Le rapprochement exige
+// le même réseau ET le même actif que la vente.
 //
 // Toutes les 2 minutes (pg_cron), lit les transferts d'USDT entrants sur les
 // adresses de dépôt d'Ooble, les enregistre dans `chain_deposits`, puis
@@ -43,7 +47,15 @@ async function depositAddresses(db: SupabaseClient): Promise<{ tron: string[]; e
   return { tron: of("tron"), evm: of("evm"), solana: of("solana") };
 }
 
+type Asset = "usdt" | "usdc";
+const SYM: Record<Asset, string> = { usdt: "USDT", usdc: "USDC" };
 type EvmNet = "bep20" | "polygon" | "avalanche" | "erc20";
+/** Contrats USDC natifs (Circle) : 6 décimales sur ces réseaux. Pas d'USDC sur Tron ni BNB Chain. */
+const EVM_USDC: Partial<Record<EvmNet, string>> = {
+  polygon: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+  avalanche: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+  erc20: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+};
 const EVM: Record<EvmNet, { rpc: string; env: string; usdt: string; decimals: number; confirmations: number; chunk: number; startBack: number }> = {
   bep20:     { rpc: "https://bsc-rpc.publicnode.com",              env: "SCAN_RPC_BEP20",     usdt: "0x55d398326f99059fF775485246999027B3197955", decimals: 18, confirmations: 15, chunk: 1000, startBack: 2400 },
   polygon:   { rpc: "https://polygon-bor-rpc.publicnode.com",      env: "SCAN_RPC_POLYGON",   usdt: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", decimals: 6,  confirmations: 64, chunk: 1000, startBack: 3600 },
@@ -70,6 +82,7 @@ const NET_LABEL: Record<string, string> = {
 
 interface Deposit {
   network: string;
+  asset: Asset;
   tx_hash: string;
   log_index: number;
   from_address: string | null;
@@ -105,7 +118,7 @@ async function scanTronAddress(address: string, cursorMs: number): Promise<{ dep
     .map((x) => {
       cursor = Math.max(cursor, x.block_timestamp + 1);
       return {
-        network: "trc20", tx_hash: x.transaction_id, log_index: 0, from_address: x.from, to_address: x.to,
+        network: "trc20", asset: "usdt" as Asset, tx_hash: x.transaction_id, log_index: 0, from_address: x.from, to_address: x.to,
         usdt_amount: units(BigInt(x.value), x.token_info?.decimals ?? 6), block_time: new Date(x.block_timestamp).toISOString(),
       };
     });
@@ -124,8 +137,10 @@ async function rpc<T>(url: string, method: string, params: unknown[]): Promise<T
   return b.result as T;
 }
 
-async function scanEvm(net: EvmNet, addresses: string[], cursor: number | null): Promise<{ deposits: Deposit[]; cursor: number }> {
+async function scanEvm(net: EvmNet, asset: Asset, addresses: string[], cursor: number | null): Promise<{ deposits: Deposit[]; cursor: number }> {
   const c = EVM[net];
+  const token = asset === "usdc" ? EVM_USDC[net]! : c.usdt;
+  const decimals = asset === "usdc" ? 6 : c.decimals;
   const url = Deno.env.get(c.env) || c.rpc;
   const head = Number(BigInt(await rpc<string>(url, "eth_blockNumber", []))) - c.confirmations;
   let from = cursor ?? head - c.startBack;
@@ -138,7 +153,7 @@ async function scanEvm(net: EvmNet, addresses: string[], cursor: number | null):
   for (let k = 0; k < MAX_CHUNKS && from <= head; k++) {
     const to = Math.min(head, from + c.chunk - 1);
     const logs = await rpc<{ transactionHash: string; logIndex: string; blockNumber: string; topics: string[]; data: string }[]>(url, "eth_getLogs", [{
-      fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16), address: c.usdt, topics: [TRANSFER, null, topicTo],
+      fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16), address: token, topics: [TRANSFER, null, topicTo],
     }]);
     for (const l of logs) {
       if (!times.has(l.blockNumber)) {
@@ -146,10 +161,10 @@ async function scanEvm(net: EvmNet, addresses: string[], cursor: number | null):
         times.set(l.blockNumber, new Date(Number(BigInt(b.timestamp)) * 1000).toISOString());
       }
       deposits.push({
-        network: net, tx_hash: l.transactionHash, log_index: Number(BigInt(l.logIndex)),
+        network: net, asset, tx_hash: l.transactionHash, log_index: Number(BigInt(l.logIndex)),
         from_address: "0x" + l.topics[1].slice(26),
         to_address: addresses.find((a) => a.slice(2).toLowerCase() === l.topics[2].slice(26).toLowerCase()) ?? "0x" + l.topics[2].slice(26),
-        usdt_amount: units(BigInt(l.data), c.decimals), block_time: times.get(l.blockNumber)!,
+        usdt_amount: units(BigInt(l.data), decimals), block_time: times.get(l.blockNumber)!,
       });
     }
     from = to + 1;
@@ -159,8 +174,11 @@ async function scanEvm(net: EvmNet, addresses: string[], cursor: number | null):
 
 // ───────────────────────── Solana ─────────────────────────
 
-/** USDT sur Solana (jeton SPL de Tether), 6 décimales. */
-const SOL_USDT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+/** Jetons SPL sur Solana, 6 décimales : USDT (Tether) et USDC (Circle). */
+const SOL_MINT: Record<Asset, string> = {
+  usdt: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+  usdc: "EPjFWdd5AufqSSo1QZTDvbuohVL9xkYJFV41aT5wTkm",
+};
 const SOL_RPC = "https://api.mainnet-beta.solana.com";
 /** Signatures lues par compte et par passage (les plus récentes d'abord). */
 const SOL_PAGE = 100;
@@ -172,15 +190,16 @@ type SolTokenBalance = { accountIndex: number; mint: string; owner?: string; uiT
  * On lit donc les transactions de ce compte (et de l'adresse, pour le tout premier dépôt qui le crée),
  * puis, dans chaque transaction finalisée, ce que le solde USDT de l'adresse de dépôt a gagné.
  */
-async function scanSolana(addresses: string[], cursorMs: number): Promise<{ deposits: Deposit[]; cursor: number }> {
+async function scanSolana(asset: Asset, addresses: string[], cursorMs: number): Promise<{ deposits: Deposit[]; cursor: number }> {
   if (!addresses.length) return { deposits: [], cursor: cursorMs };
+  const MINT = SOL_MINT[asset];
   const url = Deno.env.get("SCAN_RPC_SOLANA") || SOL_RPC;
   const since = cursorMs - 60_000; // marge : les doublons sont ignorés par l'index unique
   const deposits: Deposit[] = [];
   let cursor = cursorMs;
 
   for (const owner of addresses) {
-    const accounts = await rpc<{ value: { pubkey: string }[] }>(url, "getTokenAccountsByOwner", [owner, { mint: SOL_USDT }, { encoding: "jsonParsed", commitment: "finalized" }]);
+    const accounts = await rpc<{ value: { pubkey: string }[] }>(url, "getTokenAccountsByOwner", [owner, { mint: MINT }, { encoding: "jsonParsed", commitment: "finalized" }]);
     const watched = [owner, ...accounts.value.map((a) => a.pubkey)];
     const sigs = new Map<string, number>();
     for (const acct of watched) {
@@ -191,8 +210,8 @@ async function scanSolana(addresses: string[], cursorMs: number): Promise<{ depo
       const tx = await rpc<{ meta: { err: unknown; preTokenBalances?: SolTokenBalance[]; postTokenBalances?: SolTokenBalance[] } | null } | null>(
         url, "getTransaction", [sig, { encoding: "jsonParsed", commitment: "finalized", maxSupportedTransactionVersion: 0 }]);
       if (!tx?.meta || tx.meta.err) continue;
-      const pre = (tx.meta.preTokenBalances ?? []).filter((b) => b.mint === SOL_USDT);
-      const post = (tx.meta.postTokenBalances ?? []).filter((b) => b.mint === SOL_USDT);
+      const pre = (tx.meta.preTokenBalances ?? []).filter((b) => b.mint === MINT);
+      const post = (tx.meta.postTokenBalances ?? []).filter((b) => b.mint === MINT);
       const before = (i: number) => BigInt(pre.find((b) => b.accountIndex === i)?.uiTokenAmount.amount ?? "0");
       // Ce que l'adresse de dépôt a reçu dans cette transaction.
       let received = 0n;
@@ -207,7 +226,8 @@ async function scanSolana(addresses: string[], cursorMs: number): Promise<{ depo
         if (d > drop) { drop = d; sender = b.owner ?? null; }
       }
       deposits.push({
-        network: "spl", tx_hash: sig, log_index: 0, from_address: sender, to_address: owner,
+        // Position 1 pour l'USDC : une même transaction Solana peut porter les deux jetons (index unique réseau + hash + position).
+        network: "spl", asset, tx_hash: sig, log_index: asset === "usdc" ? 1 : 0, from_address: sender, to_address: owner,
         usdt_amount: units(received, 6), block_time: new Date(blockTime * 1000).toISOString(),
       });
       cursor = Math.max(cursor, blockTime * 1000);
@@ -220,31 +240,34 @@ async function scanSolana(addresses: string[], cursorMs: number): Promise<{ depo
 // ───────────────────────── Passage complet ─────────────────────────
 
 async function scan(db: SupabaseClient) {
-  const { data: state } = await db.from("chain_scan_state").select("network, cursor");
-  const cur = new Map((state ?? []).map((s: { network: string; cursor: number }) => [s.network, Number(s.cursor)]));
+  const { data: state } = await db.from("chain_scan_cursors").select("network, asset, cursor");
+  const cur = new Map((state ?? []).map((s: { network: string; asset: string; cursor: number }) => [`${s.network}:${s.asset}`, Number(s.cursor)]));
   const report: Record<string, string> = {};
   let found = 0;
   const addr = await depositAddresses(db);
 
-  const jobs: [string, () => Promise<{ deposits: Deposit[]; cursor: number }>][] = [
-    ["trc20", () => scanTron(addr.tron, cur.get("trc20") ?? Date.now() - 6 * 3600_000)],
-    ["spl", () => scanSolana(addr.solana, cur.get("spl") ?? Date.now() - 6 * 3600_000)],
-    ...(Object.keys(EVM) as EvmNet[]).map((n) => [n, () => scanEvm(n, addr.evm, cur.get(n) ?? null)] as [string, () => Promise<{ deposits: Deposit[]; cursor: number }>]),
+  type Job = [string, Asset, () => Promise<{ deposits: Deposit[]; cursor: number }>];
+  const jobs: Job[] = [
+    ["trc20", "usdt", () => scanTron(addr.tron, cur.get("trc20:usdt") ?? Date.now() - 6 * 3600_000)],
+    ...(["usdt", "usdc"] as Asset[]).map((a): Job => ["spl", a, () => scanSolana(a, addr.solana, cur.get(`spl:${a}`) ?? Date.now() - 6 * 3600_000)]),
+    ...(Object.keys(EVM) as EvmNet[]).flatMap((n) => (["usdt", "usdc"] as Asset[])
+      .filter((a) => a === "usdt" || !!EVM_USDC[n])
+      .map((a): Job => [n, a, () => scanEvm(n, a, addr.evm, cur.get(`${n}:${a}`) ?? null)])),
   ];
 
-  await Promise.all(jobs.map(async ([net, run]) => {
+  await Promise.all(jobs.map(async ([net, asset, run]) => {
     try {
       const { deposits, cursor } = await run();
       if (deposits.length) {
         const { error } = await db.from("chain_deposits").upsert(deposits, { onConflict: "network,tx_hash,log_index", ignoreDuplicates: true });
         if (error) throw new Error(error.message);
       }
-      await db.from("chain_scan_state").upsert({ network: net, cursor, updated_at: new Date().toISOString() });
+      await db.from("chain_scan_cursors").upsert({ network: net, asset, cursor, updated_at: new Date().toISOString() });
       found += deposits.length;
-      report[net] = `${deposits.length} transfert(s)`;
+      report[`${net} ${SYM[asset]}`] = `${deposits.length} transfert(s)`;
     } catch (e) {
-      report[net] = `erreur : ${(e as Error).message}`;
-      console.error("sell-watch", net, e);
+      report[`${net} ${SYM[asset]}`] = `erreur : ${(e as Error).message}`;
+      console.error("sell-watch", net, asset, e);
     }
   }));
 
@@ -259,7 +282,7 @@ async function scan(db: SupabaseClient) {
 async function notify(db: SupabaseClient, orderId: string, depositId: string) {
   const [{ data: o }, { data: d }] = await Promise.all([
     db.from("orders").select("id, user_id, cad_amount, usdt_amount, network, interac_email").eq("id", orderId).maybeSingle(),
-    db.from("chain_deposits").select("tx_hash, usdt_amount, network").eq("id", depositId).maybeSingle(),
+    db.from("chain_deposits").select("tx_hash, usdt_amount, network, asset").eq("id", depositId).maybeSingle(),
   ]);
   if (!o || !d) return;
   const { data: p } = await db.from("profiles").select("email").eq("id", o.user_id).maybeSingle();
@@ -276,6 +299,7 @@ async function notify(db: SupabaseClient, orderId: string, depositId: string) {
       vars: {
         ref: `OOB-${o.id.slice(0, 8).toUpperCase()}`,
         usdtAmount: fr(Number(d.usdt_amount)),
+        asset: SYM[(d.asset ?? "usdt") as Asset],
         cadAmount: fr(Number(o.cad_amount)),
         network: NET_LABEL[d.network] ?? d.network,
         interacEmail: o.interac_email ?? to,

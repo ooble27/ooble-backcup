@@ -1,4 +1,8 @@
-// Envoi d'USDT depuis le portefeuille chaud d'Ooble.
+// Envoi d'USDT ou d'USDC depuis le portefeuille chaud d'Ooble.
+//
+// Actifs : l'USDT existe sur tous les réseaux ; l'USDC (émis par Circle) seulement sur Ethereum,
+// Polygon, Avalanche et Solana (pas sur Tron ni sur BNB Chain : demandé ailleurs, c'est refusé).
+// Les deux ont 6 décimales sur ces réseaux ; on relit tout de même les décimales du contrat (EVM).
 //
 // Deux familles de réseaux :
 //   • Tron (TRC20) — API HTTP TronGrid, transaction signée ici avec la clé
@@ -25,14 +29,15 @@ import {
 } from "npm:@solana/web3.js@1.98.0";
 
 export type Net = "trc20" | "bep20" | "polygon" | "avalanche" | "erc20" | "spl";
+export type Asset = "usdt" | "usdc";
 
 type EvmNet = Exclude<Net, "trc20" | "spl">;
 
-const EVM: Record<EvmNet, { chainId: number; rpc: string; env: string; usdt: string; gas: string; explorer: string; minGas: number }> = {
-  bep20:     { chainId: 56,    rpc: "https://bsc-dataseed.binance.org",          env: "RPC_BEP20",     usdt: "0x55d398326f99059fF775485246999027B3197955", gas: "BNB",  explorer: "https://bscscan.com/tx/",         minGas: 0.0005 },
-  polygon:   { chainId: 137,   rpc: "https://polygon-bor-rpc.publicnode.com",    env: "RPC_POLYGON",   usdt: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", gas: "POL",  explorer: "https://polygonscan.com/tx/",     minGas: 0.5 },
-  avalanche: { chainId: 43114, rpc: "https://api.avax.network/ext/bc/C/rpc",     env: "RPC_AVALANCHE", usdt: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", gas: "AVAX", explorer: "https://snowtrace.io/tx/",        minGas: 0.02 },
-  erc20:     { chainId: 1,     rpc: "https://ethereum-rpc.publicnode.com",       env: "RPC_ERC20",     usdt: "0xdAC17F958D2ee523a2206206994597C13D831ec7", gas: "ETH",  explorer: "https://etherscan.io/tx/",        minGas: 0.003 },
+const EVM: Record<EvmNet, { chainId: number; rpc: string; env: string; usdt: string; usdc?: string; gas: string; explorer: string; minGas: number }> = {
+  bep20:     { chainId: 56,    rpc: "https://bsc-dataseed.binance.org",          env: "RPC_BEP20",     usdt: "0x55d398326f99059fF775485246999027B3197955",                                                    gas: "BNB",  explorer: "https://bscscan.com/tx/",         minGas: 0.0005 },
+  polygon:   { chainId: 137,   rpc: "https://polygon-bor-rpc.publicnode.com",    env: "RPC_POLYGON",   usdt: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", usdc: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", gas: "POL",  explorer: "https://polygonscan.com/tx/",     minGas: 0.5 },
+  avalanche: { chainId: 43114, rpc: "https://api.avax.network/ext/bc/C/rpc",     env: "RPC_AVALANCHE", usdt: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", usdc: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", gas: "AVAX", explorer: "https://snowtrace.io/tx/",        minGas: 0.02 },
+  erc20:     { chainId: 1,     rpc: "https://ethereum-rpc.publicnode.com",       env: "RPC_ERC20",     usdt: "0xdAC17F958D2ee523a2206206994597C13D831ec7", usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", gas: "ETH",  explorer: "https://etherscan.io/tx/",        minGas: 0.003 },
 };
 
 const TRON = {
@@ -49,6 +54,7 @@ const SOL = {
   rpc: "https://api.mainnet-beta.solana.com",
   env: "RPC_SOLANA",
   usdt: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+  usdc: "EPjFWdd5AufqSSo1QZTDvbuohVL9xkYJFV41aT5wTkm",
   tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   ataProgram: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   explorer: "https://solscan.io/tx/",
@@ -57,6 +63,21 @@ const SOL = {
 };
 
 export const SUPPORTED: Net[] = ["trc20", "bep20", "polygon", "avalanche", "erc20", "spl"];
+export const ASSETS: Asset[] = ["usdt", "usdc"];
+const SYMBOL: Record<Asset, string> = { usdt: "USDT", usdc: "USDC" };
+
+/** Contrat (ou jeton Solana) d'un actif sur un réseau ; null s'il n'y existe pas. */
+export function tokenOf(net: Net, asset: Asset): string | null {
+  if (asset === "usdt") return net === "trc20" ? TRON.usdt : net === "spl" ? SOL.usdt : EVM[net as EvmNet].usdt;
+  if (net === "trc20" || net === "bep20") return null;
+  return net === "spl" ? SOL.usdc : EVM[net as EvmNet].usdc ?? null;
+}
+export const hasAsset = (net: Net, asset: Asset) => tokenOf(net, asset) !== null;
+function needToken(net: Net, asset: Asset): string {
+  const t = tokenOf(net, asset);
+  if (!t) throw new SafeError(`${SYMBOL[asset]} n'existe pas sur ce réseau.`);
+  return t;
+}
 
 export const explorerUrl = (net: Net, hash: string) =>
   net === "trc20" ? TRON.explorer + hash : net === "spl" ? SOL.explorer + hash : net in EVM ? EVM[net as EvmNet].explorer + hash : "";
@@ -167,14 +188,14 @@ async function solCall(method: string, params: unknown[]) {
   return r.result;
 }
 
-/** Compte USDT associé (ATA) d'un portefeuille. */
-const solAta = (owner: PublicKey) => PublicKey.findProgramAddressSync(
-  [owner.toBuffer(), new PublicKey(SOL.tokenProgram).toBuffer(), new PublicKey(SOL.usdt).toBuffer()],
+/** Compte de jetons associé (ATA) d'un portefeuille, pour un jeton donné (USDT ou USDC). */
+const solAta = (owner: PublicKey, mint: string) => PublicKey.findProgramAddressSync(
+  [owner.toBuffer(), new PublicKey(SOL.tokenProgram).toBuffer(), new PublicKey(mint).toBuffer()],
   new PublicKey(SOL.ataProgram),
 )[0];
 
-async function solUsdtBalance(owner: string): Promise<number> {
-  const r = await solCall("getTokenAccountsByOwner", [owner, { mint: SOL.usdt }, { encoding: "jsonParsed", commitment: "confirmed" }]);
+async function solTokenBalance(owner: string, mint: string): Promise<number> {
+  const r = await solCall("getTokenAccountsByOwner", [owner, { mint }, { encoding: "jsonParsed", commitment: "confirmed" }]);
   return (r?.value ?? []).reduce((t: number, a: any) => t + Number(a?.account?.data?.parsed?.info?.tokenAmount?.uiAmount ?? 0), 0);
 }
 
@@ -205,36 +226,39 @@ export function validateAddress(net: Net, addr: string): void {
   if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) throw new SafeError("Adresse de réception invalide pour ce réseau.");
 }
 
-export async function balances(net: Net): Promise<{ address: string; usdt: number; gas: number; gasSymbol: string; minGas: number }> {
+/** Solde de l'actif (champ « usdt » : le montant de l'actif demandé) et du gaz. */
+export async function balances(net: Net, asset: Asset = "usdt"): Promise<{ address: string; usdt: number; gas: number; gasSymbol: string; minGas: number }> {
   const address = fromAddress(net);
+  const tok = needToken(net, asset);
   if (net === "trc20") {
     const [usdt, gas] = await Promise.all([tronUsdtBalance(address), tronTrxBalance(address)]);
     return { address, usdt, gas, gasSymbol: "TRX", minGas: TRON.minTrx };
   }
   if (net === "spl") {
-    const [usdt, gas] = await Promise.all([solUsdtBalance(address), solBalance(address)]);
+    const [usdt, gas] = await Promise.all([solTokenBalance(address, tok), solBalance(address)]);
     return { address, usdt, gas, gasSymbol: "SOL", minGas: SOL.minSol };
   }
   const c = EVM[net as EvmNet];
   const p = evmProvider(net as EvmNet);
-  const token = new Contract(c.usdt, ERC20_ABI, p);
+  const token = new Contract(tok, ERC20_ABI, p);
   const [raw, dec, wei] = await Promise.all([token.balanceOf(address), token.decimals(), p.getBalance(address)]);
   return { address, usdt: Number(formatUnits(raw, dec)), gas: Number(formatUnits(wei, 18)), gasSymbol: c.gas, minGas: c.minGas };
 }
 
 export interface Prepared { hash: string; broadcast: () => Promise<void> }
 
-/** Construit et signe le transfert ; ne diffuse rien. */
-export async function prepare(net: Net, to: string, amount: number, keyOverride?: string): Promise<Prepared> {
+/** Construit et signe le transfert de l'actif ; ne diffuse rien. */
+export async function prepare(net: Net, to: string, amount: number, keyOverride?: string, asset: Asset = "usdt"): Promise<Prepared> {
   validateAddress(net, to);
+  const tok = needToken(net, asset);
   const key = keyFor(net, keyOverride);
   const from = fromAddress(net, key);
   if (to.toLowerCase() === from.toLowerCase()) throw new SafeError("L'adresse de réception est celle du portefeuille d'Ooble.");
 
   if (net === "spl") {
     const kp = solKeypair(key);
-    const owner = new PublicKey(to), mint = new PublicKey(SOL.usdt), tokenProgram = new PublicKey(SOL.tokenProgram);
-    const fromAta = solAta(kp.publicKey), toAta = solAta(owner);
+    const owner = new PublicKey(to), mint = new PublicKey(tok), tokenProgram = new PublicKey(SOL.tokenProgram);
+    const fromAta = solAta(kp.publicKey, tok), toAta = solAta(owner, tok);
     const units = parseUnits(amount.toFixed(6), 6);
     let blockhash: string, lastValidBlockHeight: number;
     try {
@@ -243,7 +267,7 @@ export async function prepare(net: Net, to: string, amount: number, keyOverride?
         solCall("getTokenAccountBalance", [fromAta.toBase58(), { commitment: "confirmed" }]),
       ]);
       ({ blockhash, lastValidBlockHeight } = bh.value);
-      if (BigInt(src?.value?.amount ?? "0") < units) throw new SafeError("Solana : solde USDT insuffisant sur le compte d'envoi.");
+      if (BigInt(src?.value?.amount ?? "0") < units) throw new SafeError(`Solana : solde ${SYMBOL[asset]} insuffisant sur le compte d'envoi.`);
     } catch (e) {
       if (e instanceof SafeError) throw e;
       throw new SafeError(`Préparation impossible : ${(e as Error).message?.slice(0, 180)}`);
@@ -254,7 +278,7 @@ export async function prepare(net: Net, to: string, amount: number, keyOverride?
       // Petite priorité : la transaction passe même quand le réseau est chargé (quelques millièmes de cent).
       ComputeBudgetProgram.setComputeUnitLimit({ units: 80_000 }),
       ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }),
-      // Crée le compte USDT du destinataire s'il n'existe pas (sans effet sinon).
+      // Crée le compte de jetons du destinataire s'il n'existe pas (sans effet sinon).
       new TransactionInstruction({
         programId: new PublicKey(SOL.ataProgram),
         keys: [
@@ -267,7 +291,7 @@ export async function prepare(net: Net, to: string, amount: number, keyOverride?
         ],
         data: Buffer.from([1]),
       }),
-      // TransferChecked : le montant et les 6 décimales de l'USDT sont vérifiés par le programme.
+      // TransferChecked : le montant et les 6 décimales du jeton (USDT ou USDC) sont vérifiés par le programme.
       new TransactionInstruction({
         programId: tokenProgram,
         keys: [
@@ -336,7 +360,7 @@ export async function prepare(net: Net, to: string, amount: number, keyOverride?
   const c = EVM[net as EvmNet];
   const p = evmProvider(net as EvmNet);
   const wallet = new Wallet(key, p);
-  const token = new Contract(c.usdt, ERC20_ABI, wallet);
+  const token = new Contract(tok, ERC20_ABI, wallet);
   const dec: bigint = await token.decimals();
   const units = parseUnits(amount.toFixed(6), dec);
   let req;
@@ -398,17 +422,19 @@ export async function health(): Promise<Record<string, unknown>> {
         catch (e) { build = (e as Error).message; }
         out[net] = { ok: true, block: b?.block_header?.raw_data?.number, build };
       } else if (net === "spl") {
-        const [slot, supply] = await Promise.all([solCall("getSlot", []), solCall("getTokenSupply", [SOL.usdt])]);
+        const [slot, supply, supplyC] = await Promise.all([solCall("getSlot", []), solCall("getTokenSupply", [SOL.usdt]), solCall("getTokenSupply", [SOL.usdc])]);
         const temp = Keypair.generate();
         const t = new Transaction({ feePayer: temp.publicKey, blockhash: temp.publicKey.toBase58(), lastValidBlockHeight: 0 })
           .add(SystemProgram.transfer({ fromPubkey: temp.publicKey, toPubkey: temp.publicKey, lamports: 1 }));
         t.sign(temp);
-        out[net] = { ok: true, slot, usdtDecimals: supply?.value?.decimals, build: `signée ${encodeBase58(t.signature!).slice(0, 10)}…` };
+        out[net] = { ok: true, slot, usdtDecimals: supply?.value?.decimals, usdcDecimals: supplyC?.value?.decimals, build: `signée ${encodeBase58(t.signature!).slice(0, 10)}…` };
       } else {
         const c = EVM[net as EvmNet];
         const p = evmProvider(net as EvmNet);
-        const [block, dec] = await Promise.all([p.getBlockNumber(), new Contract(c.usdt, ERC20_ABI, p).decimals()]);
-        out[net] = { ok: true, block, usdtDecimals: Number(dec) };
+        const [block, dec, decC] = await Promise.all([
+          p.getBlockNumber(), new Contract(c.usdt, ERC20_ABI, p).decimals(), c.usdc ? new Contract(c.usdc, ERC20_ABI, p).decimals() : Promise.resolve(null),
+        ]);
+        out[net] = { ok: true, block, usdtDecimals: Number(dec), ...(decC != null ? { usdcDecimals: Number(decC) } : {}) };
       }
     } catch (e) {
       out[net] = { ok: false, error: (e as Error).message?.slice(0, 200) };

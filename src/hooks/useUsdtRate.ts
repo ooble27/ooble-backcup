@@ -49,6 +49,8 @@ async function readLatest(): Promise<Loaded | null> {
   const { data } = await supabase
     .from("exchange_rates")
     .select("buy_rate, sell_rate, market_rate, fetched_at")
+    // Taux de l'USDT (l'USDC a ses propres lignes, une fois ouvert).
+    .eq("asset" as never, "usdt")
     .order("fetched_at", { ascending: false })
     .limit(1)
     .maybeSingle();
