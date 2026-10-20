@@ -12,7 +12,9 @@ import { peek, put } from "@/lib/adminCache";
 import { logAdminAction } from "@/lib/audit";
 import { getAppSettingsNow, saveAppSettings, useAppSettings, type AssetId, type NetworkSwitches, type SettingsPatch } from "@/lib/settings";
 import { primaryAsset } from "@/lib/assets";
-import { fetchOliSettings, saveOliKycCheck } from "@/lib/oliKyc";
+import { OLI_DEFAULTS, OLI_GALLERY, fetchOli, saveOli, type OliSettings } from "@/lib/oli";
+import { NAME_COLORS, TEAM_COLORS, type AvatarBg } from "@/lib/teamSpace";
+import { AVATAR_BG, OliAvatar, TV_CSS, nameColor, oliAvatarSrc } from "./TeamViews";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { Presets, Row, SaveBar, SettingsPage, Stepper, Toggle, ago, fmtDay } from "./settingsUi";
@@ -343,34 +345,186 @@ export function StaffAlertsPage({ onBack }: { onBack: () => void }) {
   );
 }
 
-/* ─── Analyse d'Oli (vérifications d'identité) ─── */
-export function OliPage({ onBack }: { onBack: () => void }) {
-  const [on, setOn] = useState<boolean | null>(null);
+/* ─── Oli : son nom, son avatar, ce qu'il fait ─── */
+const OLI_CSS = `
+.ol-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 12px 10px; margin-top: 16px; }
+.ol-pick { all: unset; cursor: pointer; border-radius: 99px; display: inline-flex; justify-content: center; transition: transform .15s; }
+@media (hover: hover) { .ol-pick:hover { transform: translateY(-2px); } }
+.ol-pick img, .ol-sw { box-shadow: 0 0 0 1px var(--a-bds); }
+.ol-pick[aria-pressed="true"] img, .ol-pick[aria-pressed="true"] .ol-sw { box-shadow: 0 0 0 2px var(--a-bg), 0 0 0 4px var(--a-t1); }
+.ol-pick:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 3px; }
+.ol-sw { width: 34px; height: 34px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; }
+.ol-sub { display: grid; gap: 22px; margin: 18px 0 0 0; padding-left: 18px; border-left: 1px solid var(--a-bds); }
+.ol-state { flex-shrink: 0; font-size: 14px; color: var(--a-t3); }
+`;
+const OLI_BGS: { v: AvatarBg; label: string }[] = [{ v: "light", label: "Clair" }, ...TEAM_COLORS.map((c) => ({ v: c.v as AvatarBg, label: c.label }))];
+
+export function OliPage({ onBack, onOpen }: { onBack: () => void; onOpen: (id: "settlement" | "delais" | "secours") => void }) {
+  const app = useAppSettings();
+  const [saved, setSaved] = useState<OliSettings | null>(null);
+  const [d, setD] = useState<OliSettings>(OLI_DEFAULTS);
+  const [page, setPage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  useEffect(() => { void fetchOliSettings().then((s) => setOn(s.kycCheck)); }, []);
-  const flip = async (v: boolean) => {
+  useEffect(() => { void fetchOli().then((x) => { setSaved(x); setD(x); }); }, []);
+  const set = <K extends keyof OliSettings>(k: K, v: OliSettings[K]) => { setD((x) => ({ ...x, [k]: v })); setMsg(null); };
+  const name = d.name.trim();
+  const dirty = !!saved && (Object.keys(d) as (keyof OliSettings)[]).some((k) => k !== "kycCheck" && d[k] !== saved[k]);
+
+  const write = async (patch: Partial<OliSettings>, ok: string) => {
     setBusy(true); setMsg(null);
-    const res = await saveOliKycCheck(v);
+    const r = await saveOli(patch);
     setBusy(false);
-    if (res.error) { setMsg({ ok: false, text: "Réservé aux administrateurs." }); return; }
-    setOn(v);
-    setMsg({ ok: true, text: v ? "Oli lit maintenant chaque nouveau dossier." : "Oli ne lit plus les nouveaux dossiers." });
-    void logAdminAction({ action: "settings.update", entityKind: "oli_settings", metadata: { kycCheck: v, what: "Analyse d'Oli" } });
+    if (r.error) { setMsg({ ok: false, text: r.error.includes("check") ? "Valeur refusée : hors des limites permises." : r.error }); return false; }
+    setSaved((x) => (x ? { ...x, ...patch, ...(patch.name !== undefined ? { name: patch.name.trim() } : {}) } : x));
+    void logAdminAction({ action: "settings.update", entityKind: "oli_settings", metadata: { ...patch, what: "Oli" } });
+    setMsg({ ok: true, text: ok });
+    return true;
   };
+  const saveAll = () => {
+    if (!saved) return;
+    const patch: Partial<OliSettings> = {};
+    (Object.keys(d) as (keyof OliSettings)[]).forEach((k) => { if (k !== "kycCheck" && d[k] !== saved[k]) (patch as Record<string, unknown>)[k] = d[k]; });
+    void write(patch, "Enregistré : toute l'équipe voit les changements.");
+  };
+  const flipKyc = async (v: boolean) => {
+    if (await write({ kycCheck: v }, v ? `${saved?.name ?? "Oli"} lit maintenant chaque nouveau dossier.` : `${saved?.name ?? "Oli"} ne lit plus les nouveaux dossiers.`)) set("kycCheck", v);
+  };
+  // Dessins illustrés, comme ceux de l'équipe : 16 par page, « D'autres propositions » en tire de nouveaux.
+  const seeds = Array.from({ length: 16 }, (_, i) => `seed:oli-${page * 16 + i + 1}`);
+  const who = name || "Oli";
+  const unpaid = app.buyExpiryMinutes;
+
   return (
     <SettingsPage onBack={onBack}
-      title={on === null ? <span className="mute">Analyse d'Oli</span>
-        : on ? <>Oli <span style={{ color: C.sage }}>prépare</span> <span className="mute">chaque dossier de vérification.</span></>
-        : <>Oli <span style={{ color: C.t3 }}>ne lit pas</span> <span className="mute">les dossiers.</span></>}
-      desc="Dès qu'un client envoie ses documents, Oli lit la pièce d'identité et la preuve d'adresse, puis les compare à ce que le client a déclaré : nom, date de naissance, expiration, netteté, chiffres de contrôle du passeport, pièce déjà utilisée par un autre compte, preuve d'adresse récente. Son rapport s'affiche dans le dossier, sous chaque point à vérifier. Oli ne décide jamais : l'équipe approuve ou refuse. Il ne compare pas les visages.">
-      <div className="st-rows">
-        <Row label="Lire chaque nouveau dossier" hint="Éteint, l'équipe peut toujours lancer l'analyse à la main depuis un dossier.">
-          <Toggle on={!!on} disabled={busy || on === null} label="Analyse d'Oli" onChange={flip} />
-        </Row>
-      </div>
-      <p className="st-hint">Les documents sont lus par le modèle d'IA d'Anthropic, comme l'assistant de l'équipe ; ils ne servent pas à entraîner de modèle.</p>
-      <Msg m={msg} />
+      title={saved === null ? <span className="mute">Oli</span> : <><span style={{ color: nameColor(d.color) }}>{who}</span> <span className="mute">s'occupe de tout ce que la plateforme fait seule.</span></>}
+      desc={`Son nom et son avatar apparaissent partout où la plateforme agit sans l'équipe : commandes, envois, fil d'activité, dossiers de vérification. ${who} ne décide jamais à la place de l'équipe.`}>
+      <style>{CSS + TV_CSS + OLI_CSS}</style>
+
+      {/* Aperçu, tel que l'équipe le verra */}
+      <section style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <OliAvatar size={84} preview={{ avatar: d.avatar, bg: d.bg }} />
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", color: nameColor(d.color), overflowWrap: "anywhere" }}>{who}</p>
+          <p style={{ margin: "6px 0 0", fontSize: 13.5, color: C.t2, display: "flex", alignItems: "center", gap: 8 }}>
+            <OliAvatar size={20} preview={{ avatar: d.avatar, bg: d.bg }} />
+            <span><span style={{ color: nameColor(d.color), fontWeight: 500 }}>{who}</span> a terminé l'achat OOB-81736F6B</span>
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <label className="st-h3" htmlFor="ol-name" style={{ display: "block" }}>Son nom</label>
+        <input id="ol-name" className="so-in" style={{ marginTop: 12 }} maxLength={24} spellCheck={false} autoComplete="off" value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Oli" />
+        <p className="st-hint">{name ? "Un prénom court se lit mieux dans les listes." : "Sans nom, la plateforme reprend « Oli »."}</p>
+      </section>
+
+      <section>
+        <h3 className="st-h3">Son avatar</h3>
+        <div className="ol-grid">
+          {OLI_GALLERY.map((a) => (
+            <button key={a.id} type="button" className="ol-pick" aria-pressed={d.avatar === a.id} title={a.label} aria-label={a.label} onClick={() => set("avatar", a.id)}>
+              <img src={oliAvatarSrc(a.id)} alt="" width={52} height={52} style={{ width: 52, height: 52, borderRadius: 99, background: AVATAR_BG[d.bg] }} />
+            </button>
+          ))}
+        </div>
+        <p className="st-hint" style={{ marginTop: 22 }}>Ou un dessin illustré, dans le style des avatars de l'équipe :</p>
+        <div className="ol-grid">
+          {seeds.map((sd) => (
+            <button key={sd} type="button" className="ol-pick" aria-pressed={d.avatar === sd} title="Choisir ce dessin" aria-label="Choisir ce dessin" onClick={() => set("avatar", sd)}>
+              <img src={oliAvatarSrc(sd)} alt="" width={52} height={52} style={{ width: 52, height: 52, borderRadius: 99, background: AVATAR_BG[d.bg] }} />
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 14 }}>
+          <button type="button" className="so-link" onClick={() => setPage((n) => n + 1)}>D'autres propositions</button>
+          {page > 0 && <button type="button" className="so-link" onClick={() => setPage(0)}>Revenir aux premières</button>}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="st-h3">Fond de l'avatar</h3>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+          {OLI_BGS.map((b) => (
+            <button key={b.v} type="button" className="ol-pick" aria-pressed={d.bg === b.v} title={b.label} aria-label={b.label} onClick={() => set("bg", b.v)}>
+              <span className="ol-sw" style={{ background: AVATAR_BG[b.v] }} />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="st-h3">Couleur de son nom</h3>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+          {NAME_COLORS.map((c) => (
+            <button key={c.v} type="button" className="ol-pick" aria-pressed={d.color === c.v} title={c.label} aria-label={c.label} onClick={() => set("color", c.v)}>
+              <span className="ol-sw" style={{ background: nameColor(c.v) }} />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="st-h3">Ce que fait {who}</h3>
+        <p className="st-hint">Ce qui peut s'allumer ou s'éteindre se règle ici ou sur la page indiquée. Le reste tourne toujours : c'est ce qui permet aux commandes d'avancer seules.</p>
+        <div className="st-rows" style={{ marginTop: 22 }}>
+          <div>
+            <Row label="Préparer les dossiers d'identité" hint={`${who} lit la pièce et la preuve d'adresse, les compare à la déclaration du client et écrit son rapport dans le dossier. L'équipe approuve ou refuse.`}>
+              <Toggle on={d.kycCheck} disabled={busy || saved === null} label="Préparer les dossiers d'identité" onChange={(v) => void flipKyc(v)} />
+            </Row>
+            {d.kycCheck && (
+              <div className="ol-sub">
+                <div>
+                  <p className="st-label">Signaler une pièce qui expire bientôt</p>
+                  <p className="st-hint">Une pièce encore valide, mais qui expire dans moins de ce délai, est signalée.</p>
+                  <div style={{ marginTop: 12 }}>
+                    <Stepper value={d.expiryWarnDays} onChange={(v) => set("expiryWarnDays", v)} step={5} min={0} max={180} unit="jours" label="le délai avant expiration" />
+                    <Presets options={[0, 30, 60, 90]} value={d.expiryWarnDays} onPick={(v) => set("expiryWarnDays", v)} format={(n) => (n ? `${n} jours` : "Jamais")} />
+                  </div>
+                </div>
+                <div>
+                  <p className="st-label">Âge minimum</p>
+                  <p className="st-hint">Un client plus jeune, d'après sa pièce, est signalé.</p>
+                  <div style={{ marginTop: 12 }}>
+                    <Stepper value={d.minAge} onChange={(v) => set("minAge", v)} step={1} min={18} max={25} unit="ans" label="l'âge minimum" />
+                  </div>
+                </div>
+                <div>
+                  <p className="st-label">Preuve d'adresse récente</p>
+                  <p className="st-hint">Une preuve plus ancienne est signalée.</p>
+                  <div style={{ marginTop: 12 }}>
+                    <Stepper value={d.addressMaxDays} onChange={(v) => set("addressMaxDays", v)} step={1} min={30} max={365} unit="jours" label="l'ancienneté maximale" />
+                    <Presets options={[60, 92, 180]} value={d.addressMaxDays} onPick={(v) => set("addressMaxDays", v)} format={(n) => (n === 92 ? "3 mois" : n === 180 ? "6 mois" : "2 mois")} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <Row label="Envoyer les USDC des achats payés" hint="Dans les limites du règlement automatique : plafonds, solde, réseau.">
+            <button type="button" className="so-link" onClick={() => onOpen("settlement")}>Règlement automatique</button>
+          </Row>
+          <Row label="Annuler les achats non payés" hint={`Après ${unpaid} minutes sans virement Interac.`}>
+            <button type="button" className="so-link" onClick={() => onOpen("delais")}>Délais</button>
+          </Row>
+          <Row label="Mettre le taux à jour" hint="Toutes les 10 secondes, sauf si un cours est figé.">
+            <button type="button" className="so-link" onClick={() => onOpen("secours")}>{app.manualMarketRate != null ? "Cours figé" : "Taux de secours"}</button>
+          </Row>
+          <Row label="Lire les virements Interac" hint="Il vérifie chaque avis, puis le rapproche de l'achat (référence, montant, nom).">
+            <span className="ol-state">Toujours actif</span>
+          </Row>
+          <Row label="Repérer les USDC reçus pour les ventes" hint="Toutes les 2 minutes, sur chaque réseau ouvert.">
+            <span className="ol-state">Toujours actif</span>
+          </Row>
+        </div>
+      </section>
+
+      {(dirty || msg) && (
+        <div style={{ display: "grid", gap: 12 }}>
+          <SaveBar show={dirty} busy={busy} onSave={saveAll} onCancel={() => { if (saved) setD({ ...saved, kycCheck: d.kycCheck }); setMsg(null); }} />
+          <Msg m={msg} />
+        </div>
+      )}
+      <p className="st-hint">Les documents des dossiers sont lus par le modèle d'IA d'Anthropic ; ils ne servent pas à entraîner de modèle. Réservé aux administrateurs.</p>
     </SettingsPage>
   );
 }

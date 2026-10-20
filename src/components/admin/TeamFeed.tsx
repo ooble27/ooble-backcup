@@ -4,7 +4,7 @@ import { C } from "./adminTheme";
 import { Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
 import { OliAvatar, TeamAvatar, TeamName, TV_CSS, nameColor, useMembers, useTeamLive } from "./TeamViews";
-import { OLI_NAME } from "@/lib/oli";
+import { useOli } from "@/lib/oli";
 
 /**
  * Activité de l'équipe : ce que fait chacun (commandes prises et terminées, tâches créées et faites, passations,
@@ -91,7 +91,7 @@ export function ActivityPanel({ onClose, onOpenOrder, onGoTasks, onGoMe }: { onC
                   : <OliAvatar size={32} />}
                 <button type="button" disabled={!clickable} onClick={() => open(i)} style={{ all: "unset", cursor: clickable ? "pointer" : "default", flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 14.5, lineHeight: 1.5, color: C.t2, overflowWrap: "anywhere" }}>
-                    {i.actorId ? <TeamName id={i.actorId} name={firstName(name)} style={{ fontWeight: 500 }} /> : <span className="tv-name" style={{ color: nameColor("sage") }}>{OLI_NAME}</span>} {i.text}
+                    {i.actorId ? <TeamName id={i.actorId} name={firstName(name)} style={{ fontWeight: 500 }} /> : <OliName />} {i.text}
                   </span>
                   <span style={{ display: "block", marginTop: 1, fontSize: 12, color: C.t3 }}>{time(i.at)}</span>
                 </button>
@@ -105,4 +105,10 @@ export function ActivityPanel({ onClose, onOpenOrder, onGoTasks, onGoMe }: { onC
       )}
     </SidePanel>
   );
+}
+
+/** Le nom d'Oli dans sa couleur (Réglages › Oli). */
+function OliName() {
+  const oli = useOli();
+  return <span className="tv-name" style={{ color: nameColor(oli.color) }}>{oli.name}</span>;
 }

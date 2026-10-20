@@ -10,7 +10,7 @@ import { loadTreasury, peekTreasury, type StockRow } from "@/lib/ledger";
 import { firstName, hourLabel, loadActivity, peekTeam, type ActivityItem } from "@/lib/teamSpace";
 import { FONT } from "./adminTheme";
 import { OliAvatar, TeamAvatar, useMembers, useTeamLive } from "./TeamViews";
-import { OLI_NAME } from "@/lib/oli";
+import { oliName } from "@/lib/oli";
 import { assetSymbol } from "@/lib/assets";
 import { onCallNow, useShifts } from "./TeamPlanning";
 
@@ -567,7 +567,7 @@ export default function ControlRoom({ orders, canStock }: { orders: AdminOrder[]
         <div className="sub">
           <span>{o.ref}</span><span aria-hidden>·</span><span>{nfUsdt.format(o.usdt)} {assetSymbol(o.asset)}</span>
           <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: "var(--a-t2)" }}>
-            {o.assignedId ? <><TeamAvatar id={o.assignedId} name={name} size={18} />{firstName(name)}</> : o.autoSending || done ? <><OliAvatar size={18} />{OLI_NAME}</> : "À prendre"}
+            {o.assignedId ? <><TeamAvatar id={o.assignedId} name={name} size={18} />{firstName(name)}</> : o.autoSending || done ? <><OliAvatar size={18} />{oliName()}</> : "À prendre"}
           </span>
         </div>
       </div>

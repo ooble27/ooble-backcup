@@ -13,7 +13,7 @@ import {
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
-import { OLI_AVATAR, OLI_NAME } from "@/lib/oli";
+import { oliGalleryUrl, useOli } from "@/lib/oli";
 
 /**
  * Équipe › Notes et Tâches : la communication interne. Une note va à toute l'équipe ou à un poste ;
@@ -130,11 +130,16 @@ export function TeamAvatar({ name, id, size = 30, group, presence, preview }: {
   );
 }
 
-/** Avatar d'Oli, la plateforme quand elle agit seule : un petit robot dessiné au trait. */
-export function OliAvatar({ size = 30 }: { size?: number }) {
+/** Image d'un avatar d'Oli : un dessin de la galerie, ou `seed:…` pour un dessin illustré comme ceux de l'équipe. */
+export const oliAvatarSrc = (avatar: string) => (avatar.startsWith("seed:") ? avatarUri(avatar.slice(5)) : oliGalleryUrl(avatar));
+
+/** Avatar d'Oli, la plateforme quand elle agit seule (choisi dans Réglages › Oli). `preview` : réglages en cours d'édition. */
+export function OliAvatar({ size = 30, preview }: { size?: number; preview?: { avatar: string; bg: AvatarBg } }) {
+  const oli = useOli();
+  const look = preview ?? oli;
   return (
-    <span title={OLI_NAME} style={{ display: "inline-flex", flexShrink: 0, width: size, height: size }}>
-      <img src={OLI_AVATAR} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: 99, background: AVATAR_BG.sage, boxShadow: "0 0 0 1px var(--a-bds)", display: "block" }} />
+    <span title={oli.name} style={{ display: "inline-flex", flexShrink: 0, width: size, height: size }}>
+      <img src={oliAvatarSrc(look.avatar)} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: 99, background: AVATAR_BG[look.bg] ?? AVATAR_BG.sage, boxShadow: "0 0 0 1px var(--a-bds)", display: "block", objectFit: "cover" }} />
     </span>
   );
 }

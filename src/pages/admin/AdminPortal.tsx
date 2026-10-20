@@ -55,6 +55,7 @@ import { fetchCached, peek, put } from "@/lib/adminCache";
 import { prefetchClient } from "@/lib/clientProfileCache";
 import { prefetchOrder } from "@/lib/orderDetailCache";
 import { assetSymbol } from "@/lib/assets";
+import { loadOli } from "@/lib/oli";
 
 /** Téléphone : navigation en cadran (false = ancien menu latéral). */
 
@@ -195,6 +196,8 @@ const AdminPortal = () => {
   useEffect(() => { if (user?.id) refreshPush("fr"); }, [user?.id]);
   // L'espace Équipe est chargé d'avance : Mon espace, Tâches et la fiche des membres s'ouvrent sans attente.
   useEffect(() => { if (user?.id && roles.length) prefetchTeamSpace(); }, [user?.id, roles.length]);
+  // Le nom et l'avatar d'Oli choisis dans Réglages.
+  useEffect(() => { if (user?.id && roles.length) void loadOli(); }, [user?.id, roles.length]);
   // Les commandes déjà chargées dans cette session s'affichent tout de suite (mémoire seulement : données clients).
   const [orders, setOrders] = useState<AdminOrder[]>(() => peek<AdminOrder[]>("orders")?.value ?? []);
   const [loading, setLoading] = useState(() => !peek("orders"));

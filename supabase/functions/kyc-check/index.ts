@@ -156,6 +156,9 @@ async function load(db: SupabaseClient, path: string): Promise<{ block: Block } 
 // ─── Analyse ────────────────────────────────────────────────────────
 
 async function analyse(db: SupabaseClient, kycId: string) {
+  // Seuils réglés dans Réglages › Oli.
+  const { data: cfg } = await db.from("oli_settings").select("expiry_warn_days, min_age, address_max_days").eq("id", 1).maybeSingle();
+  const warnDays = Number(cfg?.expiry_warn_days ?? 30), minAge = Number(cfg?.min_age ?? 18), addrDays = Number(cfg?.address_max_days ?? 92);
   const { data: k, error } = await db.from("kyc_verifications")
     .select("id, user_id, status, doc_type, document_paths, birth_date, address_line, city, province, postal_code, profiles(full_name)")
     .eq("id", kycId).maybeSingle();
@@ -216,14 +219,14 @@ async function analyse(db: SupabaseClient, kycId: string) {
   const dob = isoDay(id.date_of_birth);
   if (!dob) add("birth", "unknown", "Date de naissance illisible sur la pièce.");
   else if (k.birth_date && dob !== k.birth_date) add("birth", "look", `Sur la pièce : ${dayFr(dob)}`);
-  else if (ageOn(dob) < 18) add("birth", "look", `Moins de 18 ans d'après la pièce (${dayFr(dob)}).`);
+  else if (ageOn(dob) < minAge) add("birth", "look", `Moins de ${minAge} ans d'après la pièce (${dayFr(dob)}).`);
   else add("birth", "ok", k.birth_date ? `Concorde : ${dayFr(dob)}` : `Sur la pièce : ${dayFr(dob)}`);
 
   // Expiration.
   const exp = isoDay(id.expiry_date);
   if (!exp) add("expiry", "unknown", "Date d'expiration illisible.");
   else if (exp < today()) add("expiry", "look", `Expirée le ${dayFr(exp)}.`);
-  else if (daysBetween(today(), exp) <= 30) add("expiry", "ok", `Valide, mais expire bientôt : ${dayFr(exp)}.`);
+  else if (warnDays > 0 && daysBetween(today(), exp) <= warnDays) add("expiry", "ok", `Valide, mais expire bientôt : ${dayFr(exp)}.`);
   else add("expiry", "ok", `Valide jusqu'au ${dayFr(exp)}.`);
 
   // Netteté.
@@ -243,7 +246,7 @@ async function analyse(db: SupabaseClient, kycId: string) {
     if (a.holder_name && accountName && !sameName(accountName, a.holder_name)) { look = true; notes.push(`au nom de ${a.holder_name}`); }
     const date = isoDay(a.document_date);
     if (!date) notes.push("date illisible");
-    else if (daysBetween(date, today()) > 92) { look = true; notes.push(`datée du ${dayFr(date)}, plus de 3 mois`); }
+    else if (daysBetween(date, today()) > addrDays) { look = true; notes.push(`datée du ${dayFr(date)}, plus de ${addrDays === 92 ? "3 mois" : `${addrDays} jours`}`); }
     if (a.postal_code && k.postal_code && postal(a.postal_code) !== postal(k.postal_code)) { look = true; notes.push(`code postal ${a.postal_code}`); }
     if (look) add("address", "look", `Preuve d'adresse ${notes.join(", ")}.`);
     else add("address", notes.length ? "unknown" : "ok", notes.length ? `Preuve d'adresse : ${notes.join(", ")}.` : `Concorde${a.issuer ? ` : ${a.issuer}` : ""}${date ? `, ${dayFr(date)}` : ""}.`);

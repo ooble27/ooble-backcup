@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowUpRight, AtSign, Bell, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, Anchor, Mail, Megaphone, Network, Percent,
-  Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Send, QrCode, Users, Coins, ScanFace,
+  Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Send, QrCode, Users, Coins, Bot,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { peek, put } from "@/lib/adminCache";
@@ -25,7 +25,8 @@ import { LaunchSections, type PlatformPreview } from "./PlatformPanel";
 import SettingsRate from "./SettingsRate";
 import SettingsDeposit from "./SettingsDeposit";
 import { AssetsPage, ContactsPage, DelaysPage, NetworksPage, OliPage, RateFallbackPage, SignupsPage, StaffAlertsPage } from "./SettingsOps";
-import { fetchOliSettings } from "@/lib/oliKyc";
+import { useOli } from "@/lib/oli";
+import { OliAvatar } from "./TeamViews";
 import { NETWORKS, NET_DB } from "@/components/app/networks";
 import SettingsMailStudio, { MailStudioEntry } from "./SettingsMailStudio";
 import { Presets, Row, SaveBar, SettingsNavContext, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf, type SettingsNav } from "./settingsUi";
@@ -310,7 +311,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
   const [err, setErr] = useState<string | null>(null);
   const [email, setEmail] = useState<EmailUsage | null>(() => peek<EmailUsage>("st.email")?.value ?? null);
   const [health, setHealth] = useState<JobHealth[] | null>(() => peek<JobHealth[]>("st.health")?.value ?? null);
-  const [oli, setOli] = useState<boolean | null>(null);
+  const oli = useOli();
   const s = useAppSettings();
   const deposit = useDepositAddresses();
 
@@ -324,7 +325,6 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
     if (page) return;
     fetchEmailUsage().then((x) => { setEmail(x); put("st.email", x); }).catch(() => {});
     fetchPlatformHealth().then((x) => { setHealth(x); put("st.health", x); }).catch(() => {});
-    fetchOliSettings().then((x) => setOli(x.kycCheck)).catch(() => {});
   }, [page]);
 
   // La page suit l'adresse (?reglage=) : « retour » ramène à la liste.
@@ -384,7 +384,6 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       desc: "L'arrivée des nouveaux clients, et comment ils vous joignent.",
       rows: [
         { id: "inscriptions", icon: UserPlus, name: "Inscriptions", desc: "Nouveaux comptes, particuliers et entreprises.", value: s.signupsIndividual && s.signupsBusiness ? "Ouvertes" : <span style={{ color: C.coral }}>{!s.signupsIndividual && !s.signupsBusiness ? "Fermées" : "En partie fermées"}</span>, onOpen: () => go("inscriptions") },
-        { id: "oli", icon: ScanFace, name: "Analyse d'Oli", desc: "Oli lit chaque dossier de vérification avant l'équipe.", value: oli == null ? null : oli ? "Active" : <span style={{ color: C.t3 }}>Éteinte</span>, onOpen: () => go("oli") },
         { id: "coordonnees", icon: AtSign, name: "Coordonnées", desc: "Adresses support, Interac et OTC affichées aux clients.", value: s.supportEmail, onOpen: () => go("coordonnees") },
       ],
     },
@@ -393,6 +392,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       desc: "Qui travaille dans le back-office, et qui est prévenu.",
       rows: [
         ...ext("team", { icon: Users, name: "Équipe et rôles", desc: "Membres, rôles, permissions et journal d'audit." }),
+        { id: "oli", icon: Bot, name: oli.name, desc: "Son nom, son avatar, et ce qu'il fait seul : dossiers d'identité, envois, virements.", value: <OliAvatar size={26} />, onOpen: () => go("oli") },
         { id: "alertes", icon: Bell, name: "Alertes de l'équipe", desc: "Qui reçoit un courriel à chaque nouvelle commande.", onOpen: () => go("alertes") },
         ...ext("announcements", { icon: Megaphone, name: "Bannière et maintenance", desc: "Message à tous les clients, mode maintenance." }),
       ],
@@ -450,7 +450,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       {page === "secours" && <RateFallbackPage onBack={back} onOpening={() => go("ouverture")} />}
       {page === "coordonnees" && <ContactsPage onBack={back} />}
       {page === "alertes" && <StaffAlertsPage onBack={back} />}
-      {page === "oli" && <OliPage onBack={back} />}
+      {page === "oli" && <OliPage onBack={back} onOpen={(id) => (id === "settlement" ? onTab?.("settlement") : go(id))} />}
       {page === "courriels" && <Emails onBack={back} />}
       {page === "studio" && <SettingsMailStudio onBack={back} />}
       {page === "sante" && <Health onBack={back} />}

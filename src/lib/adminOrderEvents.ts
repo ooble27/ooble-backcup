@@ -4,7 +4,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { OLI_NAME, isAutoActor } from "@/lib/oli";
+import { oliName, isAutoActor } from "@/lib/oli";
 
 type DbStatus = Database["public"]["Enums"]["order_status"];
 
@@ -38,7 +38,7 @@ export async function fetchOrderEvents(orderId: string): Promise<OrderEvent[]> {
   return data.map((e) => ({
     id: e.id,
     status: e.new_status,
-    actor: UUID_RE.test(e.actor) ? (names.get(e.actor) ?? "Membre") : e.actor === "staff" ? "Équipe" : e.actor === "client" ? "Client" : isAutoActor(e.actor) ? OLI_NAME : e.actor,
+    actor: UUID_RE.test(e.actor) ? (names.get(e.actor) ?? "Membre") : e.actor === "staff" ? "Équipe" : e.actor === "client" ? "Client" : isAutoActor(e.actor) ? oliName() : e.actor,
     note: e.note,
     createdAt: e.created_at,
   }));

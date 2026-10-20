@@ -30,14 +30,3 @@ export async function runOliCheck(kycId: string): Promise<{ error?: string }> {
   if (error) return { error: error.message };
   return (data as { error?: string } | null)?.error ? { error: (data as { error: string }).error } : {};
 }
-
-export async function fetchOliSettings(): Promise<{ kycCheck: boolean }> {
-  const { data } = await from("oli_settings").select("kyc_check").eq("id", 1).maybeSingle();
-  return { kycCheck: data?.kyc_check ?? true };
-}
-
-export async function saveOliKycCheck(on: boolean): Promise<{ error?: string }> {
-  const { data: s } = await supabase.auth.getSession();
-  const { error } = await from("oli_settings").update({ kyc_check: on, updated_at: new Date().toISOString(), updated_by: s.session?.user?.id ?? null }).eq("id", 1);
-  return error ? { error: error.message } : {};
-}

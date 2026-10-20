@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none" stroke="#14110f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+  <!-- antenne -->
+  <path d="M48 22v-8"/><circle cx="48" cy="11" r="3.4" fill="#ff7a59"/>
+  <!-- oreilles -->
+  <path d="M24 46h-4.5a2.5 2.5 0 0 0-2.5 2.5v7a2.5 2.5 0 0 0 2.5 2.5H24"/>
+  <path d="M72 46h4.5a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1-2.5 2.5H72"/>
+  <!-- tête -->
+  <rect x="24" y="22" width="48" height="44" rx="14" fill="#ffffff"/>
+  <!-- visière -->
+  <rect x="31" y="33" width="34" height="18" rx="9" fill="#14110f"/>
+  <circle cx="41" cy="42" r="3.3" fill="#7cc4a6" stroke="none"/>
+  <circle cx="55" cy="42" r="3.3" fill="#7cc4a6" stroke="none"/>
+  <!-- sourire -->
+  <path d="M43 58q5 4 10 0"/>
+  <!-- cou et épaules -->
+  <path d="M42 66v5M54 66v5"/>
+  <path d="M26 92c0-12 9.5-21 22-21s22 9 22 21"/>
+  <path d="M43 80h10" stroke-width="2.2"/>
+</svg>
