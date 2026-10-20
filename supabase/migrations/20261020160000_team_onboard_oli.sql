@@ -1,5 +1,6 @@
 -- Accueil d'un nouveau membre : les tâches de démarrage viennent d'Oli, et la prise en main
--- « Vérification » suit le travail actuel (rapport d'Oli, 6 points à cocher). Rien d'autre ne change.
+-- « Vérification » suit le travail actuel (rapport d'Oli, 6 points à cocher), et la Bienvenue passe
+-- avant la prise en main du poste (3 jours au lieu de 7). Rien d'autre ne change.
 
 create or replace function public.team_onboard()
 returns trigger
@@ -8,6 +9,8 @@ security definer
 set search_path to 'public'
 as $$
 declare
+  -- Les premiers pas d'abord (3 jours), la prise en main du poste ensuite (7 jours).
+  due_first date := (now() at time zone 'America/Toronto')::date + 3;
   due date := (now() at time zone 'America/Toronto')::date + 7;
   by_id uuid := coalesce(auth.uid(), new.user_id);
   -- Les tâches d'accueil viennent d'Oli (nom choisi dans Réglages › Oli).
@@ -22,7 +25,7 @@ begin
     insert into public.team_tasks (title, details, assignee_id, due_on, created_by, created_by_name, steps)
     values ('Bienvenue chez Ooble : vos premiers pas',
       'Quelques minutes pour prendre vos repères. Cochez chaque étape une fois faite.',
-      new.user_id, due, by_id, by_name,
+      new.user_id, due_first, by_id, by_name,
       (select jsonb_agg(jsonb_build_object('text', s, 'done', false)) from unnest(array[
         'Compléter mon profil d''équipe (avatar, couleur, statut)',
         'Activer les notifications sur mon téléphone (Mon profil d''équipe)',
