@@ -99,7 +99,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       </span>
     ) },
     { key: "c", header: "Commandes", align: "right", render: (r) => r.n },
-    { key: "u", header: "USDT", align: "right", hideBelow: 560, render: (r) => nfUsdt.format(r.usdt) },
+    { key: "u", header: "Crypto", align: "right", hideBelow: 560, render: (r) => nfUsdt.format(r.usdt) },
     { key: "v", header: "Volume", align: "right", render: (r) => money(r.volume) },
     { key: "mg", header: "Marge réelle", align: "right", render: (r) => <span style={{ color: C.successText }}>{money(r.margin)}</span> },
   ];
@@ -146,7 +146,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
 
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
 
-      <Section title="Bénéfice net" description="Au coût moyen pondéré : chaque USDT vendu sort au coût moyen du stock (recharges et USDT rachetés aux clients), puis les dépenses sont déduites.">
+      <Section title="Bénéfice net" description="Au coût moyen pondéré : chaque USDC ou USDT vendu sort au coût moyen du stock (recharges et cryptomonnaie rachetée aux clients ; USDC et USDT forment un même stock de dollars américains numériques), puis les dépenses sont déduites.">
         <ProfitStatement pnl={pnl} />
       </Section>
 
@@ -155,7 +155,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
         {[
           ["Achats", money(t?.vol_buy ?? 0), `${t?.n_buy ?? 0} commande${(t?.n_buy ?? 0) > 1 ? "s" : ""}`, C.sage],
           ["Ventes", money(t?.vol_sell ?? 0), `${t?.n_sell ?? 0} commande${(t?.n_sell ?? 0) > 1 ? "s" : ""}`, C.coral],
-          ["USDT échangés", nfUsdt.format(t?.usdt ?? 0), "achats et ventes", C.t1],
+          ["USDC et USDT échangés", nfUsdt.format(t?.usdt ?? 0), "achats et ventes", C.t1],
         ].map(([label, value, note, color]) => (
           <div key={label}>
             <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>{label}</p>
@@ -224,7 +224,7 @@ const AccountingPanel = ({ onOpenOrder }: { onOpenOrder?: (id: string) => void }
       </Section>
 
       <p style={{ margin: "26px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 760 }}>
-        Marge réelle : pour un achat, le montant payé par le client moins la valeur des USDT au taux du marché du moment ; pour une vente, l'inverse.
+        Marge réelle : pour un achat, le montant payé par le client moins la valeur de la cryptomonnaie au taux du marché du moment ; pour une vente, l'inverse.
         Le gaz de réseau (TRX, BNB, SOL… achetés pour les envois) se saisit comme une dépense, catégorie « Gaz de réseau ».
         {t?.unpriced ? ` ${t.unpriced} commande${t.unpriced > 1 ? "s" : ""} sans taux du marché connu ne compte${t.unpriced > 1 ? "nt" : ""} pas dans la marge.` : ""}
         {" "}<button type="button" onClick={() => exportAll("orders")} disabled={exporting} style={{ all: "unset", cursor: "pointer", color: C.t2, textDecoration: "underline", textUnderlineOffset: 3 }}>Exporter les commandes en CSV</button>

@@ -7,6 +7,7 @@ import { Button } from "./ui";
 import { Avatar, DataTable, EmptyState, Tabs, TwoLine, type Column } from "./layout";
 import { QueueWait } from "./viz";
 import { OrderChannel, OrderStatusPill, ageShort, typeLabel } from "./orderBits";
+import { assetSymbol } from "@/lib/assets";
 
 interface Props {
   orders: AdminOrder[];
@@ -65,7 +66,7 @@ const OrdersQueue = ({ orders, onOpen, onPatch }: Props) => {
     { key: "type", header: "Opération", render: (o) => <TwoLine primary={typeLabel(o)} secondary={<OrderChannel order={o} />} />, hideBelow: 900 },
     { key: "status", header: "Statut", render: (o) => <OrderStatusPill status={o.status} />, sort: (o) => o.status },
     { key: "amount", header: "Montant", align: "right", sort: (o) => o.cad,
-      render: (o) => <TwoLine primary={`${nfCad.format(o.cad)} $`} secondary={`${nfUsdt.format(o.usdt)} USDT`} /> },
+      render: (o) => <TwoLine primary={`${nfCad.format(o.cad)} $`} secondary={`${nfUsdt.format(o.usdt)} ${assetSymbol(o.asset)}`} /> },
     { key: "age", header: "Attente", align: "right", sort: (o) => o.createdMinsAgo, hideBelow: 760,
       render: (o) => <span style={{ color: o.status === "recu" && o.createdMinsAgo > 30 ? C.warnText : C.t2 }}>{ageShort(o.createdMinsAgo)}</span> },
     { key: "action", header: "", align: "right", render: action },

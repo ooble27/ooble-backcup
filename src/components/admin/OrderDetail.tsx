@@ -15,6 +15,7 @@ import { DEPOSIT_PILL, OrderChannel, OrderStatusPill, PAYOUT_PILL } from "./orde
 import { LinkedTasks, TeamAvatar } from "./TeamViews";
 import { ApprovalForm } from "./TeamApprovals";
 import { openMember, prefetchMember } from "@/lib/teamSpace";
+import { assetSymbol } from "@/lib/assets";
 
 interface Props {
   order: AdminOrder;
@@ -88,13 +89,13 @@ function PayoutStep({ order, list, onChanged, readOnly }: { order: AdminOrder; l
     const r = await sendPayout(order.id);
     setBusy(false);
     setMsg(r.ok
-      ? { ok: true, text: r.status === "confirmed" ? "USDT envoyés et confirmés. Le client a reçu son courriel." : "Transaction diffusée, confirmation en cours.", url: r.url }
+      ? { ok: true, text: r.status === "confirmed" ? `${assetSymbol(order.asset)} envoyés et confirmés. Le client a reçu son courriel.` : "Transaction diffusée, confirmation en cours.", url: r.url }
       : { ok: false, text: r.error ?? "Échec de l'envoi.", url: r.url });
     onChanged();
   };
 
   return (
-    <Block title="Envoi des USDT">
+    <Block title={`Envoi des ${assetSymbol(order.asset)}`}>
       <div style={{ borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, padding: "16px 0", display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 280px", minWidth: 0, fontSize: 13.5, lineHeight: 1.55, color: C.t2 }}>
           {last ? (
@@ -108,13 +109,13 @@ function PayoutStep({ order, list, onChanged, readOnly }: { order: AdminOrder; l
               )}
             </span>
           ) : (
-            <>{nfUsdt.format(order.usdt)} USDT vers l'adresse du client, depuis le portefeuille d'envoi. Vérifiez d'abord le dépôt Interac dans le compte bancaire.</>
+            <>{nfUsdt.format(order.usdt)} {assetSymbol(order.asset)} vers l'adresse du client, depuis le portefeuille d'envoi. Vérifiez d'abord le dépôt Interac dans le compte bancaire.</>
           )}
           {last?.error && <span style={{ display: "block", marginTop: 6, color: C.t3 }}>{last.error}</span>}
         </div>
         {canSend && (
           <Button variant="primary" size="lg" disabled={busy} onClick={go} icon={<Send style={{ width: 16, height: 16 }} />}>
-            {busy ? "Envoi en cours…" : `Envoyer ${nfUsdt.format(order.usdt)} USDT`}
+            {busy ? "Envoi en cours…" : `Envoyer ${nfUsdt.format(order.usdt)} ${assetSymbol(order.asset)}`}
           </Button>
         )}
       </div>
@@ -127,7 +128,7 @@ function PayoutStep({ order, list, onChanged, readOnly }: { order: AdminOrder; l
 const METHOD: Record<NonNullable<ChainDeposit["match_method"]>, { text: string; color: string }> = {
   tx_hash: { text: "Par l'identifiant de transaction donné par le client : certain.", color: C.sage },
   known_wallet: { text: "Envoyé depuis une adresse déjà connue de ce client.", color: C.sage },
-  amount_time: { text: "Seule vente de ce montant ouverte avant l'arrivée des USDT.", color: C.t1 },
+  amount_time: { text: "Seule vente de ce montant ouverte avant l'arrivée des fonds.", color: C.t1 },
   manual: { text: "Rattaché à la main par l'équipe.", color: C.t1 },
 };
 const shortAddr = (a: string) => (a.length > 18 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
@@ -184,12 +185,12 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
 
   return (
     <>
-      <Block title="USDT du client">
+      <Block title={`${assetSymbol(order.asset)} du client`}>
         <p style={{ margin: 0, padding: "14px 0", borderTop: `1px solid ${C.bds}`, borderBottom: `1px solid ${C.bds}`, fontSize: 13.5, lineHeight: 1.6, color: C.t2, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
           {dep ? (
             <>
               <Pill tone={DEPOSIT_PILL[dep.status]?.tone}>{DEPOSIT_PILL[dep.status]?.label ?? dep.status}</Pill>
-              {nfUsdt.format(Number(dep.usdt_amount))} USDT reçus
+              {nfUsdt.format(Number(dep.usdt_amount))} {assetSymbol(order.asset)} reçus
               {txUrl(dep.network, dep.tx_hash) && (
                 <a href={txUrl(dep.network, dep.tx_hash)} target="_blank" rel="noreferrer" style={{ color: C.t1, display: "inline-flex", alignItems: "center", gap: 4 }}>
                   Voir la transaction <ExternalLink style={{ width: 12, height: 12 }} />
@@ -198,7 +199,7 @@ function SellStep({ order, copy, copied }: { order: AdminOrder; copy: (v: string
               {dep.status !== "matched" && dep.reason && <span>· {dep.reason}</span>}
             </>
           ) : order.status === "attente"
-              ? `En attente de ${nfUsdt.format(order.usdt)} USDT sur l'adresse de dépôt. Lecture automatique toutes les 2 minutes : la commande passe seule à « À traiter » dès leur arrivée.`
+              ? `En attente de ${nfUsdt.format(order.usdt)} ${assetSymbol(order.asset)} sur l'adresse de dépôt. Lecture automatique toutes les 2 minutes : la commande passe seule à « À traiter » dès leur arrivée.`
               : "Aucun dépôt lu automatiquement pour cette vente."}
         </p>
         <SellChain proof={proof} dep={dep} />
@@ -272,7 +273,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
   // Suppression : seulement une commande sans aucun mouvement d'argent.
   // Un essai (compte de test) se retire toujours : aucun argent réel n'a bougé.
   const canDelete = order.isTest || ((order.status === "attente" || order.status === "annule") && (payouts ?? []).length === 0);
-  const refundAmount = order.type === "buy" ? `${nfCad.format(order.cad)} CAD` : `${nfUsdt.format(order.usdt)} USDT`;
+  const refundAmount = order.type === "buy" ? `${nfCad.format(order.cad)} CAD`   : `${nfUsdt.format(order.usdt)} ${assetSymbol(order.asset)}`;
 
   const handleRefund = async () => {
     setRefunding(true);
@@ -284,8 +285,8 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
     setRefunding(false);
   };
 
-  const sends = order.type === "buy" ? `${nfCad.format(order.cad)} $` : `${nfUsdt.format(order.usdt)} USDT`;
-  const receives = order.type === "buy" ? `${nfUsdt.format(order.usdt)} USDT` : `${nfCad.format(order.cad)} $`;
+  const sends = order.type === "buy" ? `${nfCad.format(order.cad)} $`   : `${nfUsdt.format(order.usdt)} ${assetSymbol(order.asset)}`;
+  const receives = order.type === "buy" ? `${nfUsdt.format(order.usdt)} ${assetSymbol(order.asset)}` : `${nfCad.format(order.cad)} $`;
   const createdAt = dateFmt.format(new Date(Date.now() - order.createdMinsAgo * 60000));
   const net = NETWORKS.find((x) => x.id === order.network);
 
@@ -317,18 +318,18 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
           variant="primary"
           icon={<Check style={{ width: 15, height: 15 }} />}
           disabled={sellBlocked}
-          title={sellBlocked ? "Aucun USDT reçu sur l'adresse de dépôt pour cette vente." : undefined}
+          title={sellBlocked ? "Aucun dépôt reçu sur l'adresse de dépôt pour cette vente." : undefined}
           onClick={() => {
-            if (isSell && !confirm(`Confirmer que ${nfUsdt.format(order.usdt)} USDT sont bien arrivés pour cette vente ? Le client recevra le courriel « USDT reçus » et le virement Interac deviendra à envoyer.`)) return;
+            if (isSell && !confirm(`Confirmer que ${nfUsdt.format(order.usdt)} ${assetSymbol(order.asset)} sont bien arrivés pour cette vente ? Le client recevra le courriel « fonds reçus » et le virement Interac deviendra à envoyer.`)) return;
             onPatch(order.id, { status: "recu" });
           }}
         >
-          {order.type === "buy" ? "Marquer le paiement reçu" : "Marquer les USDT reçus"}
+          {order.type === "buy" ? "Marquer le paiement reçu" : `Marquer les ${assetSymbol(order.asset)} reçus`}
         </Button>
       )}
       {!locked && order.status === "recu" && (order.isTest || order.type === "sell" || !AUTO_NETWORKS.has(order.network ?? "")) && (
         <Button variant="primary" icon={<Check style={{ width: 15, height: 15 }} />} onClick={() => {
-          if (order.isTest && !confirm("Terminer cet essai ? Aucun USDT ni virement ne part : la commande passe à « Terminée » comme pour un vrai client (courriel, parrainage).")) return;
+          if (order.isTest && !confirm("Terminer cet essai ? Aucune cryptomonnaie ni virement ne part : la commande passe à « Terminée » comme pour un vrai client (courriel, parrainage).")) return;
           onPatch(order.id, { status: "termine" });
         }}>
           {order.isTest ? "Terminer l'essai (aucun envoi)" : order.type === "sell" ? "Virement Interac envoyé" : "Marquer terminé (envoi à la main)"}
@@ -349,7 +350,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
         <div style={{ flex: "1 1 320px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <h1 className="hz-title">
-              {TYPE_META[order.type].label} <span className="mute">de</span> <span style={{ color: C.sun }}>{nfUsdt.format(order.usdt)} USDT</span>
+              {TYPE_META[order.type].label} <span className="mute">de</span> <span style={{ color: C.sun }}>{nfUsdt.format(order.usdt)} {assetSymbol(order.asset)}</span>
             </h1>
           </div>
           <p style={{ margin: "10px 0 0", fontSize: 13.5, color: C.t3, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -375,8 +376,8 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{actions}</div>
         {canAct && !lockedByOther && sellBlocked && (order.status === "attente" || order.status === "cours") && (
           <p style={{ flexBasis: "100%", margin: 0, fontSize: 13, lineHeight: 1.55, color: C.t2 }}>
-            « Marquer les USDT reçus » reste grisé : aucun USDT n'est encore arrivé sur l'adresse de dépôt pour cette vente.
-            {sellProof && !sellProof.clientSentAt ? " Le client n'a pas encore indiqué avoir envoyé ses USDT." : ""}
+            « Marquer les {assetSymbol(order.asset)} reçus » reste grisé : rien n'est encore arrivé sur l'adresse de dépôt pour cette vente.
+            {sellProof && !sellProof.clientSentAt ? ` Le client n'a pas encore indiqué avoir envoyé ses ${assetSymbol(order.asset)}.` : ""}
             {" "}La vente passe seule à « À traiter » dès leur arrivée ; un dépôt reçu mais non reconnu se rattache depuis Règlement auto.
           </p>
         )}
@@ -419,10 +420,10 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
 
           <Block title="Détails">
             <KeyValues items={[
-              ["Opération", `${TYPE_META[order.type].label} de USDT`],
-              ["Taux", `1 USDT = ${nfCad.format(order.rate)} $`],
+              ["Opération", `${TYPE_META[order.type].label} de ${assetSymbol(order.asset)}`],
+              ["Taux", `1 ${assetSymbol(order.asset)} = ${nfCad.format(order.rate)} $`],
               ["Montant en dollars", `${nfCad.format(order.cad)} $`],
-              ["Montant en USDT", `${nfUsdt.format(order.usdt)} USDT`],
+              [`Montant en ${assetSymbol(order.asset)}`, `${nfUsdt.format(order.usdt)} ${assetSymbol(order.asset)}`],
               ["Paiement", order.type === "buy" ? "Interac, du client vers Ooble" : "Interac, d'Ooble vers le client"],
               ...(order.type === "sell" ? [["Courriel Interac", <CopyValue key="i" value={order.interacEmail} k="interac" copy={copy} copied={copied} />] as [string, React.ReactNode]] : []),
               ...(order.type === "buy" ? [
@@ -435,7 +436,7 @@ const OrderDetail = ({ order, onPatch, onDelete, onShowClient, onRefresh, onWrit
           </Block>
 
           {activePayout && !finished && (
-            <p style={{ margin: "20px 0 0", fontSize: 13, color: C.t3 }}>Les USDT sont partis : la commande se termine seule à la confirmation.</p>
+            <p style={{ margin: "20px 0 0", fontSize: 13, color: C.t3 }}>Les {assetSymbol(order.asset)} sont partis : la commande se termine seule à la confirmation.</p>
           )}
         </div>
 

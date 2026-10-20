@@ -5,6 +5,7 @@ import { nfUsdt } from "@/lib/adminOrders";
 import { NET_LOGO, NET_NAME } from "@/lib/accounting";
 import { loadTreasury, peekTreasury, setThreshold, type StockRow } from "@/lib/ledger";
 import { useCan } from "@/lib/roles";
+import { useAppSettings } from "@/lib/settings";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
@@ -17,7 +18,8 @@ import { ago } from "./settingsUi";
  * Lecture seule : le stock n'empêche jamais un client de commander.
  */
 
-const usdt = (n: number | null) => (n == null ? "–" : `${nfUsdt.format(n)} USDT`);
+const SYM = { usdt: "USDT", usdc: "USDC" } as const;
+const amt = (n: number | null, a: StockRow["asset"]) => (n == null ? "–" : `${nfUsdt.format(n)} ${SYM[a]}`);
 
 /** Courbe des 30 derniers jours (un relevé par jour), sans axes. */
 function Spark({ points }: { points: { day: string; usdt: number }[] }) {
@@ -34,7 +36,13 @@ function Spark({ points }: { points: { day: string; usdt: number }[] }) {
 
 const TreasuryPanel = () => {
   const can = useCan();
-  const [rows, setRows] = useState<StockRow[] | null>(() => peekTreasury());
+  const [all, setRows] = useState<StockRow[] | null>(() => peekTreasury());
+  // Une cryptomonnaie à la fois : la principale ouverte d'abord (USDC si ouvert).
+  const settings = useAppSettings();
+  const [assetPick, setAsset] = useState<StockRow["asset"] | null>(null);
+  const asset: StockRow["asset"] = assetPick ?? (settings.assets.usdc ? "usdc" : "usdt");
+  const rows = all ? all.filter((r) => r.asset === asset) : null;
+  const usdt = (n: number | null) => amt(n, asset);
   const [err, setErr] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -93,12 +101,12 @@ const TreasuryPanel = () => {
       <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 260 }}>
           <p className="vz-head" style={{ fontSize: "clamp(32px, 4.2vw, 54px)" }}>
-            <span style={{ color: C.sage }}>{nfUsdt.format(available)} USDT</span> disponibles <span className="mute">sur {live.length} réseau{live.length > 1 ? "x" : ""}.</span>
+            <span style={{ color: C.sage }}>{nfUsdt.format(available)} {SYM[asset]}</span> disponibles <span className="mute">sur {live.length} réseau{live.length > 1 ? "x" : ""}.</span>
           </p>
           <p className="vz-sub">
             {rows === null ? "Lecture du stock…" : live.length === 0
               ? "Aucun relevé pour l'instant : le premier arrive dans les 5 minutes."
-              : <>Solde total {nfUsdt.format(total)} USDT, dont <b style={{ color: C.t1, fontWeight: 600 }}>{nfUsdt.format(reserved)} USDT</b> réservés par les achats en cours. Relevé {ago(lastAt)}.</>}
+              : <>Solde total {nfUsdt.format(total)} {SYM[asset]}, dont <b style={{ color: C.t1, fontWeight: 600 }}>{nfUsdt.format(reserved)} {SYM[asset]}</b> réservés par les achats en cours. Relevé {ago(lastAt)}.</>}
           </p>
         </div>
         <Button size="sm" onClick={refreshNow} disabled={busy}
@@ -107,15 +115,18 @@ const TreasuryPanel = () => {
         </Button>
       </div>
 
+      <p style={{ margin: "18px 0 0", fontSize: 15, lineHeight: 1.9, color: C.t2 }}>
+        Stock en <Opts value={asset} options={[{ v: "usdc", label: "USDC" }, { v: "usdt", label: "USDT" }]} onChange={(v) => setAsset(v as StockRow["asset"])} />
+      </p>
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}
       {low.length > 0 && (
         <p style={{ margin: "18px 0 0", fontSize: 14, color: C.t2 }}>
-          <span style={{ color: C.coral }}>À recharger :</span> {low.map((r) => `${NET_NAME[r.network] ?? r.network} (${nfUsdt.format(r.available ?? 0)} USDT)`).join(", ")}.
+          <span style={{ color: C.coral }}>À recharger :</span> {low.map((r) => `${NET_NAME[r.network] ?? r.network} (${nfUsdt.format(r.available ?? 0)} ${SYM[asset]})`).join(", ")}.
         </p>
       )}
 
-      <Section title="Par réseau" description="Disponible = solde − USDT réservés par les achats pas encore envoyés. Sous le seuil, l'équipe reçoit une alerte par courriel (au plus une fois toutes les 6 heures).">
-        <DataTable rows={rows ?? []} columns={cols} rowKey={(r) => r.network}
+      <Section title="Par réseau" description={`Disponible = solde − ${SYM[asset]} réservés par les achats pas encore envoyés. Sous le seuil, l'équipe reçoit une alerte par courriel (au plus une fois toutes les 6 heures). L'USDC n'existe que sur Ethereum, Polygon, Avalanche et Solana.`}>
+        <DataTable rows={rows ?? []} columns={cols} rowKey={(r) => `${r.network}:${r.asset}`}
           empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>Lecture du stock…</p>}
           mobile={(r) => (
             <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
@@ -145,19 +156,19 @@ function ThresholdPanel({ row, onClose, onSaved }: { row: StockRow; onClose: () 
   const n = Number(value.replace(",", "."));
   const save = async () => {
     setBusy(true);
-    const r = await setThreshold(row.network, n, enabled === "on");
+    const r = await setThreshold(row.network, n, enabled === "on", row.asset);
     setBusy(false);
     if (r.error) setErr(r.error); else onSaved();
   };
   return (
-    <SidePanel title={`Alerte · ${NET_NAME[row.network] ?? row.network}`} subtitle="Prévenir l'équipe quand le disponible passe sous ce seuil" onClose={onClose}
+    <SidePanel title={`Alerte · ${NET_NAME[row.network] ?? row.network} · ${SYM[row.asset]}`} subtitle="Prévenir l'équipe quand le disponible passe sous ce seuil" onClose={onClose}
       footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={save} disabled={busy || !Number.isFinite(n) || n < 0}>Enregistrer</Button></>}>
       <style>{GR_CSS}</style>
       <p style={{ margin: 0, fontSize: 15, lineHeight: 1.9, color: C.t2 }}>
         Alerte <Opts value={enabled} options={[{ v: "on", label: "activée" }, { v: "off", label: "désactivée" }]} onChange={setEnabled} />
       </p>
       <label style={{ display: "block", marginTop: 22 }}>
-        <span style={{ fontSize: 12.5, color: C.t3 }}>Seuil en USDT</span>
+        <span style={{ fontSize: 12.5, color: C.t3 }}>Seuil en {SYM[row.asset]}</span>
         <input className="gr-in" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value.replace(/[^\d.,]/g, ""))} disabled={enabled === "off"} />
       </label>
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}

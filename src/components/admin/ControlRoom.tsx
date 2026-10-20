@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
+import { getAppSettingsNow } from "@/lib/settings";
 import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import { NET_LOGO, NET_NAME } from "@/lib/accounting";
 import { loadTreasury, peekTreasury, type StockRow } from "@/lib/ledger";
@@ -407,10 +408,11 @@ export default function ControlRoom({ orders, canStock }: { orders: AdminOrder[]
   }, []);
 
   // Stock par réseau, relu chaque minute.
-  const [stock, setStock] = useState<StockRow[] | null>(() => (canStock ? peekTreasury() : null));
+  const [stock, setStock] = useState<StockRow[] | null>(() => (canStock ? peekTreasury()?.filter((x) => x.asset === (getAppSettingsNow().assets.usdc ? "usdc" : "usdt")) ?? null : null));
   useEffect(() => {
     if (!canStock) return;
-    const load = () => { loadTreasury().then(setStock).catch(() => undefined); };
+    // Le stock de l'actif principal (USDC s'il est ouvert, sinon USDT).
+    const load = () => { loadTreasury().then((r) => setStock(r.filter((x) => x.asset === (getAppSettingsNow().assets.usdc ? "usdc" : "usdt")))).catch(() => undefined); };
     load();
     const t = window.setInterval(load, 60_000);
     return () => window.clearInterval(t);

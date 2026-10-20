@@ -13,6 +13,7 @@ import { Button, Field, Notice, SidePanel, Switch, TextInput, fieldInput } from 
 import { DataTable, EmptyState, KeyValues, Pill, Section, Tabs, Toolbar, TwoLine, type Column, type Tone } from "./layout";
 import { SettlementHero } from "./heroes";
 import { DEPOSIT_PILL, PAYOUT_PILL } from "./orderBits";
+import { assetSymbol } from "@/lib/assets";
 
 /*
  * Règlement des achats et des ventes : portefeuille d'envoi (soldes par
@@ -75,7 +76,7 @@ function DepositActions({ d, onDone }: { d: ChainDeposit; onDone: () => void }) 
   const [pick, setPick] = useState(d.order_id ?? "");
   const [why, setWhy] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  useEffect(() => { fetchPendingSells(d.network).then(setSells); }, [d.network]);
+  useEffect(() => { fetchPendingSells(d.network, d.asset ?? "usdt").then(setSells); }, [d.network, d.asset]);
   const run = async (fn: () => Promise<{ error?: string }>) => {
     setMsg(null);
     const r = await fn();
@@ -84,10 +85,10 @@ function DepositActions({ d, onDone }: { d: ChainDeposit; onDone: () => void }) 
   return (
     <div style={{ display: "grid", gap: 24 }}>
       <div style={{ display: "grid", gap: 10 }}>
-        <Field label="Rattacher à une vente" hint="Ventes du même réseau qui attendent encore les USDT du client.">
+        <Field label="Rattacher à une vente" hint="Ventes du même réseau et de la même cryptomonnaie qui attendent encore les fonds du client.">
           <select className="ui-input" style={fieldInput} value={pick} onChange={(e) => setPick(e.target.value)}>
             <option value="">{sells === null ? "Chargement…" : sells.length ? "Choisir la vente…" : "Aucune vente en attente sur ce réseau"}</option>
-            {(sells ?? []).map((o) => <option key={o.id} value={o.id}>{ref(o.id)} · {nf(Number(o.usdt_amount))} USDT · {dateFmt.format(new Date(o.created_at))}</option>)}
+            {(sells ?? []).map((o) => <option key={o.id} value={o.id}>{ref(o.id)} · {nf(Number(o.usdt_amount))} {assetSymbol(d.asset)} · {dateFmt.format(new Date(o.created_at))}</option>)}
           </select>
         </Field>
         <div><Button variant="primary" size="sm" disabled={!pick} onClick={() => run(() => attachDeposit(d.id, pick))}>Rattacher</Button></div>
@@ -223,6 +224,7 @@ const SettlementPanel = () => {
       ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.t2, ...mono }} title={w.address}>{short(w.address)}<CopyBtn value={w.address} /></span>
       : <span style={{ color: C.t3 }}>Non configurée</span> },
     { key: "usdt", header: "USDT", align: "right", sort: (w) => w.usdt ?? -1, render: (w) => (w.configured && !w.error ? nf(w.usdt ?? 0) : <span style={{ color: C.t3 }}>N/D</span>) },
+    { key: "usdc", header: "USDC", align: "right", sort: (w) => w.usdc ?? -1, render: (w) => (w.usdc == null ? <span style={{ color: C.t3 }}>–</span> : w.configured && !w.error ? nf(w.usdc) : <span style={{ color: C.t3 }}>N/D</span>) },
     { key: "gas", header: "Frais", align: "right", render: (w) => (w.configured && !w.error
       ? <span style={{ color: lowGas(w) ? C.dangerText : C.t2 }}>{nf(w.gas ?? 0, 4)} {w.gasSymbol}</span>
       : <span style={{ color: C.t3 }}>N/D</span>) },
@@ -246,13 +248,13 @@ const SettlementPanel = () => {
     { key: "to", header: "Destination", hideBelow: 1000, render: (p) => p.error
       ? <span style={{ color: C.dangerText, display: "block", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.error}>{p.error}</span>
       : <span style={{ color: C.t2, ...mono }} title={p.to_address}>{short(p.to_address)}</span> },
-    { key: "amt", header: "Montant", align: "right", sort: (p) => Number(p.usdt_amount), render: (p) => <TwoLine primary={`${nf(Number(p.usdt_amount))} USDT`} secondary={<span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><NetLogo network={p.network} size={14} />{netName(p.network)}</span>} /> },
+    { key: "amt", header: "Montant", align: "right", sort: (p) => Number(p.usdt_amount), render: (p) => <TwoLine primary={`${nf(Number(p.usdt_amount))} ${assetSymbol(p.asset)}`} secondary={<span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><NetLogo network={p.network} size={14} />{netName(p.network)}</span>} /> },
     { key: "tx", header: "", align: "right", hideBelow: 760, render: (p) => <TxLink network={p.network} hash={p.tx_hash} label="Transaction" /> },
     { key: "date", header: "Date", align: "right", sort: (p) => p.created_at, hideBelow: 760, render: (p) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(p.created_at))}</span> },
   ];
 
   const depositCols: Column<ChainDeposit>[] = [
-    { key: "amt", header: "Montant", sort: (d) => Number(d.usdt_amount), render: (d) => <TwoLine lead={<NetLogo network={d.network} size={26} />} primary={`${nf(Number(d.usdt_amount))} USDT`} secondary={netName(d.network)} /> },
+    { key: "amt", header: "Montant", sort: (d) => Number(d.usdt_amount), render: (d) => <TwoLine lead={<NetLogo network={d.network} size={26} />} primary={`${nf(Number(d.usdt_amount))} ${assetSymbol(d.asset)}`} secondary={netName(d.network)} /> },
     { key: "status", header: "État", render: (d) => <Pill tone={DEPOSIT_PILL[d.status]?.tone}>{DEPOSIT_PILL[d.status]?.label ?? d.status}</Pill> },
     { key: "order", header: "Vente", hideBelow: 900, render: (d) => (d.order_id ? ref(d.order_id) : <span style={{ color: C.t3 }}>Aucune</span>) },
     { key: "reason", header: "Détail", hideBelow: 1180, render: (d) => <span style={{ color: C.t3, display: "block", maxWidth: 340, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.reason ?? "En attente d'une vente du même montant"}</span> },
@@ -281,7 +283,7 @@ const SettlementPanel = () => {
       <Tabs value={tab} onChange={setTab} items={[
         { id: "wallet", label: "Portefeuille et réglages" },
         { id: "receipts", label: "Avis Interac", count: receipts.length, tone: receiptsToCheck ? "warn" : undefined },
-        { id: "payouts", label: "Envois USDT", count: payouts.length, tone: payoutsToCheck ? "danger" : undefined },
+        { id: "payouts", label: "Envois", count: payouts.length, tone: payoutsToCheck ? "danger" : undefined },
         { id: "deposits", label: "Dépôts des ventes", count: deposits.length, tone: depositsToCheck ? "warn" : undefined },
       ]} />
 
@@ -297,11 +299,11 @@ const SettlementPanel = () => {
               rowKey={(w) => w.network}
               empty={<EmptyState title={wallets === null ? "Chargement des soldes…" : "Aucun réseau"} />}
               mobile={(w) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={w.network} size={20} />{w.label}</span>, w.address ? short(w.address) : "Non configurée",
-                w.configured && !w.error ? `${nf(w.usdt ?? 0)} USDT` : "N/D",
+                w.configured && !w.error ? `${nf(w.usdt ?? 0)} USDT${w.usdc != null ? ` · ${nf(w.usdc)} USDC` : ""}` : "N/D",
                 !w.configured ? <Pill>Clé absente</Pill> : w.error ? <Pill tone="danger">Erreur</Pill> : lowGas(w) ? <Pill tone="warn">Frais bas</Pill> : <Pill tone="ok">Prêt</Pill>)}
             />
             <p style={{ margin: "14px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 640 }}>
-              Approvisionnez chaque adresse en USDT et en jeton de frais (TRX, BNB, POL, AVAX, ETH ou SOL)
+              Approvisionnez chaque adresse en USDT ou USDC (l'USDC sur Ethereum, Polygon, Avalanche et Solana seulement) et en jeton de frais (TRX, BNB, POL, AVAX, ETH ou SOL)
               depuis votre réserve. Sur Solana, chaque envoi vers un nouveau portefeuille coûte environ 0,002 SOL de plus. Gardez-y seulement le nécessaire aux envois du moment.
             </p>
           </div>
@@ -315,7 +317,7 @@ const SettlementPanel = () => {
                   checked={draft.auto_payout}
                   disabled={!isAdmin}
                   onChange={(v) => setDraft({ ...draft, auto_payout: v })}
-                  label="Envoyer les USDT sans clic de l'équipe"
+                  label="Envoyer les USDT et USDC sans clic de l'équipe"
                   hint="Dès qu'un virement Interac est reçu et rapproché d'un achat."
                 />
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10 }}>
@@ -365,16 +367,16 @@ const SettlementPanel = () => {
       {tab === "payouts" && (
         <>
           <Toolbar right={refresh}>
-            <span style={{ fontSize: 12.5, color: C.t3 }}>Les 30 derniers envois d'USDT depuis le portefeuille.</span>
+            <span style={{ fontSize: 12.5, color: C.t3 }}>Les 30 derniers envois d'USDT et d'USDC depuis le portefeuille.</span>
           </Toolbar>
           <DataTable
             rows={payouts}
             columns={payoutCols}
             rowKey={(p) => p.id}
             initialSort={{ key: "date", dir: "desc" }}
-            empty={<EmptyState icon={Inbox} title="Aucun envoi" text="Aucun envoi d'USDT pour l'instant." />}
+            empty={<EmptyState icon={Inbox} title="Aucun envoi" text="Aucun envoi pour l'instant." />}
             mobile={(p) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={p.network} size={20} />{ref(p.order_id)}</span>, <>{netName(p.network)} · {dateFmt.format(new Date(p.created_at))}{p.tx_hash && <> · <TxLink network={p.network} hash={p.tx_hash} label="Transaction" /></>}</>,
-              `${nf(Number(p.usdt_amount))} USDT`, <Pill tone={PAYOUT_PILL[p.status]?.tone}>{PAYOUT_PILL[p.status]?.label ?? p.status}</Pill>)}
+              `${nf(Number(p.usdt_amount))} ${assetSymbol(p.asset)}`, <Pill tone={PAYOUT_PILL[p.status]?.tone}>{PAYOUT_PILL[p.status]?.label ?? p.status}</Pill>)}
           />
         </>
       )}
@@ -393,8 +395,8 @@ const SettlementPanel = () => {
             onRowClick={setDeposit}
             selectedKey={deposit?.id}
             initialSort={{ key: "date", dir: "desc" }}
-            empty={<EmptyState icon={Inbox} title="Aucun dépôt" text="Aucun dépôt d'USDT lu pour l'instant." />}
-            mobile={(d) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={d.network} size={20} />{nf(Number(d.usdt_amount))} USDT</span>, `${netName(d.network)} · ${dateFmt.format(new Date(d.block_time))}`,
+            empty={<EmptyState icon={Inbox} title="Aucun dépôt" text="Aucun dépôt lu pour l'instant." />}
+            mobile={(d) => mobileRow(<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={d.network} size={20} />{nf(Number(d.usdt_amount))} {assetSymbol(d.asset)}</span>, `${netName(d.network)} · ${dateFmt.format(new Date(d.block_time))}`,
               d.order_id ? ref(d.order_id) : "", <Pill tone={DEPOSIT_PILL[d.status]?.tone}>{DEPOSIT_PILL[d.status]?.label ?? d.status}</Pill>)}
           />
         </>
@@ -419,13 +421,13 @@ const SettlementPanel = () => {
       )}
 
       {deposit && (
-        <SidePanel title={`${nf(Number(deposit.usdt_amount))} USDT`} subtitle={`${netName(deposit.network)} · ${dateFmt.format(new Date(deposit.block_time))}`} onClose={() => setDeposit(null)}>
+        <SidePanel title={`${nf(Number(deposit.usdt_amount))} ${assetSymbol(deposit.asset)}`} subtitle={`${netName(deposit.network)} · ${dateFmt.format(new Date(deposit.block_time))}`} onClose={() => setDeposit(null)}>
           <div style={{ marginBottom: 16 }}><Pill tone={DEPOSIT_PILL[deposit.status]?.tone}>{DEPOSIT_PILL[deposit.status]?.label ?? deposit.status}</Pill></div>
           <KeyValues items={[
             ["Réseau", <span key="n" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><NetLogo network={deposit.network} size={18} />{netName(deposit.network)}</span>],
             ["Expéditeur", deposit.from_address ? <span style={mono}>{deposit.from_address}</span> : "N/D"],
             ["Vente", deposit.order_id ? ref(deposit.order_id) : "Aucune"],
-            ["Détail", deposit.reason ?? "En attente d'une vente du même montant, ouverte avant l'arrivée des USDT."],
+            ["Détail", deposit.reason ?? "En attente d'une vente du même montant, ouverte avant l'arrivée des fonds."],
             ["Transaction", <TxLink key="tx" network={deposit.network} hash={deposit.tx_hash} />],
           ]} />
           {deposit.status !== "matched" && deposit.status !== "ignored" && (

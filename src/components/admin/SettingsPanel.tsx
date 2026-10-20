@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowUpRight, AtSign, Bell, Check, ChevronRight, DatabaseBackup, FlaskConical, HeartPulse, Anchor, Mail, Megaphone, Network, Percent,
-  Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Send, QrCode, Users,
+  Power, Rocket, Search, SlidersHorizontal, Timer, UserPlus, Send, QrCode, Users, Coins,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { peek, put } from "@/lib/adminCache";
@@ -24,7 +24,7 @@ import BackupsCard from "./BackupsCard";
 import { LaunchSections, type PlatformPreview } from "./PlatformPanel";
 import SettingsRate from "./SettingsRate";
 import SettingsDeposit from "./SettingsDeposit";
-import { ContactsPage, DelaysPage, NetworksPage, RateFallbackPage, SignupsPage, StaffAlertsPage } from "./SettingsOps";
+import { AssetsPage, ContactsPage, DelaysPage, NetworksPage, RateFallbackPage, SignupsPage, StaffAlertsPage } from "./SettingsOps";
 import { NETWORKS, NET_DB } from "@/components/app/networks";
 import SettingsMailStudio, { MailStudioEntry } from "./SettingsMailStudio";
 import { Presets, Row, SaveBar, SettingsNavContext, SettingsPage, ST_CSS, Stepper, Toggle, ago, fmtDay, nf, type SettingsNav } from "./settingsUi";
@@ -59,9 +59,9 @@ const INDEX_CSS = `
 @media (prefers-reduced-motion: reduce) { .sx-group { animation: none; } .sx-row, .sx-go { transition: none; } }
 `;
 
-type PageId = "ouverture" | "limites" | "taux" | "adresses" | "reseaux" | "inscriptions" | "delais" | "secours" | "coordonnees" | "alertes"
+type PageId = "ouverture" | "limites" | "taux" | "adresses" | "reseaux" | "cryptos" | "inscriptions" | "delais" | "secours" | "coordonnees" | "alertes"
   | "courriels" | "sante" | "tests" | "demarrage" | "sauvegardes" | "studio";
-const PAGES: PageId[] = ["ouverture", "limites", "taux", "adresses", "reseaux", "inscriptions", "delais", "secours", "coordonnees", "alertes",
+const PAGES: PageId[] = ["ouverture", "limites", "taux", "adresses", "reseaux", "cryptos", "inscriptions", "delais", "secours", "coordonnees", "alertes",
   "courriels", "sante", "tests", "demarrage", "sauvegardes", "studio"];
 const PARAM = "reglage";
 const readPage = (): PageId | null => {
@@ -367,12 +367,13 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       ],
     },
     {
-      title: "Réseaux et USDT",
-      desc: "Où circulent les USDT, à l'achat comme à la vente.",
+      title: "Cryptomonnaies et réseaux",
+      desc: "Ce que les clients achètent et vendent, et sur quelles blockchains.",
       rows: [
+        { id: "cryptos", icon: Coins, name: "Cryptomonnaies", desc: "USDC et USDT : proposés ou non aux clients.", value: [s.assets.usdc && "USDC", s.assets.usdt && "USDT"].filter(Boolean).join(" · ") || "Aucune", onOpen: () => go("cryptos") },
         { id: "reseaux", icon: Network, name: "Réseaux", desc: "Ouverts ou fermés, à l'achat et à la vente.", value: `${netOpen("buy")} à l'achat · ${netOpen("sell")} à la vente`, onOpen: () => go("reseaux") },
-        { id: "adresses", icon: QrCode, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
-        ...ext("settlement", { icon: Send, name: "Règlement automatique", desc: "Envoi automatique des USDT, plafonds, portefeuille d'envoi." }),
+        { id: "adresses", icon: QrCode, name: "Adresses de dépôt", desc: "Où les clients envoient leurs USDC ou USDT, par réseau.", value: addrCount == null ? null : <span style={{ color: addrCount < 3 ? C.coral : undefined }}>{addrCount} sur 3</span>, onOpen: () => go("adresses") },
+        ...ext("settlement", { icon: Send, name: "Règlement automatique", desc: "Envoi automatique des USDC et USDT, plafonds, portefeuille d'envoi." }),
       ],
     },
     {
@@ -439,6 +440,7 @@ export default function SettingsPanel({ onTab }: { onTab?: (id: "team" | "announ
       {page === "taux" && <SettingsRate onBack={back} />}
       {page === "adresses" && <SettingsDeposit onBack={back} />}
       {page === "reseaux" && <NetworksPage onBack={back} />}
+      {page === "cryptos" && <AssetsPage onBack={back} />}
       {page === "inscriptions" && <SignupsPage onBack={back} />}
       {page === "delais" && <DelaysPage onBack={back} />}
       {page === "secours" && <RateFallbackPage onBack={back} onOpening={() => go("ouverture")} />}

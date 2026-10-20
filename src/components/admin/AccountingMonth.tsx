@@ -47,8 +47,8 @@ function reconWhy(o: AcctOrder): string {
   const r = o.recon;
   if (r.state === "ok") return o.side === "buy" ? `Interac reçu ${money(r.in_cad ?? 0)} · ${nfUsdt.format(r.out_usdt ?? 0)} USDT envoyés` : `${nfUsdt.format(r.in_usdt ?? 0)} USDT reçus`;
   if (r.state === "manual") return o.side === "buy"
-    ? `Terminée sans ${r.in_cad == null ? "virement Interac enregistré" : "envoi d'USDT confirmé"}`
-    : "Terminée sans USDT reçus enregistrés";
+    ? `Terminée sans ${r.in_cad == null ? "virement Interac enregistré" : "envoi de cryptomonnaie confirmé"}`
+    : "Terminée sans réception de cryptomonnaie enregistrée";
   return o.side === "buy"
     ? `Reçu ${money(r.in_cad ?? 0)} pour ${money(o.cad)} · envoyé ${nfUsdt.format(r.out_usdt ?? 0)} pour ${nfUsdt.format(o.usdt)} USDT`
     : `Reçu ${nfUsdt.format(r.in_usdt ?? 0)} pour ${nfUsdt.format(o.usdt)} USDT`;
@@ -188,7 +188,7 @@ export default function AccountingMonth({ month, summary, initialCheck = false, 
         {[
           ["Achats", `${money(summary?.vol_buy ?? 0)} · ${summary?.n_buy ?? 0}`],
           ["Ventes", `${money(summary?.vol_sell ?? 0)} · ${summary?.n_sell ?? 0}`],
-          ["USDT échangés", nfUsdt.format(summary?.usdt ?? 0)],
+          ["USDC et USDT échangés", nfUsdt.format(summary?.usdt ?? 0)],
           ["Frais facturés", money(summary?.fees ?? 0)],
         ].map(([k, v]) => (
           <div key={k}>

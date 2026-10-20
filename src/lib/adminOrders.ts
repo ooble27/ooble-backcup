@@ -29,6 +29,8 @@ export interface AdminOrder {
   usdt: number;
   rate: number;
   network?: NetId;
+  /** Cryptomonnaie de la commande : USDT ou USDC. */
+  asset?: "usdt" | "usdc";
   /** Adresse de réception USDT (achat / envoi). */
   address?: string;
   /** E-mail Interac de réception (vente). */

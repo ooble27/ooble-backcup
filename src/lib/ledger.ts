@@ -16,24 +16,26 @@ const numOrNull = (v: unknown) => (v == null ? null : Number(v));
 
 /* ─── Trésorerie ─── */
 export interface StockRow {
+  /** Cryptomonnaie de la ligne (une ligne par réseau et par actif) ; « usdt » : son solde. */
+  asset: "usdt" | "usdc";
   network: string; address: string | null; usdt: number | null; gas: number | null; gasSymbol: string | null; minGas: number | null; takenAt: string | null;
   reserved: number; reservedN: number; available: number | null; threshold: number; alertEnabled: boolean; lastAlertAt: string | null;
   history: { day: string; usdt: number }[];
 }
 const toStock = (r: Record<string, unknown>): StockRow => ({
-  network: String(r.network), address: (r.address as string) ?? null, usdt: numOrNull(r.usdt), gas: numOrNull(r.gas), gasSymbol: (r.gas_symbol as string) ?? null,
+  asset: (r.asset as StockRow["asset"]) ?? "usdt", network: String(r.network), address: (r.address as string) ?? null, usdt: numOrNull(r.usdt), gas: numOrNull(r.gas), gasSymbol: (r.gas_symbol as string) ?? null,
   minGas: numOrNull(r.min_gas), takenAt: (r.taken_at as string) ?? null, reserved: num(r.reserved), reservedN: num(r.reserved_n), available: numOrNull(r.available),
   threshold: num(r.threshold), alertEnabled: !!r.alert_enabled, lastAlertAt: (r.last_alert_at as string) ?? null,
   history: ((r.history as { day: string; usdt: unknown }[]) ?? []).map((p) => ({ day: p.day, usdt: num(p.usdt) })),
 });
-export const peekTreasury = () => peek<StockRow[]>("treasury.overview")?.value ?? null;
-export const loadTreasury = () => fetchCached("treasury.overview", async () => {
-  const { data, error } = await rpc("treasury_overview");
+export const peekTreasury = () => peek<StockRow[]>("treasury.assets")?.value ?? null;
+export const loadTreasury = () => fetchCached("treasury.assets", async () => {
+  const { data, error } = await rpc("treasury_overview_assets");
   if (error) throw new Error(error.message);
   return ((data as Record<string, unknown>[]) ?? []).map(toStock);
 }, { persist: true });
-export async function setThreshold(network: string, threshold: number, enabled: boolean) {
-  const { error } = await rpc("treasury_set_threshold", { _network: network, _threshold: threshold, _enabled: enabled });
+export async function setThreshold(network: string, threshold: number, enabled: boolean, asset: StockRow["asset"] = "usdt") {
+  const { error } = await rpc("treasury_set_threshold", { _network: network, _asset: asset, _threshold: threshold, _enabled: enabled });
   return error ? { error: error.message } : {};
 }
 
@@ -73,7 +75,9 @@ export type Funding = "bank" | "loan" | "capital" | "payable";
 /** Qui a payé la recharge : la banque, un prêt (stock prêté par un tiers), un apport, ou un fournisseur payé plus tard. */
 export const FUNDING_LABEL: Record<Funding, string> = { bank: "Ma banque", loan: "Un prêt", capital: "Mon apport", payable: "À payer plus tard" };
 export interface Purchase {
-  id: string; kind: "purchase" | "opening"; funding: Funding; at: string; supplier: string; network: string; usdt: number; cad: number; fee: number;
+  id: string; kind: "purchase" | "opening"; funding: Funding; at: string; supplier: string; network: string;
+  /** Cryptomonnaie rechargée ; « usdt » : sa quantité. */
+  asset: "usdt" | "usdc"; usdt: number; cad: number; fee: number;
   tx: string | null; note: string | null; receipt: string | null; voided: boolean; voidReason: string | null; by: string | null;
 }
 export interface Expense {
@@ -82,7 +86,7 @@ export interface Expense {
 }
 const toPurchase = (r: Record<string, unknown>): Purchase => ({
   id: String(r.id), kind: r.kind as Purchase["kind"], funding: ((r.funded_by as Funding) ?? "bank"), at: String(r.purchased_at), supplier: String(r.supplier), network: String(r.network),
-  usdt: num(r.usdt), cad: num(r.cad), fee: num(r.fee_cad), tx: (r.tx_hash as string) ?? null, note: (r.note as string) ?? null,
+  asset: (r.asset as Purchase["asset"]) ?? "usdt", usdt: num(r.usdt), cad: num(r.cad), fee: num(r.fee_cad), tx: (r.tx_hash as string) ?? null, note: (r.note as string) ?? null,
   receipt: (r.receipt_path as string) ?? null, voided: !!r.voided, voidReason: (r.void_reason as string) ?? null, by: (r.created_by_name as string) ?? null,
 });
 const toExpense = (r: Record<string, unknown>): Expense => ({
@@ -120,9 +124,9 @@ export async function receiptUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
-export async function addPurchase(p: { kind: "purchase" | "opening"; funding: Funding; at: string; supplier: string; network: string; usdt: number; cad: number; fee: number; tx?: string; note?: string; receipt?: string | null }) {
+export async function addPurchase(p: { kind: "purchase" | "opening"; funding: Funding; at: string; supplier: string; network: string; asset?: "usdt" | "usdc"; usdt: number; cad: number; fee: number; tx?: string; note?: string; receipt?: string | null }) {
   const { error } = await table("supplier_purchases").insert({
-    kind: p.kind, funded_by: p.funding, purchased_at: p.at, supplier: p.supplier.trim(), network: p.network, usdt: p.usdt, cad: p.cad, fee_cad: p.fee,
+    kind: p.kind, funded_by: p.funding, purchased_at: p.at, supplier: p.supplier.trim(), network: p.network, asset: p.asset ?? "usdt", usdt: p.usdt, cad: p.cad, fee_cad: p.fee,
     tx_hash: p.tx?.trim() || null, note: p.note?.trim() || null, receipt_path: p.receipt ?? null,
   });
   return error ? { error: error.message } : {};

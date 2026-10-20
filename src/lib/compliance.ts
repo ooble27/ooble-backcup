@@ -325,6 +325,8 @@ export interface DeclarationFormData {
   operationType: string;
   amountCad: string;
   amountUsdt: string;
+  /** Monnaie virtuelle de l'opération (USDT si absent : déclarations d'avant l'USDC). */
+  asset?: "USDT" | "USDC";
   operationDate: string;
   paymentMethod: string;
   walletAddress: string;
@@ -359,8 +361,9 @@ export function initialDeclarationForm(alert: ComplianceAlert, order?: AdminOrde
     operationType: side,
     amountCad: String(alert.amount),
     amountUsdt: order && alert.orderRefs.length <= 1 ? String(order.usdt) : "",
+    asset: order?.asset === "usdc" ? "USDC" : "USDT",
     operationDate: (alert.occurredAt || alert.createdAt).slice(0, 10),
-    paymentMethod: side === "sell" ? "USDT reçus, versement Interac" : "Virement Interac",
+    paymentMethod: side === "sell" ? `${order?.asset === "usdc" ? "USDC" : "USDT"} reçus, versement Interac` : "Virement Interac",
     walletAddress: order?.address ?? "",
     network: net ? `${net.name} (${net.tag})` : "",
     suspicionIndicators: [],

@@ -11,6 +11,9 @@ import { C, FONT } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { DataTable, Section, type Column } from "./layout";
 import { GR_CSS, Opts } from "./GrowthPanel";
+const SYM = { usdt: "USDT", usdc: "USDC" } as const;
+/** Réseaux où l'USDC (Circle) existe. */
+const USDC_NETS = ["erc20", "polygon", "avalanche", "spl"];
 
 /**
  * Comptabilité de stock : le bénéfice net (coût moyen pondéré), les recharges chez les fournisseurs
@@ -38,22 +41,22 @@ export function ProfitStatement({ pnl }: { pnl: Pnl | null }) {
   return (
     <div style={{ display: "grid", gap: 28, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", alignItems: "start" }}>
       <div style={{ maxWidth: 560 }}>
-        {line("Ventes d'USDT aux clients", pnl?.revenue ?? null)}
-        {line("Coût des USDT vendus (coût moyen)", pnl?.cogs ?? null, { minus: true })}
+        {line("Ventes d'USDC et d'USDT aux clients", pnl?.revenue ?? null)}
+        {line("Coût des USDC et USDT vendus (coût moyen)", pnl?.cogs ?? null, { minus: true })}
         {line("Bénéfice brut", pnl?.gross ?? null, { color: C.t1 })}
         {line("Dépenses", pnl?.expenses ?? null, { minus: true })}
         {cats.map(([k, v]) => <div key={k}>{line(catLabel(k), v, { minus: true, sub: true })}</div>)}
         {line("Bénéfice net", pnl?.net ?? null, { strong: true, color: (pnl?.net ?? 0) >= 0 ? C.sage : C.coral })}
       </div>
       <div style={{ maxWidth: 420 }}>
-        <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Stock d'USDT en fin de période</p>
-        <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color: C.t1, fontVariantNumeric: "tabular-nums" }}>{nfUsdt.format(pnl?.stock.usdt ?? 0)} USDT</p>
+        <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Stock d'USDC et d'USDT en fin de période (un même stock de dollars américains numériques)</p>
+        <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color: C.t1, fontVariantNumeric: "tabular-nums" }}>{nfUsdt.format(pnl?.stock.usdt ?? 0)} $ US</p>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: C.t2, lineHeight: 1.6 }}>
           Coût moyen {pnl?.stock.unit != null ? `${pnl.stock.unit.toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $` : "–"} · valeur {money(pnl?.stock.cost ?? 0)}
           {pnl?.stock.market != null && <><br />Au cours du marché : {money(pnl.stock.market)}</>}
         </p>
         <p style={{ margin: "14px 0 0", fontSize: 13, color: C.t3, lineHeight: 1.6 }}>
-          Recharges : {money(pnl?.purchasesCad ?? 0)} · USDT rachetés aux clients : {money(pnl?.sellsCad ?? 0)}
+          Recharges : {money(pnl?.purchasesCad ?? 0)} · USDC et USDT rachetés aux clients : {money(pnl?.sellsCad ?? 0)}
         </p>
         {(pnl?.uncovered ?? 0) > 0 && (
           <p style={{ margin: "14px 0 0", fontSize: 13, color: C.t2, lineHeight: 1.6 }}>
@@ -134,9 +137,9 @@ export function PurchasesView({ from, to, onChanged }: { from: string; to: strin
     { key: "d", header: "Date", sort: (r) => r.at, render: (r) => <span style={voidedStyle(r.voided)}>{day(r.at)}</span> },
     { key: "s", header: "Fournisseur", render: (r) => <span style={{ color: r.voided ? C.t3 : C.t1 }}>{r.kind === "opening" ? "Stock d'ouverture" : r.supplier}{r.voided && " · annulée"}</span> },
     { key: "n", header: "Réseau", hideBelow: 700, render: (r) => netCell(r.network) },
-    { key: "u", header: "USDT", align: "right", sort: (r) => r.usdt, render: (r) => <span style={voidedStyle(r.voided)}>{nfUsdt.format(r.usdt)}</span> },
+    { key: "u", header: "Quantité", align: "right", sort: (r) => r.usdt, render: (r) => <span style={voidedStyle(r.voided)}>{nfUsdt.format(r.usdt)} {SYM[r.asset]}</span> },
     { key: "c", header: "Coût", align: "right", render: (r) => <span style={voidedStyle(r.voided)}>{money(r.cad + r.fee)}</span> },
-    { key: "p", header: "Par USDT", align: "right", hideBelow: 820, render: (r) => <span style={{ color: C.t2 }}>{((r.cad + r.fee) / r.usdt).toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $</span> },
+    { key: "p", header: "Par unité", align: "right", hideBelow: 820, render: (r) => <span style={{ color: C.t2 }}>{((r.cad + r.fee) / r.usdt).toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $</span> },
     { key: "j", header: "", align: "right", hideBelow: 560, render: (r) => (r.receipt ? <Paperclip style={{ width: 14, height: 14, color: C.t3, verticalAlign: "middle" }} aria-label="Justificatif joint" /> : null) },
   ];
   return (
@@ -144,12 +147,12 @@ export function PurchasesView({ from, to, onChanged }: { from: string; to: strin
       <style>{GR_CSS}</style>
       <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
         <p style={{ margin: 0, flex: 1, fontSize: 15, color: C.t2 }}>
-          <b style={{ color: C.t1, fontWeight: 600 }}>{nfUsdt.format(qty)} USDT</b> rechargés pour {money(cad)}{qty > 0 ? `, soit ${(cad / qty).toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $ par USDT` : ""}.
+          <b style={{ color: C.t1, fontWeight: 600 }}>{nfUsdt.format(qty)} USDC et USDT</b> rechargés pour {money(cad)}{qty > 0 ? `, soit ${(cad / qty).toLocaleString("fr-CA", { maximumFractionDigits: 4 })} $ par unité` : ""}.
         </p>
         {can("accounting.entries") && <Button size="sm" variant="primary" onClick={() => setAdding(true)} icon={<Plus style={{ width: 14, height: 14 }} />}>Ajouter une recharge</Button>}
       </div>
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
-      <Section title="Recharges de la période" description="Achats d'USDT chez vos fournisseurs, et le stock d'ouverture. Ils entrent en stock à leur coût, frais compris.">
+      <Section title="Recharges de la période" description="Achats d'USDC et d'USDT chez vos fournisseurs, et le stock d'ouverture. Ils entrent en stock à leur coût, frais compris.">
         <DataTable rows={rows ?? []} columns={cols} rowKey={(r) => r.id} onRowClick={(r) => setOpen(r)} initialSort={{ key: "d", dir: "desc" }}
           empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>{rows === null ? "Chargement…" : "Aucune recharge sur cette période."}</p>}
           mobile={(r) => (
@@ -158,15 +161,15 @@ export function PurchasesView({ from, to, onChanged }: { from: string; to: strin
                 <div style={{ fontSize: 14, color: r.voided ? C.t3 : C.t1 }}>{r.kind === "opening" ? "Stock d'ouverture" : r.supplier}</div>
                 <div style={{ fontSize: 12.5, color: C.t3, marginTop: 2 }}>{day(r.at)} · {NET_NAME[r.network] ?? r.network}{r.voided ? " · annulée" : ""}</div>
               </div>
-              <span style={{ fontSize: 14, fontVariantNumeric: "tabular-nums", ...voidedStyle(r.voided) }}>{nfUsdt.format(r.usdt)} USDT</span>
+              <span style={{ fontSize: 14, fontVariantNumeric: "tabular-nums", ...voidedStyle(r.voided) }}>{nfUsdt.format(r.usdt)} {SYM[r.asset]}</span>
             </div>
           )} />
       </Section>
       {adding && <PurchaseForm onClose={() => setAdding(false)} onSaved={() => { setAdding(false); changed(); }} />}
       {open && (
         <SidePanel title={open.kind === "opening" ? "Stock d'ouverture" : `Recharge · ${open.supplier}`} subtitle={`${day(open.at)}${open.by ? ` · saisie par ${open.by}` : ""}`} onClose={() => setOpen(null)}>
-          {[["Réseau", NET_NAME[open.network] ?? open.network], ["USDT reçus", `${nfUsdt.format(open.usdt)} USDT`], ["Payé", money(open.cad)], ["Payé par", FUNDING_LABEL[open.funding]], ["Frais", money(open.fee)],
-            ["Coût par USDT", `${((open.cad + open.fee) / open.usdt).toLocaleString("fr-CA", { maximumFractionDigits: 6 })} $`], ["Transaction", open.tx ?? "–"], ["Note", open.note ?? "–"]].map(([k, v]) => (
+          {[["Réseau", NET_NAME[open.network] ?? open.network], [`${SYM[open.asset]} reçus`, `${nfUsdt.format(open.usdt)} ${SYM[open.asset]}`], ["Payé", money(open.cad)], ["Payé par", FUNDING_LABEL[open.funding]], ["Frais", money(open.fee)],
+            [`Coût par ${SYM[open.asset]}`, `${((open.cad + open.fee) / open.usdt).toLocaleString("fr-CA", { maximumFractionDigits: 6 })} $`], ["Transaction", open.tx ?? "–"], ["Note", open.note ?? "–"]].map(([k, v]) => (
             <div key={k} style={{ display: "flex", gap: 16, padding: "9px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 14 }}>
               <span style={{ width: 120, color: C.t3, flexShrink: 0 }}>{k}</span><span style={{ color: C.t1, wordBreak: "break-all" }}>{v}</span>
             </div>
@@ -187,6 +190,7 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   const [date, setDate] = useState(today());
   const [supplier, setSupplier] = useState("");
   const [net, setNet] = useState("trc20");
+  const [asset, setAsset] = useState<"usdt" | "usdc">("usdt");
   const [usdt, setUsdt] = useState(""); const [cad, setCad] = useState(""); const [fee, setFee] = useState("");
   const [tx, setTx] = useState(""); const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -198,13 +202,13 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
     setBusy(true); setErr(null);
     try {
       const receipt = file ? await uploadReceipt(file, "purchases") : null;
-      const r = await addPurchase({ kind, funding, at: new Date(`${date}T12:00:00`).toISOString(), supplier: kind === "opening" ? "Stock d'ouverture" : supplier, network: net, usdt: q, cad: c, fee: f, tx, note, receipt });
+      const r = await addPurchase({ kind, funding, at: new Date(`${date}T12:00:00`).toISOString(), supplier: kind === "opening" ? "Stock d'ouverture" : supplier, network: net, asset, usdt: q, cad: c, fee: f, tx, note, receipt });
       if (r.error) setErr(r.error); else onSaved();
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
   };
   return (
-    <SidePanel title="Nouvelle recharge" subtitle="USDT achetés chez un fournisseur, ou stock de départ" onClose={onClose}
+    <SidePanel title="Nouvelle recharge" subtitle="USDC ou USDT achetés chez un fournisseur, ou stock de départ" onClose={onClose}
       footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={save} disabled={busy || !ok}>{busy ? "Enregistrement…" : "Enregistrer"}</Button></>}>
       <style>{GR_CSS}</style>
       <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: C.t2 }}>
@@ -215,20 +219,23 @@ function PurchaseForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
       </p>
       <p style={{ margin: "4px 0 0", fontSize: 13, lineHeight: 1.6, color: C.t3 }}>
         {funding === "bank" ? "L'argent est sorti de ton compte bancaire : la ligne apparaîtra dans le rapprochement."
-          : funding === "loan" ? "Quelqu'un t'a prêté ces USDT (ou l'argent pour les acheter) : c'est une dette à rembourser, rien ne sort de ta banque."
-            : funding === "capital" ? "Tu as mis ces USDT dans l'entreprise de ta poche : c'est ton apport, rien ne sort de la banque de l'entreprise."
+          : funding === "loan" ? "Quelqu'un t'a prêté ces fonds (ou l'argent pour les acheter) : c'est une dette à rembourser, rien ne sort de ta banque."
+            : funding === "capital" ? "Tu as mis ces fonds dans l'entreprise de ta poche : c'est ton apport, rien ne sort de la banque de l'entreprise."
               : "Le fournisseur t'a livré et tu le paieras plus tard : c'est une dette envers lui."}
       </p>
       <p style={{ margin: "16px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
-        Réseau <Opts value={net} options={NETS.map((n) => ({ v: n, label: NET_NAME[n] ?? n }))} onChange={setNet} />
+        Cryptomonnaie <Opts value={asset} options={[{ v: "usdc", label: "USDC" }, { v: "usdt", label: "USDT" }]} onChange={(v) => { setAsset(v as "usdt" | "usdc"); if (v === "usdc" && !USDC_NETS.includes(net)) setNet("polygon"); }} />
+      </p>
+      <p style={{ margin: "4px 0 0", fontSize: 15, lineHeight: 2, color: C.t2 }}>
+        Réseau <Opts value={net} options={NETS.filter((n) => asset === "usdt" || USDC_NETS.includes(n)).map((n) => ({ v: n, label: NET_NAME[n] ?? n }))} onChange={setNet} />
       </p>
       <In label="Date" type="date" value={date} onChange={setDate} />
       {kind === "purchase" && <In label="Fournisseur" value={supplier} onChange={setSupplier} placeholder="Ex. nom du desk OTC" />}
-      <In label="USDT reçus" value={usdt} onChange={setUsdt} mode="decimal" placeholder="0,00" />
+      <In label={`${SYM[asset]} reçus`} value={usdt} onChange={setUsdt} mode="decimal" placeholder="0,00" />
       <In label={kind === "opening" ? "Coût total en CAD" : "CAD payés"} value={cad} onChange={setCad} mode="decimal" placeholder="0,00" />
       {kind === "purchase" && <In label="Frais en CAD (facultatif)" value={fee} onChange={setFee} mode="decimal" placeholder="0,00" />}
-      {q > 0 && c > 0 && <p style={{ margin: "12px 0 0", fontSize: 13, color: C.t3 }}>Coût par USDT : {((c + f) / q).toLocaleString("fr-CA", { maximumFractionDigits: 6 })} $</p>}
-      <In label="Hash de la transaction (facultatif)" value={tx} onChange={setTx} placeholder="Pour retrouver l'arrivée des USDT" />
+      {q > 0 && c > 0 && <p style={{ margin: "12px 0 0", fontSize: 13, color: C.t3 }}>Coût par {SYM[asset]} : {((c + f) / q).toLocaleString("fr-CA", { maximumFractionDigits: 6 })} $</p>}
+      <In label="Hash de la transaction (facultatif)" value={tx} onChange={setTx} placeholder="Pour retrouver l'arrivée des fonds" />
       <In label="Note (facultatif)" value={note} onChange={setNote} />
       <ReceiptPicker file={file} onFile={setFile} />
       {err && <div style={{ marginTop: 16 }}><Notice tone="err">{err}</Notice></div>}

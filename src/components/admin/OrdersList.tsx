@@ -7,6 +7,7 @@ import { Button } from "./ui";
 import { Avatar, DataTable, EmptyState, SearchField, Tabs, Toolbar, TwoLine, type Column } from "./layout";
 import { OrdersCalendar } from "./viz";
 import { OrderChannel, OrderStatusPill, dateOf, typeLabel } from "./orderBits";
+import { assetSymbol } from "@/lib/assets";
 
 interface Props {
   orders: AdminOrder[];
@@ -40,8 +41,8 @@ const OrdersList = ({ orders, onOpen }: Props) => {
   }, [base, q, status]);
 
   const exportCSV = () => {
-    const head = ["Référence", "Client", "Courriel", "Type", "Montant CAD", "Montant USDT", "Statut"];
-    const body = rows.map((o) => [o.ref, o.clientName, o.clientEmail, TYPE_META[o.type].label, o.cad.toFixed(2), o.usdt.toFixed(2), STATUS_META[o.status].label]);
+    const head = ["Référence", "Client", "Courriel", "Type", "Montant CAD", "Montant crypto", "Crypto", "Statut"];
+    const body = rows.map((o) => [o.ref, o.clientName, o.clientEmail, TYPE_META[o.type].label, o.cad.toFixed(2), o.usdt.toFixed(2), assetSymbol(o.asset), STATUS_META[o.status].label]);
     const csv = [head, ...body].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
@@ -56,7 +57,7 @@ const OrdersList = ({ orders, onOpen }: Props) => {
     { key: "ref", header: "Référence", sort: (o) => o.ref, hideBelow: 1100, render: (o) => <span style={{ color: C.t2 }}>{o.ref}</span> },
     { key: "type", header: "Opération", hideBelow: 900, render: (o) => <TwoLine primary={typeLabel(o)} secondary={<OrderChannel order={o} />} /> },
     { key: "status", header: "Statut", sort: (o) => o.status, render: (o) => <OrderStatusPill status={o.status} /> },
-    { key: "amount", header: "Montant", align: "right", sort: (o) => o.cad, render: (o) => <TwoLine primary={`${nfCad.format(o.cad)} $`} secondary={`${nfUsdt.format(o.usdt)} USDT`} /> },
+    { key: "amount", header: "Montant", align: "right", sort: (o) => o.cad, render: (o) => <TwoLine primary={`${nfCad.format(o.cad)} $`} secondary={`${nfUsdt.format(o.usdt)} ${assetSymbol(o.asset)}`} /> },
     { key: "date", header: "Date", align: "right", sort: (o) => -o.createdMinsAgo, hideBelow: 760, render: (o) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateOf(o.createdMinsAgo)}</span> },
   ];
 

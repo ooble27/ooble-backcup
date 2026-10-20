@@ -64,6 +64,7 @@ function toAdminOrder(row: RowWithProfile, currentUid: string | null, team: Map<
     usdt: Number(row.usdt_amount),
     rate: Number(row.locked_rate),
     network: DB_TO_NET[row.network],
+    asset: row.asset ?? "usdt",
     address: row.wallet_address,
     interacEmail: row.interac_email ?? undefined,
     createdMinsAgo: minsAgo(row.created_at),

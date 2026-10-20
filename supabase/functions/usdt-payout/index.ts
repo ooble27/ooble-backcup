@@ -364,46 +364,51 @@ async function snapshot(db: SupabaseClient) {
     } catch { return null; }
   }))).filter((r): r is NonNullable<typeof r> => !!r);
   if (all.length) await db.from("treasury_stock_snapshots").insert(all);
-  // Alertes de stock bas : sur l'USDT pour l'instant (seuils par réseau ; ceux de l'USDC viendront avec la Trésorerie par actif).
-  const rows = all.filter((r) => r.asset === "usdt");
+  // Alertes de stock bas : par réseau et par actif (Trésorerie › seuils).
+  const rows = all;
 
-  // Réservé : les achats ouverts de chaque réseau (hors essais).
-  const { data: open } = await db.from("orders").select("network, usdt_amount")
-    .eq("side", "buy").eq("asset", "usdt").in("status", ["created", "awaiting_payment", "payment_received", "settling"]).eq("is_test", false).eq("hidden", false);
+  // Réservé : les achats ouverts de chaque réseau et actif (hors essais).
+  const { data: open } = await db.from("orders").select("network, asset, usdt_amount")
+    .eq("side", "buy").in("status", ["created", "awaiting_payment", "payment_received", "settling"]).eq("is_test", false).eq("hidden", false);
   const reserved: Record<string, number> = {};
-  for (const o of open ?? []) reserved[o.network] = (reserved[o.network] ?? 0) + Number(o.usdt_amount);
+  for (const o of open ?? []) { const k = `${o.network}:${o.asset ?? "usdt"}`; reserved[k] = (reserved[k] ?? 0) + Number(o.usdt_amount); }
 
-  const { data: cfg } = await db.from("treasury_alert_config").select("network, low_balance_threshold_usdt, alert_enabled, last_alert_at");
-  const now = Date.now(), low: { net: string; available: number; threshold: number; gasLow: boolean; gas: number; gasSymbol: string }[] = [];
+  const { data: cfg } = await db.from("treasury_asset_alerts").select("network, asset, threshold, alert_enabled, last_alert_at");
+  const now = Date.now();
+  const low: { net: string; asset: string; available: number; threshold: number; gasLow: boolean; gas: number; gasSymbol: string }[] = [];
   for (const r of rows) {
-    const c = (cfg ?? []).find((x) => x.network === r.network);
+    const c = (cfg ?? []).find((x) => x.network === r.network && x.asset === r.asset);
     if (!c?.alert_enabled) continue;
-    const available = r.usdt - (reserved[r.network] ?? 0);
+    const available = r.usdt - (reserved[`${r.network}:${r.asset}`] ?? 0);
     const gasLow = r.gas < r.min_gas * 2;
-    const isLow = available < Number(c.low_balance_threshold_usdt) || gasLow;
+    const isLow = available < Number(c.threshold) || gasLow;
     if (!isLow) {
-      if (c.last_alert_at) await db.from("treasury_alert_config").update({ last_alert_at: null }).eq("network", r.network);
+      if (c.last_alert_at) await db.from("treasury_asset_alerts").update({ last_alert_at: null }).eq("network", r.network).eq("asset", r.asset);
       continue;
     }
     if (c.last_alert_at && now - new Date(c.last_alert_at).getTime() < 6 * 3600_000) continue;
-    low.push({ net: r.network, available, threshold: Number(c.low_balance_threshold_usdt), gasLow, gas: r.gas, gasSymbol: r.gas_symbol });
+    low.push({ net: r.network, asset: r.asset, available, threshold: Number(c.threshold), gasLow, gas: r.gas, gasSymbol: r.gas_symbol });
   }
   if (low.length) {
     const sent = await alertLowStock(db, low);
-    if (sent) await db.from("treasury_alert_config").update({ last_alert_at: new Date().toISOString() }).in("network", low.map((l) => l.net));
+    if (sent) {
+      for (const l of low) {
+        await db.from("treasury_asset_alerts").update({ last_alert_at: new Date().toISOString() }).eq("network", l.net).eq("asset", l.asset);
+      }
+    }
   }
-  return { ok: true, snapshots: all.length, alerts: low.map((l) => l.net) };
+  return { ok: true, snapshots: all.length, alerts: low.map((l) => `${l.net}:${l.asset}`) };
 }
 
 /** Courriel « stock bas » aux destinataires des alertes de l'équipe (Réglages), sinon STAFF_NOTIFICATION_EMAIL. */
-async function alertLowStock(db: SupabaseClient, low: { net: string; available: number; threshold: number; gasLow: boolean; gas: number; gasSymbol: string }[]) {
+async function alertLowStock(db: SupabaseClient, low: { net: string; asset: string; available: number; threshold: number; gasLow: boolean; gas: number; gasSymbol: string }[]) {
   const apiKey = Deno.env.get("RESEND_API_KEY"), from = Deno.env.get("EMAIL_FROM");
   if (!apiKey || !from) return false;
   const { data } = await db.from("app_private_settings").select("staff_alert_emails").eq("id", 1).maybeSingle();
   let to = ((data?.staff_alert_emails ?? []) as string[]).map((e) => e.trim()).filter((e) => /^\S+@\S+\.\S+$/.test(e));
   if (!to.length) { const s = Deno.env.get("STAFF_NOTIFICATION_EMAIL")?.trim(); to = s ? [s] : []; }
   if (!to.length) return false;
-  const lines = low.map((l) => `${NET_LABEL[l.net] ?? l.net} : ${nfUsdt(l.available)} USDT disponibles (seuil ${nfUsdt(l.threshold)})${l.gasLow ? ` · gaz bas : ${l.gas.toFixed(4)} ${l.gasSymbol}` : ""}`);
+  const lines = low.map((l) => `${NET_LABEL[l.net] ?? l.net} : ${nfUsdt(l.available)} ${SYM(l.asset)} disponibles (seuil ${nfUsdt(l.threshold)})${l.gasLow ? ` · gaz bas : ${l.gas.toFixed(4)} ${l.gasSymbol}` : ""}`);
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#141414">
     <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#777">Trésorerie</p>
     <p style="margin:0 0 16px;font-size:20px;font-weight:bold">Stock bas à recharger</p>
@@ -412,7 +417,7 @@ async function alertLowStock(db: SupabaseClient, low: { net: string; available: 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject: `Trésorerie · stock bas (${low.map((l) => NET_LABEL[l.net] ?? l.net).join(", ")})`, html, text: lines.join("\n") }),
+    body: JSON.stringify({ from, to, subject: `Trésorerie · stock bas (${low.map((l) => `${NET_LABEL[l.net] ?? l.net} ${SYM(l.asset)}`).join(", ")})`, html, text: lines.join("\n") }),
   }).catch(() => null);
   return !!res?.ok;
 }

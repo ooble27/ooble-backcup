@@ -179,9 +179,11 @@ function DeclarationWorkspace({ sourceRef, dueDate, form, onChange, onSubmit, on
               <Group title="Opération">
                 <FilterChips value={form.operationType} onChange={(v) => set("operationType", v)}
                   options={[{ id: "buy", label: "Achat" }, { id: "sell", label: "Vente" }]} />
+                <FilterChips value={form.asset ?? "USDT"} onChange={(v) => set("asset", v as "USDT" | "USDC")}
+                  options={[{ id: "USDC", label: "USDC" }, { id: "USDT", label: "USDT" }]} />
                 <div style={two}>
                   <Field label={req("Montant CAD")}>{input("amountCad", { inputMode: "decimal" })}</Field>
-                  <Field label="Montant USDT" right={<span style={{ color: C.t3 }}>Facultatif</span>}>{input("amountUsdt", { inputMode: "decimal", placeholder: "0" })}</Field>
+                  <Field label={`Montant en ${form.asset ?? "USDT"}`} right={<span style={{ color: C.t3 }}>Facultatif</span>}>{input("amountUsdt", { inputMode: "decimal", placeholder: "0" })}</Field>
                 </div>
                 <div style={two}>
                   <Field label={req("Date de l'opération")} right={<span style={{ color: C.t3 }}>AAAA-MM-JJ</span>}>{input("operationDate", { placeholder: "2026-08-01" })}</Field>
@@ -285,7 +287,7 @@ function DeclarationWorkspace({ sourceRef, dueDate, form, onChange, onSubmit, on
                   ["Type", <TypePill key="t" type={form.type} />],
                   ["Opération", form.operationType === "buy" ? "Achat" : "Vente"],
                   ["Montant", `${nfCad.format(Number(form.amountCad))} $`],
-                  ...(form.amountUsdt ? [["USDT", form.amountUsdt] as [string, string]] : []),
+                  ...(form.amountUsdt ? [[form.asset ?? "USDT", form.amountUsdt] as [string, string]] : []),
                   ["Date", form.operationDate],
                   ["Paiement", form.paymentMethod || "N/D"],
                   ...(form.network ? [["Réseau", form.network] as [string, string]] : []),
@@ -361,9 +363,9 @@ function portalFields(d: ComplianceDeclaration, f: DeclarationFormData): { label
     { label: "Numéro de la pièce", value: f.clientIdNumber, required: doimv, mono: true },
     { label: "Courriel", value: f.clientEmail, required: false },
     { label: "Date de l'opération", value: f.operationDate, required: true },
-    { label: "Type d'opération", value: f.operationType === "sell" ? "Réception de monnaie virtuelle (le client vend des USDT)" : "Envoi de monnaie virtuelle (le client achète des USDT)", required: true },
+    { label: "Type d'opération", value: f.operationType === "sell" ? `Réception de monnaie virtuelle (le client vend des ${f.asset ?? "USDT"})` : `Envoi de monnaie virtuelle (le client achète des ${f.asset ?? "USDT"})`, required: true },
     { label: "Montant en dollars canadiens", value: f.amountCad, required: true, mono: true },
-    { label: "Monnaie virtuelle", value: "USDT (Tether)", required: doimv },
+    { label: "Monnaie virtuelle", value: f.asset === "USDC" ? "USDC (USD Coin, émis par Circle)" : "USDT (Tether)", required: doimv },
     { label: "Montant en monnaie virtuelle", value: f.amountUsdt, required: doimv, mono: true },
     { label: "Réseau", value: f.network, required: doimv },
     { label: "Adresse de portefeuille", value: f.walletAddress, required: doimv, mono: true },

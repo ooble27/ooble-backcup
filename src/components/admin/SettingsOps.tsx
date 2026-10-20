@@ -10,7 +10,7 @@ import { useDepositAddresses, familyOf } from "@/lib/depositAddresses";
 import { fetchLatestRate, refreshRateNow, type LatestRate } from "@/lib/adminTools";
 import { peek, put } from "@/lib/adminCache";
 import { logAdminAction } from "@/lib/audit";
-import { saveAppSettings, useAppSettings, type NetworkSwitches, type SettingsPatch } from "@/lib/settings";
+import { saveAppSettings, useAppSettings, type AssetId, type NetworkSwitches, type SettingsPatch } from "@/lib/settings";
 import { C } from "./adminTheme";
 import { Button } from "./ui";
 import { Presets, Row, SaveBar, SettingsPage, Stepper, Toggle, ago, fmtDay } from "./settingsUi";
@@ -83,6 +83,41 @@ export function NetworksPage({ onBack }: { onBack: () => void }) {
             </div>
           );
         })}
+      </div>
+      <Msg m={msg} />
+    </SettingsPage>
+  );
+}
+
+/* ─── 1 bis. Cryptomonnaies ─── */
+const ASSET_ROWS: { id: AssetId; symbol: string; name: string; nets: string }[] = [
+  { id: "usdc", symbol: "USDC", name: "USD Coin, émis par Circle", nets: "Ethereum, Polygon, Avalanche et Solana (pas sur Tron ni BNB Chain)" },
+  { id: "usdt", symbol: "USDT", name: "Tether USD", nets: "Tous les réseaux ouverts" },
+];
+export function AssetsPage({ onBack }: { onBack: () => void }) {
+  const s = useAppSettings();
+  const { busy, msg, save, setMsg } = useSave("Cryptomonnaies");
+  const openList = ASSET_ROWS.filter((a) => s.assets[a.id]);
+  const flip = (id: AssetId, symbol: string) => async (v: boolean) => {
+    // Au moins une cryptomonnaie reste ouverte : sinon personne ne pourrait plus rien commander.
+    if (!v && openList.length <= 1) { setMsg({ ok: false, text: "Ouvrez d'abord une autre cryptomonnaie : il en faut au moins une." }); return; }
+    if (!v && !confirm(`Fermer ${symbol} ? Les clients ne pourront plus en acheter ni en vendre ; les commandes en cours se terminent normalement.`)) return;
+    const ok = await save({ assets: { ...s.assets, [id]: v } }, v ? `${symbol} ouvert.` : `${symbol} fermé : plus aucune nouvelle commande en ${symbol}.`);
+    // Le taux d'un actif ouvert est relevé tout de suite (sinon au prochain passage, dans 10 secondes).
+    if (ok && v) void refreshRateNow().catch(() => undefined);
+  };
+  return (
+    <SettingsPage onBack={onBack}
+      title={<>{openList.length === 2 ? <><span style={{ color: C.sage }}>USDC et USDT</span> <span className="mute">proposés.</span></>
+        : <><span style={{ color: C.sage }}>{openList[0]?.symbol ?? "Aucune"}</span> <span className="mute">seulement.</span></>}</>}
+      desc="Une cryptomonnaie fermée n'est plus proposée aux clients, et la base refuse toute nouvelle commande dessus. Rien n'est supprimé : vous la rouvrez d'un clic. Quand plusieurs sont ouvertes, le client choisit la sienne à l'achat comme à la vente.">
+      <div className="st-rows">
+        {ASSET_ROWS.map((a) => (
+          <Row key={a.id} label={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><img src={`/coins/${a.id}.svg`} alt="" width={22} height={22} />{a.symbol}</span>}
+            hint={`${a.name}. ${a.nets}.`}>
+            <Toggle on={!!s.assets[a.id]} disabled={busy} label={`Proposer ${a.symbol}`} onChange={flip(a.id, a.symbol)} />
+          </Row>
+        ))}
       </div>
       <Msg m={msg} />
     </SettingsPage>

@@ -21,6 +21,8 @@ export interface WalletState {
   configured: boolean;
   address?: string | null;
   usdt?: number;
+  /** Solde USDC, là où l'USDC existe (Ethereum, Polygon, Avalanche, Solana). */
+  usdc?: number | null;
   gas?: number;
   gasSymbol?: string;
   minGas?: number;
@@ -46,6 +48,8 @@ export interface UsdtPayout {
   id: string;
   order_id: string;
   network: string;
+  /** Cryptomonnaie envoyée (USDT par défaut). */
+  asset?: "usdt" | "usdc";
   to_address: string;
   usdt_amount: number;
   status: "sending" | "broadcast" | "confirmed" | "failed" | "review";
@@ -112,6 +116,8 @@ export async function fetchPayouts(orderId?: string, limit = 30): Promise<UsdtPa
 export interface ChainDeposit {
   id: string;
   network: string;
+  /** Cryptomonnaie reçue (USDT par défaut). */
+  asset?: "usdt" | "usdc";
   tx_hash: string;
   from_address: string | null;
   usdt_amount: number;
@@ -125,7 +131,7 @@ export interface ChainDeposit {
 
 /** Dépôts lus sur la blockchain (fonction edge `sell-watch`, toutes les 2 minutes). */
 export async function fetchDeposits(opts: { orderId?: string; limit?: number } = {}): Promise<ChainDeposit[]> {
-  let q = supabase.from("chain_deposits").select("id, network, tx_hash, from_address, usdt_amount, block_time, order_id, status, reason, match_method")
+  let q = supabase.from("chain_deposits").select("id, network, asset, tx_hash, from_address, usdt_amount, block_time, order_id, status, reason, match_method")
     .order("block_time", { ascending: false }).limit(opts.limit ?? 50);
   if (opts.orderId) q = q.eq("order_id", opts.orderId);
   const { data } = await q;
@@ -159,10 +165,16 @@ export async function fetchClientWallets(userId: string): Promise<KnownWallet[]>
   }));
 }
 
-/** Dernière lecture réussie, par réseau. */
+/** Dernière lecture réussie, par réseau (la plus ancienne de ses actifs : un réseau n'est à jour que si tout y est lu). */
 export async function fetchScanState(): Promise<{ network: string; updated_at: string }[]> {
-  const { data } = await supabase.from("chain_scan_state").select("network, updated_at");
-  return (data ?? []) as { network: string; updated_at: string }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase.from as any)("chain_scan_cursors").select("network, asset, updated_at");
+  const by = new Map<string, string>();
+  for (const r of (data ?? []) as { network: string; updated_at: string }[]) {
+    const cur = by.get(r.network);
+    if (!cur || r.updated_at < cur) by.set(r.network, r.updated_at);
+  }
+  return [...by].map(([network, updated_at]) => ({ network, updated_at }));
 }
 
 /** Lance une lecture tout de suite (elle tourne aussi toutes les 2 minutes). */
@@ -185,9 +197,9 @@ export async function ignoreDeposit(depositId: string, reason: string): Promise<
 }
 
 /** Ventes en attente des USDT, pour rattacher un dépôt à la main. */
-export async function fetchPendingSells(network: string): Promise<{ id: string; usdt_amount: number; created_at: string }[]> {
+export async function fetchPendingSells(network: string, asset: "usdt" | "usdc" = "usdt"): Promise<{ id: string; usdt_amount: number; created_at: string }[]> {
   const { data } = await supabase.from("orders").select("id, usdt_amount, created_at")
-    .eq("side", "sell").eq("network", network as Database["public"]["Enums"]["usdt_network"]).in("status", ["created", "awaiting_payment"])
+    .eq("side", "sell").eq("network", network as Database["public"]["Enums"]["usdt_network"]).eq("asset", asset).in("status", ["created", "awaiting_payment"])
     .order("created_at", { ascending: false }).limit(20);
   return (data ?? []) as { id: string; usdt_amount: number; created_at: string }[];
 }
