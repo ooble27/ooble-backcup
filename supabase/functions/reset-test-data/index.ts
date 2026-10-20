@@ -6,8 +6,9 @@
 // la réinitialisation est refusée pour toujours.
 //
 // Effacé : les commandes et leur historique, les virements Interac reçus,
-// les envois USDT, les dépôts USDT reçus. En option : la messagerie et les
-// journaux (activité de l'équipe, assistant IA).
+// les envois de cryptomonnaie, les dépôts reçus, les codes promo utilisés.
+// Détaché (gardé, sans lien vers la commande) : parrainages, tâches de l'équipe.
+// En option : la messagerie et les journaux (activité de l'équipe, assistant IA).
 //
 // JAMAIS touché : les comptes clients, les vérifications d'identité et
 // d'entreprise et leurs documents, les destinataires enregistrés, le
@@ -32,8 +33,29 @@ const json = (body: unknown, status = 200) =>
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-/** Rattachées à une commande (colonne order_id), effacées avant les commandes. */
-const ORDER_LINKED = ["interac_receipts", "usdt_payouts", "chain_deposits", "payment_confirmations", "blockchain_transactions", "promo_redemptions"];
+/**
+ * Ce qu'on fait de chaque table qui cite une commande (« table.colonne »). La liste des tables est lue
+ * dans la base à chaque fois (order_references) : une table ajoutée plus tard sans règle ici bloque la
+ * remise à zéro AVANT tout effacement, avec son nom, au lieu de la laisser à moitié faite.
+ *   wipe    : la ligne n'a de sens qu'avec la commande, elle est effacée avec elle ;
+ *   unlink  : la ligne est gardée, seul le lien vers la commande est retiré (et `also` remis à zéro) ;
+ *   protect : la commande citée est gardée (registre de conformité).
+ * Les liens que la base gère seule (la ligne suit ou se vide avec la commande) n'ont pas besoin de règle.
+ */
+type Rule = { do: "wipe" } | { do: "unlink"; also?: Record<string, null> } | { do: "protect" };
+const RULES: Record<string, Rule> = {
+  "interac_receipts.order_id": { do: "wipe" },
+  "usdt_payouts.order_id": { do: "wipe" },
+  "chain_deposits.order_id": { do: "wipe" },
+  "payment_confirmations.order_id": { do: "wipe" },
+  "blockchain_transactions.order_id": { do: "wipe" },
+  "promo_redemptions.order_id": { do: "wipe" },
+  "referrals.referred_order_id": { do: "unlink", also: { qualified_at: null } },
+  "referrals.sponsor_order_id": { do: "unlink" },
+  "team_tasks.order_id": { do: "unlink" },
+  "compliance_alerts.order_id": { do: "protect" },
+  "compliance_flags.order_id": { do: "protect" },
+};
 /** Tables sans colonne id : leur clé est la commande. */
 const KEY: Record<string, string> = { promo_redemptions: "order_id" };
 const MAIL = ["mail_threads"]; // mail_messages suit (cascade)
@@ -44,19 +66,44 @@ const LABEL: Record<string, string> = {
   chain_deposits: "Dépôts reçus (ventes)", promo_redemptions: "Codes promo utilisés", payment_confirmations: "Confirmations de paiement",
   blockchain_transactions: "Transactions blockchain", mail_threads: "Conversations de la messagerie",
   ai_alerts: "Alertes de l'assistant IA", ai_calls: "Questions à l'assistant IA", admin_audit_log: "Journal d'activité de l'équipe",
+  referrals: "Parrainages", team_tasks: "Tâches de l'équipe",
 };
 
 type Q = ReturnType<SupabaseClient["from"]>;
+interface Plan { wipe: string[]; unlink: [string, string, Record<string, null>][]; protect: [string, string][]; unknown: string[] }
+
+/** Lit dans la base les tables qui citent une commande et décide quoi faire de chacune. */
+async function plan(db: SupabaseClient): Promise<Plan> {
+  const { data, error } = await db.rpc("order_references");
+  if (error) throw new Error(`Liens vers les commandes : ${error.message}`);
+  const p: Plan = { wipe: [], unlink: [], protect: [], unknown: [] };
+  for (const r of (data ?? []) as { tbl: string; col: string; on_delete: string }[]) {
+    if (["c", "n", "d"].includes(r.on_delete)) continue; // la base s'en charge seule
+    const table = r.tbl.replace(/^public\./, "");
+    const rule = RULES[`${table}.${r.col}`];
+    if (!rule) p.unknown.push(`${table}.${r.col}`);
+    else if (rule.do === "wipe") { if (r.col !== "order_id") p.unknown.push(`${table}.${r.col}`); else if (!p.wipe.includes(table)) p.wipe.push(table); }
+    else if (rule.do === "unlink") p.unlink.push([table, r.col, { [r.col]: null, ...(rule.also ?? {}) }]);
+    else p.protect.push([table, r.col]);
+  }
+  return p;
+}
 
 /** Commandes citées par le registre de conformité : gardées, avec tout ce qui s'y rattache. */
-async function protectedOrders(db: SupabaseClient): Promise<string[]> {
+async function protectedOrders(db: SupabaseClient, pl: Plan): Promise<string[]> {
   const ids = new Set<string>();
-  for (const t of ["compliance_alerts", "compliance_flags"]) {
-    const { data, error } = await db.from(t).select("order_id").not("order_id", "is", null);
+  for (const [t, col] of pl.protect) {
+    const { data, error } = await db.from(t).select(col).not(col, "is", null);
     if (error) throw new Error(`${t} : ${error.message}`);
-    for (const r of data ?? []) ids.add(r.order_id as string);
+    for (const r of (data ?? []) as unknown as Record<string, string>[]) ids.add(r[col]);
   }
   return [...ids];
+}
+
+/** Filtre « liens vers une commande effacée » (toutes sauf les commandes gardées). */
+function notKept<T extends { not: (c: string, op: string, v: unknown) => T }>(q: T, col: string, keep: string[]): T {
+  const base = q.not(col, "is", null);
+  return keep.length ? base.not(col, "in", `(${keep.join(",")})`) : base;
 }
 
 /** Applique le filtre « tout sauf les commandes protégées ». */
@@ -90,23 +137,27 @@ async function wipe(db: SupabaseClient, table: string, keep: string[] | null) {
   }
 }
 
-/**
- * Liens vers les commandes effacées qu'on garde ailleurs : le parrainage revient à « pas encore utilisé »
- * (on peut refaire l'essai) et les tâches de l'équipe restent, sans commande liée.
- */
-async function unlink(db: SupabaseClient, keep: string[]) {
-  const notKept = (q: ReturnType<Q["update"]>, col: string) =>
-    keep.length ? q.not(col, "is", null).not(col, "in", `(${keep.join(",")})`) : q.not(col, "is", null);
-  const steps: [string, Record<string, null>, string][] = [
-    ["referrals", { referred_order_id: null, qualified_at: null }, "referred_order_id"],
-    ["referrals", { sponsor_order_id: null }, "sponsor_order_id"],
-    ["team_tasks", { order_id: null }, "order_id"],
-  ];
-  for (const [table, patch, col] of steps) {
-    const { error } = await notKept(db.from(table).update(patch), col);
-    if (error) throw new Error(`${table} : ${error.message}`);
+/** Lignes gardées qui perdront leur lien vers une commande effacée. */
+async function countUnlink(db: SupabaseClient, pl: Plan, keep: string[]) {
+  const out: Record<string, number> = {};
+  for (const [t, col] of pl.unlink) {
+    const { count: n, error } = await notKept(db.from(t).select("*", { count: "exact", head: true }), col, keep);
+    if (error) throw new Error(`${t} : ${error.message}`);
+    out[t] = (out[t] ?? 0) + (n ?? 0);
+  }
+  return Object.entries(out).map(([table, n]) => ({ table, label: LABEL[table] ?? table, n }));
+}
+
+/** Retire le lien vers les commandes effacées, sans effacer la ligne (parrainage, tâche…). */
+async function unlink(db: SupabaseClient, pl: Plan, keep: string[]) {
+  for (const [t, col, patch] of pl.unlink) {
+    const { error } = await notKept(db.from(t).update(patch), col, keep);
+    if (error) throw new Error(`${LABEL[t] ?? t} : ${error.message}`);
   }
 }
+
+const blockedMessage = (unknown: string[]) =>
+  `Remise à zéro en pause : ${unknown.join(", ")} cite des commandes et n'a pas encore de règle. Rien n'a été effacé.`;
 
 async function state(db: SupabaseClient) {
   const { data } = await db.from("platform_state").select("launched_at, last_reset_at").eq("id", true).maybeSingle();
@@ -134,11 +185,14 @@ Deno.serve(async (req) => {
     const st = await state(db);
 
     if (body.action === "preview") {
-      const keep = await protectedOrders(db);
+      const pl = await plan(db);
+      const keep = await protectedOrders(db, pl);
       const item = async (t: string, k: string[] | null) => ({ table: t, label: LABEL[t] ?? t, n: await count(db, t, k) });
       return json({
         ok: true, ...st,
-        core: await Promise.all([...ORDER_LINKED, "orders"].map((t) => item(t, keep))),
+        blocked: pl.unknown.length ? blockedMessage(pl.unknown) : null,
+        unlinked: await countUnlink(db, pl, keep),
+        core: await Promise.all([...pl.wipe, "orders"].map((t) => item(t, keep))),
         mail: await Promise.all(MAIL.map((t) => item(t, null))),
         logs: await Promise.all(LOGS.map((t) => item(t, null))),
         keptOrders: keep.length,
@@ -161,10 +215,12 @@ Deno.serve(async (req) => {
       if (st.launchedAt) return json({ error: "launched", message: "La plateforme est lancée : plus de réinitialisation possible." }, 409);
       if (confirm !== "REINITIALISER") return json({ error: "confirm" }, 400);
 
-      const keep = await protectedOrders(db);
+      const pl = await plan(db);
+      if (pl.unknown.length) return json({ error: blockedMessage(pl.unknown) }, 409);
+      const keep = await protectedOrders(db, pl);
       const done: Record<string, number> = {};
-      await unlink(db, keep);
-      for (const t of [...ORDER_LINKED, "orders"]) { done[t] = await count(db, t, keep); if (done[t]) await wipe(db, t, keep); }
+      await unlink(db, pl, keep);
+      for (const t of [...pl.wipe, "orders"]) { done[t] = await count(db, t, keep); if (done[t]) await wipe(db, t, keep); }
       for (const t of [...(body.mail ? MAIL : []), ...(body.logs ? LOGS : [])]) { done[t] = await count(db, t, null); if (done[t]) await wipe(db, t, null); }
 
       const at = new Date().toISOString();

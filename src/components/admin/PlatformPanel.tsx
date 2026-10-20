@@ -20,6 +20,10 @@ export interface PlatformPreview {
   mail: Count[];
   logs: Count[];
   keptOrders: number;
+  /** Remise à zéro en pause : une table cite des commandes sans règle connue (rien n'est effacé). */
+  blocked?: string | null;
+  /** Lignes gardées qui perdront leur lien vers une commande effacée (parrainages, tâches). */
+  unlinked?: Count[];
 }
 interface ResetResult { ok: boolean; tables: Record<string, number>; keptOrders: number }
 
@@ -115,7 +119,10 @@ export function LaunchSections({ p, reload }: { p: PlatformPreview; reload: () =
               <p style={{ margin: "0 0 4px", fontSize: 12.5, color: C.t3 }}>Effacé</p>
               <div>
                 <Line right={<Num n={orders} />}>Commandes et leur historique</Line>
-                <Line right={<Num n={linked} />}>Virements reçus, envois de cryptomonnaie, dépôts reçus</Line>
+                <Line right={<Num n={linked} />}>Virements reçus, envois de cryptomonnaie, dépôts reçus, codes promo utilisés</Line>
+                {(p.unlinked ?? []).filter((u) => u.n > 0).map((u) => (
+                  <Line key={u.table} right={<Num n={u.n} />}>{u.label} : gardés, sans la commande de test</Line>
+                ))}
                 <Line>
                   <Switch checked={mail} onChange={setMail} label="Messagerie"
                     hint={`${sum(p.mail)} conversations. Décochez si un vrai contact y figure.`} />
@@ -143,8 +150,9 @@ export function LaunchSections({ p, reload }: { p: PlatformPreview; reload: () =
             {total} éléments seront effacés. Cette action ne peut pas être annulée.
             {p.keptOrders > 0 && ` ${p.keptOrders} commande(s) citée(s) par le registre de conformité seront gardées.`}
           </p>
+          {p.blocked && <p style={{ margin: "0 0 10px", fontSize: 13, color: C.t1, lineHeight: 1.6, maxWidth: 680 }}>{p.blocked}</p>}
           <Confirm
-            word="RÉINITIALISER" value={typed} onChange={setTyped} busy={busy} disabled={total === 0} danger
+            word="RÉINITIALISER" value={typed} onChange={setTyped} busy={busy} disabled={total === 0 || !!p.blocked} danger
             label="Remettre à zéro"
             onSubmit={() => run({ action: "reset", confirm: typed, mail, logs }, (r) => { setResult(r as ResetResult); setTyped(""); })}
           />
