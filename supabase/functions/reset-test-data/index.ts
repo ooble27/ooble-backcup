@@ -33,13 +33,15 @@ const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 /** Rattachées à une commande (colonne order_id), effacées avant les commandes. */
-const ORDER_LINKED = ["interac_receipts", "usdt_payouts", "chain_deposits", "payment_confirmations", "blockchain_transactions"];
+const ORDER_LINKED = ["interac_receipts", "usdt_payouts", "chain_deposits", "payment_confirmations", "blockchain_transactions", "promo_redemptions"];
+/** Tables sans colonne id : leur clé est la commande. */
+const KEY: Record<string, string> = { promo_redemptions: "order_id" };
 const MAIL = ["mail_threads"]; // mail_messages suit (cascade)
 const LOGS = ["ai_alerts", "ai_calls", "admin_audit_log"];
 
 const LABEL: Record<string, string> = {
-  orders: "Commandes (et leur historique)", interac_receipts: "Virements Interac reçus", usdt_payouts: "Envois USDT",
-  chain_deposits: "Dépôts USDT reçus (ventes)", payment_confirmations: "Confirmations de paiement",
+  orders: "Commandes (et leur historique)", interac_receipts: "Virements Interac reçus", usdt_payouts: "Envois de cryptomonnaie",
+  chain_deposits: "Dépôts reçus (ventes)", promo_redemptions: "Codes promo utilisés", payment_confirmations: "Confirmations de paiement",
   blockchain_transactions: "Transactions blockchain", mail_threads: "Conversations de la messagerie",
   ai_alerts: "Alertes de l'assistant IA", ai_calls: "Questions à l'assistant IA", admin_audit_log: "Journal d'activité de l'équipe",
 };
@@ -60,7 +62,7 @@ async function protectedOrders(db: SupabaseClient): Promise<string[]> {
 /** Applique le filtre « tout sauf les commandes protégées ». */
 function scope(q: ReturnType<Q["delete"]> | ReturnType<Q["select"]>, table: string, keep: string[]) {
   const col = table === "orders" ? "id" : "order_id";
-  return keep.length ? q.not(col, "in", `(${keep.join(",")})`) : q.not("id", "is", null);
+  return keep.length ? q.not(col, "in", `(${keep.join(",")})`) : q.not(KEY[table] ?? "id", "is", null);
 }
 
 async function count(db: SupabaseClient, table: string, keep: string[] | null): Promise<number> {
@@ -70,7 +72,7 @@ async function count(db: SupabaseClient, table: string, keep: string[] | null): 
   if (error) throw new Error(`${table} : ${error.message}`);
   let total = n ?? 0;
   // Lignes sans commande (ex. virement reçu jamais rapproché) : effacées aussi.
-  if (keep?.length && table !== "orders") {
+  if (keep?.length && table !== "orders" && !KEY[table]) {
     const { count: m } = await db.from(table).select("*", { count: "exact", head: true }).is("order_id", null);
     total += m ?? 0;
   }
@@ -80,11 +82,29 @@ async function count(db: SupabaseClient, table: string, keep: string[] | null): 
 async function wipe(db: SupabaseClient, table: string, keep: string[] | null) {
   const { error } = keep
     ? await scope(db.from(table).delete(), table, keep)
-    : await db.from(table).delete().not("id", "is", null);
+    : await db.from(table).delete().not(KEY[table] ?? "id", "is", null);
   if (error) throw new Error(`${LABEL[table] ?? table} : ${error.message}`);
-  if (keep?.length && table !== "orders") {
+  if (keep?.length && table !== "orders" && !KEY[table]) {
     const { error: e2 } = await db.from(table).delete().is("order_id", null);
     if (e2) throw new Error(`${LABEL[table] ?? table} : ${e2.message}`);
+  }
+}
+
+/**
+ * Liens vers les commandes effacées qu'on garde ailleurs : le parrainage revient à « pas encore utilisé »
+ * (on peut refaire l'essai) et les tâches de l'équipe restent, sans commande liée.
+ */
+async function unlink(db: SupabaseClient, keep: string[]) {
+  const notKept = (q: ReturnType<Q["update"]>, col: string) =>
+    keep.length ? q.not(col, "is", null).not(col, "in", `(${keep.join(",")})`) : q.not(col, "is", null);
+  const steps: [string, Record<string, null>, string][] = [
+    ["referrals", { referred_order_id: null, qualified_at: null }, "referred_order_id"],
+    ["referrals", { sponsor_order_id: null }, "sponsor_order_id"],
+    ["team_tasks", { order_id: null }, "order_id"],
+  ];
+  for (const [table, patch, col] of steps) {
+    const { error } = await notKept(db.from(table).update(patch), col);
+    if (error) throw new Error(`${table} : ${error.message}`);
   }
 }
 
@@ -143,6 +163,7 @@ Deno.serve(async (req) => {
 
       const keep = await protectedOrders(db);
       const done: Record<string, number> = {};
+      await unlink(db, keep);
       for (const t of [...ORDER_LINKED, "orders"]) { done[t] = await count(db, t, keep); if (done[t]) await wipe(db, t, keep); }
       for (const t of [...(body.mail ? MAIL : []), ...(body.logs ? LOGS : [])]) { done[t] = await count(db, t, null); if (done[t]) await wipe(db, t, null); }
 
