@@ -50,8 +50,9 @@ async function depositAddresses(db: SupabaseClient): Promise<{ tron: string[]; e
 type Asset = "usdt" | "usdc";
 const SYM: Record<Asset, string> = { usdt: "USDT", usdc: "USDC" };
 type EvmNet = "bep20" | "polygon" | "avalanche" | "erc20";
-/** Contrats USDC natifs (Circle) : 6 décimales sur ces réseaux. Pas d'USDC sur Tron ni BNB Chain. */
+/** Contrats USDC : natifs (Circle, 6 décimales) ; sur BNB Chain, version reliée à 18 décimales. Pas d'USDC sur Tron. */
 const EVM_USDC: Partial<Record<EvmNet, string>> = {
+  bep20: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
   polygon: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
   avalanche: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
   erc20: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
@@ -140,7 +141,7 @@ async function rpc<T>(url: string, method: string, params: unknown[]): Promise<T
 async function scanEvm(net: EvmNet, asset: Asset, addresses: string[], cursor: number | null): Promise<{ deposits: Deposit[]; cursor: number }> {
   const c = EVM[net];
   const token = asset === "usdc" ? EVM_USDC[net]! : c.usdt;
-  const decimals = asset === "usdc" ? 6 : c.decimals;
+  const decimals = asset === "usdc" ? (net === "bep20" ? 18 : 6) : c.decimals;
   const url = Deno.env.get(c.env) || c.rpc;
   const head = Number(BigInt(await rpc<string>(url, "eth_blockNumber", []))) - c.confirmations;
   let from = cursor ?? head - c.startBack;

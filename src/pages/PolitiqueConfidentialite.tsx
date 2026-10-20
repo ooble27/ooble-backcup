@@ -167,7 +167,7 @@ const PARTS: Part[] = [
           <Ul>
             <li>le type d'opération (achat ou vente) ;</li>
             <li>les montants en CAD et en USDC ;</li>
-            <li>le réseau blockchain choisi (Ethereum, Polygon, Solana ou Avalanche) ;</li>
+            <li>le réseau blockchain choisi (Ethereum, Polygon, Solana, Avalanche ou BNB Chain) ;</li>
             <li>votre adresse de portefeuille numérique (wallet), pour les achats ;</li>
             <li>l'adresse du portefeuille d'où partent vos USDC et l'adresse d'envoi réelle constatée
               sur la blockchain, pour les ventes ;</li>

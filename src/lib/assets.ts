@@ -19,8 +19,8 @@ export const ASSET_BY_ID: Record<AssetId, AssetMeta> = Object.fromEntries(ASSETS
 /** Symbole affiché d'un actif (USDT par défaut pour les commandes d'avant les deux actifs). */
 export const assetSymbol = (a: string | null | undefined) => ASSET_BY_ID[(a ?? "usdt") as AssetId]?.symbol ?? "USDT";
 
-/** L'USDC émis par Circle n'existe pas sur Tron ni sur BNB Chain. */
-const USDC_NETS: NetId[] = ["eth", "matic", "sol", "avax"];
+/** L'USDC n'existe pas sur Tron (sur BNB Chain : version reliée, émise par un tiers). */
+const USDC_NETS: NetId[] = ["eth", "matic", "sol", "avax", "bnb"];
 export const assetOnNetwork = (asset: AssetId, net: NetId) => asset === "usdt" || USDC_NETS.includes(net);
 
 /** Actifs ouverts (USDC d'abord) ; au moins un, pour que les écrans aient toujours de quoi s'afficher. */

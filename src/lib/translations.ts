@@ -175,8 +175,8 @@ const dict = {
   },
   "faq.4q": { fr: "Quels réseaux sont pris en charge ?", en: "Which networks are supported?" },
   "faq.4a": {
-    fr: "Ethereum, Polygon, Solana et Avalanche.",
-    en: "Ethereum, Polygon, Solana and Avalanche.",
+    fr: "Ethereum, Polygon, Solana, Avalanche et BNB Chain.",
+    en: "Ethereum, Polygon, Solana, Avalanche and BNB Chain.",
   },
   "faq.5q": { fr: "Pourquoi une vérification d'identité ?", en: "Why is identity verification required?" },
   "faq.5a": {
@@ -502,8 +502,8 @@ const dict = {
   },
   "faqp.6q": { fr: "Quels réseaux sont pris en charge ?", en: "Which networks are supported?" },
   "faqp.6a": {
-    fr: "Jusqu'à quatre blockchains : Ethereum (ERC20), Polygon, Solana et Avalanche (C-Chain). Les réseaux ouverts s'affichent au moment de passer l'ordre. L'adresse doit correspondre au réseau choisi : une adresse Ethereum, Polygon ou Avalanche commence par 0x, et une adresse Solana est une suite de lettres et de chiffres sans préfixe. Une transaction blockchain ne peut pas être annulée : vérifiez deux fois.",
-    en: "Up to four blockchains: Ethereum (ERC20), Polygon, Solana and Avalanche (C-Chain). The open networks are shown when you place the order. The address must match the chosen network: an Ethereum, Polygon or Avalanche address starts with 0x, and a Solana address is a string of letters and numbers with no prefix. A blockchain transaction can't be reversed: check twice.",
+    fr: "Jusqu'à cinq blockchains : Ethereum (ERC20), Polygon, Solana, Avalanche (C-Chain) et BNB Chain (BEP20). Les réseaux ouverts s'affichent au moment de passer l'ordre. L'adresse doit correspondre au réseau choisi : une adresse Ethereum, Polygon, Avalanche ou BNB Chain commence par 0x, et une adresse Solana est une suite de lettres et de chiffres sans préfixe. Une transaction blockchain ne peut pas être annulée : vérifiez deux fois.",
+    en: "Up to five blockchains: Ethereum (ERC20), Polygon, Solana, Avalanche (C-Chain) and BNB Chain (BEP20). The open networks are shown when you place the order. The address must match the chosen network: an Ethereum, Polygon, Avalanche or BNB Chain address starts with 0x, and a Solana address is a string of letters and numbers with no prefix. A blockchain transaction can't be reversed: check twice.",
   },
   "faqp.7q": { fr: "Combien de temps pour recevoir mes USDC ?", en: "How long until I receive my USDC?" },
   "faqp.7a": {
@@ -1377,8 +1377,8 @@ const dict = {
   },
   "guide.buy.s2": { fr: "Choisissez le réseau", en: "Choose the network" },
   "guide.buy.s2d": {
-    fr: "Sélectionnez le réseau sur lequel vous voulez recevoir vos USDC : Ethereum, Polygon, Solana ou Avalanche.",
-    en: "Select the network you want to receive your USDC on: Ethereum, Polygon, Solana or Avalanche.",
+    fr: "Sélectionnez le réseau sur lequel vous voulez recevoir vos USDC : Ethereum, Polygon, Solana, Avalanche ou BNB Chain.",
+    en: "Select the network you want to receive your USDC on: Ethereum, Polygon, Solana, Avalanche or BNB Chain.",
   },
   "guide.buy.s3": { fr: "Collez votre adresse", en: "Paste your address" },
   "guide.buy.s3d": {

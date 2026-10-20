@@ -91,7 +91,7 @@ export function NetworksPage({ onBack }: { onBack: () => void }) {
 
 /* ─── 1 bis. Cryptomonnaies ─── */
 const ASSET_ROWS: { id: AssetId; symbol: string; name: string; nets: string }[] = [
-  { id: "usdc", symbol: "USDC", name: "USD Coin, émis par Circle", nets: "Ethereum, Polygon, Avalanche et Solana (pas sur Tron ni BNB Chain)" },
+  { id: "usdc", symbol: "USDC", name: "USD Coin, émis par Circle", nets: "Ethereum, Polygon, Avalanche, Solana et BNB Chain (version reliée, émise par un tiers) ; pas sur Tron" },
   { id: "usdt", symbol: "USDT", name: "Tether USD", nets: "Tous les réseaux ouverts" },
 ];
 export function AssetsPage({ onBack }: { onBack: () => void }) {

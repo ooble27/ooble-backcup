@@ -498,7 +498,7 @@ const lancement: CampaignTemplate = {
       </td></tr></table></td></tr>`,
       P("40px 32px 8px", `${eyebrow(tr("Comment ça marche", "How it works"), K.forest)}${gap(8)}${h2(rich(v.stepsTitle, ctx), K.ink, 26)}${gap(22)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
       P("20px 32px 8px", box(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td valign="middle" style="font-family:${FONT};font-size:14px;font-weight:500;line-height:1.4;color:${K.ink};">${tr("Recevez vos USDC<br>sur 4 blockchains", "Receive your USDC<br>on 4 blockchains")}</td>
+        <td valign="middle" style="font-family:${FONT};font-size:14px;font-weight:500;line-height:1.4;color:${K.ink};">${tr("Recevez vos USDC<br>sur 5 blockchains", "Receive your USDC<br>on 5 blockchains")}</td>
         <td align="right" valign="middle" style="white-space:nowrap;">${networksRow(36)}</td></tr></table>`, "#ffffff", { border: K.line, pad: "18px 20px" })),
       `<tr><td class="px" align="center" style="padding:32px;">${para(`<strong style="color:${K.ink};font-size:18px;">${rich(v.closing, ctx)}</strong>`, K.ink, 18, "0 0 18px")}${btn(v.cta2 || v.cta, v.ctaUrl, K.ink, "#ffffff")}</td></tr>`,
       footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
@@ -666,7 +666,7 @@ const relanceKyc: CampaignTemplate = {
 const reseaux: CampaignTemplate = {
   id: "reseaux",
   name: "Réseaux",
-  description: "En-tête jaune soleil, colonnes des 4 blockchains. Pour un « bon à savoir » produit.",
+  description: "En-tête jaune soleil, colonnes des 5 blockchains. Pour un « bon à savoir » produit.",
   category: "Éducation",
   swatch: [K.sun, K.ink],
   fields: [
@@ -681,11 +681,11 @@ const reseaux: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Vos USDC, sur le réseau de votre choix",
-      preheader: "Ethereum, Polygon, Solana ou Avalanche : choisissez au moment de l'ordre.",
+      preheader: "Ethereum, Polygon, Solana, Avalanche ou BNB Chain : choisissez au moment de l'ordre.",
       badge: "Bon à savoir",
       headline: "Vos USDC,\nsur le réseau\nde votre choix.",
       intro: "Choisissez le réseau au moment de l'ordre. Le taux ne change pas : seuls les frais du réseau varient.",
-      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi : une adresse Ethereum, Polygon ou Avalanche commence par 0x. Une transaction blockchain ne peut pas être annulée.",
+      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi : une adresse Ethereum, Polygon, Avalanche ou BNB Chain commence par 0x. Une transaction blockchain ne peut pas être annulée.",
       cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
       link: "Quel réseau choisir ?",
@@ -693,11 +693,11 @@ const reseaux: CampaignTemplate = {
     },
     en: {
       subject: "Your USDC, on the network of your choice",
-      preheader: "Ethereum, Polygon, Solana or Avalanche: choose when you place your order.",
+      preheader: "Ethereum, Polygon, Solana, Avalanche or BNB Chain: choose when you place your order.",
       badge: "Good to know",
       headline: "Your USDC,\non the network\nyou choose.",
       intro: "Pick the network when you place your order. The rate stays the same: only the network fees vary.",
-      tip: "Check that your wallet address matches the network you chose: an Ethereum, Polygon or Avalanche address starts with 0x. A blockchain transaction can't be reversed.",
+      tip: "Check that your wallet address matches the network you chose: an Ethereum, Polygon, Avalanche or BNB Chain address starts with 0x. A blockchain transaction can't be reversed.",
       cta: "Buy USDC",
       ctaUrl: "/app/acheter",
       link: "Which network should I pick?",
@@ -849,7 +849,7 @@ const entreprises: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Payez vos fournisseurs en USDC, au nom de votre société",
-      preheader: "Le compte entreprise Ooble : Interac en dollars canadiens, 4 blockchains, desk OTC.",
+      preheader: "Le compte entreprise Ooble : Interac en dollars canadiens, 5 blockchains, desk OTC.",
       badge: "Pour les entreprises",
       headline: "Payez vos fournisseurs en USDC, au nom de votre société.",
       cta: "Ouvrir un compte entreprise",
@@ -859,7 +859,7 @@ const entreprises: CampaignTemplate = {
       benefits: [
         "Au nom de la société | Chaque achat et chaque vente sont faits au nom de votre entreprise.",
         "Interac en dollars canadiens | Payez depuis le compte bancaire de l'entreprise, sans carte.",
-        "4 blockchains | Ethereum, Polygon, Solana et Avalanche, au choix pour chaque ordre.",
+        "5 blockchains | Ethereum, Polygon, Solana, Avalanche et BNB Chain, au choix pour chaque ordre.",
         "Gros montants | Au-delà de 10 000 $, le desk OTC vous donne un prix ferme.",
       ].join("\n"),
       stepsTitle: "L'ouverture, en trois temps",
@@ -873,7 +873,7 @@ const entreprises: CampaignTemplate = {
     },
     en: {
       subject: "Pay your suppliers in USDC, in your company's name",
-      preheader: "The Ooble business account: Interac in Canadian dollars, 4 blockchains, OTC desk.",
+      preheader: "The Ooble business account: Interac in Canadian dollars, 5 blockchains, OTC desk.",
       badge: "For businesses",
       headline: "Pay your suppliers in USDC, in your company's name.",
       cta: "Open a business account",
@@ -883,7 +883,7 @@ const entreprises: CampaignTemplate = {
       benefits: [
         "In the company's name | Every purchase and sale is made in your business's name.",
         "Interac in Canadian dollars | Pay from the company's bank account, no card needed.",
-        "4 blockchains | Ethereum, Polygon, Solana and Avalanche, your pick for each order.",
+        "5 blockchains | Ethereum, Polygon, Solana, Avalanche and BNB Chain, your pick for each order.",
         "Large amounts | Above $10,000, the OTC desk gives you a firm price.",
       ].join("\n"),
       stepsTitle: "Opening your account, in three steps",
@@ -975,7 +975,7 @@ const lettre: CampaignTemplate = {
       card2Image: "guide:vendre-usdt",
       card2: "Guide · 42 s | Vendre des USDC | Envoyez vos USDC et recevez des dollars canadiens par Interac.",
       brief: [
-        "4 | blockchains pour recevoir vos USDC : **Ethereum, Polygon, Solana et Avalanche**.",
+        "5 | blockchains pour recevoir vos USDC : **Ethereum, Polygon, Solana, Avalanche et BNB Chain**.",
         "9 999 $ | par période de 24 heures, directement dans l'app.",
         "10 000 $ | et plus : le desk OTC vous donne un prix ferme, en une fois.",
       ].join("\n"),
@@ -997,7 +997,7 @@ const lettre: CampaignTemplate = {
       card2Image: "guide:vendre-usdt",
       card2: "Guide · 43 s | Sell USDC | Send your USDC and receive Canadian dollars by Interac.",
       brief: [
-        "4 | blockchains to receive your USDC: **Ethereum, Polygon, Solana and Avalanche**.",
+        "5 | blockchains to receive your USDC: **Ethereum, Polygon, Solana, Avalanche and BNB Chain**.",
         "$9,999 | per 24-hour period, right in the app.",
         "$10,000 | and up: the OTC desk gives you a firm price, in one go.",
       ].join("\n"),
@@ -1304,7 +1304,7 @@ const nouveaute: CampaignTemplate = {
       message: "Dans l'onglet Vendre, entrez le montant, choisissez le réseau et l'adresse courriel Interac où recevoir votre virement. Dès confirmation sur la blockchain, vos dollars partent.",
       points: [
         "À partir de 100 $ par vente",
-        "Sur Ethereum, Polygon, Solana ou Avalanche",
+        "Sur Ethereum, Polygon, Solana, Avalanche ou BNB Chain",
         "Virement Interac e-Transfer en dollars canadiens",
       ].join("\n"),
       cta: "Vendre des USDC",
@@ -1319,7 +1319,7 @@ const nouveaute: CampaignTemplate = {
       message: "In the Sell tab, enter the amount, pick the network and the Interac email where you want your transfer. As soon as it's confirmed on the blockchain, your dollars are on their way.",
       points: [
         "From $100 per sale",
-        "On Ethereum, Polygon, Solana or Avalanche",
+        "On Ethereum, Polygon, Solana, Avalanche or BNB Chain",
         "Interac e-Transfer in Canadian dollars",
       ].join("\n"),
       cta: "Sell USDC",
@@ -1358,14 +1358,14 @@ const retour: CampaignTemplate = {
   copy: {
     fr: {
       subject: "{{prenom}}, voici ce qui a changé sur Ooble",
-      preheader: "Guides vidéo, 4 blockchains, desk OTC : tout ce qui est nouveau depuis votre dernière visite.",
+      preheader: "Guides vidéo, 5 blockchains, desk OTC : tout ce qui est nouveau depuis votre dernière visite.",
       headline: "Ça fait un moment, {{prenom}}.",
       intro: "Depuis votre dernière visite, nous avons amélioré Ooble. Voici l'essentiel, en trente secondes.",
       image: "ill:login",
       newsTitle: "Ce qui a changé",
       news: [
         "Des guides vidéo | Sept vidéos de moins d'une minute pour tout faire sans erreur.",
-        "4 blockchains | Recevez vos USDC sur Ethereum, Polygon, Solana ou Avalanche.",
+        "5 blockchains | Recevez vos USDC sur Ethereum, Polygon, Solana, Avalanche ou BNB Chain.",
         "Le desk OTC | À partir de 10 000 $, un prix ferme et un seul interlocuteur.",
       ].join("\n"),
       cta: "Revenir sur Ooble",
@@ -1373,14 +1373,14 @@ const retour: CampaignTemplate = {
     },
     en: {
       subject: "{{prenom}}, here's what's new at Ooble",
-      preheader: "Video guides, 4 blockchains, OTC desk: everything new since your last visit.",
+      preheader: "Video guides, 5 blockchains, OTC desk: everything new since your last visit.",
       headline: "It's been a while, {{prenom}}.",
       intro: "Since your last visit, we've improved Ooble. Here's the gist, in thirty seconds.",
       image: "ill:login",
       newsTitle: "What's changed",
       news: [
         "Video guides | Seven videos under a minute to get everything right.",
-        "4 blockchains | Receive your USDC on Ethereum, Polygon, Solana or Avalanche.",
+        "5 blockchains | Receive your USDC on Ethereum, Polygon, Solana, Avalanche or BNB Chain.",
         "The OTC desk | From $10,000, a firm price and a single point of contact.",
       ].join("\n"),
       cta: "Come back to Ooble",
@@ -1658,7 +1658,7 @@ const premierAchat: CampaignTemplate = {
       videoLabel: "Voir la vidéo · 46 s",
       steps: [
         "Entrez le montant | En dollars canadiens ou en USDC. Le taux s'affiche en temps réel.",
-        "Choisissez le réseau | Ethereum, Polygon, Solana ou Avalanche.",
+        "Choisissez le réseau | Ethereum, Polygon, Solana, Avalanche ou BNB Chain.",
         "Collez votre adresse | Celle de votre wallet, sur le réseau choisi.",
         "Validez l'ordre | Vérifiez le montant, le taux, le réseau et l'adresse.",
         "Payez par Interac | À **interac@ooble.ca**, montant exact, référence en message.",
@@ -1677,7 +1677,7 @@ const premierAchat: CampaignTemplate = {
       videoLabel: "Watch the video · 44 s",
       steps: [
         "Enter the amount | In Canadian dollars or USDC. The rate updates in real time.",
-        "Choose the network | Ethereum, Polygon, Solana or Avalanche.",
+        "Choose the network | Ethereum, Polygon, Solana, Avalanche or BNB Chain.",
         "Paste your address | Your wallet's, on the network you chose.",
         "Confirm the order | Check the amount, rate, network and address.",
         "Pay by Interac | To **interac@ooble.ca**, exact amount, reference as the message.",
@@ -1864,7 +1864,7 @@ const quoiDeNeuf: CampaignTemplate = {
         "Nouveau | Guides vidéo | Sept vidéos de moins d'une minute, en français et en anglais.",
         "Nouveau | Desk OTC | À partir de 10 000 $, un prix ferme et un seul interlocuteur.",
         "Nouveau | Notifications | Suivez vos ordres en direct sur votre téléphone.",
-        "Amélioré | Réseaux | Vos USDC sur Ethereum, Polygon, Solana ou Avalanche.",
+        "Amélioré | Réseaux | Vos USDC sur Ethereum, Polygon, Solana, Avalanche ou BNB Chain.",
       ].join("\n"),
       cta: "Ouvrir Ooble",
       ctaUrl: "/app",
@@ -1879,7 +1879,7 @@ const quoiDeNeuf: CampaignTemplate = {
         "New | Video guides | Seven videos under a minute each, in English and French.",
         "New | OTC desk | From $10,000, a firm price and a single point of contact.",
         "New | Notifications | Follow your orders live on your phone.",
-        "Improved | Networks | Your USDC on Ethereum, Polygon, Solana or Avalanche.",
+        "Improved | Networks | Your USDC on Ethereum, Polygon, Solana, Avalanche or BNB Chain.",
       ].join("\n"),
       cta: "Open Ooble",
       ctaUrl: "/app",
@@ -2014,7 +2014,7 @@ const conditions: CampaignTemplate = {
       intro: "Nos conditions d'utilisation et notre politique de confidentialité évoluent. Voici un résumé clair de ce qui change.",
       effective: "1er novembre 2026",
       changes: [
-        "Vos USDC peuvent être envoyés sur 4 blockchains : Ethereum, Polygon, Solana et Avalanche.",
+        "Vos USDC peuvent être envoyés sur 5 blockchains : Ethereum, Polygon, Solana, Avalanche et BNB Chain.",
         "Pour une vente, vous indiquez le portefeuille depuis lequel vous envoyez vos USDC : il est enregistré dans votre carnet d'adresses.",
         "Codes promotionnels et parrainage : leurs conditions sont précisées dans les conditions d'utilisation.",
         "Nous conservons la province et la ville d'inscription de chaque compte, pour nos obligations de conformité.",
@@ -2029,7 +2029,7 @@ const conditions: CampaignTemplate = {
       intro: "Our terms of use and privacy policy are changing. Here's a clear summary of what's different.",
       effective: "November 1, 2026",
       changes: [
-        "Your USDC can be sent on 4 blockchains: Ethereum, Polygon, Solana and Avalanche.",
+        "Your USDC can be sent on 5 blockchains: Ethereum, Polygon, Solana, Avalanche and BNB Chain.",
         "When you sell, you tell us the wallet you send your USDC from: it is saved in your address book.",
         "Promo codes and referral: their conditions are set out in the terms of use.",
         "We keep the province and city where each account signed up, for our compliance obligations.",
@@ -2295,7 +2295,7 @@ const affiche: CampaignTemplate = {
       intro: "Vos USDC par virement Interac, en quelques minutes, directement dans votre wallet.",
       cta: "Commencer",
       ctaUrl: "/inscription",
-      foot: "Ethereum · Polygon · Solana · Avalanche",
+      foot: "Ethereum · Polygon · Solana · Avalanche · BNB Chain",
     },
     en: {
       subject: "Buy. Sell. In Canadian dollars.",
@@ -2304,7 +2304,7 @@ const affiche: CampaignTemplate = {
       intro: "Your USDC by Interac e-Transfer, in minutes, directly in your wallet.",
       cta: "Get started",
       ctaUrl: "/inscription",
-      foot: "Ethereum · Polygon · Solana · Avalanche",
+      foot: "Ethereum · Polygon · Solana · Avalanche · BNB Chain",
     },
   },
   body: (v, ctx) => [
@@ -2414,7 +2414,7 @@ const portefeuille: CampaignTemplate = {
       points: [
         "Aucun solde chez Ooble | Pas de portefeuille interne, rien qui dort sur la plateforme.",
         "Votre wallet, vos clés | Vous seul avez la phrase de récupération. Ne la partagez jamais.",
-        "Le bon réseau | L'adresse doit correspondre au réseau choisi : Ethereum, Polygon, Solana ou Avalanche.",
+        "Le bon réseau | L'adresse doit correspondre au réseau choisi : Ethereum, Polygon, Solana, Avalanche ou BNB Chain.",
       ].join("\n"),
       cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
@@ -2428,7 +2428,7 @@ const portefeuille: CampaignTemplate = {
       points: [
         "No balance at Ooble | No internal wallet, nothing sitting on the platform.",
         "Your wallet, your keys | Only you have the recovery phrase. Never share it.",
-        "The right network | The address must match the network you chose: Ethereum, Polygon, Solana or Avalanche.",
+        "The right network | The address must match the network you chose: Ethereum, Polygon, Solana, Avalanche or BNB Chain.",
       ].join("\n"),
       cta: "Buy USDC",
       ctaUrl: "/app/acheter",
@@ -2741,7 +2741,7 @@ const reseau: CampaignTemplate = {
       image: "ill:coins",
       points: [
         "Quasi instantané | Le règlement sur Solana prend quelques instants.",
-        "Au choix, à chaque ordre | Ethereum, Polygon, Solana ou Avalanche.",
+        "Au choix, à chaque ordre | Ethereum, Polygon, Solana, Avalanche ou BNB Chain.",
         "Même taux | Seuls les frais du réseau changent.",
       ].join("\n"),
       tip: "Une adresse Solana ne commence ni par T ni par 0x. Vérifiez-la avant de valider : une transaction blockchain est définitive.",
@@ -2757,7 +2757,7 @@ const reseau: CampaignTemplate = {
       image: "ill:coins",
       points: [
         "Near-instant | Settlement on Solana takes moments.",
-        "Your pick, every order | Ethereum, Polygon, Solana or Avalanche.",
+        "Your pick, every order | Ethereum, Polygon, Solana, Avalanche or BNB Chain.",
         "Same rate | Only the network fees change.",
       ].join("\n"),
       tip: "A Solana address starts with neither T nor 0x. Check it before confirming: a blockchain transaction is final.",
@@ -3011,7 +3011,7 @@ const mobile: CampaignTemplate = {
       headline: "Vos USDC,\ndans la poche.",
       intro: "Tout se fait depuis votre téléphone : l'ordre, le virement Interac et le suivi.",
       image: "ill:phone",
-      stats: ["100 $ | minimum par ordre", "15 min | taux garanti", "4 | blockchains au choix"].join("\n"),
+      stats: ["100 $ | minimum par ordre", "15 min | taux garanti", "5 | blockchains au choix"].join("\n"),
       steps: [
         "Entrez le montant | En dollars canadiens ou en USDC.",
         "Payez par Interac | Depuis l'app de votre banque.",
@@ -3026,7 +3026,7 @@ const mobile: CampaignTemplate = {
       headline: "Your USDC,\nin your pocket.",
       intro: "Everything happens on your phone: the order, the Interac transfer and the tracking.",
       image: "ill:phone",
-      stats: ["$100 | minimum per order", "15 min | locked rate", "4 | blockchains to choose from"].join("\n"),
+      stats: ["$100 | minimum per order", "15 min | locked rate", "5 | blockchains to choose from"].join("\n"),
       steps: [
         "Enter the amount | In Canadian dollars or USDC.",
         "Pay by Interac | From your banking app.",
@@ -3257,7 +3257,7 @@ const codePromo: CampaignTemplate = {
       terms: [
         "Une seule utilisation par compte.",
         "Ne se cumule pas avec un autre avantage : le plus intéressant s'applique.",
-        "Valable sur les achats de USDC, sur les 4 blockchains.",
+        "Valable sur les achats de USDC, sur les 5 blockchains.",
       ].join("\n"),
       cta: "Utiliser mon code",
       ctaUrl: "/app/acheter",
@@ -3273,7 +3273,7 @@ const codePromo: CampaignTemplate = {
       terms: [
         "One use per account.",
         "Can't be combined with another advantage: the best one applies.",
-        "Valid on USDC purchases, on all 4 blockchains.",
+        "Valid on USDC purchases, on all 5 blockchains.",
       ].join("\n"),
       cta: "Use my code",
       ctaUrl: "/app/acheter",
@@ -3296,7 +3296,7 @@ const codePromo: CampaignTemplate = {
 
 const sixReseaux: CampaignTemplate = {
   id: "six-reseaux",
-  name: "4 blockchains",
+  name: "5 blockchains",
   description: "Fond encre, les pièces des réseaux en rangée, une ligne par réseau. Pour annoncer Ethereum et Avalanche ou rappeler le choix du réseau.",
   category: "Lancement",
   swatch: [K.ink, K.sun],
@@ -3307,21 +3307,21 @@ const sixReseaux: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Ethereum et Avalanche sont disponibles sur Ooble",
-      preheader: "Vos USDC sur 4 blockchains : choisissez au moment de l'ordre.",
+      preheader: "Vos USDC sur 5 blockchains : choisissez au moment de l'ordre.",
       eyebrow: "Nouveau",
       headline: "Ethereum et Avalanche\nsont disponibles.",
-      intro: "Vos USDC partent maintenant sur **4 blockchains**. Choisissez le réseau au moment de l'ordre : le taux ne change pas, seuls les frais du réseau varient.",
-      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi. Une adresse Ethereum, Polygon ou Avalanche commence par 0x. Une transaction blockchain ne peut pas être annulée.",
+      intro: "Vos USDC partent maintenant sur **5 blockchains**. Choisissez le réseau au moment de l'ordre : le taux ne change pas, seuls les frais du réseau varient.",
+      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi. Une adresse Ethereum, Polygon, Avalanche ou BNB Chain commence par 0x. Une transaction blockchain ne peut pas être annulée.",
       cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
     },
     en: {
       subject: "Ethereum and Avalanche are now available on Ooble",
-      preheader: "Your USDC on 4 blockchains: choose when you place your order.",
+      preheader: "Your USDC on 5 blockchains: choose when you place your order.",
       eyebrow: "New",
       headline: "Ethereum and Avalanche\nare now available.",
-      intro: "Your USDC now go out on **4 blockchains**. Pick the network when you place your order: the rate stays the same, only network fees vary.",
-      tip: "Check that your wallet address matches the network you chose. An Ethereum, Polygon or Avalanche address starts with 0x. A blockchain transaction can't be reversed.",
+      intro: "Your USDC now go out on **5 blockchains**. Pick the network when you place your order: the rate stays the same, only network fees vary.",
+      tip: "Check that your wallet address matches the network you chose. An Ethereum, Polygon, Avalanche or BNB Chain address starts with 0x. A blockchain transaction can't be reversed.",
       cta: "Buy USDC",
       ctaUrl: "/app/acheter",
     },
@@ -3361,7 +3361,7 @@ const reactivation: CampaignTemplate = {
       subject: "{{prenom}}, on peut faire mieux ?",
       preheader: "Une question, et un taux toujours garanti 15 minutes.",
       greeting: "Bonjour {{prenom}},",
-      message: "Nous n'avons pas eu de vos nouvelles depuis un moment, et nous aimerions savoir pourquoi.\n\nSi quelque chose vous a freiné (un délai, un taux, une étape pas claire), répondez simplement à ce courriel : nous lisons chaque réponse.\n\nEt si vous avez besoin de USDC, Ooble est toujours là : Interac en dollars canadiens, taux garanti 15 minutes, 4 blockchains.",
+      message: "Nous n'avons pas eu de vos nouvelles depuis un moment, et nous aimerions savoir pourquoi.\n\nSi quelque chose vous a freiné (un délai, un taux, une étape pas claire), répondez simplement à ce courriel : nous lisons chaque réponse.\n\nEt si vous avez besoin de USDC, Ooble est toujours là : Interac en dollars canadiens, taux garanti 15 minutes, 5 blockchains.",
       cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
       cta2: "Vendre des USDC",
@@ -3372,7 +3372,7 @@ const reactivation: CampaignTemplate = {
       subject: "{{prenom}}, can we do better?",
       preheader: "One question, and a rate still locked for 15 minutes.",
       greeting: "Hi {{prenom}},",
-      message: "We haven't heard from you in a while, and we'd like to know why.\n\nIf something held you back (a delay, a rate, an unclear step), just reply to this email: we read every answer.\n\nAnd if you need USDC, Ooble is still here: Interac in Canadian dollars, rate locked for 15 minutes, 4 blockchains.",
+      message: "We haven't heard from you in a while, and we'd like to know why.\n\nIf something held you back (a delay, a rate, an unclear step), just reply to this email: we read every answer.\n\nAnd if you need USDC, Ooble is still here: Interac in Canadian dollars, rate locked for 15 minutes, 5 blockchains.",
       cta: "Buy USDC",
       ctaUrl: "/app/acheter",
       cta2: "Sell USDC",
@@ -3558,8 +3558,8 @@ const VARIANTS: Record<string, TemplateVariant[]> = {
   ],
   retour: [
     { id: "nouveautes", label: "Axé nouveautés", copy: {
-      fr: { subject: "{{prenom}}, Ethereum et Avalanche sont arrivés", preheader: "4 blockchains, parrainage, codes promo : les nouveautés d'Ooble.", headline: "Du nouveau sur Ooble, {{prenom}}.", intro: "Depuis votre dernière visite : 4 blockchains, le parrainage, les codes promo et des guides vidéo. L'essentiel en trente secondes." },
-      en: { subject: "{{prenom}}, Ethereum and Avalanche are here", preheader: "4 blockchains, referral, promo codes: what's new on Ooble.", headline: "What's new on Ooble, {{prenom}}.", intro: "Since your last visit: 4 blockchains, referral, promo codes and video guides. The essentials in thirty seconds." } } },
+      fr: { subject: "{{prenom}}, Ethereum et Avalanche sont arrivés", preheader: "5 blockchains, parrainage, codes promo : les nouveautés d'Ooble.", headline: "Du nouveau sur Ooble, {{prenom}}.", intro: "Depuis votre dernière visite : 5 blockchains, le parrainage, les codes promo et des guides vidéo. L'essentiel en trente secondes." },
+      en: { subject: "{{prenom}}, Ethereum and Avalanche are here", preheader: "5 blockchains, referral, promo codes: what's new on Ooble.", headline: "What's new on Ooble, {{prenom}}.", intro: "Since your last visit: 5 blockchains, referral, promo codes and video guides. The essentials in thirty seconds." } } },
   ],
   vendre: [
     { id: "interac", label: "Axé Interac", copy: {
@@ -3579,13 +3579,13 @@ const VARIANTS: Record<string, TemplateVariant[]> = {
       fr: { subject: "Gérez la trésorerie en USDC de votre société", preheader: "Achetez et vendez des USDC au nom de l'entreprise, par Interac.", headline: "La trésorerie en USDC de votre société, simplement." },
       en: { subject: "Manage your company's USDC treasury", preheader: "Buy and sell USDC in your company's name, by Interac.", headline: "Your company's USDC treasury, made simple." } } },
     { id: "fournisseurs", label: "Fournisseurs à l'étranger", copy: {
-      fr: { subject: "Payez vos fournisseurs à l'étranger en USDC", preheader: "Sans attendre un virement international : en USDC, sur 4 blockchains.", headline: "Payez vos fournisseurs à l'étranger, sans attendre." },
-      en: { subject: "Pay your suppliers abroad in USDC", preheader: "No waiting for an international wire: in USDC, on 4 blockchains.", headline: "Pay your suppliers abroad, without waiting." } } },
+      fr: { subject: "Payez vos fournisseurs à l'étranger en USDC", preheader: "Sans attendre un virement international : en USDC, sur 5 blockchains.", headline: "Payez vos fournisseurs à l'étranger, sans attendre." },
+      en: { subject: "Pay your suppliers abroad in USDC", preheader: "No waiting for an international wire: in USDC, on 5 blockchains.", headline: "Pay your suppliers abroad, without waiting." } } },
   ],
   reseaux: [
     { id: "nouveaux", label: "Ethereum et Avalanche", copy: {
-      fr: { subject: "Ethereum et Avalanche s'ajoutent à Ooble", preheader: "4 blockchains au choix, au moment de l'ordre.", badge: "Nouveau", headline: "4 blockchains,\nau choix." },
-      en: { subject: "Ethereum and Avalanche join Ooble", preheader: "4 blockchains to choose from, when you order.", badge: "New", headline: "4 blockchains,\nyour choice." } } },
+      fr: { subject: "Ethereum et Avalanche s'ajoutent à Ooble", preheader: "5 blockchains au choix, au moment de l'ordre.", badge: "Nouveau", headline: "5 blockchains,\nau choix." },
+      en: { subject: "Ethereum and Avalanche join Ooble", preheader: "5 blockchains to choose from, when you order.", badge: "New", headline: "5 blockchains,\nyour choice." } } },
   ],
   pourquoi: [
     { id: "court", label: "Court", copy: {
@@ -3624,8 +3624,8 @@ const VARIANTS: Record<string, TemplateVariant[]> = {
   ],
   reactivation: [
     { id: "nouveautes", label: "Avec nouveautés", copy: {
-      fr: { subject: "{{prenom}}, Ooble a changé depuis votre dernière visite", preheader: "4 blockchains, parrainage, codes promo.", message: "Ça fait un moment ! Depuis votre dernière visite, Ooble a ajouté Ethereum et Avalanche (4 blockchains au total), le parrainage et les codes promo.\n\nVotre compte est toujours actif : vous pouvez acheter ou vendre des USDC quand vous voulez, avec un taux garanti 15 minutes.\n\nUne question ou une suggestion ? Répondez simplement à ce courriel." },
-      en: { subject: "{{prenom}}, Ooble has changed since your last visit", preheader: "4 blockchains, referral, promo codes.", message: "It's been a while! Since your last visit, Ooble added Ethereum and Avalanche (4 blockchains in all), referral and promo codes.\n\nYour account is still active: you can buy or sell USDC whenever you like, with a rate locked for 15 minutes.\n\nA question or a suggestion? Just reply to this email." } } },
+      fr: { subject: "{{prenom}}, Ooble a changé depuis votre dernière visite", preheader: "5 blockchains, parrainage, codes promo.", message: "Ça fait un moment ! Depuis votre dernière visite, Ooble a ajouté Ethereum et Avalanche (5 blockchains au total), le parrainage et les codes promo.\n\nVotre compte est toujours actif : vous pouvez acheter ou vendre des USDC quand vous voulez, avec un taux garanti 15 minutes.\n\nUne question ou une suggestion ? Répondez simplement à ce courriel." },
+      en: { subject: "{{prenom}}, Ooble has changed since your last visit", preheader: "5 blockchains, referral, promo codes.", message: "It's been a while! Since your last visit, Ooble added Ethereum and Avalanche (5 blockchains in all), referral and promo codes.\n\nYour account is still active: you can buy or sell USDC whenever you like, with a rate locked for 15 minutes.\n\nA question or a suggestion? Just reply to this email." } } },
   ],
 };
 for (const t of CAMPAIGN_TEMPLATES) if (VARIANTS[t.id]) t.variants = VARIANTS[t.id];

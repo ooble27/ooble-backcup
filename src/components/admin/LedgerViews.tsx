@@ -13,7 +13,7 @@ import { DataTable, Section, type Column } from "./layout";
 import { GR_CSS, Opts } from "./GrowthPanel";
 const SYM = { usdt: "USDT", usdc: "USDC" } as const;
 /** Réseaux où l'USDC (Circle) existe. */
-const USDC_NETS = ["erc20", "polygon", "avalanche", "spl"];
+const USDC_NETS = ["erc20", "polygon", "avalanche", "spl", "bep20"];
 
 /**
  * Comptabilité de stock : le bénéfice net (coût moyen pondéré), les recharges chez les fournisseurs

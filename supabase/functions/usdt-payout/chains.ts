@@ -1,8 +1,8 @@
 // Envoi d'USDT ou d'USDC depuis le portefeuille chaud d'Ooble.
 //
-// Actifs : l'USDT existe sur tous les réseaux ; l'USDC (émis par Circle) seulement sur Ethereum,
-// Polygon, Avalanche et Solana (pas sur Tron ni sur BNB Chain : demandé ailleurs, c'est refusé).
-// Les deux ont 6 décimales sur ces réseaux ; on relit tout de même les décimales du contrat (EVM).
+// Actifs : l'USDT existe sur tous les réseaux ; l'USDC sur Ethereum, Polygon, Avalanche et Solana (émis
+// par Circle) et sur BNB Chain (version reliée, 18 décimales) ; pas sur Tron (demandé là, c'est refusé).
+// Les décimales du contrat sont toujours relues sur les réseaux EVM (6, ou 18 sur BNB Chain).
 //
 // Deux familles de réseaux :
 //   • Tron (TRC20) — API HTTP TronGrid, transaction signée ici avec la clé
@@ -34,7 +34,7 @@ export type Asset = "usdt" | "usdc";
 type EvmNet = Exclude<Net, "trc20" | "spl">;
 
 const EVM: Record<EvmNet, { chainId: number; rpc: string; env: string; usdt: string; usdc?: string; gas: string; explorer: string; minGas: number }> = {
-  bep20:     { chainId: 56,    rpc: "https://bsc-dataseed.binance.org",          env: "RPC_BEP20",     usdt: "0x55d398326f99059fF775485246999027B3197955",                                                    gas: "BNB",  explorer: "https://bscscan.com/tx/",         minGas: 0.0005 },
+  bep20:     { chainId: 56,    rpc: "https://bsc-dataseed.binance.org",          env: "RPC_BEP20",     usdt: "0x55d398326f99059fF775485246999027B3197955", usdc: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", gas: "BNB",  explorer: "https://bscscan.com/tx/",         minGas: 0.0005 },
   polygon:   { chainId: 137,   rpc: "https://polygon-bor-rpc.publicnode.com",    env: "RPC_POLYGON",   usdt: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", usdc: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", gas: "POL",  explorer: "https://polygonscan.com/tx/",     minGas: 0.5 },
   avalanche: { chainId: 43114, rpc: "https://api.avax.network/ext/bc/C/rpc",     env: "RPC_AVALANCHE", usdt: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", usdc: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", gas: "AVAX", explorer: "https://snowtrace.io/tx/",        minGas: 0.02 },
   erc20:     { chainId: 1,     rpc: "https://ethereum-rpc.publicnode.com",       env: "RPC_ERC20",     usdt: "0xdAC17F958D2ee523a2206206994597C13D831ec7", usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", gas: "ETH",  explorer: "https://etherscan.io/tx/",        minGas: 0.003 },
@@ -69,7 +69,7 @@ const SYMBOL: Record<Asset, string> = { usdt: "USDT", usdc: "USDC" };
 /** Contrat (ou jeton Solana) d'un actif sur un réseau ; null s'il n'y existe pas. */
 export function tokenOf(net: Net, asset: Asset): string | null {
   if (asset === "usdt") return net === "trc20" ? TRON.usdt : net === "spl" ? SOL.usdt : EVM[net as EvmNet].usdt;
-  if (net === "trc20" || net === "bep20") return null;
+  if (net === "trc20") return null;
   return net === "spl" ? SOL.usdc : EVM[net as EvmNet].usdc ?? null;
 }
 export const hasAsset = (net: Net, asset: Asset) => tokenOf(net, asset) !== null;

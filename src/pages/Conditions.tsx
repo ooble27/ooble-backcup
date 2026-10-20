@@ -624,7 +624,8 @@ const PARTS: Part[] = [
           </P>
           <P>
             Ooble peut prendre en charge les réseaux Ethereum (ERC20), Polygon, Solana et
-            Avalanche (C-Chain), sur lesquels l'USDC est émis par Circle. Les réseaux ouverts sont ceux affichés
+            Avalanche (C-Chain), sur lesquels l'USDC est émis par Circle, ainsi que BNB Chain (BEP20),
+            où l'USDC est une version reliée émise par un tiers et adossée à l'USDC de Circle. Les réseaux ouverts sont ceux affichés
             au moment de passer l'ordre ; Ooble peut en ouvrir ou en fermer à tout moment. Il vous
             appartient de vérifier que l'adresse de
             destination correspond exactement au réseau choisi : les transferts de monnaie virtuelle
@@ -674,7 +675,8 @@ const PARTS: Part[] = [
           </P>
           <P>
             Ooble may support the Ethereum (ERC20), Polygon, Solana, and Avalanche (C-Chain)
-            networks, on which USDC is issued by Circle. The open networks are those shown when you
+            networks, on which USDC is issued by Circle, as well as BNB Chain (BEP20), where USDC is a
+            bridged version issued by a third party and backed by Circle's USDC. The open networks are those shown when you
             place the order; Ooble may open or close networks at any time. It
             is your responsibility to verify that the
             destination address exactly matches the selected network: virtual currency transfers

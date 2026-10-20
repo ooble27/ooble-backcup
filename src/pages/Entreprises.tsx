@@ -86,7 +86,7 @@ const STEPS: { t: Bi; d: Bi; c: string }[] = [
   { t: { fr: "Ouvrez le compte", en: "Open the account" }, d: { fr: "Raison sociale, numéro d'entreprise (NEQ ou BN) et personne responsable. Quelques minutes.", en: "Business name, business number (NEQ or BN) and contact person. A few minutes." }, c: CORAL },
   { t: { fr: "Vérifiez l'entreprise", en: "Verify the business" }, d: { fr: "Depuis votre espace, en environ 5 minutes : informations, administrateurs et propriétaires, documents.", en: "From your dashboard, in about 5 minutes: details, directors and owners, documents." }, c: SUN },
   { t: { fr: "On examine le dossier", en: "We review the file" }, d: { fr: "Notre équipe conformité vous répond par courriel, généralement sous 1 jour ouvrable.", en: "Our compliance team replies by email, usually within 1 business day." }, c: MINT },
-  { t: { fr: "Achetez et vendez", en: "Buy and sell" }, d: { fr: "Payez par Interac, recevez vos USDC sur l'une des 4 blockchains. Ou l'inverse.", en: "Pay by Interac, receive your USDC on one of 4 blockchains. Or the other way round." }, c: FOREST },
+  { t: { fr: "Achetez et vendez", en: "Buy and sell" }, d: { fr: "Payez par Interac, recevez vos USDC sur l'une des 5 blockchains. Ou l'inverse.", en: "Pay by Interac, receive your USDC on one of 5 blockchains. Or the other way round." }, c: FOREST },
 ];
 
 const READY: { g: Bi; items: Bi[] }[] = [

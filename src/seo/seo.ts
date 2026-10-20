@@ -37,12 +37,12 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
     {
       title: "Acheter et vendre des USDC au Canada par Interac | Ooble",
       description:
-        "Achetez et vendez des USDC (USD Coin) en dollars canadiens par virement Interac. Taux garanti 15 minutes, envoi direct dans votre wallet sur 4 blockchains. Ooble ne garde aucun solde.",
+        "Achetez et vendez des USDC (USD Coin) en dollars canadiens par virement Interac. Taux garanti 15 minutes, envoi direct dans votre wallet sur 5 blockchains. Ooble ne garde aucun solde.",
     },
     {
       title: "Buy and Sell USDC in Canada with Interac e-Transfer | Ooble",
       description:
-        "Buy and sell USDC (USD Coin) with Canadian dollars via Interac e-Transfer. Rate locked for 15 minutes, sent straight to your wallet on 4 blockchains. Ooble never holds a balance.",
+        "Buy and sell USDC (USD Coin) with Canadian dollars via Interac e-Transfer. Rate locked for 15 minutes, sent straight to your wallet on 5 blockchains. Ooble never holds a balance.",
     },
   ),
   "/otc": page(
@@ -61,12 +61,12 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
     {
       title: "Compte entreprise pour acheter des USDC au Canada | Ooble",
       description:
-        "Achetez et vendez des USDC au nom de votre société : compte entreprise vérifié, paiement par Interac en dollars canadiens, réception sur 4 blockchains.",
+        "Achetez et vendez des USDC au nom de votre société : compte entreprise vérifié, paiement par Interac en dollars canadiens, réception sur 5 blockchains.",
     },
     {
       title: "Business Account to Buy USDC in Canada | Ooble",
       description:
-        "Buy and sell USDC on behalf of your company: verified business account, Interac payments in Canadian dollars, delivery on 4 blockchains.",
+        "Buy and sell USDC on behalf of your company: verified business account, Interac payments in Canadian dollars, delivery on 5 blockchains.",
     },
   ),
   "/faq": page(

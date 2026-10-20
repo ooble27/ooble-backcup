@@ -303,7 +303,7 @@ const SettlementPanel = () => {
                 !w.configured ? <Pill>Clé absente</Pill> : w.error ? <Pill tone="danger">Erreur</Pill> : lowGas(w) ? <Pill tone="warn">Frais bas</Pill> : <Pill tone="ok">Prêt</Pill>)}
             />
             <p style={{ margin: "14px 0 0", fontSize: 12.5, lineHeight: 1.6, color: C.t3, maxWidth: 640 }}>
-              Approvisionnez chaque adresse en USDT ou USDC (l'USDC sur Ethereum, Polygon, Avalanche et Solana seulement) et en jeton de frais (TRX, BNB, POL, AVAX, ETH ou SOL)
+              Approvisionnez chaque adresse en USDT ou USDC (l'USDC partout sauf sur Tron) et en jeton de frais (TRX, BNB, POL, AVAX, ETH ou SOL)
               depuis votre réserve. Sur Solana, chaque envoi vers un nouveau portefeuille coûte environ 0,002 SOL de plus. Gardez-y seulement le nécessaire aux envois du moment.
             </p>
           </div>

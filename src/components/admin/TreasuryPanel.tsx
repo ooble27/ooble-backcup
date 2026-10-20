@@ -125,7 +125,7 @@ const TreasuryPanel = () => {
         </p>
       )}
 
-      <Section title="Par réseau" description={`Disponible = solde − ${SYM[asset]} réservés par les achats pas encore envoyés. Sous le seuil, l'équipe reçoit une alerte par courriel (au plus une fois toutes les 6 heures). L'USDC n'existe que sur Ethereum, Polygon, Avalanche et Solana.`}>
+      <Section title="Par réseau" description={`Disponible = solde − ${SYM[asset]} réservés par les achats pas encore envoyés. Sous le seuil, l'équipe reçoit une alerte par courriel (au plus une fois toutes les 6 heures). L'USDC n'existe pas sur Tron.`}>
         <DataTable rows={rows ?? []} columns={cols} rowKey={(r) => `${r.network}:${r.asset}`}
           empty={<p style={{ margin: 0, padding: "24px 0", fontSize: 13, color: C.t3, textAlign: "center" }}>Lecture du stock…</p>}
           mobile={(r) => (
