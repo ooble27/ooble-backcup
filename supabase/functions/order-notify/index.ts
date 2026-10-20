@@ -87,8 +87,8 @@ Deno.serve(async (req) => {
     { ref, usdt: nf(usdt, "fr-CA"), cad: nf(cad, "fr-CA") },
     { ref, usdt: nf(usdt, "en-CA"), cad: nf(cad, "en-CA") });
   if (!base) return json({ ok: true, skipped: "silent_status" });
-  // Commande en USDC : les messages parlent d'USDT ; on nomme l'actif réel.
-  const i18n = row.asset === "usdc" ? JSON.parse(JSON.stringify(base).replace(/\bUSDT\b/g, "USDC")) as typeof base : base;
+  // Les messages disent « USDT » : sauf commande réellement en USDT (historique), on écrit USDC.
+  const i18n = row.asset !== "usdt" ? JSON.parse(JSON.stringify(base).replace(/\bUSDT\b/g, "USDC")) as typeof base : base;
 
   // Envoyer la notification push via push-notify
   try {

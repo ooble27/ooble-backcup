@@ -1,4 +1,46 @@
 {
+  "redirects": [
+    {
+      "source": "/guide/acheter-usdt",
+      "destination": "/guide/acheter-usdc",
+      "permanent": true
+    },
+    {
+      "source": "/en/guide/acheter-usdt",
+      "destination": "/en/guide/acheter-usdc",
+      "permanent": true
+    },
+    {
+      "source": "/guides/videos/acheter-usdt-fr.mp4",
+      "destination": "/guides/videos/acheter-usdc-fr.mp4",
+      "permanent": true
+    },
+    {
+      "source": "/guides/videos/acheter-usdt-en.mp4",
+      "destination": "/guides/videos/acheter-usdc-en.mp4",
+      "permanent": true
+    },
+    {
+      "source": "/guide/vendre-usdt",
+      "destination": "/guide/vendre-usdc",
+      "permanent": true
+    },
+    {
+      "source": "/en/guide/vendre-usdt",
+      "destination": "/en/guide/vendre-usdc",
+      "permanent": true
+    },
+    {
+      "source": "/guides/videos/vendre-usdt-fr.mp4",
+      "destination": "/guides/videos/vendre-usdc-fr.mp4",
+      "permanent": true
+    },
+    {
+      "source": "/guides/videos/vendre-usdt-en.mp4",
+      "destination": "/guides/videos/vendre-usdc-en.mp4",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/i/:code",

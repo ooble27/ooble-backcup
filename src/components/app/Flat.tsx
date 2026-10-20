@@ -46,7 +46,7 @@ export const ClosedPage = ({ title, message }: { title: string; message: string 
  * Le montant : étiquette, CAD / cryptomonnaie et Min / Max en mots soulignés, le nombre en très grand.
  * L'unité « USDT » désigne la cryptomonnaie de la commande : `coin` donne son symbole affiché (USDC…).
  */
-export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, coin = "USDT", children }: {
+export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, coin = "USDC", children }: {
   label: string; units: U[]; unit: U; onUnit: (u: U) => void; value: string; onChange: (v: string) => void; disabled?: boolean;
   onMin?: () => void; onMax?: () => void; coin?: string; children?: React.ReactNode;
 }) => (
@@ -113,7 +113,7 @@ export const Facts = ({ rows }: { rows: { label: string; value: string; mono?: b
       <div key={r.label} className={cn("ac-kv", r.mono && "mono")}>
         <span>{r.label}</span>
         <span className={r.usdt ? "inline-flex items-center justify-end gap-1.5" : undefined}>
-          {r.usdt && <img src={`/coins/${(r.coin ?? "USDT").toLowerCase()}.svg`} alt="" className="h-[18px] w-[18px] shrink-0" />}
+          {r.usdt && <img src={`/coins/${(r.coin ?? "USDC").toLowerCase()}.svg`} alt="" className="h-[18px] w-[18px] shrink-0" />}
           {r.value}
         </span>
       </div>

@@ -182,7 +182,7 @@ function json(body: unknown, status = 200): Response {
 
 interface StaffOrderPayload {
   ref: string;
-  /** Cryptomonnaie de la commande (USDT par défaut). */
+  /** Cryptomonnaie de la commande (USDC si absente). */
   asset?: string;
   side: "buy" | "sell";
   cadAmount: string;
@@ -341,9 +341,10 @@ Deno.serve(async (req) => {
     return json({ error: "Fournir soit 'template', soit 'html'." }, 400);
   }
 
-  // Commande en USDC : les modèles (et le studio) parlent d'USDT ; le courriel nomme l'actif réel.
+  // L'USDC est la cryptomonnaie proposée : un texte qui dit encore « USDT » devient « USDC »,
+  // sauf pour une commande réellement passée en USDT (historique).
   const coin = String((vars as Record<string, unknown> | undefined)?.asset ?? (order as { asset?: string } | undefined)?.asset ?? "").toUpperCase();
-  if (coin === "USDC") {
+  if (coin !== "USDT") {
     const swap = (x: string | undefined) => x?.replace(/\bUSDT\b/g, "USDC");
     finalHtml = swap(finalHtml) ?? finalHtml;
     finalSubject = swap(finalSubject) ?? finalSubject;

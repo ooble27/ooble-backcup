@@ -59,9 +59,9 @@ const GUIDE_IMAGES: [string, string, string][] = [
   ["ooble-en-une-minute", "Ooble en une minute", "Ooble in one minute"],
   ["creer-un-compte", "Créer un compte", "Create an account"],
   ["verifier-identite", "Vérifier son identité", "Verify your identity"],
-  ["acheter-usdt", "Acheter des USDC", "Buy USDC"],
+  ["acheter-usdc", "Acheter des USDC", "Buy USDC"],
   ["payer-par-interac", "Payer par Interac", "Paying with Interac"],
-  ["vendre-usdt", "Vendre des USDC", "Sell USDC"],
+  ["vendre-usdc", "Vendre des USDC", "Sell USDC"],
   ["votre-securite", "Votre sécurité", "Staying safe"],
 ];
 
@@ -104,7 +104,11 @@ export const EMAIL_IMAGES: EmailImage[] = [
 interface ResolvedImage { url: string; alt: string; ratio: number; id: string }
 
 /** Image dans la langue du rendu (les vignettes des guides existent en anglais). */
+/** Anciens identifiants d'images (campagnes enregistrées avant l'USDC). */
+const IMAGE_ALIAS: Record<string, string> = { "guide:acheter-usdt": "guide:acheter-usdc", "guide:vendre-usdt": "guide:vendre-usdc" };
+
 function image(id: string): ResolvedImage {
+  id = IMAGE_ALIAS[id] ?? id;
   const img = EMAIL_IMAGES.find((i) => i.id === id) ?? EMAIL_IMAGES[0];
   const url = img.group === "guide" && L === "en" ? img.url.replace(/-fr\.jpg$/, "-en.jpg") : img.url;
   const alt = img.group === "guide"
@@ -115,7 +119,8 @@ function image(id: string): ResolvedImage {
 
 /** Page du guide vidéo correspondant à une image, sinon le centre des guides. */
 function guideUrlFor(imageId: string): string {
-  return imageId.startsWith("guide:") ? `/guide/${imageId.slice(6)}` : "/guide";
+  const id = IMAGE_ALIAS[imageId] ?? imageId;
+  return id.startsWith("guide:") ? `/guide/${id.slice(6)}` : "/guide";
 }
 
 const NETWORKS = [
@@ -970,9 +975,9 @@ const lettre: CampaignTemplate = {
       leadText: "Sept vidéos de moins d'une minute, en français et en anglais : le compte, la vérification, l'achat, le paiement Interac, la vente et votre sécurité. Commencez par le tour d'Ooble en une minute.",
       leadLink: "Voir tous les guides →",
       leadUrl: "/guide",
-      card1Image: "guide:acheter-usdt",
+      card1Image: "guide:acheter-usdc",
       card1: "Guide · 46 s | Acheter des USDC | Payez en dollars canadiens par Interac et recevez vos USDC dans votre wallet.",
-      card2Image: "guide:vendre-usdt",
+      card2Image: "guide:vendre-usdc",
       card2: "Guide · 42 s | Vendre des USDC | Envoyez vos USDC et recevez des dollars canadiens par Interac.",
       brief: [
         "5 | blockchains pour recevoir vos USDC : **Ethereum, Polygon, Solana, Avalanche et BNB Chain**.",
@@ -992,9 +997,9 @@ const lettre: CampaignTemplate = {
       leadText: "Seven videos under a minute each, in English and French: your account, verification, buying, paying with Interac, selling and staying safe. Start with the one-minute tour of Ooble.",
       leadLink: "See all guides →",
       leadUrl: "/guide",
-      card1Image: "guide:acheter-usdt",
+      card1Image: "guide:acheter-usdc",
       card1: "Guide · 44 s | Buy USDC | Pay in Canadian dollars by Interac and receive USDC in your wallet.",
-      card2Image: "guide:vendre-usdt",
+      card2Image: "guide:vendre-usdc",
       card2: "Guide · 43 s | Sell USDC | Send your USDC and receive Canadian dollars by Interac.",
       brief: [
         "5 | blockchains to receive your USDC: **Ethereum, Polygon, Solana, Avalanche and BNB Chain**.",
@@ -1300,7 +1305,7 @@ const nouveaute: CampaignTemplate = {
       preheader: "Envoyez vos USDC, recevez des dollars canadiens par Interac.",
       eyebrow: "Nouveau",
       headline: "Vendez vos USDC, recevez des dollars par Interac.",
-      image: "guide:vendre-usdt",
+      image: "guide:vendre-usdc",
       message: "Dans l'onglet Vendre, entrez le montant, choisissez le réseau et l'adresse courriel Interac où recevoir votre virement. Dès confirmation sur la blockchain, vos dollars partent.",
       points: [
         "À partir de 100 $ par vente",
@@ -1315,7 +1320,7 @@ const nouveaute: CampaignTemplate = {
       preheader: "Send your USDC, receive Canadian dollars by Interac.",
       eyebrow: "New",
       headline: "Sell your USDC, get dollars by Interac.",
-      image: "guide:vendre-usdt",
+      image: "guide:vendre-usdc",
       message: "In the Sell tab, enter the amount, pick the network and the Interac email where you want your transfer. As soon as it's confirmed on the blockchain, your dollars are on their way.",
       points: [
         "From $100 per sale",
@@ -1432,7 +1437,7 @@ const vendre: CampaignTemplate = {
       preheader: "Vendez vos USDC en quelques étapes, à partir de 100 $.",
       headline: "Vos USDC deviennent des dollars, sur votre compte.",
       intro: "Envoyez vos USDC et recevez des dollars canadiens par virement Interac e-Transfer, à partir de 100 $ par vente.",
-      image: "guide:vendre-usdt",
+      image: "guide:vendre-usdc",
       stepsTitle: "En quatre étapes",
       steps: [
         "Entrez le montant | Dans l'onglet Vendre. Le montant en dollars s'affiche automatiquement.",
@@ -1449,7 +1454,7 @@ const vendre: CampaignTemplate = {
       preheader: "Sell your USDC in a few steps, from $100.",
       headline: "Your USDC become dollars, in your account.",
       intro: "Send your USDC and receive Canadian dollars by Interac e-Transfer, from $100 per sale.",
-      image: "guide:vendre-usdt",
+      image: "guide:vendre-usdc",
       stepsTitle: "In four steps",
       steps: [
         "Enter the amount | In the Sell tab. The amount in dollars shows up automatically.",
@@ -1654,7 +1659,7 @@ const premierAchat: CampaignTemplate = {
       preheader: "Six étapes, un virement Interac, et vos USDC arrivent dans votre wallet.",
       headline: "Votre premier achat,\npas à pas.",
       intro: "Six étapes, un virement Interac, et vos USDC arrivent directement dans votre wallet.",
-      image: "guide:acheter-usdt",
+      image: "guide:acheter-usdc",
       videoLabel: "Voir la vidéo · 46 s",
       steps: [
         "Entrez le montant | En dollars canadiens ou en USDC. Le taux s'affiche en temps réel.",
@@ -1673,7 +1678,7 @@ const premierAchat: CampaignTemplate = {
       preheader: "Six steps, one Interac transfer, and your USDC land in your wallet.",
       headline: "Your first purchase,\nstep by step.",
       intro: "Six steps, one Interac transfer, and your USDC land directly in your wallet.",
-      image: "guide:acheter-usdt",
+      image: "guide:acheter-usdc",
       videoLabel: "Watch the video · 44 s",
       steps: [
         "Enter the amount | In Canadian dollars or USDC. The rate updates in real time.",

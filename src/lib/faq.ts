@@ -70,7 +70,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     shape: "square",
     title: "faqp.topic2",
     desc: "faqp.cat.buy",
-    videos: ["acheter-usdt"],
+    videos: ["acheter-usdc"],
     items: [
       item("acheter", "4q", "4a"),
       item("reseaux", "6q", "6a"),
@@ -101,7 +101,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     shape: "arch",
     title: "faqp.topicSell",
     desc: "faqp.cat.sell",
-    videos: ["vendre-usdt"],
+    videos: ["vendre-usdc"],
     items: [
       item("vendre", "5q", "5a"),
       item("portefeuille", "walletQ", "walletA"),

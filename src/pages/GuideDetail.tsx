@@ -7,7 +7,7 @@ import HelpShape from "@/components/help/HelpShape";
 import HelpVideo from "@/components/help/HelpVideo";
 import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { GUIDES, GUIDE_GROUPS, STEP_COUNT, TIP_COUNT, guideKey } from "@/lib/guides";
+import { GUIDES, GUIDE_GROUPS, STEP_COUNT, TIP_COUNT, guideKey, GUIDE_ALIAS } from "@/lib/guides";
 import { HELP_COLORS, guideTheme, inkOn } from "@/lib/faq";
 
 /* Un guide vidéo — même langage que les thèmes du centre d'aide : barre des
@@ -31,7 +31,7 @@ const GuideDetail = () => {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  if (index < 0) return <Navigate to="/guide" replace />;
+  if (index < 0) return <Navigate to={slug && GUIDE_ALIAS[slug] ? `/guide/${GUIDE_ALIAS[slug]}` : "/guide"} replace />;
 
   const guide = GUIDES[index];
   const group = GUIDE_GROUPS.find((gr) => gr.id === guide.group)!;

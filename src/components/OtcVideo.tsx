@@ -44,8 +44,8 @@ const OtcVideo = ({ className, name = "otc", label }: { className?: string; name
         key={lang}
         ref={ref}
         className="block aspect-video w-full"
-        src={`/video/${name}-${lang}.mp4?v=6`}
-        poster={`/video/${name}-${lang}.jpg?v=6`}
+        src={`/video/${name}-${lang}.mp4?v=7`}
+        poster={`/video/${name}-${lang}.jpg?v=7`}
         muted={muted}
         loop={!reduced}
         playsInline

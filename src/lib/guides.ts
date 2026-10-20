@@ -19,11 +19,14 @@ export const GUIDES: GuideDef[] = [
   { slug: "ooble-en-une-minute", key: "service", group: "start", to: "/inscription", duration: { fr: 37, en: 37 } },
   { slug: "creer-un-compte", key: "account", group: "start", to: "/inscription", duration: { fr: 19, en: 19 } },
   { slug: "verifier-identite", key: "kyc", group: "start", to: "/app/verification", duration: { fr: 31, en: 31 } },
-  { slug: "acheter-usdt", key: "buy", group: "trade", to: "/app/acheter", duration: { fr: 35, en: 35 } },
+  { slug: "acheter-usdc", key: "buy", group: "trade", to: "/app/acheter", duration: { fr: 35, en: 35 } },
   { slug: "payer-par-interac", key: "pay", group: "trade", to: "/faq/payer-par-interac", duration: { fr: 30, en: 30 } },
-  { slug: "vendre-usdt", key: "sell", group: "trade", to: "/app/vendre", duration: { fr: 35, en: 35 } },
+  { slug: "vendre-usdc", key: "sell", group: "trade", to: "/app/vendre", duration: { fr: 35, en: 35 } },
   { slug: "votre-securite", key: "safety", group: "safety", to: "/contact", duration: { fr: 24, en: 24 } },
 ];
+
+/** Anciennes adresses des guides (avant l'USDC) : elles mènent au guide actuel. */
+export const GUIDE_ALIAS: Record<string, string> = { "acheter-usdt": "acheter-usdc", "vendre-usdt": "vendre-usdc" };
 
 export const GUIDE_GROUPS: { id: GuideGroup; titleKey: TKey; subKey: TKey }[] = [
   { id: "start", titleKey: "guide.group.start", subKey: "guide.group.startSub" },
@@ -39,5 +42,5 @@ export const guideKey = (g: GuideDef, field: string) => `guide.${g.key}.${field}
 export const guideMedia = (g: GuideDef, lang: Lang) => {
   const base = `/guides/videos/${g.slug}-${lang}`;
   // ?v : change à chaque nouvelle version des vidéos (évite l'ancienne en cache).
-  return { video: `${base}.mp4?v=6`, poster: `${base}.jpg?v=6`, thumb: `${base}-thumb.jpg?v=6` };
+  return { video: `${base}.mp4?v=7`, poster: `${base}.jpg?v=7`, thumb: `${base}-thumb.jpg?v=7` };
 };
