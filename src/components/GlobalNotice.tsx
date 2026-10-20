@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { AlertTriangle, Info, ShieldAlert, X, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
@@ -15,6 +15,9 @@ import { useLiveNotices, type Announcement, type AnnouncementKind, type Maintena
  *   * l'overlay maintenance bloque toutes les routes clients (site public
  *     comme app connectée) MAIS jamais `/admin/*` — le back-office reste
  *     accessible pour piloter la reprise ;
+ *   * la connexion (et le mot de passe oublié) restent ouvertes : l'équipe doit
+ *     pouvoir entrer pendant la maintenance. Un client qui se connecte retrouve
+ *     l'écran de maintenance juste après ; un membre de l'équipe passe partout ;
  *   * la fermeture d'une bannière est mémorisée par utilisateur dans
  *     `localStorage` (clé qui inclut l'ID de l'annonce — une nouvelle annonce
  *     réapparaît même si l'ancienne avait été fermée) ;
@@ -146,36 +149,35 @@ function MaintenanceOverlay({ window: mw }: { window: MaintenanceWindow }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="maintenance-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 px-5 backdrop-blur-md"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background px-6"
     >
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-center shadow-xl md:p-8">
-        <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-foreground/70">
-          <Wrench className="h-5 w-5" strokeWidth={1.9} />
-        </span>
+      <div className="w-full max-w-md text-center">
+        <Wrench className="mx-auto h-6 w-6 text-muted-foreground" strokeWidth={1.7} />
         <h2
           id="maintenance-title"
-          className="mt-4 font-display text-[22px] font-semibold tracking-tight"
+          className="mt-5 font-display text-[28px] font-semibold tracking-tight"
         >
           {title}
         </h2>
         {body && (
-          <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">
+          <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
             {body}
           </p>
         )}
         {eta && (
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3.5 py-1.5 text-[12px] font-medium text-muted-foreground">
-            <span className="uppercase tracking-[0.1em]">
-              {lang === "en" ? "Back online" : "Retour prévu"}
-            </span>
-            <span className="text-foreground">{eta}</span>
-          </div>
+          <p className="mt-6 text-[13px] text-muted-foreground">
+            {lang === "en" ? "Back online" : "Retour prévu"} <span className="text-foreground">{eta}</span>
+          </p>
         )}
-        <p className="mt-6 text-[11.5px] text-muted-foreground">
+        <p className="mt-8 text-[12.5px] text-muted-foreground">
           {lang === "en"
             ? "Thanks for your patience. The Ooble team"
             : "Merci de votre patience. L'équipe Ooble"}
         </p>
+        {/* Discret : l'équipe se connecte pour passer la maintenance. */}
+        <Link to="/connexion" className="mt-10 inline-block text-[12px] text-muted-foreground/70 underline underline-offset-4 hover:text-foreground">
+          {lang === "en" ? "Team access" : "Accès équipe"}
+        </Link>
       </div>
     </div>
   );
@@ -196,10 +198,12 @@ const GlobalNotice = () => {
   }, []);
 
   const onAdmin = pathname.startsWith("/admin");
+  // Se connecter reste possible pendant la maintenance (sinon l'équipe ne pourrait plus entrer).
+  const onAuth = pathname === "/connexion" || pathname === "/reinitialiser";
   const maintenanceLive = maintenance ? isWindowLive(maintenance, now) : false;
   // Les membres du staff peuvent continuer à naviguer même en maintenance
   // (pour publier, communiquer, etc.).
-  const showOverlay = maintenanceLive && !onAdmin && !isStaff;
+  const showOverlay = maintenanceLive && !onAdmin && !onAuth && !isStaff;
 
   return (
     <>
