@@ -49,11 +49,16 @@ const currentY = () => Math.max(scroller()?.scrollTop ?? 0, window.scrollY);
 const pageKey = () => `${window.location.pathname}${window.location.search}`;
 const saved = new Map<string, number>();
 let restoring = 0;
+// Saut instantané : le site défile en douceur (scroll-behavior: smooth), ce qui ferait glisser la page à chaque retour.
+const jump = (y: number) => {
+  const opts = { top: y, behavior: "instant" as ScrollBehavior };
+  scroller()?.scrollTo(opts);
+  window.scrollTo(opts);
+};
 
 export function scrollAdminTop() {
   restoring++;
-  scroller()?.scrollTo({ top: 0 });
-  window.scrollTo({ top: 0 });
+  jump(0);
 }
 
 /** Revient à `y`, en attendant que la page soit assez longue (données qui arrivent) ; s'arrête si on fait défiler soi-même. */
@@ -62,8 +67,7 @@ function scrollBack(y: number) {
   const until = performance.now() + 1500;
   const step = () => {
     if (run !== restoring) return;
-    scroller()?.scrollTo({ top: y });
-    window.scrollTo({ top: y });
+    jump(y);
     if (Math.abs(currentY() - y) > 2 && performance.now() < until) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);

@@ -56,7 +56,7 @@ import { prefetchClient } from "@/lib/clientProfileCache";
 import { prefetchOrder } from "@/lib/orderDetailCache";
 import { assetSymbol } from "@/lib/assets";
 import { loadOli } from "@/lib/oli";
-import { enterView, installScrollMemory, returnTo } from "@/lib/pageMotion";
+import { enterView, installScrollMemory, returnTo, scrollAdminTop } from "@/lib/pageMotion";
 
 /** Téléphone : navigation en cadran (false = ancien menu latéral). */
 
@@ -210,7 +210,7 @@ const AdminPortal = () => {
   const [flash, setFlash] = useState<string | null>(null);
   const [vw] = useViewport();
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const toTop = useCallback(() => { scrollRef.current?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }, []);
+  const toTop = useCallback(() => scrollAdminTop(), []);
   // Retour à la position d'avant, comme dans les applications (lib/pageMotion).
   useEffect(() => { installScrollMemory(); }, []);
   // Fil des vues ouvertes (commande, fiche client) : « retour » ramène à la précédente, à sa position.
