@@ -13,6 +13,7 @@ import {
 import { C } from "./adminTheme";
 import { Button, Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
+import { OLI_AVATAR, OLI_NAME } from "@/lib/oli";
 
 /**
  * Équipe › Notes et Tâches : la communication interne. Une note va à toute l'équipe ou à un poste ;
@@ -125,6 +126,15 @@ export function TeamAvatar({ name, id, size = 30, group, presence, preview }: {
     <span title={m && m.status !== "available" ? `${name} · ${PRESENCE_LABEL[m.status]}` : name} style={{ position: "relative", display: "inline-flex", flexShrink: 0, width: size, height: size }}>
       <img src={src} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: 99, objectFit: "cover", background: AVATAR_BG[look.bg] ?? AVATAR_BG.light, boxShadow: "0 0 0 1px var(--a-bds)", display: "block" }} />
       {dot && <span aria-hidden style={{ position: "absolute", right: -1, bottom: -1, width: Math.max(8, size * 0.28), height: Math.max(8, size * 0.28), borderRadius: 99, background: dot, boxShadow: "0 0 0 2px var(--a-bg)" }} />}
+    </span>
+  );
+}
+
+/** Avatar d'Oli, la plateforme quand elle agit seule : un petit robot dessiné au trait. */
+export function OliAvatar({ size = 30 }: { size?: number }) {
+  return (
+    <span title={OLI_NAME} style={{ display: "inline-flex", flexShrink: 0, width: size, height: size }}>
+      <img src={OLI_AVATAR} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: 99, background: AVATAR_BG.sage, boxShadow: "0 0 0 1px var(--a-bds)", display: "block" }} />
     </span>
   );
 }

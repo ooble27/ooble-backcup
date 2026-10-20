@@ -3,7 +3,8 @@ import { firstName, loadActivity, openMember, peekTeam, type ActivityItem } from
 import { C } from "./adminTheme";
 import { Notice, SidePanel } from "./ui";
 import { GR_CSS, Opts } from "./GrowthPanel";
-import { TeamAvatar, TeamName, TV_CSS, useMembers, useTeamLive } from "./TeamViews";
+import { OliAvatar, TeamAvatar, TeamName, TV_CSS, nameColor, useMembers, useTeamLive } from "./TeamViews";
+import { OLI_NAME } from "@/lib/oli";
 
 /**
  * Activité de l'équipe : ce que fait chacun (commandes prises et terminées, tâches créées et faites, passations,
@@ -87,10 +88,10 @@ export function ActivityPanel({ onClose, onOpenOrder, onGoTasks, onGoMe }: { onC
               <div key={`${i.kind}:${i.refId}:${k}`} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.bds}` }}>
                 {i.actorId
                   ? <button type="button" onClick={() => openMember(i.actorId!)} title="Voir sa fiche" style={{ all: "unset", cursor: "pointer", borderRadius: 99, display: "inline-flex" }}><TeamAvatar id={i.actorId} name={name} size={32} /></button>
-                  : <span style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.t3, boxShadow: "inset 0 0 0 1px var(--a-bd)" }}>S</span>}
+                  : <OliAvatar size={32} />}
                 <button type="button" disabled={!clickable} onClick={() => open(i)} style={{ all: "unset", cursor: clickable ? "pointer" : "default", flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 14.5, lineHeight: 1.5, color: C.t2, overflowWrap: "anywhere" }}>
-                    {i.actorId ? <TeamName id={i.actorId} name={firstName(name)} style={{ fontWeight: 500 }} /> : <span style={{ color: C.t1, fontWeight: 500 }}>Système</span>} {i.text}
+                    {i.actorId ? <TeamName id={i.actorId} name={firstName(name)} style={{ fontWeight: 500 }} /> : <span className="tv-name" style={{ color: nameColor("sage") }}>{OLI_NAME}</span>} {i.text}
                   </span>
                   <span style={{ display: "block", marginTop: 1, fontSize: 12, color: C.t3 }}>{time(i.at)}</span>
                 </button>

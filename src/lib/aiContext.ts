@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { orderRef } from "@/lib/orders";
 import type { PlatformContext } from "@/lib/ai";
+import { OLI_NAME, isAutoActor } from "@/lib/oli";
 
 const DB_STATUS_LABEL: Record<string, string> = {
   created: "Créée",
@@ -414,7 +415,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
     orderRef: orderRef(ev.order_id),
     previousStatus: DB_STATUS_LABEL[ev.previous_status ?? ""] ?? (ev.previous_status ?? ""),
     newStatus: DB_STATUS_LABEL[ev.new_status] ?? ev.new_status,
-    actor: ev.actor ?? "Système",
+    actor: isAutoActor(ev.actor) ? OLI_NAME : ev.actor ?? OLI_NAME,
     note: ev.note ?? "",
     createdAt: new Date(ev.created_at).toLocaleString("fr-CA", {
       day: "numeric",
@@ -491,7 +492,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
     created_at: string;
   }>;
   const recentAuditLog = alRows.map((al) => ({
-    actorEmail: al.actor_email ?? "Système",
+    actorEmail: al.actor_email ?? OLI_NAME,
     action: al.action,
     entityKind: al.entity_kind ?? "",
     entityId: al.entity_id ?? "",
