@@ -56,9 +56,13 @@ const CR_CSS = `
 .cr-link:focus-visible, .cr-go:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 4px; border-radius: 4px }
 
 /* Grille de panneaux. */
-.cr-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px }
-.cr-p { position: relative; background: var(--a-l1); border: 1px solid var(--a-bds); border-radius: 24px; padding: 22px 24px 24px; min-width: 0; overflow: hidden;
+/* Pas de cadres : des sections ouvertes, séparées par un trait fin et de l'espace. */
+.cr-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 0; row-gap: 44px }
+.cr-p { position: relative; padding: 24px 0 0; border-top: 1px solid var(--a-bd); min-width: 0;
   animation: cr-rise .7s cubic-bezier(.22,1,.36,1) both }
+.cr-p.s8, .cr-p.s7 { padding-right: 44px }
+.cr-p.s4, .cr-p.s5 { padding-left: 44px }
+.cr-p.s4::before, .cr-p.s5::before { content: ""; position: absolute; left: 0; top: 24px; bottom: 0; width: 1px; background: var(--a-bds) }
 .cr-p:nth-child(2) { animation-delay: 60ms } .cr-p:nth-child(3) { animation-delay: 120ms } .cr-p:nth-child(4) { animation-delay: 170ms } .cr-p:nth-child(5) { animation-delay: 220ms }
 @keyframes cr-rise { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
 .cr-p-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px }
@@ -99,23 +103,23 @@ const CR_CSS = `
 .cr-trio .h { margin-top: 6px; font-size: 12px; color: var(--a-t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 
 /* Pipeline : chaque commande avance de colonne en colonne. */
-.cr-pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px }
+.cr-pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px }
 .cr-col { min-width: 0 }
-.cr-col-h { display: flex; align-items: center; gap: 10px; padding: 0 2px 12px; font-size: 13.5px; color: var(--a-t2); white-space: nowrap }
+.cr-col-h { display: flex; align-items: center; gap: 10px; padding: 0 0 6px; font-size: 13.5px; color: var(--a-t2); white-space: nowrap }
 .cr-col-h b { font-weight: 500; color: var(--a-t1); font-size: 13px; min-width: 26px; height: 24px; padding: 0 8px; border-radius: 99px; background: var(--a-l3); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums }
 .cr-col-h .bar { flex: 1; height: 1px; background: var(--a-bds) }
-.cr-stack { display: flex; flex-direction: column; gap: 10px }
-.cr-card { background: var(--a-bg); border: 1px solid var(--a-bds); border-radius: 18px; padding: 13px 14px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 12px; align-items: center }
+.cr-stack { display: flex; flex-direction: column }
+.cr-card { padding: 16px 0 15px; border-bottom: 1px solid var(--a-bds); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 14px; align-items: center }
 .cr-card[data-done="true"] { opacity: .72 }
 .cr-card p { margin: 0 }
 .cr-card .amt { font-size: 17px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .cr-card .side { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--a-t3) }
 .cr-card .t { font-size: 12.5px; color: var(--a-t2); font-variant-numeric: tabular-nums; white-space: nowrap; align-self: start }
-.cr-card .sub { grid-column: 1 / 4; display: flex; align-items: center; gap: 8px; padding-top: 9px; border-top: 1px solid var(--a-bds); font-size: 12px; color: var(--a-t3); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden }
-.cr-ghost { border: 1px dashed var(--a-bd); border-radius: 18px; height: 96px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; color: var(--a-t3); text-align: center; padding: 0 12px }
-.cr-more { margin: 0; font-size: 12.5px; color: var(--a-t3); padding: 2px 4px }
+.cr-card .sub { grid-column: 2 / 4; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--a-t3); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden }
+.cr-ghost { padding: 18px 0; border-bottom: 1px solid var(--a-bds); font-size: 13px; color: var(--a-t3) }
+.cr-more { margin: 0; font-size: 12.5px; color: var(--a-t3); padding: 12px 0 0 }
 .cr-new { animation: cr-in 1s cubic-bezier(.22,1,.36,1) both }
-@keyframes cr-in { 0% { opacity: 0; transform: translateY(-14px) scale(.96); box-shadow: 0 0 0 1.5px var(--a-t1) } 55% { opacity: 1; transform: none; box-shadow: 0 0 0 1.5px var(--a-t1) } 100% { box-shadow: 0 0 0 0 transparent } }
+@keyframes cr-in { 0% { opacity: 0; transform: translateY(-12px); background: var(--a-hover4) } 55% { opacity: 1; transform: none; background: var(--a-hover4) } 100% { background: transparent } }
 
 /* Stock : un anneau par réseau. */
 .cr-rings { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 20px 12px }
@@ -131,7 +135,7 @@ const CR_CSS = `
 .cr-mem .n { font-size: 15px }
 .cr-mem .s { margin-top: 4px; font-size: 12px; line-height: 1.4; color: var(--a-t3); text-wrap: balance }
 .cr-face { position: relative; display: inline-flex }
-.cr-count { position: absolute; right: -4px; bottom: 0; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 99px; background: var(--a-t1); color: var(--a-bg); font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; box-shadow: 0 0 0 3px var(--a-l1) }
+.cr-count { position: absolute; right: -4px; bottom: 0; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 99px; background: var(--a-t1); color: var(--a-bg); font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; box-shadow: 0 0 0 3px var(--a-bg) }
 
 /* Fil d'activité. */
 .cr-ticker { margin-top: 16px; overflow: hidden; padding: 14px 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent) }
@@ -147,11 +151,14 @@ const CR_CSS = `
 
 @media (max-width: 1280px) {
   .s8, .s4, .s7, .s5 { grid-column: span 12 }
+  .cr-p.s8, .cr-p.s7 { padding-right: 0 } .cr-p.s4, .cr-p.s5 { padding-left: 0 }
+  .cr-p.s4::before, .cr-p.s5::before { display: none }
   .cr-pipe { grid-template-columns: repeat(2, minmax(0, 1fr)) }
 }
 @media (max-width: 640px) {
   .cr-clock { font-size: 48px } .cr-clock small { font-size: 20px }
-  .cr-p { padding: 18px 16px 20px; border-radius: 20px }
+  .cr-p { padding-top: 20px }
+  .cr-grid { row-gap: 36px }
   .cr-rates { gap: 24px }
   .cr-rate .v { font-size: 36px }
   .cr-big { font-size: 44px }
@@ -283,7 +290,7 @@ function RateChart({ pts }: { pts: RatePt[] }) {
             {(["buy", "sell"] as const).map((k) => (
               <g key={k}>
                 <circle className="cr-end" cx={g.x(g.last.at)} cy={g.y(g.last[k])} r={4} fill={`var(--cr-${k})`} />
-                <circle cx={g.x(g.last.at)} cy={g.y(g.last[k])} r={4} fill={`var(--cr-${k})`} stroke="var(--a-l1)" strokeWidth={2} />
+                <circle cx={g.x(g.last.at)} cy={g.y(g.last[k])} r={4} fill={`var(--cr-${k})`} stroke="var(--a-bg)" strokeWidth={2} />
               </g>
             ))}
             {[0, 0.5, 1].map((f) => (
