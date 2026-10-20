@@ -1553,7 +1553,7 @@ function FieldLabel({ children, right }: { children: React.ReactNode; right?: Re
 /** Image choisie + sélecteur visuel (feuille animée). */
 function ImageField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [group, setGroup] = useState<EmailImage["group"]>(value.startsWith("ill:") ? "illustration" : "guide");
+  const [group, setGroup] = useState<EmailImage["group"]>(value.startsWith("guide:") ? "guide" : value.startsWith("ill:") ? "illustration" : "visual");
   const current = EMAIL_IMAGES.find((i) => i.id === value) ?? EMAIL_IMAGES[0];
   const options = EMAIL_IMAGES.filter((i) => i.group === group);
   return (
@@ -1566,11 +1566,11 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: 6, marginTop: 4, borderRadius: 16, border: "none", background: C.hover3, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
       >
         <span style={{ width: 112, height: 64, borderRadius: 11, overflow: "hidden", flexShrink: 0, background: "#f3efe6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <img src={current.url} alt="" style={{ width: "100%", height: "100%", objectFit: current.group === "guide" ? "cover" : "contain" }} />
+          <img src={current.url} alt="" style={{ width: "100%", height: "100%", objectFit: current.group === "illustration" ? "contain" : "cover" }} />
         </span>
         <span style={{ minWidth: 0, flex: 1 }}>
           <span style={{ display: "block", fontSize: 13.5, color: C.t1 }}>{current.label}</span>
-          <span style={{ display: "block", fontSize: 11.5, color: C.t3, marginTop: 2 }}>{current.group === "guide" ? "Vignette de guide vidéo · s'adapte à la langue" : "Illustration"}</span>
+          <span style={{ display: "block", fontSize: 11.5, color: C.t3, marginTop: 2 }}>{current.group === "guide" ? "Vignette de guide vidéo · s'adapte à la langue" : current.group === "visual" ? "Visuel · s'adapte à la langue" : "Illustration"}</span>
         </span>
         <span style={{ fontSize: 12.5, color: C.t3, padding: "0 8px", display: "inline-flex", alignItems: "center", gap: 6 }}>
           <ImageIcon style={{ width: 13, height: 13 }} strokeWidth={1.7} />
@@ -1596,6 +1596,7 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
             onChange={setGroup}
             options={[
               { id: "guide", label: `Vidéos guides · ${EMAIL_IMAGES.filter((i) => i.group === "guide").length}` },
+              { id: "visual", label: `Visuels · ${EMAIL_IMAGES.filter((i) => i.group === "visual").length}` },
               { id: "illustration", label: `Illustrations · ${EMAIL_IMAGES.filter((i) => i.group === "illustration").length}` },
             ]}
           />
@@ -1618,7 +1619,7 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
                   }}
                 >
                   <span style={{ display: "block", aspectRatio: "16 / 10", background: "#f3efe6" }}>
-                    <img src={img.url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: img.group === "guide" ? "cover" : "contain", display: "block" }} />
+                    <img src={img.url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: img.group === "illustration" ? "contain" : "cover", display: "block" }} />
                   </span>
                   <span style={{ display: "block", padding: "8px 10px", fontSize: 12, color: C.t1 }}>{img.label}</span>
                   {on && (
