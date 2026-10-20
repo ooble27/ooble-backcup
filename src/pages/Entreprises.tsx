@@ -68,11 +68,11 @@ const USES: { w: Bi; t: Bi; d: Bi; art: () => JSX.Element; bg: string }[] = [
   {
     w: { fr: "Payer", en: "Pay" }, art: ArtPay, bg: MINT,
     t: { fr: "Réglez vos fournisseurs à l'étranger.", en: "Pay suppliers abroad." },
-    d: { fr: "Achetez des USDT en dollars canadiens et envoyez-les sur le réseau de votre fournisseur.", en: "Buy USDT with Canadian dollars and send it on your supplier's network." },
+    d: { fr: "Achetez des USDC en dollars canadiens et envoyez-les sur le réseau de votre fournisseur.", en: "Buy USDC with Canadian dollars and send it on your supplier's network." },
   },
   {
     w: { fr: "Encaisser", en: "Get paid" }, art: ArtGetPaid, bg: SUN,
-    t: { fr: "Vos clients vous paient en USDT ?", en: "Clients pay you in USDT?" },
+    t: { fr: "Vos clients vous paient en USDC ?", en: "Clients pay you in USDC?" },
     d: { fr: "Vendez-les et recevez des dollars canadiens par Interac, au nom de la société.", en: "Sell it and receive Canadian dollars by Interac, in the company's name." },
   },
   {
@@ -86,7 +86,7 @@ const STEPS: { t: Bi; d: Bi; c: string }[] = [
   { t: { fr: "Ouvrez le compte", en: "Open the account" }, d: { fr: "Raison sociale, numéro d'entreprise (NEQ ou BN) et personne responsable. Quelques minutes.", en: "Business name, business number (NEQ or BN) and contact person. A few minutes." }, c: CORAL },
   { t: { fr: "Vérifiez l'entreprise", en: "Verify the business" }, d: { fr: "Depuis votre espace, en environ 5 minutes : informations, administrateurs et propriétaires, documents.", en: "From your dashboard, in about 5 minutes: details, directors and owners, documents." }, c: SUN },
   { t: { fr: "On examine le dossier", en: "We review the file" }, d: { fr: "Notre équipe conformité vous répond par courriel, généralement sous 1 jour ouvrable.", en: "Our compliance team replies by email, usually within 1 business day." }, c: MINT },
-  { t: { fr: "Achetez et vendez", en: "Buy and sell" }, d: { fr: "Payez par Interac, recevez vos USDT sur l'une des 6 blockchains. Ou l'inverse.", en: "Pay by Interac, receive your USDT on one of 6 blockchains. Or the other way round." }, c: FOREST },
+  { t: { fr: "Achetez et vendez", en: "Buy and sell" }, d: { fr: "Payez par Interac, recevez vos USDC sur l'une des 4 blockchains. Ou l'inverse.", en: "Pay by Interac, receive your USDC on one of 4 blockchains. Or the other way round." }, c: FOREST },
 ];
 
 const READY: { g: Bi; items: Bi[] }[] = [
@@ -168,13 +168,13 @@ const Entreprises = () => {
               {L({ fr: "Ooble pour les entreprises", en: "Ooble for business" })}
             </p>
             <h1 className="animate-up mx-auto mt-6 max-w-[1120px] font-display text-[2.6rem] leading-[0.98] tracking-[-0.05em] [animation-delay:80ms] sm:text-[4rem] lg:text-[5.75rem]">
-              {L({ fr: "Vos USDT, au nom de votre ", en: "Your USDT, in your " })}
+              {L({ fr: "Vos USDC, au nom de votre ", en: "Your USDC, in your " })}
               <span style={{ color: CORAL }}>{L({ fr: "entreprise.", en: "company's name." })}</span>
             </h1>
             <p className="animate-up mx-auto mt-8 max-w-[480px] text-[14px] leading-[1.65] text-muted-foreground [animation-delay:160ms] sm:text-[15px]">
               {L({
-                fr: "Achetez et vendez des USDT en dollars canadiens, payez vos fournisseurs et encaissez vos clients. La vérification se fait une seule fois.",
-                en: "Buy and sell USDT with Canadian dollars, pay suppliers and get paid by clients. Verification is done once.",
+                fr: "Achetez et vendez des USDC en dollars canadiens, payez vos fournisseurs et encaissez vos clients. La vérification se fait une seule fois.",
+                en: "Buy and sell USDC with Canadian dollars, pay suppliers and get paid by clients. Verification is done once.",
               })}
             </p>
             <div className="animate-up mt-9 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 [animation-delay:240ms]">
@@ -375,7 +375,7 @@ const Entreprises = () => {
             <Reveal>
               <h2 className="mx-auto max-w-[900px] font-display text-[2.8rem] font-semibold leading-[0.98] tracking-[-0.055em] sm:text-[4.2rem] lg:text-[5.2rem]">
                 {L({ fr: "Faites entrer votre entreprise ", en: "Bring your business " })}
-                <span className="text-foreground/35">{L({ fr: "dans l'USDT.", en: "into USDT." })}</span>
+                <span className="text-foreground/35">{L({ fr: "dans l'USDC.", en: "into USDC." })}</span>
               </h2>
             </Reveal>
             <Reveal delay={140} className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">

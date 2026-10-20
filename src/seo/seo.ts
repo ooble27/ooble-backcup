@@ -35,62 +35,62 @@ const page = (fr: Copy, en: Copy) => ({ fr, en });
 const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
   "/": page(
     {
-      title: "Acheter et vendre des USDT au Canada par Interac | Ooble",
+      title: "Acheter et vendre des USDC au Canada par Interac | Ooble",
       description:
-        "Achetez et vendez des USDT (Tether) en dollars canadiens par virement Interac. Taux garanti 15 minutes, envoi direct dans votre wallet sur 6 blockchains. Ooble ne garde aucun solde.",
+        "Achetez et vendez des USDC (USD Coin) en dollars canadiens par virement Interac. Taux garanti 15 minutes, envoi direct dans votre wallet sur 4 blockchains. Ooble ne garde aucun solde.",
     },
     {
-      title: "Buy and Sell USDT in Canada with Interac e-Transfer | Ooble",
+      title: "Buy and Sell USDC in Canada with Interac e-Transfer | Ooble",
       description:
-        "Buy and sell USDT (Tether) with Canadian dollars via Interac e-Transfer. Rate locked for 15 minutes, sent straight to your wallet on 6 blockchains. Ooble never holds a balance.",
+        "Buy and sell USDC (USD Coin) with Canadian dollars via Interac e-Transfer. Rate locked for 15 minutes, sent straight to your wallet on 4 blockchains. Ooble never holds a balance.",
     },
   ),
   "/otc": page(
     {
-      title: "Desk OTC USDT au Canada : gros volumes, prix ferme | Ooble",
+      title: "Desk OTC USDC au Canada : gros volumes, prix ferme | Ooble",
       description:
-        "Plus de 10 000 $ en USDT à acheter ou à vendre ? Le desk OTC d'Ooble vous donne un prix ferme, un interlocuteur dédié et un règlement par virement bancaire.",
+        "Plus de 10 000 $ en USDC à acheter ou à vendre ? Le desk OTC d'Ooble vous donne un prix ferme, un interlocuteur dédié et un règlement par virement bancaire.",
     },
     {
-      title: "USDT OTC Desk in Canada: Large Trades, Firm Price | Ooble",
+      title: "USDC OTC Desk in Canada: Large Trades, Firm Price | Ooble",
       description:
-        "Buying or selling over $10,000 in USDT? Ooble's OTC desk gives you a firm price, one dedicated contact and settlement by bank transfer.",
+        "Buying or selling over $10,000 in USDC? Ooble's OTC desk gives you a firm price, one dedicated contact and settlement by bank transfer.",
     },
   ),
   "/entreprises": page(
     {
-      title: "Compte entreprise pour acheter des USDT au Canada | Ooble",
+      title: "Compte entreprise pour acheter des USDC au Canada | Ooble",
       description:
-        "Achetez et vendez des USDT au nom de votre société : compte entreprise vérifié, paiement par Interac en dollars canadiens, réception sur 6 blockchains.",
+        "Achetez et vendez des USDC au nom de votre société : compte entreprise vérifié, paiement par Interac en dollars canadiens, réception sur 4 blockchains.",
     },
     {
-      title: "Business Account to Buy USDT in Canada | Ooble",
+      title: "Business Account to Buy USDC in Canada | Ooble",
       description:
-        "Buy and sell USDT on behalf of your company: verified business account, Interac payments in Canadian dollars, delivery on 6 blockchains.",
+        "Buy and sell USDC on behalf of your company: verified business account, Interac payments in Canadian dollars, delivery on 4 blockchains.",
     },
   ),
   "/faq": page(
     {
-      title: "Centre d'aide : questions sur l'achat et la vente de USDT | Ooble",
+      title: "Centre d'aide : questions sur l'achat et la vente de USDC | Ooble",
       description:
-        "Frais, limites, vérification d'identité, virement Interac, réseaux et sécurité : toutes les réponses pour acheter et vendre des USDT au Canada avec Ooble.",
+        "Frais, limites, vérification d'identité, virement Interac, réseaux et sécurité : toutes les réponses pour acheter et vendre des USDC au Canada avec Ooble.",
     },
     {
-      title: "Help Center: Buying and Selling USDT in Canada | Ooble",
+      title: "Help Center: Buying and Selling USDC in Canada | Ooble",
       description:
-        "Fees, limits, identity verification, Interac transfers, networks and security: every answer about buying and selling USDT in Canada with Ooble.",
+        "Fees, limits, identity verification, Interac transfers, networks and security: every answer about buying and selling USDC in Canada with Ooble.",
     },
   ),
   "/guide": page(
     {
-      title: "Guides vidéo : acheter et vendre des USDT pas à pas | Ooble",
+      title: "Guides vidéo : acheter et vendre des USDC pas à pas | Ooble",
       description:
-        "Sept vidéos courtes pour créer votre compte, vérifier votre identité, acheter des USDT par Interac, les vendre, et protéger votre argent.",
+        "Sept vidéos courtes pour créer votre compte, vérifier votre identité, acheter des USDC par Interac, les vendre, et protéger votre argent.",
     },
     {
-      title: "Video Guides: Buy and Sell USDT Step by Step | Ooble",
+      title: "Video Guides: Buy and Sell USDC Step by Step | Ooble",
       description:
-        "Seven short videos to create your account, verify your identity, buy USDT with Interac, sell it, and keep your money safe.",
+        "Seven short videos to create your account, verify your identity, buy USDC with Interac, sell it, and keep your money safe.",
     },
   ),
   "/contact": page(
@@ -104,17 +104,17 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
     },
   ),
   "/connexion": page(
-    { title: "Connexion | Ooble", description: "Connectez-vous à votre compte Ooble pour acheter ou vendre des USDT en dollars canadiens." },
-    { title: "Sign in | Ooble", description: "Sign in to your Ooble account to buy or sell USDT with Canadian dollars." },
+    { title: "Connexion | Ooble", description: "Connectez-vous à votre compte Ooble pour acheter ou vendre des USDC en dollars canadiens." },
+    { title: "Sign in | Ooble", description: "Sign in to your Ooble account to buy or sell USDC with Canadian dollars." },
   ),
   "/inscription": page(
     {
       title: "Ouvrir un compte gratuit | Ooble",
-      description: "Créez votre compte Ooble en moins d'une minute, particulier ou entreprise, et achetez vos premiers USDT par Interac.",
+      description: "Créez votre compte Ooble en moins d'une minute, particulier ou entreprise, et achetez vos premiers USDC par Interac.",
     },
     {
       title: "Open a Free Account | Ooble",
-      description: "Create your Ooble account in under a minute, personal or business, and buy your first USDT with Interac.",
+      description: "Create your Ooble account in under a minute, personal or business, and buy your first USDC with Interac.",
     },
   ),
   "/inscription/individuel": page(
@@ -122,8 +122,8 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
     { title: "Personal Account | Ooble", description: "Open your personal Ooble account: free, in under a minute." },
   ),
   "/inscription/entreprise": page(
-    { title: "Compte entreprise | Ooble", description: "Ouvrez le compte Ooble de votre société pour acheter et vendre des USDT en son nom." },
-    { title: "Business Account | Ooble", description: "Open your company's Ooble account to buy and sell USDT on its behalf." },
+    { title: "Compte entreprise | Ooble", description: "Ouvrez le compte Ooble de votre société pour acheter et vendre des USDC en son nom." },
+    { title: "Business Account | Ooble", description: "Open your company's Ooble account to buy and sell USDC on its behalf." },
   ),
   "/conditions-utilisation": page(
     { title: "Conditions d'utilisation | Ooble", description: "Les conditions d'utilisation de la plateforme Ooble." },
@@ -136,8 +136,8 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
   "/reinitialiser": { ...page({ title: "Nouveau mot de passe | Ooble", description: "" }, { title: "New password | Ooble", description: "" }), noindex: true },
   "/invitation": {
     ...page(
-      { title: "Vous êtes invité sur Ooble", description: "Achetez et vendez des USDT en dollars canadiens, par Interac. Avec cette invitation, votre première commande a un meilleur taux." },
-      { title: "You're invited to Ooble", description: "Buy and sell USDT with Canadian dollars, by Interac. With this invitation, your first order gets a better rate." },
+      { title: "Vous êtes invité sur Ooble", description: "Achetez et vendez des USDC en dollars canadiens, par Interac. Avec cette invitation, votre première commande a un meilleur taux." },
+      { title: "You're invited to Ooble", description: "Buy and sell USDC with Canadian dollars, by Interac. With this invitation, your first order gets a better rate." },
     ),
     noindex: true,
   },

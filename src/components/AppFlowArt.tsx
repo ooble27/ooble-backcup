@@ -159,7 +159,7 @@ const AppFlowArt = ({ className }: { className?: string }) => {
       }}
       fill="none"
       role="img"
-      aria-label={lang === "en" ? "Ooble app preview: buy, sell and track your USDT transactions" : "Aperçu de l'application Ooble : acheter, vendre et suivre ses transactions USDT"}
+      aria-label={lang === "en" ? "Ooble app preview: buy, sell and track your USDC transactions" : "Aperçu de l'application Ooble : acheter, vendre et suivre ses transactions USDC"}
     >
       <defs>
         <filter id="ooble-card-shadow" x="-15%" y="-15%" width="130%" height="130%">
@@ -210,11 +210,11 @@ const AppFlowArt = ({ className }: { className?: string }) => {
         <rect x="184" y="282" width="100" height="95" rx="14" className="fill-foreground/[0.038] dark:fill-foreground/[0.07]" />
       </Card>
 
-      {/* ---------- Acheter des USDT — formulaire (au premier plan, se soulève) ---------- */}
+      {/* ---------- Acheter des USDC — formulaire (au premier plan, se soulève) ---------- */}
       <Card i={2} lift>
-        <Title>{lang === "en" ? "Buy USDT" : "Acheter des USDT"}</Title>
+        <Title>{lang === "en" ? "Buy USDC" : "Acheter des USDC"}</Title>
 
-        {/* Montant en USDT */}
+        {/* Montant en USDC */}
         <text x="46" y="126" className="fill-foreground/40 dark:fill-foreground/50" fontSize="15" letterSpacing="1.6" fontFamily={MONO}>
           {lang === "en" ? "AMOUNT" : "MONTANT"}
         </text>
@@ -222,9 +222,9 @@ const AppFlowArt = ({ className }: { className?: string }) => {
         <text x="66" y="186" className="fill-foreground/[0.72] font-display dark:fill-foreground/[0.85]" fontSize="38" fontWeight="600" letterSpacing="-1.5">
           500
         </text>
-        {/* Vrai logo USDT (fichier de marque). */}
-        <image href="/coins/usdt.svg" x={336} y={155} width={34} height={34} />
-        <text x={378} y={180} className="fill-foreground/50 dark:fill-foreground/60" fontSize="19" fontWeight="500">USDT</text>
+        {/* Vrai logo USDC (fichier de marque). */}
+        <image href="/coins/usdc.svg" x={336} y={155} width={34} height={34} />
+        <text x={378} y={180} className="fill-foreground/50 dark:fill-foreground/60" fontSize="19" fontWeight="500">USDC</text>
 
         {/* Adresse de destination */}
         <text x="46" y="240" className="fill-foreground/40 dark:fill-foreground/50" fontSize="15" letterSpacing="1.6" fontFamily={MONO}>

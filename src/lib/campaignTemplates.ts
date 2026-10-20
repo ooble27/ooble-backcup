@@ -59,9 +59,9 @@ const GUIDE_IMAGES: [string, string, string][] = [
   ["ooble-en-une-minute", "Ooble en une minute", "Ooble in one minute"],
   ["creer-un-compte", "Créer un compte", "Create an account"],
   ["verifier-identite", "Vérifier son identité", "Verify your identity"],
-  ["acheter-usdt", "Acheter des USDT", "Buy USDT"],
+  ["acheter-usdt", "Acheter des USDC", "Buy USDC"],
   ["payer-par-interac", "Payer par Interac", "Paying with Interac"],
-  ["vendre-usdt", "Vendre des USDT", "Sell USDT"],
+  ["vendre-usdt", "Vendre des USDC", "Sell USDC"],
   ["votre-securite", "Votre sécurité", "Staying safe"],
 ];
 
@@ -73,7 +73,7 @@ const ILLUSTRATIONS: [string, string, string][] = [
   ["reset", "Mot de passe", "Password"],
   ["phone", "Téléphone et app", "Phone and app"],
   ["coins", "Pièces des réseaux", "Network coins"],
-  ["transfer", "Virement vers USDT", "Transfer to USDT"],
+  ["transfer", "Virement vers USDC", "Transfer to USDC"],
   ["shield", "Bouclier de sécurité", "Security shield"],
   ["notify", "Notifications", "Notifications"],
   ["celebrate", "Célébration", "Celebration"],
@@ -119,8 +119,6 @@ function guideUrlFor(imageId: string): string {
 }
 
 const NETWORKS = [
-  { name: "Tron", std: "TRC20", note: ["Le plus utilisé pour les USDT", "The most used for USDT"], icon: `${SITE}/email-assets/coin-trx.png` },
-  { name: "BNB Chain", std: "BEP20", note: ["Rapide et économique", "Fast and low-cost"], icon: `${SITE}/email-assets/coin-bnb.png` },
   { name: "Ethereum", std: "ERC20", note: ["Le réseau historique, frais plus élevés", "The original network, higher fees"], icon: `${SITE}/email-assets/coin-eth.png` },
   { name: "Polygon", std: "POL", note: ["Frais très bas", "Very low fees"], icon: `${SITE}/email-assets/coin-matic.png` },
   { name: "Solana", std: "SOL", note: ["Règlement quasi instantané", "Near-instant settlement"], icon: `${SITE}/email-assets/coin-sol.png` },
@@ -447,11 +445,11 @@ const lancement: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "Ooble est ouvert : vos USDT en dollars canadiens",
-      preheader: "Achetez et vendez des USDT par Interac, en quelques minutes.",
+      subject: "Ooble est ouvert : vos USDC en dollars canadiens",
+      preheader: "Achetez et vendez des USDC par Interac, en quelques minutes.",
       headline: "Ooble est ouvert.",
-      highlight: "Vos USDT en dollars canadiens.",
-      intro: "Achetez et vendez des USDT par virement Interac, en quelques minutes. Les USDT arrivent directement dans votre wallet : Ooble ne garde jamais votre argent.",
+      highlight: "Vos USDC en dollars canadiens.",
+      intro: "Achetez et vendez des USDC par virement Interac, en quelques minutes. Les USDC arrivent directement dans votre wallet : Ooble ne garde jamais votre argent.",
       cta: "Ouvrir mon compte",
       ctaUrl: "/inscription",
       image: "ill:signup",
@@ -459,17 +457,17 @@ const lancement: CampaignTemplate = {
       steps: [
         "Créez votre compte | Gratuit, en moins d'une minute, avec votre nom légal complet.",
         "Vérifiez votre identité | Une pièce d'identité et un selfie. C'est une exigence de la loi canadienne.",
-        "Achetez ou vendez | Payez par Interac, recevez vos USDT dans votre wallet. Le taux affiché est garanti 15 minutes.",
+        "Achetez ou vendez | Payez par Interac, recevez vos USDC dans votre wallet. Le taux affiché est garanti 15 minutes.",
       ].join("\n"),
       closing: "Prêt à commencer ?",
       cta2: "Ouvrir mon compte gratuit",
     },
     en: {
-      subject: "Ooble is open: your USDT in Canadian dollars",
-      preheader: "Buy and sell USDT with Interac, in minutes.",
+      subject: "Ooble is open: your USDC in Canadian dollars",
+      preheader: "Buy and sell USDC with Interac, in minutes.",
       headline: "Ooble is open.",
-      highlight: "Your USDT in Canadian dollars.",
-      intro: "Buy and sell USDT by Interac e-Transfer, in minutes. Your USDT land directly in your wallet: Ooble never holds your money.",
+      highlight: "Your USDC in Canadian dollars.",
+      intro: "Buy and sell USDC by Interac e-Transfer, in minutes. Your USDC land directly in your wallet: Ooble never holds your money.",
       cta: "Open my account",
       ctaUrl: "/inscription",
       image: "ill:signup",
@@ -477,7 +475,7 @@ const lancement: CampaignTemplate = {
       steps: [
         "Create your account | Free, in under a minute, with your full legal name.",
         "Verify your identity | A photo ID and a selfie. It's required by Canadian law.",
-        "Buy or sell | Pay by Interac, receive your USDT in your wallet. The rate shown is locked for 15 minutes.",
+        "Buy or sell | Pay by Interac, receive your USDC in your wallet. The rate shown is locked for 15 minutes.",
       ].join("\n"),
       closing: "Ready to start?",
       cta2: "Open my free account",
@@ -489,7 +487,7 @@ const lancement: CampaignTemplate = {
       `<tr><td style="padding-bottom:12px;">${box(numbered(String(i + 1), esc(t ?? ""), rich(d, ctx), { dotBg: K.forest, dotFg: K.cream, square: true }), K.cream, { pad: "18px" })}</td></tr>`,
     ).join("");
     return [
-      `<tr><td class="px" bgcolor="${K.forest}" style="background:${K.forest};padding:22px 32px;">${brand(K.cream, `<span class="hide-m">${tr("Acheter et vendre des USDT au Canada", "Buy and sell USDT in Canada")}</span>`, K.mint)}</td></tr>`,
+      `<tr><td class="px" bgcolor="${K.forest}" style="background:${K.forest};padding:22px 32px;">${brand(K.cream, `<span class="hide-m">${tr("Acheter et vendre des USDC au Canada", "Buy and sell USDC in Canada")}</span>`, K.mint)}</td></tr>`,
       `<tr><td class="px" bgcolor="${K.forest}" style="background:${K.forest};padding:14px 32px 0;">
         ${h1(`${rich(v.headline, ctx)}<br><span style="color:${K.sun};">${rich(v.highlight, ctx)}</span>`, K.cream, 44)}
         ${para(rich(v.intro, ctx), "#d7eee3", 16, "20px 0 24px")}
@@ -500,7 +498,7 @@ const lancement: CampaignTemplate = {
       </td></tr></table></td></tr>`,
       P("40px 32px 8px", `${eyebrow(tr("Comment ça marche", "How it works"), K.forest)}${gap(8)}${h2(rich(v.stepsTitle, ctx), K.ink, 26)}${gap(22)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
       P("20px 32px 8px", box(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td valign="middle" style="font-family:${FONT};font-size:14px;font-weight:500;line-height:1.4;color:${K.ink};">${tr("Recevez vos USDT<br>sur 6 blockchains", "Receive your USDT<br>on 6 blockchains")}</td>
+        <td valign="middle" style="font-family:${FONT};font-size:14px;font-weight:500;line-height:1.4;color:${K.ink};">${tr("Recevez vos USDC<br>sur 4 blockchains", "Receive your USDC<br>on 4 blockchains")}</td>
         <td align="right" valign="middle" style="white-space:nowrap;">${networksRow(36)}</td></tr></table>`, "#ffffff", { border: K.line, pad: "18px 20px" })),
       `<tr><td class="px" align="center" style="padding:32px;">${para(`<strong style="color:${K.ink};font-size:18px;">${rich(v.closing, ctx)}</strong>`, K.ink, 18, "0 0 18px")}${btn(v.cta2 || v.cta, v.ctaUrl, K.ink, "#ffffff")}</td></tr>`,
       footer(ctx, { bg: K.cream, color: K.mute, link: K.forest }),
@@ -528,12 +526,12 @@ const guideInterac: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "4 règles pour que vos USDT partent tout seuls",
+      subject: "4 règles pour que vos USDC partent tout seuls",
       preheader: "Le bon destinataire, le montant exact, la référence et un compte à votre nom.",
       label: "Guide",
-      headline: "Vos USDT en quelques minutes :",
+      headline: "Vos USDC en quelques minutes :",
       highlight: "4 règles pour le virement Interac.",
-      intro: "Quand votre virement respecte ces 4 règles, il est reconnu automatiquement et vos USDT partent tout seuls.",
+      intro: "Quand votre virement respecte ces 4 règles, il est reconnu automatiquement et vos USDC partent tout seuls.",
       image: "guide:payer-par-interac",
       videoLabel: "Voir la vidéo · 1 min",
       rules: [
@@ -542,16 +540,16 @@ const guideInterac: CampaignTemplate = {
         "La référence | Dans le message, seulement la référence de l'ordre, qui commence par **OOB**.",
         "Un compte à votre nom | Le même nom que sur Ooble. Le paiement d'une autre personne est remboursé.",
       ].join("\n"),
-      cta: "Acheter des USDT",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
     },
     en: {
-      subject: "4 rules so your USDT go out on their own",
+      subject: "4 rules so your USDC go out on their own",
       preheader: "The right recipient, the exact amount, the reference and an account in your name.",
       label: "Guide",
-      headline: "Your USDT in minutes:",
+      headline: "Your USDC in minutes:",
       highlight: "4 rules for your Interac transfer.",
-      intro: "When your transfer follows these 4 rules, it's matched automatically and your USDT go out on their own.",
+      intro: "When your transfer follows these 4 rules, it's matched automatically and your USDC go out on their own.",
       image: "guide:payer-par-interac",
       videoLabel: "Watch the video · 1 min",
       rules: [
@@ -560,7 +558,7 @@ const guideInterac: CampaignTemplate = {
         "The reference | In the message, only the order reference, which starts with **OOB**.",
         "An account in your name | The same name as on Ooble. A payment from someone else is refunded.",
       ].join("\n"),
-      cta: "Buy USDT",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
     },
   },
@@ -610,7 +608,7 @@ const relanceKyc: CampaignTemplate = {
       preheader: "Vérifiez votre identité en deux minutes pour passer votre premier ordre.",
       greeting: "Bonjour {{prenom}},",
       headline: "Il ne vous manque qu'une étape avant votre premier achat.",
-      intro: "Votre compte Ooble est créé. Pour acheter ou vendre des USDT, la loi canadienne nous demande de vérifier votre identité, une seule fois. Ça prend environ deux minutes.",
+      intro: "Votre compte Ooble est créé. Pour acheter ou vendre des USDC, la loi canadienne nous demande de vérifier votre identité, une seule fois. Ça prend environ deux minutes.",
       needs: [
         "Une pièce d'identité | Passeport, permis de conduire ou carte d'identité, en cours de validité.",
         "Un selfie | Pris en direct avec votre téléphone, pour confirmer que c'est bien vous.",
@@ -624,7 +622,7 @@ const relanceKyc: CampaignTemplate = {
       preheader: "Verify your identity in two minutes to place your first order.",
       greeting: "Hi {{prenom}},",
       headline: "You're one step away from your first purchase.",
-      intro: "Your Ooble account is ready. To buy or sell USDT, Canadian law requires us to verify your identity, just once. It takes about two minutes.",
+      intro: "Your Ooble account is ready. To buy or sell USDC, Canadian law requires us to verify your identity, just once. It takes about two minutes.",
       needs: [
         "A photo ID | Passport, driver's licence or ID card, currently valid.",
         "A selfie | Taken live with your phone, to confirm it's really you.",
@@ -652,7 +650,7 @@ const relanceKyc: CampaignTemplate = {
       P("22px 40px 0", box(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         ${step(dot("&#10003;", K.forest, K.cream, 30), tr("Compte créé", "Account created"), tr("Fait", "Done"), `color:${K.ink};`, K.forest)}
         ${step(dot("2", K.coral, K.ink, 30), tr("Vérifier votre identité", "Verify your identity"), tr("À faire", "To do"), `color:${K.ink};font-weight:600;`, K.coralDeep)}
-        ${step(dot("3", "#ffffff", "#8a8379", 30, { border: "#cfc8bb" }), tr("Premier achat de USDT", "First USDT purchase"), "", "color:#8a8379;", "#8a8379")}
+        ${step(dot("3", "#ffffff", "#8a8379", 30, { border: "#cfc8bb" }), tr("Premier achat de USDC", "First USDC purchase"), "", "color:#8a8379;", "#8a8379")}
       </table>`, K.cream, { pad: "16px 22px", radius: 18 })),
       P("24px 40px 0", grid(needs, 2)),
       `<tr><td class="px" align="center" style="padding:16px 40px 8px;">${btn(v.cta, v.ctaUrl, K.forest, K.cream, { block: true, size: 16, radius: 14 })}${para(rich(v.note, ctx), "#8a8379", 13, "14px 0 0")}</td></tr>`,
@@ -668,7 +666,7 @@ const relanceKyc: CampaignTemplate = {
 const reseaux: CampaignTemplate = {
   id: "reseaux",
   name: "Réseaux",
-  description: "En-tête jaune soleil, colonnes des 6 blockchains. Pour un « bon à savoir » produit.",
+  description: "En-tête jaune soleil, colonnes des 4 blockchains. Pour un « bon à savoir » produit.",
   category: "Éducation",
   swatch: [K.sun, K.ink],
   fields: [
@@ -682,25 +680,25 @@ const reseaux: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "Vos USDT, sur le réseau de votre choix",
-      preheader: "Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche : choisissez au moment de l'ordre.",
+      subject: "Vos USDC, sur le réseau de votre choix",
+      preheader: "Ethereum, Polygon, Solana ou Avalanche : choisissez au moment de l'ordre.",
       badge: "Bon à savoir",
-      headline: "Vos USDT,\nsur le réseau\nde votre choix.",
+      headline: "Vos USDC,\nsur le réseau\nde votre choix.",
       intro: "Choisissez le réseau au moment de l'ordre. Le taux ne change pas : seuls les frais du réseau varient.",
-      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi : une adresse Tron commence par T, une adresse BNB Chain, Ethereum, Polygon ou Avalanche par 0x. Une transaction blockchain ne peut pas être annulée.",
-      cta: "Acheter des USDT",
+      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi : une adresse Ethereum, Polygon ou Avalanche commence par 0x. Une transaction blockchain ne peut pas être annulée.",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
       link: "Quel réseau choisir ?",
       linkUrl: "/faq/acheter",
     },
     en: {
-      subject: "Your USDT, on the network of your choice",
-      preheader: "Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche: choose when you place your order.",
+      subject: "Your USDC, on the network of your choice",
+      preheader: "Ethereum, Polygon, Solana or Avalanche: choose when you place your order.",
       badge: "Good to know",
-      headline: "Your USDT,\non the network\nyou choose.",
+      headline: "Your USDC,\non the network\nyou choose.",
       intro: "Pick the network when you place your order. The rate stays the same: only the network fees vary.",
-      tip: "Check that your wallet address matches the network you chose: a Tron address starts with T, a BNB Chain, Ethereum, Polygon or Avalanche address with 0x. A blockchain transaction can't be reversed.",
-      cta: "Buy USDT",
+      tip: "Check that your wallet address matches the network you chose: an Ethereum, Polygon or Avalanche address starts with 0x. A blockchain transaction can't be reversed.",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
       link: "Which network should I pick?",
       linkUrl: "/faq/acheter",
@@ -732,7 +730,7 @@ const reseaux: CampaignTemplate = {
         <td valign="middle">${btn(v.cta, v.ctaUrl, K.ink, K.sun)}</td>
         ${v.link ? `<td valign="middle" style="padding-left:18px;"><a href="${href(v.linkUrl)}" style="font-family:${FONT};font-size:14px;font-weight:500;color:${K.ink};text-decoration:underline;">${esc(v.link)}</a></td>` : ""}
       </tr></table></td></tr>`,
-      footer(ctx, { bg: K.ink, color: "#b5aea4", link: K.sun, note: tr("USDT en dollars canadiens, par Interac.", "USDT in Canadian dollars, by Interac.") }),
+      footer(ctx, { bg: K.ink, color: "#b5aea4", link: K.sun, note: tr("USDC en dollars canadiens, par Interac.", "USDC in Canadian dollars, by Interac.") }),
     ].join("");
   },
 };
@@ -754,10 +752,10 @@ const otc: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "Gros montants de USDT : un prix ferme, un seul interlocuteur",
+      subject: "Gros montants de USDC : un prix ferme, un seul interlocuteur",
       preheader: "Le desk OTC d'Ooble, à partir de 10 000 $.",
       amount: "10 000",
-      headline: "Achetez ou vendez de gros montants de USDT à un prix ferme, avec un seul interlocuteur.",
+      headline: "Achetez ou vendez de gros montants de USDC à un prix ferme, avec un seul interlocuteur.",
       benefits: [
         "Prix ferme | Garanti pendant la durée indiquée.",
         "Un interlocuteur | De la demande à la réception.",
@@ -772,10 +770,10 @@ const otc: CampaignTemplate = {
       contact: "otc@ooble.ca",
     },
     en: {
-      subject: "Large USDT amounts: a firm price, one point of contact",
+      subject: "Large USDC amounts: a firm price, one point of contact",
       preheader: "Ooble's OTC desk, from $10,000.",
       amount: "10,000",
-      headline: "Buy or sell large amounts of USDT at a firm price, with a single point of contact.",
+      headline: "Buy or sell large amounts of USDC at a firm price, with a single point of contact.",
       benefits: [
         "Firm price | Guaranteed for the stated time.",
         "One contact | From request to delivery.",
@@ -850,10 +848,10 @@ const entreprises: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "Payez vos fournisseurs en USDT, au nom de votre société",
-      preheader: "Le compte entreprise Ooble : Interac en dollars canadiens, 6 blockchains, desk OTC.",
+      subject: "Payez vos fournisseurs en USDC, au nom de votre société",
+      preheader: "Le compte entreprise Ooble : Interac en dollars canadiens, 4 blockchains, desk OTC.",
       badge: "Pour les entreprises",
-      headline: "Payez vos fournisseurs en USDT, au nom de votre société.",
+      headline: "Payez vos fournisseurs en USDC, au nom de votre société.",
       cta: "Ouvrir un compte entreprise",
       ctaUrl: "/inscription/entreprise",
       image: "ill:business",
@@ -861,7 +859,7 @@ const entreprises: CampaignTemplate = {
       benefits: [
         "Au nom de la société | Chaque achat et chaque vente sont faits au nom de votre entreprise.",
         "Interac en dollars canadiens | Payez depuis le compte bancaire de l'entreprise, sans carte.",
-        "6 blockchains | Tron, BNB Chain, Ethereum, Polygon, Solana et Avalanche, au choix pour chaque ordre.",
+        "4 blockchains | Ethereum, Polygon, Solana et Avalanche, au choix pour chaque ordre.",
         "Gros montants | Au-delà de 10 000 $, le desk OTC vous donne un prix ferme.",
       ].join("\n"),
       stepsTitle: "L'ouverture, en trois temps",
@@ -874,10 +872,10 @@ const entreprises: CampaignTemplate = {
       cta2Url: "/entreprises",
     },
     en: {
-      subject: "Pay your suppliers in USDT, in your company's name",
-      preheader: "The Ooble business account: Interac in Canadian dollars, 6 blockchains, OTC desk.",
+      subject: "Pay your suppliers in USDC, in your company's name",
+      preheader: "The Ooble business account: Interac in Canadian dollars, 4 blockchains, OTC desk.",
       badge: "For businesses",
-      headline: "Pay your suppliers in USDT, in your company's name.",
+      headline: "Pay your suppliers in USDC, in your company's name.",
       cta: "Open a business account",
       ctaUrl: "/inscription/entreprise",
       image: "ill:business",
@@ -885,7 +883,7 @@ const entreprises: CampaignTemplate = {
       benefits: [
         "In the company's name | Every purchase and sale is made in your business's name.",
         "Interac in Canadian dollars | Pay from the company's bank account, no card needed.",
-        "6 blockchains | Tron, BNB Chain, Ethereum, Polygon, Solana and Avalanche, your pick for each order.",
+        "4 blockchains | Ethereum, Polygon, Solana and Avalanche, your pick for each order.",
         "Large amounts | Above $10,000, the OTC desk gives you a firm price.",
       ].join("\n"),
       stepsTitle: "Opening your account, in three steps",
@@ -973,11 +971,11 @@ const lettre: CampaignTemplate = {
       leadLink: "Voir tous les guides →",
       leadUrl: "/guide",
       card1Image: "guide:acheter-usdt",
-      card1: "Guide · 46 s | Acheter des USDT | Payez en dollars canadiens par Interac et recevez vos USDT dans votre wallet.",
+      card1: "Guide · 46 s | Acheter des USDC | Payez en dollars canadiens par Interac et recevez vos USDC dans votre wallet.",
       card2Image: "guide:vendre-usdt",
-      card2: "Guide · 42 s | Vendre des USDT | Envoyez vos USDT et recevez des dollars canadiens par Interac.",
+      card2: "Guide · 42 s | Vendre des USDC | Envoyez vos USDC et recevez des dollars canadiens par Interac.",
       brief: [
-        "6 | blockchains pour recevoir vos USDT : **Tron, BNB Chain, Ethereum, Polygon, Solana et Avalanche**.",
+        "4 | blockchains pour recevoir vos USDC : **Ethereum, Polygon, Solana et Avalanche**.",
         "9 999 $ | par période de 24 heures, directement dans l'app.",
         "10 000 $ | et plus : le desk OTC vous donne un prix ferme, en une fois.",
       ].join("\n"),
@@ -995,11 +993,11 @@ const lettre: CampaignTemplate = {
       leadLink: "See all guides →",
       leadUrl: "/guide",
       card1Image: "guide:acheter-usdt",
-      card1: "Guide · 44 s | Buy USDT | Pay in Canadian dollars by Interac and receive USDT in your wallet.",
+      card1: "Guide · 44 s | Buy USDC | Pay in Canadian dollars by Interac and receive USDC in your wallet.",
       card2Image: "guide:vendre-usdt",
-      card2: "Guide · 43 s | Sell USDT | Send your USDT and receive Canadian dollars by Interac.",
+      card2: "Guide · 43 s | Sell USDC | Send your USDC and receive Canadian dollars by Interac.",
       brief: [
-        "6 | blockchains to receive your USDT: **Tron, BNB Chain, Ethereum, Polygon, Solana and Avalanche**.",
+        "4 | blockchains to receive your USDC: **Ethereum, Polygon, Solana and Avalanche**.",
         "$9,999 | per 24-hour period, right in the app.",
         "$10,000 | and up: the OTC desk gives you a firm price, in one go.",
       ].join("\n"),
@@ -1159,13 +1157,13 @@ const bienvenue: CampaignTemplate = {
       subject: "Bienvenue chez Ooble, {{prenom}}",
       preheader: "Votre compte est prêt. Voici comment passer votre premier ordre.",
       headline: "Bienvenue chez Ooble, {{prenom}}.",
-      intro: "Votre compte est prêt. Avec Ooble, vous achetez et vendez des USDT en dollars canadiens, par Interac, et vos USDT arrivent directement dans votre wallet.",
+      intro: "Votre compte est prêt. Avec Ooble, vous achetez et vendez des USDC en dollars canadiens, par Interac, et vos USDC arrivent directement dans votre wallet.",
       image: "ill:individual",
       stepsTitle: "Vos prochaines étapes",
       steps: [
         "Vérifiez votre identité | Une seule fois : pièce d'identité et selfie. C'est une exigence de la loi canadienne.",
         "Passez un ordre | Achat ou vente, à partir de 100 $. Le taux affiché est garanti 15 minutes.",
-        "Recevez directement | Vos USDT arrivent dans votre wallet, vos dollars sur votre compte bancaire.",
+        "Recevez directement | Vos USDC arrivent dans votre wallet, vos dollars sur votre compte bancaire.",
       ].join("\n"),
       cta: "Accéder à mon espace",
       ctaUrl: "/app",
@@ -1176,13 +1174,13 @@ const bienvenue: CampaignTemplate = {
       subject: "Welcome to Ooble, {{prenom}}",
       preheader: "Your account is ready. Here's how to place your first order.",
       headline: "Welcome to Ooble, {{prenom}}.",
-      intro: "Your account is ready. With Ooble, you buy and sell USDT in Canadian dollars, by Interac, and your USDT land directly in your wallet.",
+      intro: "Your account is ready. With Ooble, you buy and sell USDC in Canadian dollars, by Interac, and your USDC land directly in your wallet.",
       image: "ill:individual",
       stepsTitle: "Your next steps",
       steps: [
         "Verify your identity | Just once: photo ID and selfie. It's required by Canadian law.",
         "Place an order | Buy or sell, from $100. The rate shown is locked for 15 minutes.",
-        "Receive directly | Your USDT land in your wallet, your dollars in your bank account.",
+        "Receive directly | Your USDC land in your wallet, your dollars in your bank account.",
       ].join("\n"),
       cta: "Go to my dashboard",
       ctaUrl: "/app",
@@ -1241,7 +1239,7 @@ const fondateur: CampaignTemplate = {
       greeting: "Bonjour {{prenom}},",
       message: [
         "Merci d'avoir créé votre compte sur Ooble.",
-        "Nous avons construit Ooble pour une chose simple : acheter et vendre des USDT en dollars canadiens, par Interac, sans que personne ne garde votre argent. Chaque ordre est réglé individuellement, puis fermé.",
+        "Nous avons construit Ooble pour une chose simple : acheter et vendre des USDC en dollars canadiens, par Interac, sans que personne ne garde votre argent. Chaque ordre est réglé individuellement, puis fermé.",
         "Nous lisons chaque message. Si quelque chose vous bloque, ou si vous avez une idée pour améliorer le service, répondez simplement à ce courriel : c'est notre équipe qui vous répondra, en français ou en anglais.",
       ].join("\n\n"),
       ps: "Nos guides vidéo de moins d'une minute répondent aux questions les plus fréquentes : ooble.ca/guide",
@@ -1256,7 +1254,7 @@ const fondateur: CampaignTemplate = {
       greeting: "Hi {{prenom}},",
       message: [
         "Thank you for creating your Ooble account.",
-        "We built Ooble for one simple thing: buying and selling USDT in Canadian dollars, by Interac, without anyone holding your money. Each order is settled individually, then closed.",
+        "We built Ooble for one simple thing: buying and selling USDC in Canadian dollars, by Interac, without anyone holding your money. Each order is settled individually, then closed.",
         "We read every message. If something is holding you up, or if you have an idea to improve the service, just reply to this email: our team will answer, in English or French.",
       ].join("\n\n"),
       ps: "Our under-a-minute video guides answer the most common questions: ooble.ca/en/guide",
@@ -1298,33 +1296,33 @@ const nouveaute: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "Nouveau sur Ooble : la vente de USDT",
-      preheader: "Envoyez vos USDT, recevez des dollars canadiens par Interac.",
+      subject: "Nouveau sur Ooble : la vente de USDC",
+      preheader: "Envoyez vos USDC, recevez des dollars canadiens par Interac.",
       eyebrow: "Nouveau",
-      headline: "Vendez vos USDT, recevez des dollars par Interac.",
+      headline: "Vendez vos USDC, recevez des dollars par Interac.",
       image: "guide:vendre-usdt",
       message: "Dans l'onglet Vendre, entrez le montant, choisissez le réseau et l'adresse courriel Interac où recevoir votre virement. Dès confirmation sur la blockchain, vos dollars partent.",
       points: [
         "À partir de 100 $ par vente",
-        "Sur Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche",
+        "Sur Ethereum, Polygon, Solana ou Avalanche",
         "Virement Interac e-Transfer en dollars canadiens",
       ].join("\n"),
-      cta: "Vendre des USDT",
+      cta: "Vendre des USDC",
       ctaUrl: "/app/vendre",
     },
     en: {
-      subject: "New on Ooble: sell your USDT",
-      preheader: "Send your USDT, receive Canadian dollars by Interac.",
+      subject: "New on Ooble: sell your USDC",
+      preheader: "Send your USDC, receive Canadian dollars by Interac.",
       eyebrow: "New",
-      headline: "Sell your USDT, get dollars by Interac.",
+      headline: "Sell your USDC, get dollars by Interac.",
       image: "guide:vendre-usdt",
       message: "In the Sell tab, enter the amount, pick the network and the Interac email where you want your transfer. As soon as it's confirmed on the blockchain, your dollars are on their way.",
       points: [
         "From $100 per sale",
-        "On Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche",
+        "On Ethereum, Polygon, Solana or Avalanche",
         "Interac e-Transfer in Canadian dollars",
       ].join("\n"),
-      cta: "Sell USDT",
+      cta: "Sell USDC",
       ctaUrl: "/app/vendre",
     },
   },
@@ -1360,14 +1358,14 @@ const retour: CampaignTemplate = {
   copy: {
     fr: {
       subject: "{{prenom}}, voici ce qui a changé sur Ooble",
-      preheader: "Guides vidéo, 6 blockchains, desk OTC : tout ce qui est nouveau depuis votre dernière visite.",
+      preheader: "Guides vidéo, 4 blockchains, desk OTC : tout ce qui est nouveau depuis votre dernière visite.",
       headline: "Ça fait un moment, {{prenom}}.",
       intro: "Depuis votre dernière visite, nous avons amélioré Ooble. Voici l'essentiel, en trente secondes.",
       image: "ill:login",
       newsTitle: "Ce qui a changé",
       news: [
         "Des guides vidéo | Sept vidéos de moins d'une minute pour tout faire sans erreur.",
-        "6 blockchains | Recevez vos USDT sur Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
+        "4 blockchains | Recevez vos USDC sur Ethereum, Polygon, Solana ou Avalanche.",
         "Le desk OTC | À partir de 10 000 $, un prix ferme et un seul interlocuteur.",
       ].join("\n"),
       cta: "Revenir sur Ooble",
@@ -1375,14 +1373,14 @@ const retour: CampaignTemplate = {
     },
     en: {
       subject: "{{prenom}}, here's what's new at Ooble",
-      preheader: "Video guides, 6 blockchains, OTC desk: everything new since your last visit.",
+      preheader: "Video guides, 4 blockchains, OTC desk: everything new since your last visit.",
       headline: "It's been a while, {{prenom}}.",
       intro: "Since your last visit, we've improved Ooble. Here's the gist, in thirty seconds.",
       image: "ill:login",
       newsTitle: "What's changed",
       news: [
         "Video guides | Seven videos under a minute to get everything right.",
-        "6 blockchains | Receive your USDT on Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
+        "4 blockchains | Receive your USDC on Ethereum, Polygon, Solana or Avalanche.",
         "The OTC desk | From $10,000, a firm price and a single point of contact.",
       ].join("\n"),
       cta: "Come back to Ooble",
@@ -1416,8 +1414,8 @@ const retour: CampaignTemplate = {
 
 const vendre: CampaignTemplate = {
   id: "vendre",
-  name: "Vendre des USDT",
-  description: "Fond menthe et étapes numérotées sous la vidéo. Pour pousser la vente de USDT contre des dollars.",
+  name: "Vendre des USDC",
+  description: "Fond menthe et étapes numérotées sous la vidéo. Pour pousser la vente de USDC contre des dollars.",
   category: "Offre",
   swatch: [K.mint, K.coral],
   fields: [
@@ -1430,37 +1428,37 @@ const vendre: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "Vos USDT en dollars canadiens, par Interac",
-      preheader: "Vendez vos USDT en quelques étapes, à partir de 100 $.",
-      headline: "Vos USDT deviennent des dollars, sur votre compte.",
-      intro: "Envoyez vos USDT et recevez des dollars canadiens par virement Interac e-Transfer, à partir de 100 $ par vente.",
+      subject: "Vos USDC en dollars canadiens, par Interac",
+      preheader: "Vendez vos USDC en quelques étapes, à partir de 100 $.",
+      headline: "Vos USDC deviennent des dollars, sur votre compte.",
+      intro: "Envoyez vos USDC et recevez des dollars canadiens par virement Interac e-Transfer, à partir de 100 $ par vente.",
       image: "guide:vendre-usdt",
       stepsTitle: "En quatre étapes",
       steps: [
         "Entrez le montant | Dans l'onglet Vendre. Le montant en dollars s'affiche automatiquement.",
         "Indiquez où recevoir vos dollars | L'adresse courriel Interac de votre virement, avec la question et la réponse de sécurité.",
-        "Envoyez vos USDT | Le montant exact, uniquement sur le réseau indiqué, puis confirmez l'envoi.",
+        "Envoyez vos USDC | Le montant exact, uniquement sur le réseau indiqué, puis confirmez l'envoi.",
         "Recevez vos dollars | Dès confirmation sur la blockchain, par virement Interac e-Transfer.",
       ].join("\n"),
       tip: "Si vous envoyez depuis une plateforme d'échange, ajoutez ses frais de retrait : le montant reçu doit être exact.",
-      cta: "Vendre des USDT",
+      cta: "Vendre des USDC",
       ctaUrl: "/app/vendre",
     },
     en: {
-      subject: "Your USDT in Canadian dollars, by Interac",
-      preheader: "Sell your USDT in a few steps, from $100.",
-      headline: "Your USDT become dollars, in your account.",
-      intro: "Send your USDT and receive Canadian dollars by Interac e-Transfer, from $100 per sale.",
+      subject: "Your USDC in Canadian dollars, by Interac",
+      preheader: "Sell your USDC in a few steps, from $100.",
+      headline: "Your USDC become dollars, in your account.",
+      intro: "Send your USDC and receive Canadian dollars by Interac e-Transfer, from $100 per sale.",
       image: "guide:vendre-usdt",
       stepsTitle: "In four steps",
       steps: [
         "Enter the amount | In the Sell tab. The amount in dollars shows up automatically.",
         "Tell us where to send your dollars | The Interac email for your transfer, with the security question and answer.",
-        "Send your USDT | The exact amount, only on the network shown, then confirm the transfer.",
+        "Send your USDC | The exact amount, only on the network shown, then confirm the transfer.",
         "Receive your dollars | As soon as it's confirmed on the blockchain, by Interac e-Transfer.",
       ].join("\n"),
       tip: "If you send from an exchange, add its withdrawal fee: the amount received must be exact.",
-      cta: "Sell USDT",
+      cta: "Sell USDC",
       ctaUrl: "/app/vendre",
     },
   },
@@ -1582,12 +1580,12 @@ const verifie: CampaignTemplate = {
   copy: {
     fr: {
       subject: "C'est fait, {{prenom}} : votre identité est vérifiée",
-      preheader: "Vous pouvez maintenant acheter et vendre des USDT.",
+      preheader: "Vous pouvez maintenant acheter et vendre des USDC.",
       headline: "C'est fait, {{prenom}}.\nVotre identité est vérifiée.",
-      intro: "Votre compte est prêt : vous pouvez acheter et vendre des USDT en dollars canadiens, dès maintenant.",
+      intro: "Votre compte est prêt : vous pouvez acheter et vendre des USDC en dollars canadiens, dès maintenant.",
       actions: [
-        "Acheter | Payez par Interac, recevez vos USDT. | /app/acheter",
-        "Vendre | Envoyez vos USDT, recevez des dollars. | /app/vendre",
+        "Acheter | Payez par Interac, recevez vos USDC. | /app/acheter",
+        "Vendre | Envoyez vos USDC, recevez des dollars. | /app/vendre",
         "Desk OTC | Dès 10 000 $, un prix ferme. | /otc",
       ].join("\n"),
       limit: "Dans l'app : de **100 $** à **9 999 $** par période de 24 heures. Au-delà, le desk OTC s'occupe de vous.",
@@ -1596,12 +1594,12 @@ const verifie: CampaignTemplate = {
     },
     en: {
       subject: "Done, {{prenom}}: your identity is verified",
-      preheader: "You can now buy and sell USDT.",
+      preheader: "You can now buy and sell USDC.",
       headline: "Done, {{prenom}}.\nYour identity is verified.",
-      intro: "Your account is ready: you can buy and sell USDT in Canadian dollars, starting now.",
+      intro: "Your account is ready: you can buy and sell USDC in Canadian dollars, starting now.",
       actions: [
-        "Buy | Pay by Interac, receive your USDT. | /app/acheter",
-        "Sell | Send your USDT, receive dollars. | /app/vendre",
+        "Buy | Pay by Interac, receive your USDC. | /app/acheter",
+        "Sell | Send your USDC, receive dollars. | /app/vendre",
         "OTC desk | From $10,000, a firm price. | /otc",
       ].join("\n"),
       limit: "In the app: from **$100** to **$9,999** per 24-hour period. Above that, the OTC desk takes care of you.",
@@ -1639,7 +1637,7 @@ const verifie: CampaignTemplate = {
 const premierAchat: CampaignTemplate = {
   id: "premier-achat",
   name: "Premier achat",
-  description: "En-tête noir et jaune, vidéo, six étapes en cartes. Pour guider un premier achat de USDT.",
+  description: "En-tête noir et jaune, vidéo, six étapes en cartes. Pour guider un premier achat de USDC.",
   category: "Éducation",
   swatch: [K.ink, K.sun],
   fields: [
@@ -1652,41 +1650,41 @@ const premierAchat: CampaignTemplate = {
   ],
   copy: {
     fr: {
-      subject: "Votre premier achat de USDT, pas à pas",
-      preheader: "Six étapes, un virement Interac, et vos USDT arrivent dans votre wallet.",
+      subject: "Votre premier achat de USDC, pas à pas",
+      preheader: "Six étapes, un virement Interac, et vos USDC arrivent dans votre wallet.",
       headline: "Votre premier achat,\npas à pas.",
-      intro: "Six étapes, un virement Interac, et vos USDT arrivent directement dans votre wallet.",
+      intro: "Six étapes, un virement Interac, et vos USDC arrivent directement dans votre wallet.",
       image: "guide:acheter-usdt",
       videoLabel: "Voir la vidéo · 46 s",
       steps: [
-        "Entrez le montant | En dollars canadiens ou en USDT. Le taux s'affiche en temps réel.",
-        "Choisissez le réseau | Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
+        "Entrez le montant | En dollars canadiens ou en USDC. Le taux s'affiche en temps réel.",
+        "Choisissez le réseau | Ethereum, Polygon, Solana ou Avalanche.",
         "Collez votre adresse | Celle de votre wallet, sur le réseau choisi.",
         "Validez l'ordre | Vérifiez le montant, le taux, le réseau et l'adresse.",
         "Payez par Interac | À **interac@ooble.ca**, montant exact, référence en message.",
-        "Recevez vos USDT | Directement dans votre wallet. Ooble ne garde aucun solde.",
+        "Recevez vos USDC | Directement dans votre wallet. Ooble ne garde aucun solde.",
       ].join("\n"),
       tip: "Vérifiez deux fois l'adresse et le réseau : une transaction blockchain ne peut pas être annulée.",
-      cta: "Acheter des USDT",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
     },
     en: {
-      subject: "Your first USDT purchase, step by step",
-      preheader: "Six steps, one Interac transfer, and your USDT land in your wallet.",
+      subject: "Your first USDC purchase, step by step",
+      preheader: "Six steps, one Interac transfer, and your USDC land in your wallet.",
       headline: "Your first purchase,\nstep by step.",
-      intro: "Six steps, one Interac transfer, and your USDT land directly in your wallet.",
+      intro: "Six steps, one Interac transfer, and your USDC land directly in your wallet.",
       image: "guide:acheter-usdt",
       videoLabel: "Watch the video · 44 s",
       steps: [
-        "Enter the amount | In Canadian dollars or USDT. The rate updates in real time.",
-        "Choose the network | Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
+        "Enter the amount | In Canadian dollars or USDC. The rate updates in real time.",
+        "Choose the network | Ethereum, Polygon, Solana or Avalanche.",
         "Paste your address | Your wallet's, on the network you chose.",
         "Confirm the order | Check the amount, rate, network and address.",
         "Pay by Interac | To **interac@ooble.ca**, exact amount, reference as the message.",
-        "Receive your USDT | Directly in your wallet. Ooble keeps no balance.",
+        "Receive your USDC | Directly in your wallet. Ooble keeps no balance.",
       ].join("\n"),
       tip: "Double-check the address and network: a blockchain transaction can't be reversed.",
-      cta: "Buy USDT",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
     },
   },
@@ -1740,7 +1738,7 @@ const fetes: CampaignTemplate = {
       preheader: "Merci de votre confiance cette année.",
       headline: "Joyeuses\nfêtes, {{prenom}}.",
       message: [
-        "Merci de votre confiance cette année. Chaque ordre passé sur Ooble nous aide à construire une façon plus simple d'acheter et de vendre des USDT au Canada.",
+        "Merci de votre confiance cette année. Chaque ordre passé sur Ooble nous aide à construire une façon plus simple d'acheter et de vendre des USDC au Canada.",
         "Toute l'équipe vous souhaite de belles fêtes, et une très bonne année.",
       ].join("\n\n"),
       signature: "L'équipe Ooble",
@@ -1752,7 +1750,7 @@ const fetes: CampaignTemplate = {
       preheader: "Thank you for your trust this year.",
       headline: "Happy\nholidays, {{prenom}}.",
       message: [
-        "Thank you for your trust this year. Every order placed on Ooble helps us build a simpler way to buy and sell USDT in Canada.",
+        "Thank you for your trust this year. Every order placed on Ooble helps us build a simpler way to buy and sell USDC in Canada.",
         "The whole team wishes you happy holidays and a wonderful new year.",
       ].join("\n\n"),
       signature: "The Ooble team",
@@ -1866,7 +1864,7 @@ const quoiDeNeuf: CampaignTemplate = {
         "Nouveau | Guides vidéo | Sept vidéos de moins d'une minute, en français et en anglais.",
         "Nouveau | Desk OTC | À partir de 10 000 $, un prix ferme et un seul interlocuteur.",
         "Nouveau | Notifications | Suivez vos ordres en direct sur votre téléphone.",
-        "Amélioré | Réseaux | Vos USDT sur Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
+        "Amélioré | Réseaux | Vos USDC sur Ethereum, Polygon, Solana ou Avalanche.",
       ].join("\n"),
       cta: "Ouvrir Ooble",
       ctaUrl: "/app",
@@ -1881,7 +1879,7 @@ const quoiDeNeuf: CampaignTemplate = {
         "New | Video guides | Seven videos under a minute each, in English and French.",
         "New | OTC desk | From $10,000, a firm price and a single point of contact.",
         "New | Notifications | Follow your orders live on your phone.",
-        "Improved | Networks | Your USDT on Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
+        "Improved | Networks | Your USDC on Ethereum, Polygon, Solana or Avalanche.",
       ].join("\n"),
       cta: "Open Ooble",
       ctaUrl: "/app",
@@ -1926,11 +1924,11 @@ const evenement: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Invitation : séance de questions en direct avec l'équipe Ooble",
-      preheader: "30 minutes pour poser toutes vos questions sur l'achat et la vente de USDT.",
+      preheader: "30 minutes pour poser toutes vos questions sur l'achat et la vente de USDC.",
       day: "30",
       month: "OCT",
       headline: "Séance de questions en direct",
-      intro: "30 minutes avec l'équipe Ooble pour poser toutes vos questions sur l'achat et la vente de USDT au Canada.",
+      intro: "30 minutes avec l'équipe Ooble pour poser toutes vos questions sur l'achat et la vente de USDC au Canada.",
       details: [
         "Quand | Jeudi 30 octobre 2026, 19 h (heure de l'Est)",
         "Où | En ligne, le lien vous sera envoyé",
@@ -1947,11 +1945,11 @@ const evenement: CampaignTemplate = {
     },
     en: {
       subject: "You're invited: live Q&A with the Ooble team",
-      preheader: "30 minutes to ask all your questions about buying and selling USDT.",
+      preheader: "30 minutes to ask all your questions about buying and selling USDC.",
       day: "30",
       month: "OCT",
       headline: "Live Q&A session",
-      intro: "30 minutes with the Ooble team to ask all your questions about buying and selling USDT in Canada.",
+      intro: "30 minutes with the Ooble team to ask all your questions about buying and selling USDC in Canada.",
       details: [
         "When | Thursday, October 30, 2026, 7 p.m. (Eastern Time)",
         "Where | Online, we'll send you the link",
@@ -2016,8 +2014,8 @@ const conditions: CampaignTemplate = {
       intro: "Nos conditions d'utilisation et notre politique de confidentialité évoluent. Voici un résumé clair de ce qui change.",
       effective: "1er novembre 2026",
       changes: [
-        "Vos USDT peuvent être envoyés sur 6 blockchains : Tron, BNB Chain, Ethereum, Polygon, Solana et Avalanche.",
-        "Pour une vente, vous indiquez le portefeuille depuis lequel vous envoyez vos USDT : il est enregistré dans votre carnet d'adresses.",
+        "Vos USDC peuvent être envoyés sur 4 blockchains : Ethereum, Polygon, Solana et Avalanche.",
+        "Pour une vente, vous indiquez le portefeuille depuis lequel vous envoyez vos USDC : il est enregistré dans votre carnet d'adresses.",
         "Codes promotionnels et parrainage : leurs conditions sont précisées dans les conditions d'utilisation.",
         "Nous conservons la province et la ville d'inscription de chaque compte, pour nos obligations de conformité.",
         "Les courriels d'information contiennent un lien pour vous désabonner en un clic.",
@@ -2031,8 +2029,8 @@ const conditions: CampaignTemplate = {
       intro: "Our terms of use and privacy policy are changing. Here's a clear summary of what's different.",
       effective: "November 1, 2026",
       changes: [
-        "Your USDT can be sent on 6 blockchains: Tron, BNB Chain, Ethereum, Polygon, Solana and Avalanche.",
-        "When you sell, you tell us the wallet you send your USDT from: it is saved in your address book.",
+        "Your USDC can be sent on 4 blockchains: Ethereum, Polygon, Solana and Avalanche.",
+        "When you sell, you tell us the wallet you send your USDC from: it is saved in your address book.",
         "Promo codes and referral: their conditions are set out in the terms of use.",
         "We keep the province and city where each account signed up, for our compliance obligations.",
         "Newsletter emails include a one-click unsubscribe link.",
@@ -2158,7 +2156,7 @@ const faq: CampaignTemplate = {
       qa: [
         "Quels sont les frais ? | Le cours du marché plus une marge de 2 %, déjà comprise dans le prix affiché. Aucun frais caché, aucun abonnement.",
         "Combien de temps le taux est-il garanti ? | Quinze minutes à partir de la création de l'ordre. Envoyez votre virement dans ce délai.",
-        "Combien de temps pour recevoir mes USDT ? | En général quelques minutes après votre virement, à toute heure, quand les quatre règles du virement sont respectées.",
+        "Combien de temps pour recevoir mes USDC ? | En général quelques minutes après votre virement, à toute heure, quand les quatre règles du virement sont respectées.",
         "Ooble conserve-t-il mes fonds ? | Non. Aucun solde client, aucun portefeuille interne. Chaque ordre est réglé individuellement, puis clos.",
       ].join("\n"),
       cta: "Toutes les questions",
@@ -2172,7 +2170,7 @@ const faq: CampaignTemplate = {
       qa: [
         "What are the fees? | The market rate plus a 2% margin, already included in the displayed price. No hidden fees, no subscription.",
         "How long is the rate guaranteed? | Fifteen minutes from order creation. Send your transfer within that time.",
-        "How long until I receive my USDT? | Usually a few minutes after your transfer, at any hour, when the four transfer rules are followed.",
+        "How long until I receive my USDC? | Usually a few minutes after your transfer, at any hour, when the four transfer rules are followed.",
         "Does Ooble hold my funds? | No. No client balance, no internal wallet. Each order is settled individually, then closed.",
       ].join("\n"),
       cta: "All questions",
@@ -2292,21 +2290,21 @@ const affiche: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Achetez. Vendez. En dollars canadiens.",
-      preheader: "Vos USDT par Interac, en quelques minutes.",
+      preheader: "Vos USDC par Interac, en quelques minutes.",
       headline: "Achetez.\nVendez.\nEn dollars\ncanadiens.",
-      intro: "Vos USDT par virement Interac, en quelques minutes, directement dans votre wallet.",
+      intro: "Vos USDC par virement Interac, en quelques minutes, directement dans votre wallet.",
       cta: "Commencer",
       ctaUrl: "/inscription",
-      foot: "Tron · BNB Chain · Polygon · Solana",
+      foot: "Ethereum · Polygon · Solana · Avalanche",
     },
     en: {
       subject: "Buy. Sell. In Canadian dollars.",
-      preheader: "Your USDT by Interac, in minutes.",
+      preheader: "Your USDC by Interac, in minutes.",
       headline: "Buy.\nSell.\nIn Canadian\ndollars.",
-      intro: "Your USDT by Interac e-Transfer, in minutes, directly in your wallet.",
+      intro: "Your USDC by Interac e-Transfer, in minutes, directly in your wallet.",
       cta: "Get started",
       ctaUrl: "/inscription",
-      foot: "Tron · BNB Chain · Polygon · Solana",
+      foot: "Ethereum · Polygon · Solana · Avalanche",
     },
   },
   body: (v, ctx) => [
@@ -2351,13 +2349,13 @@ const notifications: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Suivez vos ordres en direct sur votre téléphone",
-      preheader: "Paiement reçu, USDT envoyés, ordre terminé : Ooble vous prévient à chaque étape.",
+      preheader: "Paiement reçu, USDC envoyés, ordre terminé : Ooble vous prévient à chaque étape.",
       headline: "Vos ordres,\nen direct.",
       intro: "Ooble vous prévient à chaque étape. Plus besoin de rafraîchir la page.",
       image: "ill:notify",
       steps: [
         "Paiement reçu | Votre virement Interac est arrivé et vérifié.",
-        "USDT envoyés | Vos USDT partent vers votre wallet, avec le lien de la transaction.",
+        "USDC envoyés | Vos USDC partent vers votre wallet, avec le lien de la transaction.",
         "Ordre terminé | Tout est réglé, l'ordre est fermé.",
       ].join("\n"),
       tip: "Sur iPhone, ajoutez d'abord Ooble à votre écran d'accueil : les notifications passent par l'app installée.",
@@ -2366,13 +2364,13 @@ const notifications: CampaignTemplate = {
     },
     en: {
       subject: "Follow your orders live on your phone",
-      preheader: "Payment received, USDT sent, order complete: Ooble keeps you posted at every step.",
+      preheader: "Payment received, USDC sent, order complete: Ooble keeps you posted at every step.",
       headline: "Your orders,\nlive.",
       intro: "Ooble lets you know at every step. No more refreshing the page.",
       image: "ill:notify",
       steps: [
         "Payment received | Your Interac transfer has arrived and been checked.",
-        "USDT sent | Your USDT are on their way to your wallet, with the transaction link.",
+        "USDC sent | Your USDC are on their way to your wallet, with the transaction link.",
         "Order complete | Everything is settled and the order is closed.",
       ].join("\n"),
       tip: "On iPhone, first add Ooble to your home screen: notifications come through the installed app.",
@@ -2399,7 +2397,7 @@ const notifications: CampaignTemplate = {
 
 const portefeuille: CampaignTemplate = {
   id: "portefeuille",
-  name: "Vos USDT restent à vous",
+  name: "Vos USDC restent à vous",
   description: "Illustration centrée sur fond pêche, trois garanties. Pour expliquer qu'Ooble ne garde jamais l'argent.",
   category: "Éducation",
   swatch: [K.peach, K.forest],
@@ -2408,31 +2406,31 @@ const portefeuille: CampaignTemplate = {
     { key: "points", label: "Garanties", kind: "lines", hint: "Trois lignes : Titre | description" }, F.cta, F.ctaUrl],
   copy: {
     fr: {
-      subject: "Vos USDT restent à vous, toujours",
-      preheader: "Ooble ne garde jamais votre argent : vos USDT arrivent directement dans votre wallet.",
-      headline: "Vos USDT restent à vous.",
-      intro: "Ooble ne garde jamais votre argent : vos USDT arrivent directement dans votre wallet, et chaque ordre est fermé une fois réglé.",
+      subject: "Vos USDC restent à vous, toujours",
+      preheader: "Ooble ne garde jamais votre argent : vos USDC arrivent directement dans votre wallet.",
+      headline: "Vos USDC restent à vous.",
+      intro: "Ooble ne garde jamais votre argent : vos USDC arrivent directement dans votre wallet, et chaque ordre est fermé une fois réglé.",
       image: "ill:wallet",
       points: [
         "Aucun solde chez Ooble | Pas de portefeuille interne, rien qui dort sur la plateforme.",
         "Votre wallet, vos clés | Vous seul avez la phrase de récupération. Ne la partagez jamais.",
-        "Le bon réseau | L'adresse doit correspondre au réseau choisi : Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
+        "Le bon réseau | L'adresse doit correspondre au réseau choisi : Ethereum, Polygon, Solana ou Avalanche.",
       ].join("\n"),
-      cta: "Acheter des USDT",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
     },
     en: {
-      subject: "Your USDT stay yours, always",
-      preheader: "Ooble never holds your money: your USDT land directly in your wallet.",
-      headline: "Your USDT stay yours.",
-      intro: "Ooble never holds your money: your USDT land directly in your wallet, and each order is closed once settled.",
+      subject: "Your USDC stay yours, always",
+      preheader: "Ooble never holds your money: your USDC land directly in your wallet.",
+      headline: "Your USDC stay yours.",
+      intro: "Ooble never holds your money: your USDC land directly in your wallet, and each order is closed once settled.",
       image: "ill:wallet",
       points: [
         "No balance at Ooble | No internal wallet, nothing sitting on the platform.",
         "Your wallet, your keys | Only you have the recovery phrase. Never share it.",
-        "The right network | The address must match the network you chose: Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
+        "The right network | The address must match the network you chose: Ethereum, Polygon, Solana or Avalanche.",
       ].join("\n"),
-      cta: "Buy USDT",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
     },
   },
@@ -2462,14 +2460,14 @@ const pourquoi: CampaignTemplate = {
     { key: "reasons", label: "Raisons", kind: "lines", hint: "Quatre lignes : Titre | description" }, F.cta, F.ctaUrl],
   copy: {
     fr: {
-      subject: "Quatre raisons d'acheter vos USDT avec Ooble",
+      subject: "Quatre raisons d'acheter vos USDC avec Ooble",
       preheader: "Dollars canadiens, Interac, taux garanti 15 minutes, et une vraie équipe.",
       headline: "Pourquoi\nOoble ?",
-      intro: "Acheter des USDT au Canada devrait être simple. Voici ce qui change avec Ooble.",
+      intro: "Acheter des USDC au Canada devrait être simple. Voici ce qui change avec Ooble.",
       image: "ill:shield",
       reasons: [
         "En dollars canadiens | Payez par Interac, depuis votre propre banque.",
-        "Directement chez vous | Vos USDT arrivent dans votre wallet. Ooble ne garde aucun solde.",
+        "Directement chez vous | Vos USDC arrivent dans votre wallet. Ooble ne garde aucun solde.",
         "Taux garanti 15 minutes | Le prix affiché comprend tout : marge de 2 %, aucun frais caché.",
         "Une vraie équipe | Qui vous répond en français et en anglais.",
       ].join("\n"),
@@ -2477,14 +2475,14 @@ const pourquoi: CampaignTemplate = {
       ctaUrl: "/inscription",
     },
     en: {
-      subject: "Four reasons to buy your USDT with Ooble",
+      subject: "Four reasons to buy your USDC with Ooble",
       preheader: "Canadian dollars, Interac, a rate locked for 15 minutes, and a real team.",
       headline: "Why\nOoble?",
-      intro: "Buying USDT in Canada should be simple. Here's what's different with Ooble.",
+      intro: "Buying USDC in Canada should be simple. Here's what's different with Ooble.",
       image: "ill:shield",
       reasons: [
         "In Canadian dollars | Pay by Interac, from your own bank.",
-        "Straight to you | Your USDT land in your wallet. Ooble keeps no balance.",
+        "Straight to you | Your USDC land in your wallet. Ooble keeps no balance.",
         "Rate locked for 15 minutes | The price shown includes everything: 2% margin, no hidden fees.",
         "A real team | Answering you in English and French.",
       ].join("\n"),
@@ -2512,7 +2510,7 @@ const pourquoi: CampaignTemplate = {
 
 const virement: CampaignTemplate = {
   id: "virement",
-  name: "Du dollar au USDT",
+  name: "Du dollar au USDC",
   description: "Illustration du virement, trois étapes côte à côte avec flèches. Pour montrer le parcours en un coup d'œil.",
   category: "Éducation",
   swatch: [K.cream, K.coral],
@@ -2523,33 +2521,33 @@ const virement: CampaignTemplate = {
     { key: "note", label: "Note", kind: "textarea" }, F.cta, F.ctaUrl],
   copy: {
     fr: {
-      subject: "Du dollar au USDT, en trois temps",
-      preheader: "Un virement Interac, une vérification automatique, vos USDT dans votre wallet.",
-      headline: "Du dollar au USDT,\nen trois temps.",
-      intro: "Voici ce qui se passe entre votre virement Interac et l'arrivée de vos USDT.",
+      subject: "Du dollar au USDC, en trois temps",
+      preheader: "Un virement Interac, une vérification automatique, vos USDC dans votre wallet.",
+      headline: "Du dollar au USDC,\nen trois temps.",
+      intro: "Voici ce qui se passe entre votre virement Interac et l'arrivée de vos USDC.",
       image: "ill:transfer",
       flow: [
         "Vous payez | Un virement Interac à interac@ooble.ca.",
         "Nous vérifions | Montant, référence et nom, automatiquement.",
-        "Vous recevez | Vos USDT, directement dans votre wallet.",
+        "Vous recevez | Vos USDC, directement dans votre wallet.",
       ].join("\n"),
       note: "Le taux est garanti **15 minutes** à partir de la création de l'ordre.",
-      cta: "Acheter des USDT",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
     },
     en: {
-      subject: "From dollars to USDT, in three steps",
-      preheader: "One Interac transfer, an automatic check, your USDT in your wallet.",
-      headline: "From dollars to USDT,\nin three steps.",
-      intro: "Here's what happens between your Interac transfer and your USDT arriving.",
+      subject: "From dollars to USDC, in three steps",
+      preheader: "One Interac transfer, an automatic check, your USDC in your wallet.",
+      headline: "From dollars to USDC,\nin three steps.",
+      intro: "Here's what happens between your Interac transfer and your USDC arriving.",
       image: "ill:transfer",
       flow: [
         "You pay | An Interac transfer to interac@ooble.ca.",
         "We check | Amount, reference and name, automatically.",
-        "You receive | Your USDT, directly in your wallet.",
+        "You receive | Your USDC, directly in your wallet.",
       ].join("\n"),
       note: "The rate is locked for **15 minutes** from order creation.",
-      cta: "Buy USDT",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
     },
   },
@@ -2695,7 +2693,7 @@ const relanceCourte: CampaignTemplate = {
       subject: "{{prenom}}, votre vérification vous attend",
       preheader: "Deux minutes, une pièce d'identité et un selfie.",
       headline: "{{prenom}}, votre vérification vous attend.",
-      intro: "Deux minutes, une pièce d'identité et un selfie. Ensuite, vous pouvez acheter vos premiers USDT.",
+      intro: "Deux minutes, une pièce d'identité et un selfie. Ensuite, vous pouvez acheter vos premiers USDC.",
       image: "ill:idcard",
       cta: "Terminer ma vérification",
       ctaUrl: "/app/verification",
@@ -2705,7 +2703,7 @@ const relanceCourte: CampaignTemplate = {
       subject: "{{prenom}}, your verification is waiting",
       preheader: "Two minutes, a photo ID and a selfie.",
       headline: "{{prenom}}, your verification is waiting.",
-      intro: "Two minutes, a photo ID and a selfie. Then you can buy your first USDT.",
+      intro: "Two minutes, a photo ID and a selfie. Then you can buy your first USDC.",
       image: "ill:idcard",
       cta: "Finish my verification",
       ctaUrl: "/app/verification",
@@ -2725,7 +2723,7 @@ const relanceCourte: CampaignTemplate = {
 const reseau: CampaignTemplate = {
   id: "reseau",
   name: "Réseau à la une",
-  description: "Fond noir, pièces des réseaux, trois points clés. Pour mettre en avant un réseau (Solana, Tron…).",
+  description: "Fond noir, pièces des réseaux, trois points clés. Pour mettre en avant un réseau (Solana, Polygon…).",
   category: "Lancement",
   swatch: [K.ink, K.sun],
   isNew: true,
@@ -2735,35 +2733,35 @@ const reseau: CampaignTemplate = {
     { key: "tip", label: "Encadré", kind: "textarea" }, F.cta, F.ctaUrl],
   copy: {
     fr: {
-      subject: "Recevez vos USDT sur Solana",
+      subject: "Recevez vos USDC sur Solana",
       preheader: "Règlement quasi instantané, à choisir au moment de l'ordre.",
       eyebrow: "Réseau à la une",
-      headline: "Vos USDT\nsur Solana.",
+      headline: "Vos USDC\nsur Solana.",
       intro: "Choisissez Solana au moment de l'ordre : le taux ne change pas, seuls les frais du réseau varient.",
       image: "ill:coins",
       points: [
         "Quasi instantané | Le règlement sur Solana prend quelques instants.",
-        "Au choix, à chaque ordre | Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche.",
+        "Au choix, à chaque ordre | Ethereum, Polygon, Solana ou Avalanche.",
         "Même taux | Seuls les frais du réseau changent.",
       ].join("\n"),
       tip: "Une adresse Solana ne commence ni par T ni par 0x. Vérifiez-la avant de valider : une transaction blockchain est définitive.",
-      cta: "Acheter des USDT",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
     },
     en: {
-      subject: "Receive your USDT on Solana",
+      subject: "Receive your USDC on Solana",
       preheader: "Near-instant settlement, chosen when you place your order.",
       eyebrow: "Network spotlight",
-      headline: "Your USDT\non Solana.",
+      headline: "Your USDC\non Solana.",
       intro: "Choose Solana when you place your order: the rate stays the same, only the network fees vary.",
       image: "ill:coins",
       points: [
         "Near-instant | Settlement on Solana takes moments.",
-        "Your pick, every order | Tron, BNB Chain, Ethereum, Polygon, Solana or Avalanche.",
+        "Your pick, every order | Ethereum, Polygon, Solana or Avalanche.",
         "Same rate | Only the network fees change.",
       ].join("\n"),
       tip: "A Solana address starts with neither T nor 0x. Check it before confirming: a blockchain transaction is final.",
-      cta: "Buy USDT",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
     },
   },
@@ -3008,31 +3006,31 @@ const mobile: CampaignTemplate = {
     { key: "steps", label: "Étapes", kind: "lines", hint: STEPS_HINT }, F.cta, F.ctaUrl],
   copy: {
     fr: {
-      subject: "Achetez vos USDT depuis votre téléphone",
+      subject: "Achetez vos USDC depuis votre téléphone",
       preheader: "Trois étapes, un virement Interac, et c'est fait.",
-      headline: "Vos USDT,\ndans la poche.",
+      headline: "Vos USDC,\ndans la poche.",
       intro: "Tout se fait depuis votre téléphone : l'ordre, le virement Interac et le suivi.",
       image: "ill:phone",
-      stats: ["100 $ | minimum par ordre", "15 min | taux garanti", "6 | blockchains au choix"].join("\n"),
+      stats: ["100 $ | minimum par ordre", "15 min | taux garanti", "4 | blockchains au choix"].join("\n"),
       steps: [
-        "Entrez le montant | En dollars canadiens ou en USDT.",
+        "Entrez le montant | En dollars canadiens ou en USDC.",
         "Payez par Interac | Depuis l'app de votre banque.",
-        "Recevez vos USDT | Directement dans votre wallet.",
+        "Recevez vos USDC | Directement dans votre wallet.",
       ].join("\n"),
       cta: "Acheter maintenant",
       ctaUrl: "/app/acheter",
     },
     en: {
-      subject: "Buy your USDT from your phone",
+      subject: "Buy your USDC from your phone",
       preheader: "Three steps, one Interac transfer, and you're done.",
-      headline: "Your USDT,\nin your pocket.",
+      headline: "Your USDC,\nin your pocket.",
       intro: "Everything happens on your phone: the order, the Interac transfer and the tracking.",
       image: "ill:phone",
-      stats: ["$100 | minimum per order", "15 min | locked rate", "6 | blockchains to choose from"].join("\n"),
+      stats: ["$100 | minimum per order", "15 min | locked rate", "4 | blockchains to choose from"].join("\n"),
       steps: [
-        "Enter the amount | In Canadian dollars or USDT.",
+        "Enter the amount | In Canadian dollars or USDC.",
         "Pay by Interac | From your banking app.",
-        "Receive your USDT | Directly in your wallet.",
+        "Receive your USDC | Directly in your wallet.",
       ].join("\n"),
       cta: "Buy now",
       ctaUrl: "/app/acheter",
@@ -3066,11 +3064,11 @@ const entreprisesVille: CampaignTemplate = {
     { key: "reasons", label: "Raisons", kind: "lines", hint: "Trois lignes : Titre | description" }, F.cta, F.ctaUrl],
   copy: {
     fr: {
-      subject: "Le compte entreprise Ooble : vos USDT au nom de la société",
+      subject: "Le compte entreprise Ooble : vos USDC au nom de la société",
       preheader: "Interac depuis le compte de l'entreprise, desk OTC dès 10 000 $.",
       badge: "Entreprises",
-      headline: "Vos USDT,\nau nom de\nvotre société.",
-      intro: "Achetez et vendez des USDT au nom de votre entreprise, payés par Interac depuis son compte bancaire.",
+      headline: "Vos USDC,\nau nom de\nvotre société.",
+      intro: "Achetez et vendez des USDC au nom de votre entreprise, payés par Interac depuis son compte bancaire.",
       image: "ill:city",
       reasons: [
         "Au nom de la société | Chaque ordre est fait au nom de l'entreprise, pas au vôtre.",
@@ -3081,11 +3079,11 @@ const entreprisesVille: CampaignTemplate = {
       ctaUrl: "/inscription/entreprise",
     },
     en: {
-      subject: "The Ooble business account: USDT in your company's name",
+      subject: "The Ooble business account: USDC in your company's name",
       preheader: "Interac from the company account, OTC desk from $10,000.",
       badge: "Business",
-      headline: "Your USDT,\nin your\ncompany's name.",
-      intro: "Buy and sell USDT in your business's name, paid by Interac from its bank account.",
+      headline: "Your USDC,\nin your\ncompany's name.",
+      intro: "Buy and sell USDC in your business's name, paid by Interac from its bank account.",
       image: "ill:city",
       reasons: [
         "In the company's name | Every order is made in the business's name, not yours.",
@@ -3132,7 +3130,7 @@ const enLigne: CampaignTemplate = {
       intro: "Pas de succursale, pas de rendez-vous : votre compte, votre vérification et vos ordres se font depuis chez vous.",
       image: "ill:laptop",
       points: [
-        "À toute heure | Vos USDT partent en quelques minutes quand le virement respecte les quatre règles.",
+        "À toute heure | Vos USDC partent en quelques minutes quand le virement respecte les quatre règles.",
         "Sur ordinateur ou téléphone | Le même compte, partout.",
         "Une équipe en renfort | Les gros montants et les cas particuliers sont vérifiés par notre équipe.",
       ].join("\n"),
@@ -3146,7 +3144,7 @@ const enLigne: CampaignTemplate = {
       intro: "No branch, no appointment: your account, your verification and your orders all happen from home.",
       image: "ill:laptop",
       points: [
-        "At any hour | Your USDT go out within minutes when the transfer follows the four rules.",
+        "At any hour | Your USDC go out within minutes when the transfer follows the four rules.",
         "On computer or phone | The same account, everywhere.",
         "A team behind you | Large amounts and special cases are checked by our team.",
       ].join("\n"),
@@ -3259,7 +3257,7 @@ const codePromo: CampaignTemplate = {
       terms: [
         "Une seule utilisation par compte.",
         "Ne se cumule pas avec un autre avantage : le plus intéressant s'applique.",
-        "Valable sur les achats de USDT, sur les 6 blockchains.",
+        "Valable sur les achats de USDC, sur les 4 blockchains.",
       ].join("\n"),
       cta: "Utiliser mon code",
       ctaUrl: "/app/acheter",
@@ -3275,7 +3273,7 @@ const codePromo: CampaignTemplate = {
       terms: [
         "One use per account.",
         "Can't be combined with another advantage: the best one applies.",
-        "Valid on USDT purchases, on all 6 blockchains.",
+        "Valid on USDC purchases, on all 4 blockchains.",
       ].join("\n"),
       cta: "Use my code",
       ctaUrl: "/app/acheter",
@@ -3298,8 +3296,8 @@ const codePromo: CampaignTemplate = {
 
 const sixReseaux: CampaignTemplate = {
   id: "six-reseaux",
-  name: "6 blockchains",
-  description: "Fond encre, les six pièces en rangée, une ligne par réseau. Pour annoncer Ethereum et Avalanche ou rappeler le choix du réseau.",
+  name: "4 blockchains",
+  description: "Fond encre, les pièces des réseaux en rangée, une ligne par réseau. Pour annoncer Ethereum et Avalanche ou rappeler le choix du réseau.",
   category: "Lancement",
   swatch: [K.ink, K.sun],
   isNew: true,
@@ -3309,22 +3307,22 @@ const sixReseaux: CampaignTemplate = {
   copy: {
     fr: {
       subject: "Ethereum et Avalanche sont disponibles sur Ooble",
-      preheader: "Vos USDT sur 6 blockchains : choisissez au moment de l'ordre.",
+      preheader: "Vos USDC sur 4 blockchains : choisissez au moment de l'ordre.",
       eyebrow: "Nouveau",
       headline: "Ethereum et Avalanche\nsont disponibles.",
-      intro: "Vos USDT partent maintenant sur **6 blockchains**. Choisissez le réseau au moment de l'ordre : le taux ne change pas, seuls les frais du réseau varient.",
-      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi. Une adresse Ethereum, BNB Chain, Polygon ou Avalanche commence par 0x, une adresse Tron par T. Une transaction blockchain ne peut pas être annulée.",
-      cta: "Acheter des USDT",
+      intro: "Vos USDC partent maintenant sur **4 blockchains**. Choisissez le réseau au moment de l'ordre : le taux ne change pas, seuls les frais du réseau varient.",
+      tip: "Vérifiez que l'adresse de votre wallet correspond au réseau choisi. Une adresse Ethereum, Polygon ou Avalanche commence par 0x. Une transaction blockchain ne peut pas être annulée.",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
     },
     en: {
       subject: "Ethereum and Avalanche are now available on Ooble",
-      preheader: "Your USDT on 6 blockchains: choose when you place your order.",
+      preheader: "Your USDC on 4 blockchains: choose when you place your order.",
       eyebrow: "New",
       headline: "Ethereum and Avalanche\nare now available.",
-      intro: "Your USDT now go out on **6 blockchains**. Pick the network when you place your order: the rate stays the same, only network fees vary.",
-      tip: "Check that your wallet address matches the network you chose. An Ethereum, BNB Chain, Polygon or Avalanche address starts with 0x, a Tron address with T. A blockchain transaction can't be reversed.",
-      cta: "Buy USDT",
+      intro: "Your USDC now go out on **4 blockchains**. Pick the network when you place your order: the rate stays the same, only network fees vary.",
+      tip: "Check that your wallet address matches the network you chose. An Ethereum, Polygon or Avalanche address starts with 0x. A blockchain transaction can't be reversed.",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
     },
   },
@@ -3363,10 +3361,10 @@ const reactivation: CampaignTemplate = {
       subject: "{{prenom}}, on peut faire mieux ?",
       preheader: "Une question, et un taux toujours garanti 15 minutes.",
       greeting: "Bonjour {{prenom}},",
-      message: "Nous n'avons pas eu de vos nouvelles depuis un moment, et nous aimerions savoir pourquoi.\n\nSi quelque chose vous a freiné (un délai, un taux, une étape pas claire), répondez simplement à ce courriel : nous lisons chaque réponse.\n\nEt si vous avez besoin de USDT, Ooble est toujours là : Interac en dollars canadiens, taux garanti 15 minutes, 6 blockchains.",
-      cta: "Acheter des USDT",
+      message: "Nous n'avons pas eu de vos nouvelles depuis un moment, et nous aimerions savoir pourquoi.\n\nSi quelque chose vous a freiné (un délai, un taux, une étape pas claire), répondez simplement à ce courriel : nous lisons chaque réponse.\n\nEt si vous avez besoin de USDC, Ooble est toujours là : Interac en dollars canadiens, taux garanti 15 minutes, 4 blockchains.",
+      cta: "Acheter des USDC",
       ctaUrl: "/app/acheter",
-      cta2: "Vendre des USDT",
+      cta2: "Vendre des USDC",
       cta2Url: "/app/vendre",
       signature: "L'équipe Ooble",
     },
@@ -3374,10 +3372,10 @@ const reactivation: CampaignTemplate = {
       subject: "{{prenom}}, can we do better?",
       preheader: "One question, and a rate still locked for 15 minutes.",
       greeting: "Hi {{prenom}},",
-      message: "We haven't heard from you in a while, and we'd like to know why.\n\nIf something held you back (a delay, a rate, an unclear step), just reply to this email: we read every answer.\n\nAnd if you need USDT, Ooble is still here: Interac in Canadian dollars, rate locked for 15 minutes, 6 blockchains.",
-      cta: "Buy USDT",
+      message: "We haven't heard from you in a while, and we'd like to know why.\n\nIf something held you back (a delay, a rate, an unclear step), just reply to this email: we read every answer.\n\nAnd if you need USDC, Ooble is still here: Interac in Canadian dollars, rate locked for 15 minutes, 4 blockchains.",
+      cta: "Buy USDC",
       ctaUrl: "/app/acheter",
-      cta2: "Sell USDT",
+      cta2: "Sell USDC",
       cta2Url: "/app/vendre",
       signature: "The Ooble team",
     },
@@ -3410,7 +3408,7 @@ const anniversaire: CampaignTemplate = {
       big: "1",
       bigLabel: "an ensemble",
       headline: "Merci, {{prenom}}.",
-      intro: "Il y a un an, vous ouvriez votre compte Ooble. Merci pour votre confiance : chaque commande nous aide à rendre l'achat et la vente de USDT plus simples au Canada.",
+      intro: "Il y a un an, vous ouvriez votre compte Ooble. Merci pour votre confiance : chaque commande nous aide à rendre l'achat et la vente de USDC plus simples au Canada.",
       image: "ill:celebrate",
       cta: "Ouvrir Ooble",
       ctaUrl: "/app",
@@ -3422,7 +3420,7 @@ const anniversaire: CampaignTemplate = {
       big: "1",
       bigLabel: "year together",
       headline: "Thank you, {{prenom}}.",
-      intro: "A year ago, you opened your Ooble account. Thank you for your trust: every order helps us make buying and selling USDT simpler in Canada.",
+      intro: "A year ago, you opened your Ooble account. Thank you for your trust: every order helps us make buying and selling USDC simpler in Canada.",
       image: "ill:celebrate",
       cta: "Open Ooble",
       ctaUrl: "/app",
@@ -3455,35 +3453,35 @@ const venteEnvoi: CampaignTemplate = {
     { key: "tip", label: "Encadré", kind: "textarea" }, F.cta, F.ctaUrl],
   copy: {
     fr: {
-      subject: "Vendre vos USDT : indiquez le portefeuille d'envoi",
+      subject: "Vendre vos USDC : indiquez le portefeuille d'envoi",
       preheader: "Une étape qui permet de reconnaître votre envoi automatiquement.",
-      headline: "Vendre vos USDT,\nsans attente.",
-      intro: "Au moment de vendre, vous indiquez le portefeuille depuis lequel vous envoyez vos USDT. Votre envoi est alors reconnu automatiquement, et vos dollars partent par Interac.",
+      headline: "Vendre vos USDC,\nsans attente.",
+      intro: "Au moment de vendre, vous indiquez le portefeuille depuis lequel vous envoyez vos USDC. Votre envoi est alors reconnu automatiquement, et vos dollars partent par Interac.",
       image: "ill:wallet",
       steps: [
         "Choisissez le montant et le réseau | Le taux affiché est garanti 15 minutes.",
-        "Indiquez votre portefeuille d'envoi | L'adresse d'où partiront vos USDT : collez-la ou connectez votre wallet. Elle est enregistrée dans votre carnet pour la prochaine fois.",
-        "Envoyez vos USDT | À l'adresse de dépôt affichée, depuis ce portefeuille.",
+        "Indiquez votre portefeuille d'envoi | L'adresse d'où partiront vos USDC : collez-la ou connectez votre wallet. Elle est enregistrée dans votre carnet pour la prochaine fois.",
+        "Envoyez vos USDC | À l'adresse de dépôt affichée, depuis ce portefeuille.",
         "Recevez vos dollars | Par virement Interac, sur le courriel de votre compte.",
       ].join("\n"),
       tip: "Envoyez toujours depuis l'adresse indiquée et sur le réseau choisi : un envoi depuis une autre adresse ne peut pas être reconnu automatiquement.",
-      cta: "Vendre des USDT",
+      cta: "Vendre des USDC",
       ctaUrl: "/app/vendre",
     },
     en: {
-      subject: "Selling your USDT: tell us your sending wallet",
+      subject: "Selling your USDC: tell us your sending wallet",
       preheader: "One step that lets us recognize your transfer automatically.",
-      headline: "Sell your USDT,\nwithout waiting.",
-      intro: "When you sell, you tell us the wallet you're sending your USDT from. Your transfer is then recognized automatically, and your dollars go out by Interac.",
+      headline: "Sell your USDC,\nwithout waiting.",
+      intro: "When you sell, you tell us the wallet you're sending your USDC from. Your transfer is then recognized automatically, and your dollars go out by Interac.",
       image: "ill:wallet",
       steps: [
         "Choose the amount and network | The rate shown is locked for 15 minutes.",
-        "Enter your sending wallet | The address your USDT will leave from: paste it or connect your wallet. It's saved in your address book for next time.",
-        "Send your USDT | To the deposit address shown, from that wallet.",
+        "Enter your sending wallet | The address your USDC will leave from: paste it or connect your wallet. It's saved in your address book for next time.",
+        "Send your USDC | To the deposit address shown, from that wallet.",
         "Get your dollars | By Interac e-Transfer, to your account email.",
       ].join("\n"),
       tip: "Always send from the address you entered and on the network you chose: a transfer from another address can't be recognized automatically.",
-      cta: "Sell USDT",
+      cta: "Sell USDC",
       ctaUrl: "/app/vendre",
     },
   },
@@ -3521,32 +3519,32 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
 const VARIANTS: Record<string, TemplateVariant[]> = {
   lancement: [
     { id: "court", label: "Court et direct", copy: {
-      fr: { subject: "Vos USDT par Interac, en quelques minutes", preheader: "Ouvrez votre compte gratuit en moins d'une minute.", headline: "USDT ⇄ dollars.", highlight: "Par Interac, en minutes.", intro: "Un compte gratuit, une vérification unique, et vos USDT arrivent directement dans votre wallet." },
-      en: { subject: "Your USDT by Interac, in minutes", preheader: "Open your free account in under a minute.", headline: "USDT ⇄ dollars.", highlight: "By Interac, in minutes.", intro: "A free account, a one-time verification, and your USDT land directly in your wallet." } } },
+      fr: { subject: "Vos USDC par Interac, en quelques minutes", preheader: "Ouvrez votre compte gratuit en moins d'une minute.", headline: "USDC ⇄ dollars.", highlight: "Par Interac, en minutes.", intro: "Un compte gratuit, une vérification unique, et vos USDC arrivent directement dans votre wallet." },
+      en: { subject: "Your USDC by Interac, in minutes", preheader: "Open your free account in under a minute.", headline: "USDC ⇄ dollars.", highlight: "By Interac, in minutes.", intro: "A free account, a one-time verification, and your USDC land directly in your wallet." } } },
     { id: "confiance", label: "Axé confiance", copy: {
-      fr: { subject: "Acheter des USDT au Canada, en toute confiance", preheader: "Entreprise canadienne, Interac, et votre argent ne reste jamais chez nous.", headline: "Des USDT,", highlight: "en toute confiance.", intro: "Ooble est une entreprise canadienne. Vous payez par Interac depuis votre propre compte bancaire, et vos USDT partent directement dans **votre** wallet : nous ne gardons jamais votre argent." },
-      en: { subject: "Buying USDT in Canada, with confidence", preheader: "A Canadian company, Interac, and your money never stays with us.", headline: "USDT,", highlight: "with confidence.", intro: "Ooble is a Canadian company. You pay by Interac from your own bank account, and your USDT go straight to **your** wallet: we never hold your money." } } },
+      fr: { subject: "Acheter des USDC au Canada, en toute confiance", preheader: "Entreprise canadienne, Interac, et votre argent ne reste jamais chez nous.", headline: "Des USDC,", highlight: "en toute confiance.", intro: "Ooble est une entreprise canadienne. Vous payez par Interac depuis votre propre compte bancaire, et vos USDC partent directement dans **votre** wallet : nous ne gardons jamais votre argent." },
+      en: { subject: "Buying USDC in Canada, with confidence", preheader: "A Canadian company, Interac, and your money never stays with us.", headline: "USDC,", highlight: "with confidence.", intro: "Ooble is a Canadian company. You pay by Interac from your own bank account, and your USDC go straight to **your** wallet: we never hold your money." } } },
   ],
   bienvenue: [
     { id: "chaleureux", label: "Plus chaleureux", copy: {
-      fr: { subject: "{{prenom}}, bienvenue dans la famille Ooble", preheader: "On est contents de vous compter parmi nous.", headline: "Ravi de vous accueillir, {{prenom}} !", intro: "Merci d'avoir choisi Ooble. Votre compte est prêt : il ne reste qu'à vérifier votre identité, une seule fois, et vous pourrez acheter vos premiers USDT." },
-      en: { subject: "{{prenom}}, welcome to the Ooble family", preheader: "We're glad to have you with us.", headline: "So glad you're here, {{prenom}}!", intro: "Thanks for choosing Ooble. Your account is ready: just verify your identity, once, and you can buy your first USDT." } } },
+      fr: { subject: "{{prenom}}, bienvenue dans la famille Ooble", preheader: "On est contents de vous compter parmi nous.", headline: "Ravi de vous accueillir, {{prenom}} !", intro: "Merci d'avoir choisi Ooble. Votre compte est prêt : il ne reste qu'à vérifier votre identité, une seule fois, et vous pourrez acheter vos premiers USDC." },
+      en: { subject: "{{prenom}}, welcome to the Ooble family", preheader: "We're glad to have you with us.", headline: "So glad you're here, {{prenom}}!", intro: "Thanks for choosing Ooble. Your account is ready: just verify your identity, once, and you can buy your first USDC." } } },
     { id: "pratique", label: "Pratique", copy: {
-      fr: { subject: "Votre compte Ooble est prêt : la suite en 3 étapes", preheader: "Vérification, premier ordre, virement Interac.", headline: "Votre compte est prêt.", intro: "Trois étapes vous séparent de vos premiers USDT. Comptez environ dix minutes, vérification comprise." },
-      en: { subject: "Your Ooble account is ready: next, 3 steps", preheader: "Verification, first order, Interac transfer.", headline: "Your account is ready.", intro: "Three steps stand between you and your first USDT. Allow about ten minutes, verification included." } } },
+      fr: { subject: "Votre compte Ooble est prêt : la suite en 3 étapes", preheader: "Vérification, premier ordre, virement Interac.", headline: "Votre compte est prêt.", intro: "Trois étapes vous séparent de vos premiers USDC. Comptez environ dix minutes, vérification comprise." },
+      en: { subject: "Your Ooble account is ready: next, 3 steps", preheader: "Verification, first order, Interac transfer.", headline: "Your account is ready.", intro: "Three steps stand between you and your first USDC. Allow about ten minutes, verification included." } } },
   ],
   "relance-kyc": [
     { id: "court", label: "Très court", copy: {
-      fr: { subject: "{{prenom}}, deux minutes et c'est fait", preheader: "Une pièce d'identité et un selfie.", headline: "Deux minutes, et c'est fait.", intro: "Une pièce d'identité, un selfie, et votre compte est prêt pour votre premier achat de USDT." },
-      en: { subject: "{{prenom}}, two minutes and you're done", preheader: "A photo ID and a selfie.", headline: "Two minutes, and you're done.", intro: "A photo ID, a selfie, and your account is ready for your first USDT purchase." } } },
+      fr: { subject: "{{prenom}}, deux minutes et c'est fait", preheader: "Une pièce d'identité et un selfie.", headline: "Deux minutes, et c'est fait.", intro: "Une pièce d'identité, un selfie, et votre compte est prêt pour votre premier achat de USDC." },
+      en: { subject: "{{prenom}}, two minutes and you're done", preheader: "A photo ID and a selfie.", headline: "Two minutes, and you're done.", intro: "A photo ID, a selfie, and your account is ready for your first USDC purchase." } } },
     { id: "rassurant", label: "Rassurant", copy: {
       fr: { subject: "Pourquoi nous vérifions votre identité", preheader: "Une exigence de la loi canadienne, une seule fois, données chiffrées.", headline: "Pourquoi cette vérification ?", intro: "La loi canadienne demande à toute entreprise de services monétaires de vérifier l'identité de ses clients. Elle se fait une seule fois, et vos documents sont chiffrés." },
       en: { subject: "Why we verify your identity", preheader: "Required by Canadian law, once, with encrypted data.", headline: "Why this verification?", intro: "Canadian law requires every money services business to verify its clients' identity. It happens only once, and your documents are encrypted." } } },
   ],
   "relance-courte": [
     { id: "dernier", label: "Dernier rappel", copy: {
-      fr: { subject: "Dernier rappel, {{prenom}}", preheader: "Votre compte vous attend toujours.", headline: "Dernier rappel, {{prenom}}.", intro: "Votre compte vous attend toujours : terminez votre vérification pour acheter ou vendre des USDT quand vous le voudrez." },
-      en: { subject: "Last reminder, {{prenom}}", preheader: "Your account is still waiting.", headline: "Last reminder, {{prenom}}.", intro: "Your account is still waiting: finish your verification to buy or sell USDT whenever you like." } } },
+      fr: { subject: "Dernier rappel, {{prenom}}", preheader: "Votre compte vous attend toujours.", headline: "Dernier rappel, {{prenom}}.", intro: "Votre compte vous attend toujours : terminez votre vérification pour acheter ou vendre des USDC quand vous le voudrez." },
+      en: { subject: "Last reminder, {{prenom}}", preheader: "Your account is still waiting.", headline: "Last reminder, {{prenom}}.", intro: "Your account is still waiting: finish your verification to buy or sell USDC whenever you like." } } },
   ],
   verifie: [
     { id: "premier-ordre", label: "Vers le premier ordre", copy: {
@@ -3555,39 +3553,39 @@ const VARIANTS: Record<string, TemplateVariant[]> = {
   ],
   "premier-achat": [
     { id: "rapide", label: "Rapide", copy: {
-      fr: { subject: "Vos premiers USDT en quelques minutes", preheader: "Le pas à pas, en une minute de lecture.", headline: "Vos premiers USDT,\nen quelques minutes.", intro: "Une minute de lecture, et vous saurez tout : du montant à l'arrivée des USDT dans votre wallet." },
-      en: { subject: "Your first USDT in minutes", preheader: "The step by step, in a one-minute read.", headline: "Your first USDT,\nin minutes.", intro: "A one-minute read, and you'll know it all: from the amount to your USDT landing in your wallet." } } },
+      fr: { subject: "Vos premiers USDC en quelques minutes", preheader: "Le pas à pas, en une minute de lecture.", headline: "Vos premiers USDC,\nen quelques minutes.", intro: "Une minute de lecture, et vous saurez tout : du montant à l'arrivée des USDC dans votre wallet." },
+      en: { subject: "Your first USDC in minutes", preheader: "The step by step, in a one-minute read.", headline: "Your first USDC,\nin minutes.", intro: "A one-minute read, and you'll know it all: from the amount to your USDC landing in your wallet." } } },
   ],
   retour: [
     { id: "nouveautes", label: "Axé nouveautés", copy: {
-      fr: { subject: "{{prenom}}, Ethereum et Avalanche sont arrivés", preheader: "6 blockchains, parrainage, codes promo : les nouveautés d'Ooble.", headline: "Du nouveau sur Ooble, {{prenom}}.", intro: "Depuis votre dernière visite : 6 blockchains, le parrainage, les codes promo et des guides vidéo. L'essentiel en trente secondes." },
-      en: { subject: "{{prenom}}, Ethereum and Avalanche are here", preheader: "6 blockchains, referral, promo codes: what's new on Ooble.", headline: "What's new on Ooble, {{prenom}}.", intro: "Since your last visit: 6 blockchains, referral, promo codes and video guides. The essentials in thirty seconds." } } },
+      fr: { subject: "{{prenom}}, Ethereum et Avalanche sont arrivés", preheader: "4 blockchains, parrainage, codes promo : les nouveautés d'Ooble.", headline: "Du nouveau sur Ooble, {{prenom}}.", intro: "Depuis votre dernière visite : 4 blockchains, le parrainage, les codes promo et des guides vidéo. L'essentiel en trente secondes." },
+      en: { subject: "{{prenom}}, Ethereum and Avalanche are here", preheader: "4 blockchains, referral, promo codes: what's new on Ooble.", headline: "What's new on Ooble, {{prenom}}.", intro: "Since your last visit: 4 blockchains, referral, promo codes and video guides. The essentials in thirty seconds." } } },
   ],
   vendre: [
     { id: "interac", label: "Axé Interac", copy: {
-      fr: { subject: "Vos USDT deviennent un virement Interac", preheader: "Sur le courriel de votre compte, au nom de votre compte vérifié.", headline: "Vos USDT deviennent un virement Interac.", intro: "Envoyez vos USDT, recevez des dollars canadiens par Interac sur le courriel de votre compte, à partir de 100 $ par vente." },
-      en: { subject: "Your USDT become an Interac e-Transfer", preheader: "To your account email, in the name of your verified account.", headline: "Your USDT become an Interac e-Transfer.", intro: "Send your USDT, receive Canadian dollars by Interac to your account email, from $100 per sale." } } },
+      fr: { subject: "Vos USDC deviennent un virement Interac", preheader: "Sur le courriel de votre compte, au nom de votre compte vérifié.", headline: "Vos USDC deviennent un virement Interac.", intro: "Envoyez vos USDC, recevez des dollars canadiens par Interac sur le courriel de votre compte, à partir de 100 $ par vente." },
+      en: { subject: "Your USDC become an Interac e-Transfer", preheader: "To your account email, in the name of your verified account.", headline: "Your USDC become an Interac e-Transfer.", intro: "Send your USDC, receive Canadian dollars by Interac to your account email, from $100 per sale." } } },
     { id: "court", label: "Court", copy: {
-      fr: { subject: "Vendre vos USDT, c'est simple", preheader: "À partir de 100 $, taux garanti 15 minutes.", headline: "Vendre vos USDT, c'est simple.", intro: "Taux garanti 15 minutes, dollars par Interac, à partir de 100 $." },
-      en: { subject: "Selling your USDT is simple", preheader: "From $100, rate locked for 15 minutes.", headline: "Selling your USDT is simple.", intro: "Rate locked for 15 minutes, dollars by Interac, from $100." } } },
+      fr: { subject: "Vendre vos USDC, c'est simple", preheader: "À partir de 100 $, taux garanti 15 minutes.", headline: "Vendre vos USDC, c'est simple.", intro: "Taux garanti 15 minutes, dollars par Interac, à partir de 100 $." },
+      en: { subject: "Selling your USDC is simple", preheader: "From $100, rate locked for 15 minutes.", headline: "Selling your USDC is simple.", intro: "Rate locked for 15 minutes, dollars by Interac, from $100." } } },
   ],
   otc: [
     { id: "entreprises", label: "Pour les sociétés", copy: {
-      fr: { subject: "Desk OTC : vos gros volumes de USDT, au nom de la société", preheader: "Prix ferme, un interlocuteur, à partir de 10 000 $.", headline: "Vos gros volumes de USDT, au nom de votre société, à un prix ferme." },
-      en: { subject: "OTC desk: your large USDT volumes, in your company's name", preheader: "Firm price, one contact, from $10,000.", headline: "Your large USDT volumes, in your company's name, at a firm price." } } },
+      fr: { subject: "Desk OTC : vos gros volumes de USDC, au nom de la société", preheader: "Prix ferme, un interlocuteur, à partir de 10 000 $.", headline: "Vos gros volumes de USDC, au nom de votre société, à un prix ferme." },
+      en: { subject: "OTC desk: your large USDC volumes, in your company's name", preheader: "Firm price, one contact, from $10,000.", headline: "Your large USDC volumes, in your company's name, at a firm price." } } },
   ],
   entreprises: [
     { id: "tresorerie", label: "Axé trésorerie", copy: {
-      fr: { subject: "Gérez la trésorerie en USDT de votre société", preheader: "Achetez et vendez des USDT au nom de l'entreprise, par Interac.", headline: "La trésorerie en USDT de votre société, simplement." },
-      en: { subject: "Manage your company's USDT treasury", preheader: "Buy and sell USDT in your company's name, by Interac.", headline: "Your company's USDT treasury, made simple." } } },
+      fr: { subject: "Gérez la trésorerie en USDC de votre société", preheader: "Achetez et vendez des USDC au nom de l'entreprise, par Interac.", headline: "La trésorerie en USDC de votre société, simplement." },
+      en: { subject: "Manage your company's USDC treasury", preheader: "Buy and sell USDC in your company's name, by Interac.", headline: "Your company's USDC treasury, made simple." } } },
     { id: "fournisseurs", label: "Fournisseurs à l'étranger", copy: {
-      fr: { subject: "Payez vos fournisseurs à l'étranger en USDT", preheader: "Sans attendre un virement international : en USDT, sur 6 blockchains.", headline: "Payez vos fournisseurs à l'étranger, sans attendre." },
-      en: { subject: "Pay your suppliers abroad in USDT", preheader: "No waiting for an international wire: in USDT, on 6 blockchains.", headline: "Pay your suppliers abroad, without waiting." } } },
+      fr: { subject: "Payez vos fournisseurs à l'étranger en USDC", preheader: "Sans attendre un virement international : en USDC, sur 4 blockchains.", headline: "Payez vos fournisseurs à l'étranger, sans attendre." },
+      en: { subject: "Pay your suppliers abroad in USDC", preheader: "No waiting for an international wire: in USDC, on 4 blockchains.", headline: "Pay your suppliers abroad, without waiting." } } },
   ],
   reseaux: [
     { id: "nouveaux", label: "Ethereum et Avalanche", copy: {
-      fr: { subject: "Ethereum et Avalanche s'ajoutent à Ooble", preheader: "6 blockchains au choix, au moment de l'ordre.", badge: "Nouveau", headline: "6 blockchains,\nau choix." },
-      en: { subject: "Ethereum and Avalanche join Ooble", preheader: "6 blockchains to choose from, when you order.", badge: "New", headline: "6 blockchains,\nyour choice." } } },
+      fr: { subject: "Ethereum et Avalanche s'ajoutent à Ooble", preheader: "4 blockchains au choix, au moment de l'ordre.", badge: "Nouveau", headline: "4 blockchains,\nau choix." },
+      en: { subject: "Ethereum and Avalanche join Ooble", preheader: "4 blockchains to choose from, when you order.", badge: "New", headline: "4 blockchains,\nyour choice." } } },
   ],
   pourquoi: [
     { id: "court", label: "Court", copy: {
@@ -3611,8 +3609,8 @@ const VARIANTS: Record<string, TemplateVariant[]> = {
   ],
   affiche: [
     { id: "vendre", label: "Côté vente", copy: {
-      fr: { subject: "Vendez vos USDT. Recevez des dollars.", preheader: "Par Interac, à partir de 100 $.", headline: "Vendez.\nRecevez\ndes dollars.", intro: "Vos USDT deviennent des dollars canadiens par Interac, à partir de 100 $.", cta: "Vendre des USDT", ctaUrl: "/app/vendre" },
-      en: { subject: "Sell your USDT. Get dollars.", preheader: "By Interac, from $100.", headline: "Sell.\nGet\ndollars.", intro: "Your USDT become Canadian dollars by Interac, from $100.", cta: "Sell USDT", ctaUrl: "/app/vendre" } } },
+      fr: { subject: "Vendez vos USDC. Recevez des dollars.", preheader: "Par Interac, à partir de 100 $.", headline: "Vendez.\nRecevez\ndes dollars.", intro: "Vos USDC deviennent des dollars canadiens par Interac, à partir de 100 $.", cta: "Vendre des USDC", ctaUrl: "/app/vendre" },
+      en: { subject: "Sell your USDC. Get dollars.", preheader: "By Interac, from $100.", headline: "Sell.\nGet\ndollars.", intro: "Your USDC become Canadian dollars by Interac, from $100.", cta: "Sell USDC", ctaUrl: "/app/vendre" } } },
   ],
   parrainage: [
     { id: "court", label: "Court", copy: {
@@ -3626,8 +3624,8 @@ const VARIANTS: Record<string, TemplateVariant[]> = {
   ],
   reactivation: [
     { id: "nouveautes", label: "Avec nouveautés", copy: {
-      fr: { subject: "{{prenom}}, Ooble a changé depuis votre dernière visite", preheader: "6 blockchains, parrainage, codes promo.", message: "Ça fait un moment ! Depuis votre dernière visite, Ooble a ajouté Ethereum et Avalanche (6 blockchains au total), le parrainage et les codes promo.\n\nVotre compte est toujours actif : vous pouvez acheter ou vendre des USDT quand vous voulez, avec un taux garanti 15 minutes.\n\nUne question ou une suggestion ? Répondez simplement à ce courriel." },
-      en: { subject: "{{prenom}}, Ooble has changed since your last visit", preheader: "6 blockchains, referral, promo codes.", message: "It's been a while! Since your last visit, Ooble added Ethereum and Avalanche (6 blockchains in all), referral and promo codes.\n\nYour account is still active: you can buy or sell USDT whenever you like, with a rate locked for 15 minutes.\n\nA question or a suggestion? Just reply to this email." } } },
+      fr: { subject: "{{prenom}}, Ooble a changé depuis votre dernière visite", preheader: "4 blockchains, parrainage, codes promo.", message: "Ça fait un moment ! Depuis votre dernière visite, Ooble a ajouté Ethereum et Avalanche (4 blockchains au total), le parrainage et les codes promo.\n\nVotre compte est toujours actif : vous pouvez acheter ou vendre des USDC quand vous voulez, avec un taux garanti 15 minutes.\n\nUne question ou une suggestion ? Répondez simplement à ce courriel." },
+      en: { subject: "{{prenom}}, Ooble has changed since your last visit", preheader: "4 blockchains, referral, promo codes.", message: "It's been a while! Since your last visit, Ooble added Ethereum and Avalanche (4 blockchains in all), referral and promo codes.\n\nYour account is still active: you can buy or sell USDC whenever you like, with a rate locked for 15 minutes.\n\nA question or a suggestion? Just reply to this email." } } },
   ],
 };
 for (const t of CAMPAIGN_TEMPLATES) if (VARIANTS[t.id]) t.variants = VARIANTS[t.id];

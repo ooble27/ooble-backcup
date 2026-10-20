@@ -21,9 +21,9 @@ export const TEMPLATES: Record<string, string> = {
   welcome: template(
     eyebrow("Bienvenue") +
     heading("Bienvenue sur Ooble, {{firstName}}") +
-    lead("Votre compte est créé. Vous pouvez acheter et vendre de l'USDT en dollars canadiens, réglé par Interac e-Transfer, de façon simple, rapide et non-custodial.") +
+    lead("Votre compte est créé. Vous pouvez acheter et vendre de l'USDC en dollars canadiens, réglé par Interac e-Transfer, de façon simple, rapide et non-custodial.") +
     dataRows([
-      ["USDT",       "4 réseaux au choix"],
+      ["USDC",       "4 réseaux au choix"],
       ["Paiement",   "Interac e-Transfer"],
       ["Modèle",     "Non-custodial"],
     ]) +
@@ -32,12 +32,12 @@ export const TEMPLATES: Record<string, string> = {
 
   "order-buy": template(
     eyebrow("Ordre d'achat") +
-    heading("Payez par Interac pour recevoir vos USDT") +
-    lead("Envoyez un virement Interac e-Transfer avec les informations ci-dessous. Dès réception, nous envoyons vos USDT à l'adresse que vous nous avez indiquée.") +
+    heading("Payez par Interac pour recevoir vos USDC") +
+    lead("Envoyez un virement Interac e-Transfer avec les informations ci-dessous. Dès réception, nous envoyons vos USDC à l'adresse que vous nous avez indiquée.") +
     dataRows([
       ["Référence",           "{{ref}}",                true],
       ["Montant à payer",     "{{cadAmount}} CAD"],
-      ["Vous recevrez",       "{{usdtAmount}} USDT"],
+      ["Vous recevrez",       "{{usdtAmount}} USDC"],
       ["Réseau",              "{{network}}"],
       ["Adresse de réception","{{receptionAddress}}",   true],
     ]) +
@@ -46,39 +46,39 @@ export const TEMPLATES: Record<string, string> = {
 
   "order-sell": template(
     eyebrow("Ordre de vente") +
-    heading("Envoyez vos USDT pour recevoir vos dollars") +
-    lead("Transférez vos USDT à l'adresse ci-dessous. Dès confirmation sur la blockchain, vous recevez vos CAD par Interac e-Transfer.") +
+    heading("Envoyez vos USDC pour recevoir vos dollars") +
+    lead("Transférez vos USDC à l'adresse ci-dessous. Dès confirmation sur la blockchain, vous recevez vos CAD par Interac e-Transfer.") +
     dataRows([
       ["Référence",         "{{ref}}",            true],
-      ["Vous envoyez",      "{{usdtAmount}} USDT"],
+      ["Vous envoyez",      "{{usdtAmount}} USDC"],
       ["Vous recevrez",     "{{cadAmount}} CAD"],
       ["Réseau",            "{{network}}"],
       ["Adresse de dépôt",  "{{depositAddress}}", true],
     ]) +
-    notice("Envoyez uniquement de l'USDT sur le réseau <strong>{{network}}</strong>. Un autre réseau entraînerait la perte des fonds.") +
+    notice("Envoyez uniquement de l'USDC sur le réseau <strong>{{network}}</strong>. Un autre réseau entraînerait la perte des fonds.") +
     primaryButton("{{orderUrl}}", "Voir ma commande"),
   ),
 
   "payment-received": template(
     eyebrow("Paiement reçu") +
     heading("Nous avons bien reçu votre paiement") +
-    lead("Votre paiement est confirmé. Notre équipe traite votre commande. Vous recevrez vos USDT très bientôt.") +
+    lead("Votre paiement est confirmé. Notre équipe traite votre commande. Vous recevrez vos USDC très bientôt.") +
     dataRows([
       ["Référence",     "{{ref}}",             true],
       ["Montant reçu",  "{{amount}}"],
-      ["Vous recevrez", "{{usdtAmount}} USDT"],
+      ["Vous recevrez", "{{usdtAmount}} USDC"],
       ["Statut",        "En traitement"],
     ]) +
     primaryButton("{{orderUrl}}", "Suivre ma commande"),
   ),
 
   "usdt-received": template(
-    eyebrow("USDT reçus") +
-    heading("Vos USDT sont bien arrivés") +
-    lead("Nous avons reçu vos USDT sur la blockchain. Votre virement Interac est en préparation : vous le recevrez à l'adresse indiquée dans votre ordre.") +
+    eyebrow("USDC reçus") +
+    heading("Vos USDC sont bien arrivés") +
+    lead("Nous avons reçu vos USDC sur la blockchain. Votre virement Interac est en préparation : vous le recevrez à l'adresse indiquée dans votre ordre.") +
     dataRows([
       ["Référence",         "{{ref}}",          true],
-      ["USDT reçus",        "{{usdtAmount}} USDT"],
+      ["USDC reçus",        "{{usdtAmount}} USDC"],
       ["Vous recevrez",     "{{cadAmount}} CAD"],
       ["Virement Interac à", "{{interacEmail}}"],
       ["Réseau",            "{{network}}"],
@@ -155,7 +155,7 @@ export const SUBJECTS: Record<string, string> = {
   "order-buy":        "Votre ordre d'achat Ooble ({{ref}})",
   "order-sell":       "Votre ordre de vente Ooble ({{ref}})",
   "payment-received": "Paiement reçu, on traite votre commande ({{ref}})",
-  "usdt-received":    "USDT reçus, votre virement est en préparation ({{ref}})",
+  "usdt-received":    "USDC reçus, votre virement est en préparation ({{ref}})",
   "order-completed":  "Transaction terminée ({{ref}})",
   "kyc-approved":     "Votre identité est vérifiée",
   "kyc-rejected":     "Votre vérification d'identité est à reprendre",

@@ -162,14 +162,14 @@ const PARTS: Part[] = [
 
           <H3>Transactions</H3>
           <P>
-            Lorsque vous soumettez un ordre d'achat ou de vente de USDT, nous recueillons :
+            Lorsque vous soumettez un ordre d'achat ou de vente de USDC, nous recueillons :
           </P>
           <Ul>
             <li>le type d'opération (achat ou vente) ;</li>
-            <li>les montants en CAD et en USDT ;</li>
-            <li>le réseau blockchain choisi (Tron, BNB Chain, Ethereum, Polygon, Solana ou Avalanche) ;</li>
+            <li>les montants en CAD et en USDC ;</li>
+            <li>le réseau blockchain choisi (Ethereum, Polygon, Solana ou Avalanche) ;</li>
             <li>votre adresse de portefeuille numérique (wallet), pour les achats ;</li>
-            <li>l'adresse du portefeuille d'où partent vos USDT et l'adresse d'envoi réelle constatée
+            <li>l'adresse du portefeuille d'où partent vos USDC et l'adresse d'envoi réelle constatée
               sur la blockchain, pour les ventes ;</li>
             <li>votre adresse courriel Interac, pour les ventes ;</li>
             <li>les adresses que vous choisissez d'enregistrer dans votre carnet d'adresses.</li>
@@ -231,14 +231,14 @@ const PARTS: Part[] = [
 
           <H3>Transactions</H3>
           <P>
-            When you submit a buy or sell order for USDT, we collect:
+            When you submit a buy or sell order for USDC, we collect:
           </P>
           <Ul>
             <li>the transaction type (buy or sell);</li>
-            <li>the amounts in CAD and USDT;</li>
-            <li>the blockchain network chosen (Tron, BNB Chain, Ethereum, Polygon, Solana, or Avalanche);</li>
+            <li>the amounts in CAD and USDC;</li>
+            <li>the blockchain network chosen (Ethereum, Polygon, Solana, or Avalanche);</li>
             <li>your digital wallet address, for purchases;</li>
-            <li>the address of the wallet your USDT are sent from and the actual sending address seen
+            <li>the address of the wallet your USDC are sent from and the actual sending address seen
               on the blockchain, for sales;</li>
             <li>your Interac email address, for sales;</li>
             <li>the addresses you choose to save in your address book.</li>
@@ -269,7 +269,7 @@ const PARTS: Part[] = [
           <Ul>
             <li>créer et gérer votre compte sur la plateforme ;</li>
             <li>vérifier votre identité conformément à la LRPCFAT ;</li>
-            <li>exécuter vos ordres d'achat et de vente de USDT ;</li>
+            <li>exécuter vos ordres d'achat et de vente de USDC ;</li>
             <li>vous envoyer des communications liées à votre compte (confirmations d'ordre,
               notifications de sécurité, mises à jour de statut) ;</li>
             <li>respecter nos obligations légales de tenue de dossiers et de déclaration auprès de
@@ -291,7 +291,7 @@ const PARTS: Part[] = [
           <Ul>
             <li>create and manage your account on the platform;</li>
             <li>verify your identity in accordance with PCMLTFA;</li>
-            <li>execute your buy and sell orders for USDT;</li>
+            <li>execute your buy and sell orders for USDC;</li>
             <li>send you account-related communications (order confirmations, security notifications,
               status updates);</li>
             <li>comply with our legal record-keeping and reporting obligations to FINTRAC;</li>

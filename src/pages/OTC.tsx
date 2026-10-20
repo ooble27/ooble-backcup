@@ -14,7 +14,7 @@ import { useOtcVisible } from "@/lib/otc";
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-/* Desk OTC : achats et ventes de USDT au-delà de la limite de l'application
+/* Desk OTC : achats et ventes de USDC au-delà de la limite de l'application
    (9 999 $ sur 24 heures). Page ouverte, sans cartes : en-tête en deux
    colonnes avec la vidéo de présentation, puis de la typographie — une
    grande phrase, le chiffre clé, la frise verticale des étapes, la liste à
@@ -42,14 +42,14 @@ const STEPS: { t: Bi; d: Bi }[] = [
   { t: { fr: "Vous écrivez au desk", en: "You write to the desk" }, d: { fr: "Achat ou vente, montant, réseau. Un membre de l'équipe vous répond personnellement.", en: "Buy or sell, amount, network. A team member replies to you personally." } },
   { t: { fr: "Nous vérifions le dossier", en: "We review your file" }, d: { fr: "Identité ou entreprise, et origine des fonds. Compte déjà vérifié : il ne reste en général qu'un justificatif.", en: "Identity or business, and source of funds. Already verified: usually only one document is left." } },
   { t: { fr: "Vous recevez un prix ferme", en: "You get a firm price" }, d: { fr: "Garanti pendant la durée indiquée dans la cotation. Vous l'acceptez, ou non.", en: "Guaranteed for the time stated in the quote. Accept it, or not." } },
-  { t: { fr: "Règlement", en: "Settlement" }, d: { fr: "Par virement bancaire, puis envoi des USDT à votre adresse, ou des dollars sur votre compte.", en: "By bank transfer, then the USDT go to your address, or the dollars to your account." } },
+  { t: { fr: "Règlement", en: "Settlement" }, d: { fr: "Par virement bancaire, puis envoi des USDC à votre adresse, ou des dollars sur votre compte.", en: "By bank transfer, then the USDC go to your address, or the dollars to your account." } },
   { t: { fr: "Reçu", en: "Receipt" }, d: { fr: "Montants, taux et transaction sur la blockchain, par courriel.", en: "Amounts, rate and blockchain transaction, by email." } },
 ];
 
 const NEEDS: { icon: React.ElementType; t: Bi; d: Bi }[] = [
   { icon: ShieldCheck, t: { fr: "Un compte vérifié", en: "A verified account" }, d: { fr: "Identité, ou entreprise pour un compte entreprise.", en: "Identity, or business for a business account." } },
   { icon: FileText, t: { fr: "L'origine des fonds", en: "Source of funds" }, d: { fr: "Relevé bancaire, contrat, facture…", en: "Bank statement, contract, invoice…" } },
-  { icon: Wallet, t: { fr: "Pour un achat", en: "To buy" }, d: { fr: "Votre adresse USDT et le réseau.", en: "Your USDT address and network." } },
+  { icon: Wallet, t: { fr: "Pour un achat", en: "To buy" }, d: { fr: "Votre adresse USDC et le réseau.", en: "Your USDC address and network." } },
   { icon: Landmark, t: { fr: "Pour une vente", en: "To sell" }, d: { fr: "Un compte bancaire canadien à votre nom.", en: "A Canadian bank account in your name." } },
 ];
 
@@ -115,7 +115,7 @@ const OTC = () => {
           <Wrap className="grid items-center gap-12 pb-8 pt-14 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:pt-20">
             <div>
               <p className="animate-up text-[12px] uppercase tracking-[0.16em] text-muted-foreground">
-                {L({ fr: "Desk OTC · Gros volumes de USDT", en: "OTC desk · Large USDT volumes" })}
+                {L({ fr: "Desk OTC · Gros volumes de USDC", en: "OTC desk · Large USDC volumes" })}
               </p>
               <h1 className="animate-up mt-6 font-display text-[2.7rem] leading-[0.98] tracking-[-0.05em] [animation-delay:80ms] sm:text-[3.6rem] lg:text-[4.1rem]">
                 {L({ fr: "Le desk OTC,", en: "The OTC desk," })}
@@ -124,8 +124,8 @@ const OTC = () => {
               </h1>
               <p className="animate-up mt-6 max-w-[460px] text-[15px] leading-[1.7] text-muted-foreground [animation-delay:160ms] sm:text-[16px]">
                 {L({
-                  fr: "Achetez ou vendez des USDT à partir de 10 000 $, à un prix ferme, avec un seul interlocuteur de l'équipe Ooble.",
-                  en: "Buy or sell USDT from $10,000, at a firm price, with one contact from the Ooble team.",
+                  fr: "Achetez ou vendez des USDC à partir de 10 000 $, à un prix ferme, avec un seul interlocuteur de l'équipe Ooble.",
+                  en: "Buy or sell USDC from $10,000, at a firm price, with one contact from the Ooble team.",
                 })}
               </p>
               <div className="animate-up mt-8 flex flex-wrap items-center gap-x-8 gap-y-3 [animation-delay:240ms]">
@@ -191,7 +191,7 @@ const OTC = () => {
                 </p>
                 <p className="mt-8 text-[12px] uppercase tracking-[0.16em] text-muted-foreground">{L({ fr: "Sur les mêmes réseaux que l'app", en: "On the same networks as the app" })}</p>
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3">
-                  {openNetworks(networks).map((n) => (
+                  {openNetworks(networks, undefined, "usdc").map((n) => (
                     <span key={n.id} className="flex items-center gap-2 text-[14px]">
                       <img src={`/coins/${n.id}.svg`} alt="" className="h-6 w-6 rounded-full" />
                       {n.name}

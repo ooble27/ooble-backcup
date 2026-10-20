@@ -60,7 +60,7 @@ const PARTS: Part[] = [
             Ooble Technologies Inc., société constituée en vertu de la{" "}
             <em>Loi canadienne sur les sociétés par actions</em>, dont le siège est situé au
             8580, avenue Lesperance, Québec (Québec) G2K 1M3, Canada (« Ooble », « nous »). Ooble permet
-            l'achat et la vente de Tether (USDT) contre des dollars canadiens (CAD), réglés
+            l'achat et la vente de USD Coin (USDC) contre des dollars canadiens (CAD), réglés
             directement vers le portefeuille numérique ou le compte bancaire du client par virement
             Interac.
           </P>
@@ -102,7 +102,7 @@ const PARTS: Part[] = [
             Ooble Technologies Inc., a corporation incorporated under the{" "}
             <em>Canada Business Corporations Act</em>, with its head office located at 8580 avenue Lesperance, Québec City, Quebec G2K 1M3,
             Canada ("Ooble," "we"). Ooble enables the
-            purchase and sale of Tether (USDT) against Canadian dollars (CAD), settled directly to
+            purchase and sale of USD Coin (USDC) against Canadian dollars (CAD), settled directly to
             the customer's digital wallet or bank account via Interac transfer.
           </P>
           <P>
@@ -144,8 +144,8 @@ const PARTS: Part[] = [
       fr: (
         <Ul>
           <li><strong className="text-foreground">Client</strong> : toute personne physique ou entité qui crée un compte ou soumet un ordre sur Ooble.</li>
-          <li><strong className="text-foreground">Monnaie virtuelle (MV)</strong> : au sens du Règlement, un actif numérique tel que l'USDT, échangé contre des fonds ou un autre actif numérique.</li>
-          <li><strong className="text-foreground">Ordre</strong> : instruction d'achat ou de vente d'USDT contre CAD soumise par le client sur la plateforme.</li>
+          <li><strong className="text-foreground">Monnaie virtuelle (MV)</strong> : au sens du Règlement, un actif numérique tel que l'USDC, échangé contre des fonds ou un autre actif numérique.</li>
+          <li><strong className="text-foreground">Ordre</strong> : instruction d'achat ou de vente d'USDC contre CAD soumise par le client sur la plateforme.</li>
           <li><strong className="text-foreground">Bénéficiaire effectif</strong> : personne physique qui possède ou contrôle, directement ou indirectement, 25 % ou plus d'une entité cliente, ou qui exerce autrement un contrôle de fait sur celle-ci.</li>
           <li><strong className="text-foreground">Tiers</strong> : personne autre que le client au nom de laquelle un ordre est en réalité donné ou des fonds sont en réalité fournis.</li>
           <li><strong className="text-foreground">PPV / DOI</strong> : personne politiquement vulnérable (nationale, étrangère, ou membre de sa famille immédiate ou une personne qui lui est étroitement associée) ou dirigeant d'une organisation internationale, au sens du Règlement.</li>
@@ -154,8 +154,8 @@ const PARTS: Part[] = [
       en: (
         <Ul>
           <li><strong className="text-foreground">Customer</strong>: any individual or entity that creates an account or submits an order on Ooble.</li>
-          <li><strong className="text-foreground">Virtual currency (VC)</strong>: within the meaning of the Regulations, a digital asset such as USDT, exchanged for funds or another digital asset.</li>
-          <li><strong className="text-foreground">Order</strong>: an instruction to buy or sell USDT against CAD submitted by the customer on the platform.</li>
+          <li><strong className="text-foreground">Virtual currency (VC)</strong>: within the meaning of the Regulations, a digital asset such as USDC, exchanged for funds or another digital asset.</li>
+          <li><strong className="text-foreground">Order</strong>: an instruction to buy or sell USDC against CAD submitted by the customer on the platform.</li>
           <li><strong className="text-foreground">Beneficial owner</strong>: the individual who owns or controls, directly or indirectly, 25% or more of a customer entity, or otherwise exercises effective control over it.</li>
           <li><strong className="text-foreground">Third party</strong>: a person, other than the customer, on whose behalf an order is actually placed or funds are actually provided.</li>
           <li><strong className="text-foreground">PEP / HIO</strong>: politically exposed person (domestic, foreign, or a family member or close associate) or head of an international organization, within the meaning of the Regulations.</li>
@@ -616,15 +616,15 @@ const PARTS: Part[] = [
             e-Transfer (vente), puis clos.
           </P>
           <P>
-            Le taux affiché correspond au cours du marché USDT/CAD majoré d'une marge de 2 %, déjà
+            Le taux affiché correspond au cours du marché USDC/CAD majoré d'une marge de 2 %, déjà
             incluse dans le prix affiché : aucun frais additionnel n'est appliqué. Ce taux est
             verrouillé pendant {rateLockMinutes()} minutes à compter de la création de l'ordre.
             Passé ce délai sans règlement complet de votre part, Ooble peut annuler l'ordre et vous
             inviter à en créer un nouveau au taux courant.
           </P>
           <P>
-            Ooble peut prendre en charge les réseaux Tron (TRC20), BNB Chain (BEP20), Ethereum
-            (ERC20), Polygon, Solana et Avalanche (C-Chain). Les réseaux ouverts sont ceux affichés
+            Ooble peut prendre en charge les réseaux Ethereum (ERC20), Polygon, Solana et
+            Avalanche (C-Chain), sur lesquels l'USDC est émis par Circle. Les réseaux ouverts sont ceux affichés
             au moment de passer l'ordre ; Ooble peut en ouvrir ou en fermer à tout moment. Il vous
             appartient de vérifier que l'adresse de
             destination correspond exactement au réseau choisi : les transferts de monnaie virtuelle
@@ -633,9 +633,9 @@ const PARTS: Part[] = [
           </P>
           <H3>Vente : portefeuille d'envoi</H3>
           <P>
-            Pour une vente, vous indiquez l'adresse du portefeuille d'où partiront vos USDT, en la
+            Pour une vente, vous indiquez l'adresse du portefeuille d'où partiront vos USDC, en la
             collant ou au moyen de la fonction « Connecter mon portefeuille ». Cette fonction passe
-            par un service tiers (WalletConnect, ou l'extension TronLink pour Tron) et ne sert qu'à
+            par un service tiers (WalletConnect) et ne sert qu'à
             lire cette adresse : vous ne communiquez jamais à Ooble vos clés privées ni votre phrase
             de récupération, et Ooble ne peut effectuer aucune opération à votre place. Vous déclarez
             que ce portefeuille vous appartient ou est sous votre contrôle. Un envoi qui provient
@@ -666,15 +666,15 @@ const PARTS: Part[] = [
             (buy) or your bank account via Interac e-Transfer (sell), and then closed.
           </P>
           <P>
-            The displayed rate corresponds to the USDT/CAD market rate plus a 2% margin, already
+            The displayed rate corresponds to the USDC/CAD market rate plus a 2% margin, already
             included in the displayed price: no additional fees apply. This rate is locked for{" "}
             {rateLockMinutes()} minutes from the creation of the order. After this period without
             complete settlement on your part, Ooble may cancel the order and invite you to create
             a new one at the current rate.
           </P>
           <P>
-            Ooble may support the Tron (TRC20), BNB Chain (BEP20), Ethereum (ERC20), Polygon,
-            Solana, and Avalanche (C-Chain) networks. The open networks are those shown when you
+            Ooble may support the Ethereum (ERC20), Polygon, Solana, and Avalanche (C-Chain)
+            networks, on which USDC is issued by Circle. The open networks are those shown when you
             place the order; Ooble may open or close networks at any time. It
             is your responsibility to verify that the
             destination address exactly matches the selected network: virtual currency transfers
@@ -683,9 +683,9 @@ const PARTS: Part[] = [
           </P>
           <H3>Sales: sending wallet</H3>
           <P>
-            For a sale, you provide the address of the wallet your USDT will be sent from, either by
+            For a sale, you provide the address of the wallet your USDC will be sent from, either by
             pasting it or by using the “Connect my wallet” feature. This feature relies on a
-            third-party service (WalletConnect, or the TronLink extension for Tron) and is only used
+            third-party service (WalletConnect) and is only used
             to read that address: you never give Ooble your private keys or recovery phrase, and
             Ooble cannot carry out any transaction on your behalf. You represent that this wallet
             belongs to you or is under your control. A transfer coming from another address,

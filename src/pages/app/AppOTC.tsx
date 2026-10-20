@@ -67,7 +67,7 @@ function OtcFlow() {
   const { networks, otcEmail } = useAppSettings();
   const [lang] = useLang();
   const { user } = useAuth();
-  const rate = useUsdtRate();
+  const rate = useUsdtRate({ asset: "usdc" });
 
   const [step, setStep] = useState<Step>("amount");
   const [side, setSide] = useState<Side>("buy");
@@ -95,7 +95,7 @@ function OtcFlow() {
     () => [
       { label: t("otcApp.sideLabel"), value: sideLabel },
       { label: lang === "en" ? "Amount" : "Montant", value: `${nfCad.format(cad)} CAD` },
-      { label: lang === "en" ? "Equivalent" : "Équivalent", value: `≈ ${nfUsdt.format(usdt)} USDT` },
+      { label: lang === "en" ? "Equivalent" : "Équivalent", value: `≈ ${nfUsdt.format(usdt)} USDC` },
       { label: t("buy.network"), value: network ? `${network.name} · ${network.tag}` : "N/D" },
       ...(side === "buy" ? [{ label: t("buy.address"), value: short(address), mono: true }] : []),
       { label: t("otcApp.usage"), value: usage ? t(usage) : "N/D" },
@@ -112,8 +112,8 @@ function OtcFlow() {
     const company = p?.accountType === "business" ? p.businessName : null;
     const lines = [
       `Demande OTC ${ref}`,
-      `Sens : ${side === "buy" ? "achat de USDT" : "vente de USDT"}`,
-      `Montant : ${nfInt.format(cad)} $ CAD (≈ ${nfUsdt.format(usdt)} USDT au taux indicatif de ${nfCad.format(r)})`,
+      `Sens : ${side === "buy" ? "achat de USDC" : "vente de USDC"}`,
+      `Montant : ${nfInt.format(cad)} $ CAD (≈ ${nfUsdt.format(usdt)} USDC au taux indicatif de ${nfCad.format(r)})`,
       `Réseau : ${network ? `${network.name} · ${network.tag}` : "N/D"}`,
       side === "buy" ? `Adresse de réception : ${address}` : "Adresse de dépôt : à fournir par le desk",
       `Usage : ${tr(usage, "fr")}`,
@@ -167,7 +167,7 @@ function OtcFlow() {
           ))}
         </div>
 
-        <AmountField label={t("buy.amount")} units={["CAD", "USDT"] as Unit[]} unit={unit} onUnit={(u) => { setUnit(u); setAmount(""); }}
+        <AmountField label={t("buy.amount")} units={["CAD", "USDT"] as Unit[]} unit={unit} coin="USDC" onUnit={(u) => { setUnit(u); setAmount(""); }}
           value={amount} onChange={(v) => setAmount(v.replace(/[^\d.,]/g, ""))}>
           {belowMin && (
             <p className="ac-note">
@@ -178,8 +178,8 @@ function OtcFlow() {
 
         <div className="mt-6">
           <Facts rows={[
-            { label: lang === "en" ? "Equivalent" : "Équivalent", value: `≈ ${unit === "CAD" ? `${nfUsdt.format(usdt)} USDT` : `${nfCad.format(cad)} CAD`}`, usdt: unit === "CAD" },
-            { label: lang === "en" ? "Indicative rate" : "Taux indicatif", value: `1 USDT = ${nfCad.format(r)} CAD` },
+            { label: lang === "en" ? "Equivalent" : "Équivalent", value: `≈ ${unit === "CAD" ? `${nfUsdt.format(usdt)} USDC` : `${nfCad.format(cad)} CAD`}`, coin: "USDC", usdt: unit === "CAD" },
+            { label: lang === "en" ? "Indicative rate" : "Taux indicatif", value: `1 USDC = ${nfCad.format(r)} CAD` },
           ]} />
           <p className="ac-help">
             <T en="The desk replies with a firm price. Nothing is committed until you accept it.">
@@ -199,11 +199,11 @@ function OtcFlow() {
         <StepHeader
           title={t("buy.network")}
           sub={side === "buy"
-            ? (lang === "en" ? "Where to receive your USDT" : "Où recevoir vos USDT")
-            : (lang === "en" ? "The network you'll send the USDT from" : "Le réseau depuis lequel vous enverrez les USDT")}
+            ? (lang === "en" ? "Where to receive your USDC" : "Où recevoir vos USDC")
+            : (lang === "en" ? "The network you'll send the USDC from" : "Le réseau depuis lequel vous enverrez les USDC")}
           onBack={() => setStep("amount")}
         />
-        <NetworkPick list={openNetworks(networks)} value={net} onPick={(id) => { if (id !== net) setAddress(""); setNet(id); }} />
+        <NetworkPick list={openNetworks(networks, undefined, "usdc")} value={net} onPick={(id) => { if (id !== net) setAddress(""); setNet(id); }} />
 
         {side === "buy" && network && (
           <div className="mt-10">

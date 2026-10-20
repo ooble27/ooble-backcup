@@ -21,16 +21,16 @@ const PANELS: Record<Exclude<Variant, "individual">, { bg: string; ink: string; 
   login: {
     bg: C.forest, ink: C.cream, accent: C.sun,
     a: { fr: "Bon retour.", en: "Welcome back." },
-    b: { fr: "Vos USDT vous attendent.", en: "Your USDT are waiting." },
+    b: { fr: "Vos USDC vous attendent.", en: "Your USDC are waiting." },
     steps: [
       [{ fr: "Payez par Interac", en: "Pay by Interac" }, { fr: "Montant exact, référence en message", en: "Exact amount, reference in the message" }],
       [{ fr: "Vérification automatique", en: "Automatic check" }, { fr: "Dès que le virement arrive", en: "As soon as the transfer lands" }],
-      [{ fr: "USDT dans votre wallet", en: "USDT in your wallet" }, { fr: "En quelques minutes", en: "Within minutes" }],
+      [{ fr: "USDC dans votre wallet", en: "USDC in your wallet" }, { fr: "En quelques minutes", en: "Within minutes" }],
     ],
   },
   signup: {
     bg: C.sun, ink: INK, accent: C.coral,
-    a: { fr: "Vos USDT,", en: "Your USDT," },
+    a: { fr: "Vos USDC,", en: "Your USDC," },
     b: { fr: "en dollars canadiens.", en: "in Canadian dollars." },
     steps: [
       [{ fr: "Créez votre compte", en: "Create your account" }, { fr: "Gratuit, en une minute", en: "Free, in a minute" }],
@@ -86,7 +86,7 @@ const AuthShell = ({ variant, children }: { variant: Variant; children: React.Re
         aria-hidden
       >
         <div className="relative flex h-full flex-col px-12 py-[5vh] xl:px-16">
-          <p className="text-[12px] uppercase tracking-[0.18em] opacity-70">Ooble · USDT ⇄ CAD</p>
+          <p className="text-[12px] uppercase tracking-[0.18em] opacity-70">Ooble · USDC ⇄ CAD</p>
 
           {/* L'illustration prend la place libre entre le haut et le texte :
               elle rétrécit sur un petit écran et ne passe jamais dessus. */}

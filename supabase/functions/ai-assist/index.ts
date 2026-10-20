@@ -178,7 +178,7 @@ async function callClaudeWithTools(
  * dernières commandes). Sortie : draft de mail complet en français,
  * markdown, ton Ooble, prêt à charger dans le composer.
  */
-const SYSTEM_DRAFT_MAIL = `Tu es l'assistant de rédaction mail de Ooble, une plateforme canadienne d'échange USDT/CAD non-custodial réglementée par CANAFE.
+const SYSTEM_DRAFT_MAIL = `Tu es l'assistant de rédaction mail de Ooble, une plateforme canadienne d'échange USDC/CAD non-custodial réglementée par CANAFE.
 
 Tu produis des mails en français québécois professionnel, jamais familier, jamais corporate creux. Ton : direct, précis, chaleureux mais sans effusion. On dit « vous », pas « tu ».
 
@@ -193,7 +193,7 @@ Contraintes strictes :
 - Utilise du markdown simple : **gras** pour souligner un élément critique (référence, montant), * ou - pour les listes.
 - Pour les appels à l'action, écris le lien seul sur sa ligne : \`[Reprendre la vérification](https://ooble.ca/app/verification)\`. Le composer le rendra en bouton.
 - Quand tu TROUVES les vrais chiffres dans le contexte (montant, référence d'ordre, taux), utilise-les. Sinon, utilise des placeholders {{ref}}, {{montant}}, {{date}}.
-- Vocabulaire Ooble : « USDT », « Interac e-Transfer », « CANAFE », « KYC », « ordre » (pas « transaction »), « réseau » (pas « blockchain » quand on parle à un client).
+- Vocabulaire Ooble : « USDC », « Interac e-Transfer », « CANAFE », « KYC », « ordre » (pas « transaction »), « réseau » (pas « blockchain » quand on parle à un client).
 - Longueur : 80-180 mots. Un mail court est plus lu.
 - Ne signe PAS le mail, la signature est ajoutée par le composer.
 - N'utilise JAMAIS de tiret long (—) ni de tiret moyen (–) : remplace-les par une virgule, deux-points ou un point.
@@ -265,7 +265,7 @@ async function summarizeClient(
     parts.push("Aucun ordre.");
   } else {
     for (const o of input.orders.slice(0, 30)) {
-      parts.push(`- ${o.side === "buy" ? "Achat" : "Vente"} ${o.usdt} USDT / ${o.cad} CAD · ${o.status} · ${o.createdAt.slice(0, 10)}`);
+      parts.push(`- ${o.side === "buy" ? "Achat" : "Vente"} ${o.usdt} USDC / ${o.cad} CAD · ${o.status} · ${o.createdAt.slice(0, 10)}`);
     }
     if (input.orders.length > 30) parts.push(`... et ${input.orders.length - 30} autres.`);
   }
@@ -374,16 +374,16 @@ async function logCall(
 // Agent 3 — Rédaction campagne marketing
 // ────────────────────────────────────────────────────────────
 
-const SYSTEM_DRAFT_CAMPAIGN = `Tu es le rédacteur marketing de Ooble, une plateforme canadienne d'échange USDT/CAD non-custodial réglementée par CANAFE.
+const SYSTEM_DRAFT_CAMPAIGN = `Tu es le rédacteur marketing de Ooble, une plateforme canadienne d'échange USDC/CAD non-custodial réglementée par CANAFE.
 
 Tu produis du contenu d'e-mail marketing en français québécois professionnel. Ton : confiant, clair, engageant mais pas agressif. On vouvoie le client.
 
 Contexte Ooble :
-- Ooble permet d'acheter et vendre des USDT (stablecoin) en dollars canadiens via Interac e-Transfer.
-- Plateforme non-custodial : les USDT sont envoyés directement au portefeuille du client.
+- Ooble permet d'acheter et vendre des USDC (stablecoin) en dollars canadiens via Interac e-Transfer.
+- Plateforme non-custodial : les USDC sont envoyés directement au portefeuille du client.
 - Réseaux supportés : Tron (TRC20), Ethereum (ERC20), Polygon, Solana, BNB Smart Chain (BEP20), Avalanche.
 - KYC obligatoire (vérification d'identité) avant la première transaction.
-- Vocabulaire : « USDT », « Interac e-Transfer », « ordre » (pas « transaction »), « réseau » (pas « blockchain » pour un client).
+- Vocabulaire : « USDC », « Interac e-Transfer », « ordre » (pas « transaction »), « réseau » (pas « blockchain » pour un client).
 
 Contraintes :
 - Le corps (body) est en markdown simple : **gras**, *italique*, listes (- ), liens [texte](url).
@@ -681,7 +681,7 @@ async function executeReleaseOrder(
 // Agent 4 — Assistant contextuel temps réel (chat)
 // ────────────────────────────────────────────────────────────
 
-const SYSTEM_CONTEXT_CHAT = `Tu es l'assistant IA du back-office Ooble, une plateforme canadienne d'échange USDT/CAD non-custodial réglementée par CANAFE.
+const SYSTEM_CONTEXT_CHAT = `Tu es l'assistant IA du back-office Ooble, une plateforme canadienne d'échange USDC/CAD non-custodial réglementée par CANAFE.
 
 Tu assistes le staff en temps réel avec l'état actuel de la plateforme (commandes, KYC, messagerie, trésorerie, taux).
 
@@ -709,7 +709,7 @@ OBLIGATOIRE :
 - Écris en paragraphes courts de 2-3 phrases. Sépare tes idées par des sauts de ligne, pas par des tirets.
 - Une question simple = 2-3 phrases. Une analyse = 2-3 paragraphes courts.
 - Va droit au fait dès la première phrase. Pas d'introduction.
-- Vocabulaire Ooble : « ordre » (pas « transaction »), « réseau » (pas « blockchain »), « USDT », « Interac e-Transfer ».
+- Vocabulaire Ooble : « ordre » (pas « transaction »), « réseau » (pas « blockchain »), « USDC », « Interac e-Transfer ».
 - Ne fabrique jamais de chiffres. Si une info manque, dis-le.
 
 Tu reçois l'état de la plateforme en contexte avant chaque question.`;
@@ -848,8 +848,8 @@ function platformContextToText(ctx: PlatformContext): string {
     `- Volume CAD aujourd'hui : ${nf.format(ctx.volumeCadToday)} $`,
     `- KYC en attente de vérification : ${ctx.pendingKyc}`,
     `- Messages non lus : ${ctx.unreadMessages}`,
-    `- Taux achat USDT/CAD : ${ctx.currentRate ? `1 USDT = ${nf.format(ctx.currentRate)} CAD` : "Non disponible"}`,
-    `- Taux vente USDT/CAD : ${ctx.sellRate ? `1 USDT = ${nf.format(ctx.sellRate)} CAD` : "Non disponible"}`,
+    `- Taux achat USDC/CAD : ${ctx.currentRate ? `1 USDC = ${nf.format(ctx.currentRate)} CAD` : "Non disponible"}`,
+    `- Taux vente USDC/CAD : ${ctx.sellRate ? `1 USDC = ${nf.format(ctx.sellRate)} CAD` : "Non disponible"}`,
   ];
 
   if (ctx.recentOrders.length > 0) {
@@ -857,7 +857,7 @@ function platformContextToText(ctx: PlatformContext): string {
     for (const o of ctx.recentOrders.slice(0, 15)) {
       const net = o.network ? ` [${o.network}]` : "";
       const wallet = o.walletAddress && o.walletAddress !== "a generer" ? ` → ${o.walletAddress}` : "";
-      lines.push(`- ${o.ref} · ${o.type === "buy" ? "Achat" : "Vente"} · ${nf.format(o.cadAmount)} CAD / ${nf.format(o.usdtAmount)} USDT · ${o.status} · ${o.client} (${o.clientEmail})${net}${wallet} · ${o.createdAt}`);
+      lines.push(`- ${o.ref} · ${o.type === "buy" ? "Achat" : "Vente"} · ${nf.format(o.cadAmount)} CAD / ${nf.format(o.usdtAmount)} USDC · ${o.status} · ${o.client} (${o.clientEmail})${net}${wallet} · ${o.createdAt}`);
     }
   }
 
@@ -884,9 +884,9 @@ function platformContextToText(ctx: PlatformContext): string {
 
   if (ctx.treasuryBalances && ctx.treasuryBalances.length > 0) {
     const totalUsdt = ctx.treasuryBalances.reduce((s, b) => s + b.totalUsdt, 0);
-    lines.push(`\nTRÉSORERIE USDT (total : ${nf.format(totalUsdt)} USDT) :`);
+    lines.push(`\nTRÉSORERIE USDC (total : ${nf.format(totalUsdt)} USDC) :`);
     for (const b of ctx.treasuryBalances) {
-      lines.push(`- ${b.network.toUpperCase()} : ${nf.format(b.totalUsdt)} USDT (${b.addressCount} adresse${b.addressCount > 1 ? "s" : ""})`);
+      lines.push(`- ${b.network.toUpperCase()} : ${nf.format(b.totalUsdt)} USDC (${b.addressCount} adresse${b.addressCount > 1 ? "s" : ""})`);
     }
   }
 
@@ -913,7 +913,7 @@ function platformContextToText(ctx: PlatformContext): string {
       sol: "Solana",
       avax: "Avalanche",
     };
-    lines.push("\nADRESSES DE DÉPÔT OOBLE (où les clients envoient leurs USDT pour les ordres de vente) :");
+    lines.push("\nADRESSES DE DÉPÔT OOBLE (où les clients envoient leurs USDC pour les ordres de vente) :");
     for (const [net, addr] of Object.entries(ctx.oobleDepositAddresses)) {
       lines.push(`- ${networkLabels[net] ?? net} : ${addr}`);
     }
@@ -938,7 +938,7 @@ function platformContextToText(ctx: PlatformContext): string {
     lines.push(`\nTRANSACTIONS BLOCKCHAIN RÉCENTES (${ctx.recentBlockchainTx.length}) :`);
     for (const tx of ctx.recentBlockchainTx) {
       const status = tx.confirmed ? `✓ confirmée (${tx.confirmations})` : `en attente (${tx.confirmations} conf.)`;
-      lines.push(`- ${tx.orderRef} · ${tx.direction} · ${nf.format(tx.usdtAmount)} USDT · ${tx.network} · ${status} · TX: ${tx.txHash.slice(0, 16)}… · ${tx.createdAt}`);
+      lines.push(`- ${tx.orderRef} · ${tx.direction} · ${nf.format(tx.usdtAmount)} USDC · ${tx.network} · ${status} · TX: ${tx.txHash.slice(0, 16)}… · ${tx.createdAt}`);
     }
   }
 
@@ -977,7 +977,7 @@ function platformContextToText(ctx: PlatformContext): string {
     for (const tm of ctx.recentTreasuryMovements) {
       const txInfo = tm.txHash ? ` · TX: ${tm.txHash.slice(0, 16)}…` : "";
       const notes = tm.notes ? `, ${tm.notes}` : "";
-      lines.push(`- ${tm.fromLabel} → ${tm.toLabel} · ${nf.format(tm.amountUsdt)} USDT · ${tm.reason}${txInfo}${notes} · ${tm.createdAt}`);
+      lines.push(`- ${tm.fromLabel} → ${tm.toLabel} · ${nf.format(tm.amountUsdt)} USDC · ${tm.reason}${txInfo}${notes} · ${tm.createdAt}`);
     }
   }
 

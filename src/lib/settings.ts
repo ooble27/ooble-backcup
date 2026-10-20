@@ -44,7 +44,8 @@ export type DbNet = "trc20" | "bep20" | "erc20" | "polygon" | "spl" | "avalanche
 export type NetworkSwitches = Record<DbNet, { buy: boolean; sell: boolean }>;
 export type AssetId = "usdt" | "usdc";
 export type AssetSwitches = Record<AssetId, boolean>;
-const ASSETS_DEFAULT: AssetSwitches = { usdt: true, usdc: false };
+// Avant toute lecture (pages publiques pré-rendues) : l'USDC, la cryptomonnaie proposée.
+const ASSETS_DEFAULT: AssetSwitches = { usdt: false, usdc: true };
 const NETS_DEFAULT: NetworkSwitches = {
   trc20: { buy: true, sell: true }, bep20: { buy: true, sell: true }, erc20: { buy: false, sell: false },
   polygon: { buy: true, sell: true }, spl: { buy: true, sell: true }, avalanche: { buy: false, sell: false },

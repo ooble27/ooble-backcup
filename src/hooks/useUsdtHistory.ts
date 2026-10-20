@@ -27,8 +27,8 @@ function sample(arr: number[], n: number): number[] {
 }
 
 /**
- * Récupère l'historique 7 jours du taux USDT/CAD (CoinGecko), côté client.
- * Comme l'USDT est un stablecoin, la courbe reflète surtout le change USD/CAD.
+ * Récupère l'historique 7 jours du taux USDC/CAD (CoinGecko), côté client.
+ * Comme l'USDC est un stablecoin, la courbe reflète surtout le change USD/CAD.
  * Repli sur une courbe douce si l'appel échoue.
  */
 /** Historique déjà chargé : réaffiché tout de suite, relu au plus toutes les 10 minutes. */
@@ -44,7 +44,7 @@ export function useUsdtHistory(): RateHistory {
   useEffect(() => {
     let alive = true;
     if (historyCache && Date.now() - historyCache.at < 10 * 60_000) return;
-    fetch("https://api.coingecko.com/api/v3/coins/tether/market_chart?vs_currency=cad&days=7&interval=hourly")
+    fetch("https://api.coingecko.com/api/v3/coins/usd-coin/market_chart?vs_currency=cad&days=7&interval=hourly")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         const raw: number[] = (d?.prices ?? []).map((p: [number, number]) => p[1]).filter((v: number) => v > 0);

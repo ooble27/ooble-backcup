@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useAppSettings } from "@/lib/settings";
 import type { TKey } from "@/lib/translations";
+import { assetOnNetwork, openAssets } from "@/lib/assets";
 
 const Wrap = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <div className={`mx-auto max-w-[1200px] px-6 sm:px-10 ${className}`}>{children}</div>
@@ -59,7 +60,10 @@ const Index = () => {
   }, [user, navigate]);
 
   // Les réseaux ouverts dans Back-office › Réglages › Réseaux (Avalanche, Ethereum… s'ajoutent tout seuls).
-  const { networks: switches } = useAppSettings();
+  const appSettings = useAppSettings();
+  const { networks: switches } = appSettings;
+  // Seulement les réseaux où une cryptomonnaie proposée existe (l'USDC n'est ni sur Tron ni sur BNB Chain).
+  const assetsOpen = openAssets(appSettings);
   const ALL_NETWORKS = [
     { id: "trx", db: "trc20", tick: "TRC20", name: "Tron", note: t("net.trx") },
     { id: "bnb", db: "bep20", tick: "BEP20", name: "BNB Chain", note: t("net.bnb") },
@@ -68,7 +72,7 @@ const Index = () => {
     { id: "avax", db: "avalanche", tick: "C-Chain", name: "Avalanche", note: t("net.avax") },
     { id: "eth", db: "erc20", tick: "ERC20", name: "Ethereum", note: t("net.eth") },
   ] as const;
-  const networks = ALL_NETWORKS.filter((n) => switches[n.db]?.buy || switches[n.db]?.sell);
+  const networks = ALL_NETWORKS.filter((n) => (switches[n.db]?.buy || switches[n.db]?.sell) && assetsOpen.some((a) => assetOnNetwork(a.id, n.id)));
 
   const essentials: { tKey: TKey; dKey: TKey }[] = [
     { tKey: "ess.1t", dKey: "ess.1d" },
