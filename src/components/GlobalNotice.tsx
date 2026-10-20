@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { AlertTriangle, Info, ShieldAlert, X, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
@@ -15,8 +15,8 @@ import { useLiveNotices, type Announcement, type AnnouncementKind, type Maintena
  *   * l'overlay maintenance bloque toutes les routes clients (site public
  *     comme app connectée) MAIS jamais `/admin/*` — le back-office reste
  *     accessible pour piloter la reprise ;
- *   * la connexion (et le mot de passe oublié) restent ouvertes : l'équipe doit
- *     pouvoir entrer pendant la maintenance. Un client qui se connecte retrouve
+ *   * la connexion (et le mot de passe oublié) restent ouvertes à leur adresse (/connexion), sans
+ *     lien affiché : l'équipe doit pouvoir entrer pendant la maintenance. Un client qui se connecte retrouve
  *     l'écran de maintenance juste après ; un membre de l'équipe passe partout ;
  *   * la fermeture d'une bannière est mémorisée par utilisateur dans
  *     `localStorage` (clé qui inclut l'ID de l'annonce — une nouvelle annonce
@@ -174,10 +174,6 @@ function MaintenanceOverlay({ window: mw }: { window: MaintenanceWindow }) {
             ? "Thanks for your patience. The Ooble team"
             : "Merci de votre patience. L'équipe Ooble"}
         </p>
-        {/* Discret : l'équipe se connecte pour passer la maintenance. */}
-        <Link to="/connexion" className="mt-10 inline-block text-[12px] text-muted-foreground/70 underline underline-offset-4 hover:text-foreground">
-          {lang === "en" ? "Team access" : "Accès équipe"}
-        </Link>
       </div>
     </div>
   );
