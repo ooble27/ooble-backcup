@@ -223,3 +223,20 @@ export function bnValid(n: string) {
   const s = [...d].reverse().reduce((a, c, i) => { let v = Number(c); if (i % 2) { v *= 2; if (v > 9) v -= 9; } return a + v; }, 0);
   return s % 10 === 0;
 }
+
+/* ─── Ce qui attend l'équipe (bloc « À traiter maintenant » de Mon espace) ─── */
+export interface Attention {
+  sells: { id: string; cad: number; status: string; at: string; name: string | null; assigned: boolean }[];
+  buys: { id: string; cad: number; status: string; at: string; name: string | null }[];
+  receipts: { id: string; amount: number | null; sender: string | null; reason: string | null; status: string; at: string; order_id: string | null;
+    suggest: { id: string; name: string | null; cad: number; at: string } | null }[];
+}
+export async function fetchAttention(): Promise<Attention> {
+  const { data, error } = await db.rpc("team_attention");
+  if (error) throw new Error(error.message);
+  return { sells: data?.sells ?? [], buys: data?.buys ?? [], receipts: data?.receipts ?? [] };
+}
+export async function markReceiptHandled(id: string, note: string): Promise<{ error?: string }> {
+  const { error } = await db.rpc("receipt_mark_handled", { _id: id, _note: note });
+  return error ? { error: error.message } : {};
+}

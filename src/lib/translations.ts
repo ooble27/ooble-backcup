@@ -683,6 +683,10 @@ const dict = {
     fr: "Écrivez la référence dans le message du virement et payez depuis un compte bancaire à votre nom, au montant exact : vos USDC vous sont alors envoyés dès la réception du paiement.",
     en: "Put the reference in the transfer message and pay from a bank account in your name, for the exact amount: your USDC are then sent as soon as the payment arrives.",
   },
+  "buy.refImportant": {
+    fr: "Important : écrivez {ref} dans le message du virement. Sans ce code, votre achat attend la vérification de l'équipe.",
+    en: "Important: write {ref} in the transfer message. Without this code, your order waits for the team to check it.",
+  },
   "buy.rulesLink": { fr: "Les règles du virement", en: "Transfer rules" },
   "buy.newOrder": { fr: "Nouvel ordre", en: "New order" },
   "buy.done": { fr: "Terminé", en: "Done" },

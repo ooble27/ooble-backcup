@@ -1,3 +1,4 @@
+import { AttentionBlock } from "./AttentionBlock";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Pin } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -185,6 +186,9 @@ export function MySpace({ orders, onGo, onOpenOrder, canOrders, onChanged }: {
           <TeamFaces title="L'équipe" rows={faces} />
         </div>
       </section>
+
+      {/* En tête de page : ce qui attend l'équipe (ventes à verser, virements sans commande…). */}
+      <AttentionBlock openOrder={(id) => { const o = orders.find((x) => x.id === id); if (o) onOpenOrder(o); }} />
 
       {err && <div style={{ marginTop: 14 }}><Notice tone="err">{err}</Notice></div>}
       {profile && <ProfilePanel onClose={() => setProfile(false)} />}
