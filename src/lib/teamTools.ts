@@ -107,3 +107,12 @@ export async function fetchBocRate(date?: string): Promise<{ date: string; rate:
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
   return data as { date: string; rate: number; asked: string };
 }
+
+/* ─── Cours de la dernière heure, pour la courbe de la page Outils ─── */
+export async function fetchRateHistory(asset: string, minutes = 60): Promise<{ at: number; market: number; buy: number }[]> {
+  const since = new Date(Date.now() - minutes * 60_000).toISOString();
+  const { data, error } = await supabase.from("exchange_rates").select("market_rate, buy_rate, fetched_at")
+    .eq("asset", asset as "usdc").gte("fetched_at", since).order("fetched_at", { ascending: true }).limit(500);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ at: new Date(r.fetched_at).getTime(), market: Number(r.market_rate ?? r.buy_rate), buy: Number(r.buy_rate) })).sort((a, b) => a.at - b.at);
+}

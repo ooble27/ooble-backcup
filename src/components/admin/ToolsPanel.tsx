@@ -1,5 +1,5 @@
 /**
- * Outils de l'équipe (Ressources › Outils) : les petits outils du quotidien, chacun avec son dessin animé.
+ * Outils de l'équipe (Ressources › Outils) : les petits outils du quotidien, chacun avec sa scène animée.
  * Chacun ne voit que ceux de ses rôles ; chaque outil s'ouvre en volet, sans quitter la page.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +14,7 @@ import { primaryAsset } from "@/lib/assets";
 import { orderRef } from "@/lib/orders";
 import { firstName, searchClients } from "@/lib/teamSpace";
 import {
-  FAMILY_NETS, NET_NAME, addressFamily, fetchBocRate, fetchDayChecks, fetchDayContext, hashFamily, lookup24h, lookupAddress, lookupTx, signDayCheck, todayMontreal,
+  FAMILY_NETS, NET_NAME, addressFamily, fetchBocRate, fetchDayChecks, fetchDayContext, hashFamily, fetchRateHistory, lookup24h, lookupAddress, lookupTx, signDayCheck, todayMontreal,
   type AddressReport, type DayCheck, type DayContext, type DayKind, type TxReport, type Window24h,
 } from "@/lib/teamTools";
 import { C, FONT } from "./adminTheme";
@@ -42,83 +42,127 @@ const TOOLS: ToolDef[] = [
     desc: "Le taux officiel USD/CAD d'un jour, comparé à notre cours.",
     how: "Choisissez une date : le taux officiel publié ce jour-là, ou le dernier avant." },
 ];
-/** Couleur de chaque réseau, pour les pastilles. */
-const NET_COLOR: Record<string, string> = { bep20: "#F0B90B", polygon: "#8247E5", avalanche: "#E84142", spl: "#14F195", trc20: "#EB0029", erc20: "#627EEA" };
+/** Logo de chaque réseau (public/coins). */
+const NET_COIN: Record<string, string> = { bep20: "bnb", polygon: "matic", avalanche: "avax", spl: "sol", trc20: "trx", erc20: "eth" };
+const Coin = ({ id, size = 18, net = false }: { id: string; size?: number; net?: boolean }) => {
+  const c = net ? NET_COIN[id] : id;
+  return c ? <img src={`/coins/${c}.svg`} alt="" width={size} height={size} draggable={false} style={{ borderRadius: "50%", flexShrink: 0, display: "block" }} /> : null;
+};
 
 const CSS = `
-.tl-wrap { font-family: ${FONT}; max-width: 980px; }
-.tl-eyebrow { margin: 0; font-size: 11.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--a-t3); }
-.tl-live { display: flex; flex-wrap: wrap; margin: 4px 0 30px; border-top: 1px solid var(--a-bds); border-bottom: 1px solid var(--a-bds); }
-.tl-live > div { flex: 1 1 200px; padding: 14px 18px 14px 0; display: flex; gap: 12px; align-items: center; min-width: 0; }
-.tl-live > div + div { padding-left: 18px; border-left: 1px solid var(--a-bds); }
-.tl-live b { display: block; font-size: 15px; font-weight: 600; color: var(--a-t1); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tl-live small { display: block; font-size: 12px; color: var(--a-t3); margin-top: 1px; }
-.tl-pulse { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--a-vzGreen); flex-shrink: 0; }
+.tl-wrap { font-family: ${FONT}; max-width: 1040px; }
+.tl-eyebrow { margin: 0; font-size: 11px; font-weight: 500; letter-spacing: .09em; text-transform: uppercase; color: var(--a-t3); }
+
+/* Le marché en direct, en tête de page. */
+.tl-hero { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 28px; align-items: end; padding: 6px 0 24px; border-bottom: 1px solid var(--a-bds); }
+.tl-pair { display: flex; align-items: center; gap: 12px; }
+.tl-pair .tl-coinwrap { position: relative; width: 44px; height: 44px; }
+.tl-pair .tl-coinwrap::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 1px solid color-mix(in srgb, #2775CA 55%, transparent); animation: tl-halo 2.6s ease-out infinite; }
+.tl-pair b { display: block; font-size: 15px; font-weight: 600; color: var(--a-t1); }
+.tl-pair small { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--a-t3); margin-top: 2px; }
+.tl-rate { margin: 16px 0 0; font-size: 46px; font-weight: 600; letter-spacing: -0.045em; line-height: 1; color: var(--a-t1); font-variant-numeric: tabular-nums; }
+.tl-rate span { font-size: 22px; color: var(--a-t3); font-weight: 500; margin-left: 6px; letter-spacing: -0.02em; }
+.tl-trio { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--a-t3); font-variant-numeric: tabular-nums; }
+.tl-trio b { color: var(--a-t1); font-weight: 500; margin-left: 5px; }
+.tl-chg { color: var(--a-t1); }
+.tl-spark { width: 100%; height: 132px; display: block; overflow: visible; }
+.tl-spark-path { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: tl-drawline 1.6s cubic-bezier(.22,1,.36,1) forwards; }
+.tl-spark-area { opacity: 0; animation: tl-fadein 1s .6s ease forwards; }
+.tl-spark-end { animation: tl-beat 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.tl-spark-axis { font-size: 10.5px; fill: var(--a-t3); font-variant-numeric: tabular-nums; }
+.tl-pulse { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--a-vzGreen); flex-shrink: 0; display: inline-block; }
 .tl-pulse::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: tl-ping 2s cubic-bezier(0,0,.2,1) infinite; }
-.tl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); border-top: 1px solid var(--a-bds); border-left: 1px solid var(--a-bds); }
-.tl-tile { all: unset; box-sizing: border-box; position: relative; display: flex; flex-direction: column; gap: 6px; padding: 22px 22px 18px; min-height: 236px;
+.tl-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--a-bds); margin-bottom: 30px; }
+.tl-stats > div { padding: 14px 18px 14px 0; display: flex; gap: 12px; align-items: center; min-width: 0; }
+.tl-stats > div + div { padding-left: 18px; border-left: 1px solid var(--a-bds); }
+.tl-stats b { display: block; font-size: 14.5px; font-weight: 600; color: var(--a-t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.tl-stats small { display: block; font-size: 12px; color: var(--a-t3); margin-top: 1px; }
+.tl-netrow { display: flex; }
+.tl-netrow img { margin-left: -6px; box-shadow: 0 0 0 2px var(--a-bg); border-radius: 50%; }
+.tl-netrow img:first-child { margin-left: 0; }
+
+/* Les tuiles : une scène animée, puis le nom. */
+.tl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); border-top: 1px solid var(--a-bds); border-left: 1px solid var(--a-bds); }
+.tl-tile { all: unset; box-sizing: border-box; position: relative; display: flex; flex-direction: column; gap: 6px; padding: 0 22px 18px; min-height: 300px;
   border-right: 1px solid var(--a-bds); border-bottom: 1px solid var(--a-bds); cursor: pointer; font-family: inherit; overflow: hidden;
-  animation: tl-up .55s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i) * 60ms); }
-.tl-tile::before { content: ""; position: absolute; left: 0; top: 0; height: 2px; width: 100%; background: var(--c); transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.22,1,.36,1); }
+  animation: tl-up .6s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i) * 70ms); }
+.tl-tile::before { content: ""; position: absolute; left: 0; top: 0; height: 2px; width: 100%; background: var(--c); transform: scaleX(0); transform-origin: left; transition: transform .5s cubic-bezier(.22,1,.36,1); z-index: 1; }
 .tl-tile:hover::before, .tl-tile:focus-visible::before { transform: scaleX(1); }
 .tl-tile:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }
-.tl-tile .tl-art { margin-bottom: 10px; }
-.tl-tile-name { font-size: 16.5px; font-weight: 500; color: var(--a-t1); letter-spacing: -0.01em; }
+.tl-tile .sc { transition: transform .6s cubic-bezier(.22,1,.36,1); }
+.tl-tile:hover .sc { transform: scale(1.05); }
+.tl-tile-name { font-size: 16.5px; font-weight: 500; color: var(--a-t1); letter-spacing: -0.01em; margin-top: 2px; }
 .tl-tile-desc { font-size: 13px; line-height: 1.5; color: var(--a-t3); }
 .tl-tile-foot { margin-top: auto; padding-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-t2); font-variant-numeric: tabular-nums; min-width: 0; }
 .tl-tile-foot > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tl-go { width: 16px; height: 16px; color: var(--a-t3); transition: transform .3s cubic-bezier(.22,1,.36,1), color .3s; flex-shrink: 0; }
 .tl-tile:hover .tl-go { transform: translateX(4px); color: var(--a-t1); }
-.tl-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.tl-nets { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
-.tl-nets > span { display: inline-flex; align-items: center; gap: 6px; }
+.tl-nets { display: inline-flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.tl-nets > span { display: inline-flex; align-items: center; gap: 7px; }
 
-/* Les dessins : immobiles au repos, animés au survol ou à l'ouverture d'un outil. */
-.tl-art { display: block; overflow: visible; }
-.tl-art .s { stroke: var(--a-t1); }
-.tl-art .k { stroke: var(--c); }
-.tl-art .f { fill: var(--c); }
-.tl-art * { transform-box: view-box; }
+/* Les scènes. */
+.sc { position: relative; height: 150px; display: grid; place-items: center; margin: 0 -22px 8px; }
+.sc-panel { margin: -4px 0 14px; height: 140px; }
+.sc-conv { display: flex; align-items: center; justify-content: center; gap: 0; }
+.sc-cad { width: 54px; height: 54px; border-radius: 50%; background: #D52B1E; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 20px; line-height: 1; position: relative; animation: tl-bob 3.2s ease-in-out infinite; }
+.sc-cad small { position: absolute; bottom: -18px; font-size: 10.5px; letter-spacing: .08em; font-weight: 500; color: var(--a-t3); }
+.sc-usdc { position: relative; animation: tl-bob 3.2s ease-in-out -1.6s infinite; }
+.sc-usdc small { position: absolute; bottom: -18px; left: 0; right: 0; text-align: center; font-size: 10.5px; letter-spacing: .08em; font-weight: 500; color: var(--a-t3); }
+.sc-flow { width: 120px; height: 40px; overflow: visible; }
+.sc-flow .d { stroke-dasharray: 3 7; animation: tl-dash 0.9s linear infinite; }
+.sc-flow .d2 { stroke-dasharray: 3 7; animation: tl-dash 0.9s linear infinite reverse; }
+.sc-addr-row { position: relative; display: flex; gap: 14px; }
+.sc-addr-row img { animation: tl-look 4.8s cubic-bezier(.65,0,.35,1) infinite; animation-delay: calc(var(--k) * 1.2s); }
+.sc-lens { position: absolute; top: -8px; left: 0; width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--c); backdrop-filter: blur(.5px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.08); animation: tl-lens 4.8s cubic-bezier(.65,0,.35,1) infinite; pointer-events: none; }
+.sc-lens::after { content: ""; position: absolute; width: 4px; height: 20px; background: var(--c); border-radius: 2px; right: -9px; bottom: -14px; transform: rotate(-45deg); }
+.sc-tx-net { animation: tl-swap4 6s infinite; opacity: 0; }
+.sc-dial line { animation: tl-sweep 2.4s linear infinite; animation-delay: calc(var(--k) * 0.1s); opacity: .18; }
+.sc-flag { animation: tl-wave 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; }
+.sc-week { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
+.sc-week span { width: 22px; text-align: center; font-size: 10.5px; color: var(--a-t3); padding-top: 6px; border-top: 2px solid var(--a-bds); }
+.sc-week span.on { color: var(--a-t1); border-top-color: var(--c); }
+.sc-sun { animation: tl-glow 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
 @media (prefers-reduced-motion: no-preference) {
-  .tl-tile:hover .tl-art .a1, .tl-art.play .a1 { animation: var(--a1); }
-  .tl-tile:hover .tl-art .a2, .tl-art.play .a2 { animation: var(--a2); }
-  .tl-tile:hover .tl-art .a3, .tl-art.play .a3 { animation: var(--a3); }
-  .tl-tile:hover .tl-art .a4, .tl-art.play .a4 { animation: var(--a4); }
   .tl-rise > * { animation: tl-up .5s cubic-bezier(.22,1,.36,1) both; }
   .tl-rise > *:nth-child(2) { animation-delay: 60ms; } .tl-rise > *:nth-child(3) { animation-delay: 120ms; }
   .tl-rise > *:nth-child(4) { animation-delay: 180ms; } .tl-rise > *:nth-child(5) { animation-delay: 240ms; }
   .tl-rise > *:nth-child(6) { animation-delay: 300ms; } .tl-rise > *:nth-child(n+7) { animation-delay: 360ms; }
 }
-@media (prefers-reduced-motion: reduce) { .tl-tile, .tl-pulse::after { animation: none; } }
-@keyframes tl-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tl-wrap *, .tl-wrap *::after, .sc *, .sc *::after { animation: none !important; } .tl-spark-path { stroke-dashoffset: 0; } .tl-spark-area { opacity: 1; } .sc-tx-net:first-of-type { opacity: 1; } }
+@keyframes tl-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes tl-ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
-@keyframes tl-swapA { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(20px); } }
-@keyframes tl-swapB { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-20px); } }
-@keyframes tl-fade { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
-@keyframes tl-scan { 0%, 100% { transform: translate(0, 0); } 35% { transform: translate(-18px, -8px); } 70% { transform: translate(-6px, -14px); } }
-@keyframes tl-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
-@keyframes tl-draw { from { stroke-dashoffset: 12; } to { stroke-dashoffset: 0; } }
-@keyframes tl-rise { 0% { transform: translateY(8px); } 100% { transform: translateY(0); } }
-@keyframes tl-turn { to { transform: rotate(360deg); } }
-@keyframes tl-wave { 0%, 100% { transform: skewY(0); } 25% { transform: skewY(-8deg); } 75% { transform: skewY(6deg); } }
+@keyframes tl-halo { 0% { transform: scale(.9); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+@keyframes tl-drawline { to { stroke-dashoffset: 0; } }
+@keyframes tl-fadein { to { opacity: 1; } }
+@keyframes tl-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.5); } }
+@keyframes tl-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes tl-dash { to { stroke-dashoffset: -20; } }
+@keyframes tl-look { 0%, 18% { transform: scale(1.22); } 25%, 100% { transform: scale(1); } }
+@keyframes tl-lens { 0%, 18% { transform: translateX(-8px); } 25%, 43% { transform: translateX(46px); } 50%, 68% { transform: translateX(100px); } 75%, 93% { transform: translateX(154px); } 100% { transform: translateX(-8px); } }
+@keyframes tl-swap4 { 0%, 22% { opacity: 1; } 25%, 100% { opacity: 0; } }
+@keyframes tl-sweep { 0% { opacity: 1; } 60%, 100% { opacity: .18; } }
+@keyframes tl-wave { 0%, 100% { transform: skewY(0); } 30% { transform: skewY(-7deg); } 70% { transform: skewY(5deg); } }
+@keyframes tl-glow { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @keyframes tl-tick { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 
 /* Le contenu des outils. */
-.tl-head { display: flex; gap: 16px; align-items: center; padding-bottom: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--a-bds); }
+.tl-head { padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--a-bds); }
 .tl-head p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--a-t2); }
-.tl-k { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--a-t3); margin: 0 0 8px; }
-.tl-big { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; color: var(--a-t1); font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; }
+.tl-k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--a-t3); margin: 0 0 8px; }
+.tl-big { margin: 0; display: flex; align-items: center; gap: 12px; font-size: 36px; font-weight: 600; letter-spacing: -0.04em; color: var(--a-t1); font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; }
 .tl-line { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--a-bds); font-size: 14px; min-width: 0; }
 .tl-line > svg { width: 16px; height: 16px; color: var(--a-t3); flex-shrink: 0; }
 .tl-line > .l { color: var(--a-t3); min-width: 0; }
-.tl-line > .v { margin-left: auto; color: var(--a-t1); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; min-width: 0; }
+.tl-line > .v { margin-left: auto; color: var(--a-t1); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; min-width: 0; display: inline-flex; align-items: center; justify-content: flex-end; gap: 7px; }
 .tl-verdict { display: flex; gap: 14px; align-items: flex-start; padding: 4px 0 16px; }
 .tl-verdict > svg { width: 26px; height: 26px; flex-shrink: 0; margin-top: 1px; }
 .tl-verdict b { display: block; font-size: 17px; font-weight: 600; color: var(--a-t1); letter-spacing: -0.01em; }
 .tl-verdict span { display: block; margin-top: 3px; font-size: 13.5px; line-height: 1.5; color: var(--a-t2); }
 .tl-link { all: unset; cursor: pointer; color: var(--a-t1); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
 .tl-link:hover { text-decoration-color: currentColor; }
-.tl-ext { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--a-t1); text-decoration: none; padding: 6px 0; }
+.tl-ext { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--a-t1); text-decoration: none; padding: 6px 0; }
 .tl-ext:hover { text-decoration: underline; text-underline-offset: 4px; }
 .tl-ext svg { width: 13px; height: 13px; color: var(--a-t3); }
 .tl-seg { display: flex; border-bottom: 1px solid var(--a-bds); }
@@ -152,13 +196,15 @@ const CSS = `
 .tl-ring circle:last-child { transition: stroke-dashoffset .5s cubic-bezier(.22,1,.36,1); }
 .tl-client { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--a-bds); cursor: pointer; }
 .tl-client:hover .tl-go { transform: translateX(4px); color: var(--a-t1); }
-@media (max-width: 600px) {
-  .tl-live > div { flex-basis: 100%; padding: 12px 0; }
-  .tl-live > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--a-bds); }
+@media (max-width: 760px) {
+  .tl-hero { grid-template-columns: 1fr; gap: 10px; }
+  .tl-rate { font-size: 40px; }
+  .tl-stats { grid-template-columns: 1fr; }
+  .tl-stats > div { padding: 12px 0; }
+  .tl-stats > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--a-bds); }
   .tl-grid { grid-template-columns: 1fr; }
-  .tl-tile { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; row-gap: 4px; min-height: 0; padding: 18px 16px; }
-  .tl-tile .tl-art { grid-row: span 4; margin: 0; width: 52px; height: 52px; }
-  .tl-tile-foot { padding-top: 6px; }
+  .tl-tile { min-height: 0; padding: 0 16px 18px; }
+  .sc { height: 132px; margin: 0 -16px 6px; }
 }
 `;
 
@@ -166,7 +212,7 @@ const cad = (n: number) => `${n.toLocaleString("fr-CA", { minimumFractionDigits:
 const num = (n: number, d = 2) => n.toLocaleString("fr-CA", { minimumFractionDigits: d, maximumFractionDigits: d });
 const rate4 = (n: number) => n.toLocaleString("fr-CA", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 const dt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const hm = (iso: string) => new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" });
+const hm = (iso: string | number) => new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" });
 const short = (s: string) => (s.length > 20 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s);
 const STATUS: Record<string, string> = {
   created: "Créée", awaiting_payment: "En attente du paiement", payment_received: "Paiement reçu", settling: "En règlement", completed: "Terminée",
@@ -198,73 +244,148 @@ function useCount(target: number | null, ms = 650) {
   return v;
 }
 
-/* ─── Les dessins des outils ─── */
-function ToolArt({ id, color, size = 64, play = false }: { id: ToolId; color: string; size?: number; play?: boolean }) {
-  const common = { className: `tl-art${play ? " play" : ""}`, width: size, height: size, viewBox: "0 0 64 64", fill: "none", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
-  const v = (o: Record<string, string>) => ({ ...common, style: { "--c": color, ...o } as React.CSSProperties });
+/* ─── Les scènes animées de chaque outil ─── */
+interface SceneData { rate: LatestRate | null; sym: string; asset: string; opened?: DayCheck; closed?: DayCheck }
+function Scene({ id, color, d, panel = false }: { id: ToolId; color: string; d: SceneData; panel?: boolean }) {
+  const cls = `sc${panel ? " sc-panel" : ""}`;
+  const style = { "--c": color } as React.CSSProperties;
   switch (id) {
     case "convert": return (
-      <svg {...v({ "--a1": "tl-swapA 1.1s cubic-bezier(.65,0,.35,1)", "--a2": "tl-swapB 1.1s cubic-bezier(.65,0,.35,1)", "--a3": "tl-fade 1.1s ease" })}>
-        <g className="a3"><path className="s" d="M20 18c6-8 18-8 24 0" /><path className="s" d="M40 13l4 5-6 1" /><path className="s" d="M44 46c-6 8-18 8-24 0" /><path className="s" d="M24 51l-4-5 6-1" /></g>
-        <g className="a1"><circle className="f" cx="21" cy="32" r="9" /></g>
-        <g className="a2"><circle className="s" cx="43" cy="32" r="9" /><path className="s" d="M43 26v12M46 29.5c-.6-1-1.7-1.5-3-1.5-1.7 0-3 .9-3 2.2 0 2.8 6 1.4 6 4.3 0 1.3-1.3 2.3-3 2.3-1.4 0-2.6-.6-3.2-1.6" strokeWidth="1.6" /></g>
-      </svg>
+      <div className={`${cls} sc-conv`} style={style} aria-hidden>
+        <span className="sc-cad">$<small>CAD</small></span>
+        <svg className="sc-flow" viewBox="0 0 120 40">
+          <path className="d" d="M8 14H112" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+          <path className="d2" d="M8 26H112" stroke="var(--a-t3)" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M106 9l6 5-6 5" stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M14 21l-6 5 6 5" stroke="var(--a-t3)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span className="sc-usdc"><Coin id={d.asset} size={54} /><small>{d.sym}</small></span>
+      </div>
     );
     case "address": return (
-      <svg {...v({ "--a1": "tl-scan 1.4s cubic-bezier(.65,0,.35,1)" })}>
-        <rect className="s" x="6" y="16" width="40" height="30" rx="4" />
-        <path className="s" d="M6 24h40" />
-        <path className="s" d="M34 30h12v10H34a5 5 0 0 1 0-10z" />
-        <circle className="f" cx="36" cy="35" r="2" />
-        <g className="a1"><circle className="k" cx="46" cy="44" r="8" strokeWidth="3" /><path className="k" d="M52 50l6 6" strokeWidth="3" /></g>
-      </svg>
+      <div className={cls} style={style} aria-hidden>
+        <div className="sc-addr-row">
+          {OPEN_NETS.map((n, k) => <span key={n} style={{ "--k": k } as React.CSSProperties}><Coin id={n} net size={40} /></span>)}
+          <span className="sc-lens" />
+        </div>
+      </div>
     );
     case "tx": return (
-      <svg {...v({ "--a1": "tl-hop .6s ease", "--a2": "tl-hop .6s ease .15s", "--a3": "tl-hop .6s ease .3s", "--a4": "tl-draw .6s ease" })}>
-        <path className="k a4" d="M19 32h7M38 32h7" strokeWidth="3" strokeDasharray="3 3" />
-        <g className="a1"><rect className="s" x="5" y="25" width="14" height="14" rx="2" /></g>
-        <g className="a2"><rect className="f" x="25" y="23" width="14" height="18" rx="2" /><path d="M29 30h6M29 34h4" stroke="var(--a-l1)" strokeWidth="1.8" /></g>
-        <g className="a3"><rect className="s" x="45" y="25" width="14" height="14" rx="2" /></g>
-      </svg>
+      <div className={cls} style={style} aria-hidden>
+        <svg width="260" height="96" viewBox="0 0 260 96" fill="none">
+          <path d="M60 48H120M150 48H200" stroke="var(--a-bd)" strokeWidth="2" strokeDasharray="4 5" />
+          <rect x="16" y="26" width="44" height="44" rx="12" stroke="var(--a-bd)" strokeWidth="1.5" />
+          {OPEN_NETS.map((n, k) => (
+            <image key={n} className="sc-tx-net" href={`/coins/${NET_COIN[n]}.svg`} x="24" y="34" width="28" height="28" style={{ animationDelay: `${k * 1.5}s` }} />
+          ))}
+          <rect x="120" y="22" width="30" height="52" rx="6" fill={color} />
+          <path d="M127 38h16M127 46h12M127 54h16M127 62h8" stroke="var(--a-l1)" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="222" cy="48" r="22" stroke={color} strokeWidth="2" />
+          <path d="M212 48l7 7 13-14" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          <image href={`/coins/${d.asset}.svg`} x="-10" y="-10" width="20" height="20">
+            <animateMotion dur="2.6s" repeatCount="indefinite" path="M62 48H198" keyPoints="0;0.45;0.45;1" keyTimes="0;0.4;0.6;1" calcMode="linear" />
+          </image>
+        </svg>
+      </div>
     );
-    case "day": return (
-      <svg {...v({ "--a1": "tl-rise 1s cubic-bezier(.22,1,.36,1)", "--a2": "tl-turn 6s linear" })}>
-        <defs><clipPath id={`tl-sky-${size}`}><rect x="0" y="0" width="64" height="44" /></clipPath></defs>
-        <g clipPath={`url(#tl-sky-${size})`}><g className="a1"><circle className="f" cx="32" cy="44" r="11" /></g></g>
-        <g className="a2" style={{ transformOrigin: "32px 44px" }}>
-          <path className="k" d="M32 26v-8M19 31l-5-5M45 31l5-5M14 40H7M50 40h7" />
-        </g>
-        <path className="s" d="M4 44h56M14 52h36" />
-      </svg>
-    );
+    case "day": {
+      // Le soleil suit l'heure réelle, de 6 h à 22 h.
+      const now = new Date();
+      const h = now.getHours() + now.getMinutes() / 60;
+      const p = Math.min(1, Math.max(0, (h - 6) / 16));
+      const a = Math.PI * (1 - p), R = 96, cx = 130, cy = 104;
+      const sx = cx + R * Math.cos(a), sy = cy - R * Math.sin(a);
+      const len = Math.PI * R;
+      const mark = (iso?: string) => {
+        if (!iso) return null;
+        const t = new Date(iso); const q = Math.min(1, Math.max(0, (t.getHours() + t.getMinutes() / 60 - 6) / 16)); const b = Math.PI * (1 - q);
+        return { x: cx + R * Math.cos(b), y: cy - R * Math.sin(b) };
+      };
+      const o = mark(d.opened?.at), c = mark(d.closed?.at);
+      return (
+        <div className={cls} style={style} aria-hidden>
+          <svg width="260" height="128" viewBox="0 0 260 128" fill="none" style={{ overflow: "visible" }}>
+            <path d={`M${cx - R} ${cy}A${R} ${R} 0 0 1 ${cx + R} ${cy}`} stroke="var(--a-bd)" strokeWidth="1.5" strokeDasharray="3 5" />
+            <path d={`M${cx - R} ${cy}A${R} ${R} 0 0 1 ${cx + R} ${cy}`} stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - p)} />
+            <path d={`M14 ${cy}H246`} stroke="var(--a-t3)" strokeWidth="1.5" />
+            <text x={cx - R} y={cy + 18} textAnchor="middle" className="tl-spark-axis">6 h</text>
+            <text x={cx + R} y={cy + 18} textAnchor="middle" className="tl-spark-axis">22 h</text>
+            {o && <g><circle cx={o.x} cy={o.y} r="4" fill="var(--a-t1)" /><text x={o.x} y={o.y - 10} textAnchor="middle" className="tl-spark-axis">Ouverte</text></g>}
+            {c && <g><circle cx={c.x} cy={c.y} r="4" fill="var(--a-t1)" /><text x={c.x} y={c.y - 10} textAnchor="middle" className="tl-spark-axis">Fermée</text></g>}
+            <circle className="sc-sun" cx={sx} cy={sy} r="18" fill={color} opacity=".18" />
+            <circle cx={sx} cy={sy} r="10" fill={color} />
+            <text x={cx} y={cy - 22} textAnchor="middle" style={{ fontSize: 22, fontWeight: 600, fill: "var(--a-t1)", letterSpacing: "-0.03em" }}>{hm(now.getTime())}</text>
+          </svg>
+        </div>
+      );
+    }
     case "rule24": return (
-      <svg {...v({ "--a1": "tl-turn 1.2s cubic-bezier(.65,0,.35,1)" })}>
-        <circle className="s" cx="32" cy="32" r="22" />
-        <path className="k" d="M32 10a22 22 0 0 1 22 22" strokeWidth="3.5" />
-        <path className="s" d="M32 14v3M50 32h-3M32 50v-3M14 32h3" />
-        <path className="s" d="M32 32h9" />
-        <g className="a1" style={{ transformOrigin: "32px 32px" }}><path className="s" d="M32 32V19" strokeWidth="2.5" /></g>
-        <circle className="f" cx="32" cy="32" r="2.5" />
-      </svg>
+      <div className={cls} style={style} aria-hidden>
+        <svg className="sc-dial" width="128" height="128" viewBox="0 0 128 128" fill="none">
+          {Array.from({ length: 24 }, (_, k) => {
+            const a = (k / 24) * Math.PI * 2 - Math.PI / 2;
+            return <line key={k} style={{ "--k": k } as React.CSSProperties} x1={64 + 46 * Math.cos(a)} y1={64 + 46 * Math.sin(a)} x2={64 + 58 * Math.cos(a)} y2={64 + 58 * Math.sin(a)} stroke={color} strokeWidth="5" strokeLinecap="round" />;
+          })}
+          <text x="64" y="64" textAnchor="middle" style={{ fontSize: 26, fontWeight: 600, fill: "var(--a-t1)", letterSpacing: "-0.04em" }}>24 h</text>
+          <text x="64" y="82" textAnchor="middle" className="tl-spark-axis">10 000 $</text>
+        </svg>
+      </div>
     );
-    case "boc": return (
-      <svg {...v({ "--a1": "tl-wave 1.2s ease-in-out" })}>
-        <path className="s" d="M32 18V5" />
-        <g className="a1" style={{ transformOrigin: "32px 9px" }}><path className="f" d="M32 5h13l-3 4 3 4H32z" /></g>
-        <path className="s" d="M8 28l24-10 24 10z" />
-        <path className="s" d="M12 32h40M16 34v13M26 34v13M38 34v13M48 34v13M10 51h44M8 56h48" />
-      </svg>
-    );
+    case "boc": {
+      const wd = new Date().getDay();
+      return (
+        <div className={cls} style={style} aria-hidden>
+          <div>
+            <svg width="120" height="92" viewBox="0 0 120 92" fill="none" style={{ display: "block", margin: "0 auto" }}>
+              <path d="M60 30V6" stroke="var(--a-t1)" strokeWidth="2" strokeLinecap="round" />
+              <g className="sc-flag">
+                <rect x="60" y="6" width="30" height="16" fill="#D52B1E" />
+                <rect x="67.5" y="6" width="15" height="16" fill="#fff" />
+                <path d="M75 9l1.2 2.4 1.8-.6-.6 3 1.8-.6-.6 2.4-2.4.3v2.1h-1.2v-2.1l-2.4-.3-.6-2.4 1.8.6-.6-3 1.8.6z" fill="#D52B1E" />
+              </g>
+              <path d="M16 44L60 26l44 18z" stroke="var(--a-t1)" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M22 50h76M30 54v22M46 54v22M74 54v22M90 54v22M18 82h84M14 88h92" stroke="var(--a-t1)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <div className="sc-week">{["L", "M", "M", "J", "V"].map((l, i) => <span key={i} className={wd === i + 1 ? "on" : ""}>{l}</span>)}</div>
+          </div>
+        </div>
+      );
+    }
   }
+}
+
+/* ─── La courbe du cours sur une heure ─── */
+function Spark({ pts, color }: { pts: { at: number; market: number }[]; color: string }) {
+  if (pts.length < 2) return <div className="tl-spark" />;
+  const W = 600, H = 120, P = 6;
+  const min = Math.min(...pts.map((p) => p.market)), max = Math.max(...pts.map((p) => p.market));
+  const span = max - min || 1e-6, t0 = pts[0].at, t1 = pts[pts.length - 1].at;
+  const xy = pts.map((p) => [P + ((p.at - t0) / (t1 - t0 || 1)) * (W - 2 * P), P + (1 - (p.market - min) / span) * (H - 2 * P - 14)] as const);
+  const line = xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("");
+  const [ex, ey] = xy[xy.length - 1];
+  return (
+    <svg className="tl-spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden>
+      <defs><linearGradient id="tl-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity=".28" /><stop offset="1" stopColor={color} stopOpacity="0" /></linearGradient></defs>
+      {[0.25, 0.5, 0.75].map((f) => <path key={f} d={`M0 ${(H - 14) * f}H${W}`} stroke="var(--a-bds)" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
+      <path className="tl-spark-area" d={`${line}L${ex} ${H - 14}L${xy[0][0]} ${H - 14}Z`} fill="url(#tl-area)" />
+      <path className="tl-spark-path" d={line} stroke={color} strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+      <circle className="tl-spark-end" cx={ex} cy={ey} r="4" fill={color} vectorEffect="non-scaling-stroke" />
+      <text x={P} y={H} className="tl-spark-axis">{hm(t0)}</text>
+      <text x={W - P} y={H} textAnchor="end" className="tl-spark-axis">{hm(t1)}</text>
+    </svg>
+  );
 }
 
 export default function ToolsPanel({ onOpenOrder, onShowClient }: { onOpenOrder?: (id: string) => void; onShowClient?: (id: string) => void }) {
   const { roles } = useAuth();
   const [open, setOpen] = useState<ToolId | null>(null);
   const [rate, setRate] = useState<LatestRate | null>(null);
+  const [hist, setHist] = useState<{ at: number; market: number; buy: number }[]>([]);
   const [checks, setChecks] = useState<DayCheck[] | null>(null);
   const [ctx, setCtx] = useState<DayContext | null>(null);
-  const sym = primaryAsset(getAppSettingsNow()).symbol;
+  const [, tick] = useState(0);
+  const a = primaryAsset(getAppSettingsNow());
+  const sym = a.symbol;
   const can = (t: ToolDef) => !t.roles || roles.includes("admin") || t.roles.some((r) => roles.includes(r as never));
   const tools = TOOLS.filter(can);
   const tool = TOOLS.find((t) => t.id === open);
@@ -272,13 +393,17 @@ export default function ToolsPanel({ onOpenOrder, onShowClient }: { onOpenOrder?
   const goOrder = onOpenOrder ? (id: string) => { setOpen(null); onOpenOrder(id); } : undefined;
   const goClient = onShowClient ? (id: string) => { setOpen(null); onShowClient(id); } : undefined;
 
-  // Le bandeau en direct : taux, journée, file.
+  // Le marché en direct : taux et courbe de l'heure, rafraîchis toutes les 30 secondes.
   useEffect(() => {
-    const r = () => fetchLatestRate().then(setRate).catch(() => {});
+    const r = () => {
+      fetchLatestRate().then(setRate).catch(() => {});
+      fetchRateHistory(a.id).then(setHist).catch(() => {});
+      tick((n) => n + 1);
+    };
     r();
     const t = window.setInterval(r, 30_000);
     return () => window.clearInterval(t);
-  }, []);
+  }, [a.id]);
   useEffect(() => {
     if (open) return;
     fetchDayChecks(1).then(setChecks).catch(() => {});
@@ -288,12 +413,15 @@ export default function ToolsPanel({ onOpenOrder, onShowClient }: { onOpenOrder?
   const opened = checks?.find((c) => c.day === today && c.kind === "open");
   const closed = checks?.find((c) => c.day === today && c.kind === "close");
   const dayText = closed ? `Fermée par ${closed.byName} à ${hm(closed.at)}` : opened ? `Ouverte par ${opened.byName} à ${hm(opened.at)}` : "Ouverture à signer";
-  const buyShown = useCount(rate?.buy ?? null);
+  const buyShown = useCount(rate?.buy ?? null, 900);
+  const first = hist[0]?.market, last = hist[hist.length - 1]?.market;
+  const chg = first && last ? (last / first - 1) * 100 : null;
+  const scene: SceneData = { rate, sym, asset: a.id, opened, closed };
 
   const foot = (t: ToolDef): React.ReactNode => {
     switch (t.id) {
       case "convert": return rate ? <span>1 {sym} = {rate4(rate.buy)} $ à l'achat</span> : <span>Taux du moment</span>;
-      case "address": return <span className="tl-nets">{OPEN_NETS.map((n) => <span key={n}><i className="tl-dot" style={{ background: NET_COLOR[n] }} />{NET_NAME[n]}</span>)}</span>;
+      case "address": return <span>BNB Chain, Polygon, Avalanche et Solana</span>;
       case "tx": return <span>Envois, dépôts et hash déclarés</span>;
       case "day": return <span>{checks ? dayText : "…"}</span>;
       case "rule24": return <span>Seuil : 10 000 $ sur 24 heures</span>;
@@ -304,17 +432,35 @@ export default function ToolsPanel({ onOpenOrder, onShowClient }: { onOpenOrder?
   return (
     <div className="tl-wrap">
       <style>{CSS}</style>
-      <div className="tl-live">
+      <section className="tl-hero">
         <div>
-          <span className="tl-pulse" aria-hidden />
-          <span style={{ minWidth: 0 }}><b>{rate ? `${rate4(buyShown)} $` : "…"}</b><small>1 {sym} à l'achat, en direct</small></span>
+          <div className="tl-pair">
+            <span className="tl-coinwrap"><Coin id={a.id} size={44} /></span>
+            <span><b>{sym} / CAD</b><small><span className="tl-pulse" />En direct</small></span>
+          </div>
+          <p className="tl-rate">{rate ? rate4(buyShown) : "…"}<span>$</span></p>
+          {rate && (
+            <div className="tl-trio">
+              <span>Achat<b>{rate4(rate.buy)}</b></span>
+              <span>Vente<b>{rate4(rate.sell)}</b></span>
+              {rate.market != null && <span>Marché<b>{rate4(rate.market)}</b></span>}
+              {chg != null && <span>1 h<b className="tl-chg">{chg >= 0 ? "+" : ""}{num(chg, 3)} %</b></span>}
+            </div>
+          )}
+        </div>
+        <Spark pts={hist} color="#2775CA" />
+      </section>
+      <div className="tl-stats">
+        <div>
+          <span className="tl-netrow">{OPEN_NETS.map((n) => <Coin key={n} id={n} net size={22} />)}</span>
+          <span style={{ minWidth: 0 }}><b>4 réseaux ouverts</b><small>BNB Chain, Polygon, Avalanche, Solana</small></span>
         </div>
         <div>
-          <CalendarDays style={{ width: 18, height: 18, color: C.t3, flexShrink: 0 }} />
+          <CalendarDays style={{ width: 20, height: 20, color: C.t3, flexShrink: 0 }} />
           <span style={{ minWidth: 0 }}><b>{checks ? dayText : "…"}</b><small>La journée d'aujourd'hui</small></span>
         </div>
         <div>
-          <ShoppingCart style={{ width: 18, height: 18, color: C.t3, flexShrink: 0 }} />
+          <ShoppingCart style={{ width: 20, height: 20, color: C.t3, flexShrink: 0 }} />
           <span style={{ minWidth: 0 }}><b>{ctx ? `${ctx.queue} commande${ctx.queue > 1 ? "s" : ""} payée${ctx.queue > 1 ? "s" : ""}` : "…"}</b><small>En attente d'envoi</small></span>
         </div>
       </div>
@@ -322,7 +468,7 @@ export default function ToolsPanel({ onOpenOrder, onShowClient }: { onOpenOrder?
       <div className="tl-grid">
         {tools.map((t, i) => (
           <button key={t.id} type="button" className="tl-tile" style={{ "--i": i, "--c": t.color } as React.CSSProperties} onClick={() => setOpen(t.id)}>
-            <ToolArt id={t.id} color={t.color} />
+            <Scene id={t.id} color={t.color} d={scene} />
             <span className="tl-eyebrow">{t.group}</span>
             <span className="tl-tile-name">{t.name}</span>
             <span className="tl-tile-desc">{t.desc}</span>
@@ -335,7 +481,7 @@ export default function ToolsPanel({ onOpenOrder, onShowClient }: { onOpenOrder?
         <SidePanel title={tool.name} subtitle={tool.group} onClose={() => setOpen(null)} width={560}>
           <style>{CSS}</style>
           <div style={{ "--c": tool.color } as React.CSSProperties}>
-            <div className="tl-head"><ToolArt id={tool.id} color={tool.color} size={56} play /><p>{tool.how}</p></div>
+            <div className="tl-head"><Scene id={tool.id} color={tool.color} d={scene} panel /><p>{tool.how}</p></div>
             {tool.id === "convert" && <Converter />}
             {tool.id === "address" && <AddressTool onShowClient={goClient} />}
             {tool.id === "tx" && <TxTool onOpenOrder={goOrder} />}
@@ -356,15 +502,15 @@ const Line = ({ icon: I, label, children }: { icon?: Icon; label: React.ReactNod
   <div className="tl-line">{I && <I aria-hidden />}<span className="l">{label}</span>{children != null && children !== "" && <span className="v">{children}</span>}</div>
 );
 const Nets = ({ ids }: { ids: string[] }) => (
-  <span className="tl-nets">{ids.map((n) => <span key={n}><i className="tl-dot" style={{ background: NET_COLOR[n] ?? C.t3 }} />{NET_NAME[n] ?? n}</span>)}</span>
+  <span className="tl-nets">{ids.map((n) => <span key={n}><Coin id={n} net size={18} />{NET_NAME[n] ?? n}</span>)}</span>
 );
 const Explorers = ({ fam, base, value }: { fam: keyof typeof FAMILY_NETS; base: "tx" | "addr"; value: string }) => (
   <div>
     <p className="tl-k" style={{ marginTop: 22 }}>Voir sur l'explorateur</p>
-    <div className="tl-nets" style={{ gap: "2px 18px" }}>
+    <div className="tl-nets" style={{ gap: "2px 20px" }}>
       {netsOf(fam).map((n) => (
         <a key={n.id} className="tl-ext" href={n[base] + value.trim()} target="_blank" rel="noreferrer">
-          <i className="tl-dot" style={{ background: NET_COLOR[n.id] }} />{n.name}<ExternalLink />
+          <Coin id={n.id} net size={18} />{n.name}<ExternalLink />
         </a>
       ))}
     </div>
@@ -410,7 +556,7 @@ function Converter() {
       {rate && (
         <div>
           <p className="tl-k">{side === "buy" ? (unit === "cad" ? "Le client reçoit" : "Le client paie") : (unit === "cad" ? "Le client doit envoyer" : "Le client reçoit")}</p>
-          <p className="tl-big">{out == null ? "—" : unit === "cad" ? `${num(shown, 2)} ${sym}` : cad(shown)}</p>
+          <p className="tl-big">{unit === "cad" ? <Coin id={primaryAsset(getAppSettingsNow()).id} size={34} /> : <span style={{ width: 34, height: 34, borderRadius: "50%", background: "#D52B1E", color: "#fff", display: "grid", placeItems: "center", fontSize: 17, fontWeight: 700, flexShrink: 0 }}>$</span>}{out == null ? "—" : unit === "cad" ? `${num(shown, 2)} ${sym}` : cad(shown)}</p>
           <div style={{ marginTop: 16 }}>
             <Line icon={side === "buy" ? ArrowDownLeft : ArrowUpRight} label={`Taux ${side === "buy" ? "à l'achat" : "à la vente"}`}>1 {sym} = {rate4(r)} $</Line>
             {rate.market != null && <Line icon={Network} label="Cours du marché">1 {sym} = {rate4(rate.market)} $</Line>}
@@ -519,7 +665,7 @@ function TxTool({ onOpenOrder }: { onOpenOrder?: (id: string) => void }) {
                 <div><b>{h.kind}</b><span>{h.order_id && onOpenOrder ? <button type="button" className="tl-link" onClick={() => onOpenOrder(h.order_id!)}>Commande {orderRef(h.order_id)}</button> : h.order_id ? `Commande ${orderRef(h.order_id)}` : "Sans commande"}</span></div>
               </div>
               <Line icon={Network} label="Réseau"><Nets ids={[h.network]} /></Line>
-              <Line icon={Landmark} label="Montant">{num(Number(h.amount), 2)} {String(h.asset).toUpperCase()}</Line>
+              <Line icon={Landmark} label="Montant"><Coin id={String(h.asset)} size={18} />{num(Number(h.amount), 2)} {String(h.asset).toUpperCase()}</Line>
               <Line icon={Check} label="État">{STATUS[h.status] ?? h.status}</Line>
               {(h.to || h.from) && <Line icon={h.to ? ArrowUpRight : ArrowDownLeft} label={h.to ? "Vers" : "Depuis"}><span className="tl-mono">{short(String(h.to || h.from))}</span></Line>}
               {h.at && <Line icon={Clock3} label="Le">{dt.format(new Date(h.at))}</Line>}
@@ -772,7 +918,7 @@ function BocTool() {
           <div style={{ marginTop: 16 }}>
             <Line icon={CalendarDays} label="Publié le">{new Date(`${res.date}T12:00:00`).toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</Line>
             {res.date !== res.asked && <Line icon={Clock3} label="Remarque">Pas de taux ce jour-là : dernier taux publié avant</Line>}
-            {ours?.market != null && date === today && <Line icon={Network} label="Notre cours du marché (USDC)">{rate4(ours.market)} $</Line>}
+            {ours?.market != null && date === today && <Line icon={Network} label="Notre cours du marché (USDC)"><Coin id="usdc" size={18} />{rate4(ours.market)} $</Line>}
             {gap != null && date === today && <Line icon={ArrowDownUp} label="Écart">{gap >= 0 ? "+" : ""}{num(gap, 2)} %</Line>}
           </div>
           <p style={{ margin: "14px 0 0", fontSize: 12.5, color: C.t3 }}>Source : Banque du Canada. Taux publié les jours ouvrables vers 16 h 30 (heure de l'Est).</p>
