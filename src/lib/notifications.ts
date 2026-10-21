@@ -5,6 +5,7 @@
  * clients sont coupés.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import { logAdminAction } from "@/lib/audit";
 
 export type Audience = "all" | "verified" | "unverified" | "staff";
@@ -43,12 +44,14 @@ export interface MessageRow {
 export interface NotifStats { push: Record<string, number>; messages: Record<string, { seen: number; click: number; dismiss: number }> }
 
 export async function loadNotifications(): Promise<{ push: PushRow[]; messages: MessageRow[]; stats: NotifStats }> {
-  const [p, m, st] = await Promise.all([
-    supabase.from("push_campaigns").select("*").order("scheduled_at", { ascending: false }).limit(100),
-    supabase.from("app_messages").select("*").is("removed_at" as never, null).order("starts_at", { ascending: false }).limit(100),
+  // Toutes les notifications et tous les messages, par tranches (plus de coupure à 100).
+  const [pRows, mRows, st] = await Promise.all([
+    fetchAll((a, b) => supabase.from("push_campaigns").select("*").order("scheduled_at", { ascending: false }).order("id").range(a, b)),
+    fetchAll((a, b) => supabase.from("app_messages").select("*").is("removed_at" as never, null).order("starts_at", { ascending: false }).order("id").range(a, b)),
     supabase.rpc("notif_stats"),
   ]);
-  const error = p.error ?? m.error ?? st.error;
+  const p = { data: pRows }, m = { data: mRows };
+  const error = st.error;
   if (error) throw new Error(error.message);
   return {
     push: (p.data ?? []).map((r) => ({

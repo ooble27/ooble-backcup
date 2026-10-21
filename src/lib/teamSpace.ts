@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import { oliName } from "@/lib/oli";
 import { fetchCached, peek } from "@/lib/adminCache";
 import type { LiveTeamMember } from "@/lib/adminTeam";
@@ -204,9 +205,10 @@ async function loadTasksRaw(archived = false, link?: { clientId?: string; orderI
     .eq("archived", archived);
   if (link?.clientId) q = q.eq("client_id", link.clientId);
   if (link?.orderId) q = q.eq("order_id", link.orderId);
-  const { data, error } = await q.order("created_at", { ascending: false }).limit(500);
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as Record<string, unknown>[]).map((r) => {
+  // Toutes les tâches, par tranches : aucune ne disparaît du tableau.
+  const ordered = q.order("created_at", { ascending: false }).order("id");
+  const data = await fetchAll<Record<string, unknown>>((a, b) => ordered.range(a, b));
+  return data.map((r) => {
     const c = r.client as { full_name?: string; email?: string } | null;
     return {
       id: String(r.id), title: String(r.title), details: (r.details as string) ?? null, assigneeId: (r.assignee_id as string) ?? null,

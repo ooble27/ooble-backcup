@@ -40,7 +40,7 @@ import {
 import { draftCampaign, isAIError, type DraftCampaignResult } from "@/lib/ai";
 import { C, FONT } from "./adminTheme";
 import { Button, Notice, SidePanel, SummaryRow, Workspace, WsPane, type WorkspaceStep } from "./ui";
-import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, type Column } from "./layout";
+import { DataTable, EmptyState, FilterChips, KeyValues, Pill, SearchField, StatStrip, Tabs, Toolbar, TwoLine, useReveal, type Column } from "./layout";
 import { ScaledFrame } from "./EmailFrame";
 import { CampaignList, ControlCenter, MarketingOverview } from "./MarketingPanels";
 import { GR_CSS, Opts } from "./GrowthPanel";
@@ -507,7 +507,7 @@ const CampaignsPanel = () => {
       <div key={tab} style={{ marginTop: 34 }}>
         {tab === "overview" && (
           <MarketingOverview refreshKey={refreshKey} onNew={() => setTab("templates")} onControl={() => setTab("control")}
-            onOpenCampaign={(id) => { setOpenCampaign(id); setTab("history"); }} />
+            onOpenCampaign={(id) => { setOpenCampaign(id); setTab("history"); }} onAll={() => setTab("history")} />
         )}
         {tab === "templates" && (
           <>
@@ -878,6 +878,8 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   };
 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
+  // Destinataires : 100 d'abord, la suite en descendant ; chacun reste visible et retirable.
+  const { visible: recipientsShown, more: recipientsMore } = useReveal(recipients, 100);
   const addRecipient = useCallback((r: Recipient) => {
     setRecipients((prev) => prev.some((p) => p.email.toLowerCase() === r.email.toLowerCase()) ? prev : [...prev, r]);
   }, []);
@@ -1289,7 +1291,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
         <p style={{ margin: "14px 0 0", fontSize: 14, color: C.t3, lineHeight: 1.6, maxWidth: 360 }}>Personne pour l'instant. Ajoutez des clients un par un, ou tout un groupe d'un seul geste.</p>
       ) : (
         <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 2 }}>
-          {recipients.slice(0, 300).map((r) => {
+          {recipientsShown.map((r) => {
             const l = langFor(r, sendLang, unknownLang);
             return (
               <div key={r.email} className="ui-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 8px", borderRadius: 12 }}>
@@ -1307,7 +1309,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
               </div>
             );
           })}
-          {recipients.length > 300 && <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.t3 }}>… et {recipients.length - 300} autres.</p>}
+          {recipientsMore}
         </div>
       )}
     </div>

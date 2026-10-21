@@ -192,6 +192,10 @@ export async function fetchAuditLog(
 export async function fetchAuditFacets(): Promise<{ actions: string[]; entityKinds: string[] }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const client = supabase as any;
+  // Toutes les valeurs jamais journalisées, calculées par la base.
+  const all = await client.rpc("audit_facets");
+  if (!all.error && all.data) return { actions: all.data.actions ?? [], entityKinds: all.data.entityKinds ?? [] };
+  // Repli : les 2 000 dernières entrées.
   const { data, error } = await client
     .from("admin_audit_log")
     .select("action, entity_kind")

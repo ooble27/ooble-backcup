@@ -61,7 +61,7 @@ import { Button, Notice, Workspace } from "./ui";
 import { MailboxHero } from "./heroes";
 import ClientCard from "./ClientCard";
 import { OrderStatusPill } from "./orderBits";
-import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, type Column } from "./layout";
+import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, useReveal, type Column } from "./layout";
 import { assetSymbol } from "@/lib/assets";
 
 // ──────────────────── Recipient model ────────────────────
@@ -1522,6 +1522,8 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
     .sort((a, b) => (filter === "todo"
       ? (a.lastInboundAt ?? a.lastMessageAt).localeCompare(b.lastInboundAt ?? b.lastMessageAt)
       : b.lastMessageAt.localeCompare(a.lastMessageAt)));
+  // 50 conversations, puis la suite en descendant : fluide même avec des milliers de messages.
+  const { visible: listShown, more: listMore } = useReveal(list, 50, `${filter}|${needle}`);
 
   const conversation = selected && (
     <Conversation thread={selected} messages={messages} loading={msgsLoading} me={me}
@@ -1546,7 +1548,7 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
         ) : list.length === 0 ? (
           <EmptyState icon={Inbox} title={threads.length ? (filter === "todo" ? "Tout est répondu" : "Rien ici") : "Aucune conversation"}
             text={threads.length ? (filter === "todo" ? "Aucun client n'attend de réponse." : "Aucune conversation ne correspond.") : "Les messages laissés sur les pages Contact et OTC du site arrivent ici."} />
-        ) : list.map((t) => {
+        ) : <>{listShown.map((t) => {
           const late = t.supportState === "todo" && waitMinutes(t.lastInboundAt) > 240;
           return (
             <button key={t.id} type="button" className="ui-row" onClick={() => openThread(t)} aria-current={selectedId === t.id ? "true" : undefined}
@@ -1568,7 +1570,7 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
               </span>
             </button>
           );
-        })}
+        })}{listMore}</>}
       </div>
     </div>
   );

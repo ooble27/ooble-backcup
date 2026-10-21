@@ -6,6 +6,10 @@ import {
   ACTION_LABELS, ENTITY_LABELS,
   type AuditLogEntry,
 } from "@/lib/audit";
+import { changes, details, device, objectText } from "@/lib/auditReadable";
+import { firstName, memberById } from "@/lib/teamSpace";
+import { roleLabel } from "@/lib/roles";
+import { TeamAvatar } from "./TeamViews";
 import { C } from "./adminTheme";
 import { Button, SidePanel } from "./ui";
 import { Avatar, DataTable, EmptyState, KeyValues, Pill, SearchField, Toolbar, TwoLine, type Column } from "./layout";
@@ -26,7 +30,6 @@ function localToIso(v: string): string | undefined {
   return d.toISOString();
 }
 
-const shortenId = (id: string | null) => (id ? `${id.slice(0, 6)}…${id.slice(-4)}` : "");
 const actionLabel = (a: string) => ACTION_LABELS[a]?.fr ?? a;
 const entityLabel = (k: string | null) => (k ? ENTITY_LABELS[k]?.fr ?? k : "N/D");
 const isCritical = (a: string) => a.startsWith("compliance.declaration") || a === "order.delete";
@@ -155,9 +158,15 @@ const AuditLogPanel = () => {
 
   const columns: Column<AuditLogEntry>[] = [
     { key: "date", header: "Date", width: 150, render: (e) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dayFmt.format(new Date(e.createdAt))}</span> },
-    { key: "who", header: "Auteur", render: (e) => <TwoLine lead={<Avatar name={e.actorEmail?.split("@")[0].replace(/[._-]+/g, " ") ?? "?"} size={26} />} primary={e.actorEmail ?? "N/D"} secondary={e.actorRole ?? undefined} /> },
+    { key: "who", header: "Auteur", render: (e) => {
+      // Un membre : son avatar et son prénom ; sinon le courriel enregistré (ancien membre).
+      const m = memberById(e.actorUserId);
+      return m
+        ? <TwoLine lead={<TeamAvatar id={m.userId} name={m.name} size={26} />} primary={firstName(m.name)} secondary={e.actorRole ? roleLabel(e.actorRole) : undefined} />
+        : <TwoLine lead={<Avatar name={e.actorEmail?.split("@")[0].replace(/[._-]+/g, " ") ?? "?"} size={26} />} primary={e.actorEmail ?? "Oli"} secondary={e.actorRole ? roleLabel(e.actorRole) : undefined} />;
+    } },
     { key: "action", header: "Action", render: (e) => <Pill tone={isCritical(e.action) ? "danger" : "neutral"}>{actionLabel(e.action)}</Pill> },
-    { key: "entity", header: "Objet", hideBelow: 900, render: (e) => <span style={{ color: C.t2 }}>{entityLabel(e.entityKind)} {e.entityId && <span style={{ color: C.t3, ...mono }}>{shortenId(e.entityId)}</span>}</span> },
+    { key: "entity", header: "Objet", hideBelow: 900, render: (e) => <span style={{ color: C.t2 }}>{objectText(e.entityKind, e.entityId, entityLabel(e.entityKind))}</span> },
   ];
 
   return (
@@ -217,19 +226,66 @@ const AuditLogPanel = () => {
 
       {open && (
         <SidePanel title={actionLabel(open.action)} subtitle={dateTimeFmt.format(new Date(open.createdAt))} onClose={() => setOpen(null)} width={560}>
-          <KeyValues items={[
-            ["Auteur", open.actorEmail ?? "N/D"],
-            ["Rôle", open.actorRole ?? "N/D"],
-            ["Objet", entityLabel(open.entityKind)],
-            ["Identifiant", open.entityId ? <span style={mono}>{open.entityId}</span> : "N/D"],
-            ["Code de l'action", <span key="a" style={mono}>{open.action}</span>],
-          ]} />
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 18, marginTop: 24 }}>
-            <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Avant</p><JsonBlock value={open.before} /></div>
-            <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Après</p><JsonBlock value={open.after} /></div>
-            <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Métadonnées</p><JsonBlock value={open.metadata} /></div>
-          </div>
-          <p style={{ margin: "18px 0 0", color: C.t3, ...mono, fontSize: 11 }}>id : {open.id}</p>
+          {(() => {
+            // En clair d'abord : qui, quoi, sur quoi, ce qui a changé. Le JSON brut reste replié pour un auditeur.
+            const who = memberById(open.actorUserId);
+            const diff = changes(open.before, open.after);
+            const info = details(open.metadata);
+            const dev = device(open.metadata);
+            return (
+              <>
+                <p style={{ margin: 0, fontSize: 17, lineHeight: 1.45, color: C.t1, textWrap: "balance" }}>
+                  <b style={{ fontWeight: 600 }}>{who ? firstName(who.name) : open.actorEmail ?? "Oli"}</b>
+                  <span style={{ color: C.t2 }}> · {actionLabel(open.action)}</span>
+                </p>
+                <KeyValues items={[
+                  ["Sur", objectText(open.entityKind, open.entityId, entityLabel(open.entityKind))],
+                  ["Par", who ? `${firstName(who.name)}${open.actorRole ? ` (${roleLabel(open.actorRole)})` : ""}` : (open.actorEmail ?? "Oli, sans intervention de l'équipe")],
+                  ["Le", dateTimeFmt.format(new Date(open.createdAt))],
+                  ...(dev ? [["Depuis", dev] as [string, string]] : []),
+                ]} />
+                {diff.length > 0 && (
+                  <section style={{ marginTop: 26 }}>
+                    <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t3 }}>Ce qui a changé</p>
+                    <div style={{ display: "grid", gap: 0 }}>
+                      {diff.map((d) => (
+                        <div key={d.key} style={{ display: "grid", gridTemplateColumns: "minmax(110px, 160px) minmax(0, 1fr)", gap: 14, padding: "9px 0", borderBottom: `1px solid ${C.bds}`, fontSize: 14 }}>
+                          <span style={{ color: C.t3 }}>{d.label}</span>
+                          <span style={{ color: C.t1, overflowWrap: "anywhere" }}>
+                            <span style={{ color: C.t3, textDecoration: "line-through", textDecorationColor: "color-mix(in srgb, currentColor 50%, transparent)" }}>{d.from}</span>
+                            <span style={{ color: C.t3 }}> → </span>{d.to}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {info.length > 0 && (
+                  <section style={{ marginTop: 26 }}>
+                    <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t3 }}>Détails</p>
+                    <KeyValues items={info} />
+                  </section>
+                )}
+                {diff.length === 0 && info.length === 0 && (
+                  <p style={{ margin: "22px 0 0", fontSize: 13.5, color: C.t3 }}>Rien d'autre à signaler pour cette action.</p>
+                )}
+                <details style={{ marginTop: 28 }}>
+                  <summary style={{ cursor: "pointer", fontSize: 12.5, color: C.t3 }}>Détails techniques (pour un auditeur)</summary>
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 14, marginTop: 12 }}>
+                    <KeyValues items={[
+                      ["Code de l'action", <span key="a" style={mono}>{open.action}</span>],
+                      ["Identifiant de l'objet", open.entityId ? <span style={mono}>{open.entityId}</span> : "N/D"],
+                      ["Courriel de l'auteur", open.actorEmail ?? "N/D"],
+                    ]} />
+                    <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Avant</p><JsonBlock value={open.before} /></div>
+                    <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Après</p><JsonBlock value={open.after} /></div>
+                    <div><p style={{ margin: "0 0 6px", fontSize: 12.5, color: C.t3 }}>Métadonnées</p><JsonBlock value={open.metadata} /></div>
+                    <p style={{ margin: 0, color: C.t3, ...mono, fontSize: 11 }}>id : {open.id}</p>
+                  </div>
+                </details>
+              </>
+            );
+          })()}
         </SidePanel>
       )}
     </div>

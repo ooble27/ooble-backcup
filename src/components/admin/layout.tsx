@@ -256,6 +256,26 @@ function AutoMore({ onReach }: { onReach: () => void }) {
   return <div ref={ref} aria-hidden style={{ height: 1 }} />;
 }
 
+/**
+ * Liste longue hors tableau : les `size` premiers éléments, puis la suite quand on descend
+ * (ou avec le bouton). Repart du début quand la liste change de filtre (`resetKey`).
+ */
+export function useReveal<T>(items: T[], size = 50, resetKey?: unknown) {
+  const [shown, setShown] = useState(size);
+  useEffect(() => setShown(size), [size, resetKey]);
+  const left = items.length - shown;
+  const more = left > 0 ? (
+    <>
+      <AutoMore key={shown} onReach={() => setShown((n) => n + size)} />
+      <button type="button" className="ui-btn ui-btn-ghost" onClick={() => setShown((n) => n + size)}
+        style={{ margin: "12px 0", height: 34, padding: "0 12px", borderRadius: 8, border: "none", background: "transparent", color: C.t2, fontFamily: FONT, fontSize: 13, cursor: "pointer" }}>
+        Afficher {Math.min(size, left)} de plus · {left} restante{left > 1 ? "s" : ""}
+      </button>
+    </>
+  ) : null;
+  return { visible: items.slice(0, shown), more };
+}
+
 export function DataTable<T>({ rows, columns, rowKey, onRowClick, onRowIntent, mobile, empty, pageSize = 50, initialSort, selectedKey }: {
   rows: T[]; columns: Column<T>[]; rowKey: (row: T) => string; onRowClick?: (row: T) => void;
   /** Le pointeur vise une ligne (survol, toucher, focus) : de quoi précharger ce qu'elle ouvre. */

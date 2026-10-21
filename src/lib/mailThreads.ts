@@ -5,6 +5,7 @@
  * Les tables ont des politiques RLS staff-only — un client ne voit rien.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 
 export interface MailThread {
   id: string;
@@ -48,15 +49,17 @@ export interface MailMessage {
 }
 
 /** Réception : uniquement les messages laissés sur le site (formulaires Contact et OTC). */
-export async function fetchThreads(limit = 300): Promise<MailThread[]> {
-  const { data, error } = await supabase
+export async function fetchThreads(): Promise<MailThread[]> {
+  // Toutes les conversations, par tranches : aucune ne disparaît de la réception.
+  const data = await fetchAll((a, b) => supabase
     .from("mail_threads")
     .select("*")
     .eq("origin", "form")
     .is("removed_at", null)
     .order("last_message_at", { ascending: false })
-    .limit(limit);
-  if (error || !data) return [];
+    .order("id")
+    .range(a, b)).catch(() => null);
+  if (!data) return [];
   return data.map(mapThread);
 }
 

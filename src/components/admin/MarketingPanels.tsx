@@ -258,8 +258,8 @@ const dayNum = (iso: string) => new Date(iso).getDate();
 const monthShort = (iso: string) => new Date(iso).toLocaleDateString("fr-CA", { month: "short" }).replace(".", "");
 const hour = (iso: string) => new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" });
 
-export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey }: {
-  onNew: () => void; onControl: () => void; onOpenCampaign: (id: string) => void; refreshKey: number;
+export function MarketingOverview({ onNew, onControl, onOpenCampaign, onAll, refreshKey }: {
+  onNew: () => void; onControl: () => void; onOpenCampaign: (id: string) => void; onAll: () => void; refreshKey: number;
 }) {
   const [period, setPeriod] = useState<Period>("30");
   const [o, setO] = useState<Overview | null>(() => peek<Overview>(`mk.ov.30`)?.value ?? null);
@@ -284,7 +284,8 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
 
   const upcoming = rows.filter((r) => r.status === "scheduled" && new Date(r.scheduledAt).getTime() > Date.now())
     .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
-  const recent = rows.filter((r) => r.status === "sent" || r.status === "sending").slice(0, 6);
+  const sentAll = rows.filter((r) => r.status === "sent" || r.status === "sending");
+  const recent = sentAll.slice(0, 6);
   const label = period === "7" ? "ces 7 derniers jours" : period === "30" ? "ces 30 derniers jours" : "ces 3 derniers mois";
 
   return (
@@ -394,6 +395,12 @@ export function MarketingOverview({ onNew, onControl, onOpenCampaign, refreshKey
                 })}
               </div>
             )}
+          {/* Les 6 dernières ici ; toutes les autres dans « Campagnes envoyées ». */}
+          {sentAll.length > recent.length && (
+            <button type="button" className="mk-link" style={{ marginTop: 18 }} onClick={onAll}>
+              Toutes les campagnes envoyées ({nf.format(sentAll.length)})
+            </button>
+          )}
         </section>
       </div>
     </div>

@@ -7,6 +7,7 @@
  * arrivent par le webhook Resend (fonction mail-events).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import { logAdminAction } from "@/lib/audit";
 
 export interface MarketingSettings {
@@ -89,9 +90,10 @@ export interface CampaignRow {
 
 export async function listCampaigns(): Promise<CampaignRow[]> {
   // Les campagnes permanentes des parcours ont leur propre page.
-  const { data, error } = await supabase.from("campaigns").select("*").is("journey_id", null).order("scheduled_at", { ascending: false }).limit(200);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((c) => ({
+  // Toutes les campagnes, par tranches (la liste les affiche 50 par 50).
+  const data = await fetchAll((a, b) => supabase.from("campaigns").select("*").is("journey_id", null)
+    .order("scheduled_at", { ascending: false }).order("id").range(a, b));
+  return data.map((c) => ({
     id: c.id, name: c.name, templateId: c.template_id, valuesByLang: c.values_by_lang as CampaignRow["valuesByLang"],
     subject: c.subject, audience: c.audience, status: c.status as CampaignStatus, scheduledAt: c.scheduled_at,
     createdAt: c.created_at, finishedAt: c.finished_at, isTest: c.is_test, createdByName: c.created_by_name,

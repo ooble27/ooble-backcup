@@ -9,6 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { orderRef } from "@/lib/orders";
+import { fetchAll } from "@/lib/fetchAll";
 import type {
   AlertStatus, AlertType, ChecklistItem, ComplianceAlert, ComplianceDeclaration,
   DeclarationFormData, DeclarationStatus, DeclarationType,
@@ -69,13 +70,14 @@ function toAlert(r: AlertRow, me: string | null): ComplianceAlert {
 
 export async function fetchAlerts(): Promise<ComplianceAlert[]> {
   const me = await uid();
-  const { data, error } = await db.from("compliance_alerts")
+  // Toutes les alertes, par tranches : une alerte ne doit jamais manquer à la liste.
+  const data = await fetchAll<AlertRow>((a, b) => db.from("compliance_alerts")
     .select("*, profiles(full_name, email, business_name)")
     .eq("hidden", false)
     .order("created_at", { ascending: false })
-    .limit(500);
-  if (error) throw new Error(error.message);
-  return (data as AlertRow[]).map((r) => toAlert(r, me));
+    .order("id")
+    .range(a, b));
+  return data.map((r) => toAlert(r, me));
 }
 
 /** Lance l'analyse tout de suite : règles CANAFE, comportements inhabituels, sanctions (elle tourne aussi toutes les 10 min). */
@@ -196,12 +198,12 @@ function toDecl(r: DeclRow): ComplianceDeclaration {
 const DECL_SELECT = "*, compliance_alerts(ref)";
 
 export async function fetchDeclarations(): Promise<ComplianceDeclaration[]> {
-  const { data, error } = await db.from("compliance_declarations")
+  const data = await fetchAll<DeclRow>((a, b) => db.from("compliance_declarations")
     .select(DECL_SELECT)
     .order("created_at", { ascending: false })
-    .limit(500);
-  if (error) throw new Error(error.message);
-  return (data as DeclRow[]).map(toDecl);
+    .order("id")
+    .range(a, b));
+  return data.map(toDecl);
 }
 
 export interface SaveDeclarationInput {
