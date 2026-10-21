@@ -36,6 +36,8 @@ const ALLOWED: Record<string, string[]> = {
   suspend: ["admin", "compliance"],
   unsuspend: ["admin", "compliance"],
   test_kyc: ["admin"],
+  // Outils : taux officiel de la Banque du Canada, pour toute l'équipe.
+  boc_rate: ["admin", "operator", "compliance", "accounting", "kyc_reviewer", "support", "marketing"],
 };
 
 const TEST_EMAIL = "camille.test@ooble.ca";
@@ -51,7 +53,7 @@ Deno.serve(async (req) => {
   const caller = auth?.user;
   if (!caller) return json({ error: "Session invalide ou expirée." }, 401);
 
-  let body: { action?: string; userId?: string };
+  let body: { action?: string; userId?: string; date?: string };
   try { body = await req.json(); } catch { return json({ error: "Requête invalide." }, 400); }
   const action = body.action ?? "";
   const allowed = ALLOWED[action];
@@ -70,6 +72,7 @@ Deno.serve(async (req) => {
   try {
     if (action === "email_usage") return json(await emailUsage());
     if (action === "test_kyc") return json(await testKyc(db));
+    if (action === "boc_rate") return json(await bocRate(body.date));
 
     const userId = body.userId ?? "";
     if (!/^[0-9a-f-]{36}$/i.test(userId)) return json({ error: "Client introuvable." }, 400);
@@ -167,4 +170,21 @@ async function testKyc(db: ReturnType<typeof createClient>) {
   }).select("id").single();
   if (error) throw new Error(error.message);
   return { dossier: row.id, client: `${TEST_PERSON.first} ${TEST_PERSON.last}` };
+}
+
+/**
+ * Taux officiel USD/CAD de la Banque du Canada (API Valet, publique) pour une date : le dernier publié ce
+ * jour-là ou avant (pas de taux les fins de semaine et jours fériés). Une dizaine de jours suffit.
+ */
+async function bocRate(date?: string): Promise<{ date: string; rate: number; asked: string } | { error: string }> {
+  const asked = /^\d{4}-\d{2}-\d{2}$/.test(date ?? "") ? date! : new Date().toISOString().slice(0, 10);
+  const end = new Date(`${asked}T12:00:00Z`);
+  const start = new Date(end.getTime() - 12 * 86_400_000).toISOString().slice(0, 10);
+  const url = `https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?start_date=${start}&end_date=${asked}`;
+  const r = await fetch(url, { headers: { Accept: "application/json" } }).catch(() => null);
+  if (!r || !r.ok) return { error: "La Banque du Canada ne répond pas pour l'instant. Réessayez dans un moment." };
+  const data = await r.json().catch(() => null) as { observations?: { d: string; FXUSDCAD?: { v: string } }[] } | null;
+  const obs = (data?.observations ?? []).filter((o) => o.FXUSDCAD?.v).sort((a, b) => b.d.localeCompare(a.d))[0];
+  if (!obs) return { error: "Aucun taux publié pour cette date." };
+  return { date: obs.d, rate: Number(obs.FXUSDCAD!.v), asked };
 }

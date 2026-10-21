@@ -6,7 +6,7 @@ import { setPendingDraft } from "@/lib/mailDraft";
 import { Link } from "react-router-dom";
 import {
   Inbox, ShoppingCart, ScanFace, Calculator, Users, ArrowLeft, Megaphone, ShieldCheck,
-  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House, UsersRound, ArrowLeftRight, CircleUserRound, Wallet, Send, SlidersHorizontal, MonitorDot,
+  LayoutDashboard, Bell, Mail, BookUser, Search, ChevronRight, ChevronLeft, BookOpen, BookMarked, Wrench, FileCode2, Library, ChevronDown, PanelLeftOpen, PanelLeftClose, Settings2, Vault, StickyNote, ListTodo, House, UsersRound, ArrowLeftRight, CircleUserRound, Wallet, Send, SlidersHorizontal, MonitorDot,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { homeFor, roleLabel, sortRoles, tabsFor, type TabId } from "@/lib/roles";
@@ -22,6 +22,7 @@ import AccountingPanel from "@/components/admin/AccountingPanel";
 import TreasuryPanel from "@/components/admin/TreasuryPanel";
 import TeamPanel from "@/components/admin/TeamPanel";
 import ClientProfile from "@/components/admin/ClientProfile";
+import ToolsPanel from "@/components/admin/ToolsPanel";
 import CompliancePanel from "@/components/admin/CompliancePanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
 import KpiDashboard from "@/components/admin/KpiDashboard";
@@ -100,6 +101,7 @@ const GROUPS: NavGroup[] = [
     { id: "platform", label: "Réglages", desc: "Ouverture, courriels, santé, tests, démarrage et sauvegardes.", icon: Settings2 },
   ] },
   { label: "Ressources", menu: { label: "Ressources", icon: Library }, items: [
+    { id: "tools", label: "Outils", desc: "Les petits outils du quotidien : convertir, vérifier une adresse ou une transaction, ouvrir la journée.", icon: Wrench },
     { id: "kb", label: "Base de connaissances", desc: "Une fiche par geste du quotidien, pour toute l'équipe.", icon: BookOpen },
     { id: "manual", label: "Manuel", desc: "La référence de fonctionnement d'Ooble, chapitre par chapitre.", icon: BookMarked },
     { id: "techdocs", label: "Documentation technique", desc: "Architecture, base de données, fonctions, secrets et reprise. Administrateurs.", icon: FileCode2 },
@@ -600,6 +602,7 @@ const AdminPortal = () => {
                     </>
                   )}
                   {tab === "platform" && <SettingsPanel onTab={(id) => { if (allowedTabs.has(id)) setTab(id); }} />}
+                  {tab === "tools" && <ToolsPanel onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} onShowClient={allowedTabs.has("clients") ? showClientById : undefined} />}
                   {tab === "kb" && <DocsPanel section="kb" />}
                   {tab === "manual" && <DocsPanel section="manual" />}
                   {tab === "techdocs" && <DocsPanel section="tech" />}

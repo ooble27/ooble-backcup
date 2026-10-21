@@ -10,10 +10,10 @@ import { useAuth } from "@/lib/auth";
 
 export type Role = "admin" | "operator" | "kyc_reviewer" | "support" | "marketing" | "compliance" | "accounting";
 
-export type TabId = "me" | "dashboard" | "control" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs";
+export type TabId = "me" | "dashboard" | "control" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs" | "tools";
 
-export const ALL_TABS: TabId[] = ["me", "dashboard", "notes", "tasks", "control", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "kb", "manual", "techdocs"];
-const HELP: TabId[] = ["kb", "manual"];
+export const ALL_TABS: TabId[] = ["me", "dashboard", "notes", "tasks", "control", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "tools", "kb", "manual", "techdocs"];
+const HELP: TabId[] = ["tools", "kb", "manual"];
 /** Espace de l'équipe : ouvert à tous les membres. */
 const TEAM: TabId[] = ["me", "notes", "tasks"];
 
@@ -21,7 +21,7 @@ const TEAM: TabId[] = ["me", "notes", "tasks"];
 export const TAB_LABEL: Record<TabId, string> = {
   me: "Mon espace", dashboard: "Tableau de bord", control: "Salle de contrôle", notes: "Notes à l'équipe", tasks: "Tâches", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
   accounting: "Comptabilité", treasury: "Trésorerie", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
-  team: "Équipe", platform: "Réglages", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
+  team: "Équipe", platform: "Réglages", tools: "Outils", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
 };
 
 export interface RoleDef {
