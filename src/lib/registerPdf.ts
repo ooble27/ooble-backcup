@@ -48,7 +48,8 @@ const SECTIONS: Record<RegisterKind, Section[]> = {
     { title: "Client", fields: ["client", "courriel", "type_compte", "identite"] },
     { title: "Montants", fields: ["montant_cad", "montant_usdt", "taux", "frais_cad"] },
     { title: "Règlement", fields: ["reseau", "paiement_recu_le", "termine_le", "courriel_interac", "expediteur_interac", "reference_interac"] },
-    { title: "Blockchain", fields: [], wide: ["adresse_portefeuille", "hash_transaction"] },
+    // Achat : le client reçoit, Ooble envoie. Vente : le client envoie, Ooble reçoit sur son adresse de dépôt.
+    { title: "Blockchain", fields: [], wide: ["adresse_portefeuille", "adresse_ooble", "hash_transaction"] },
   ],
   identites: [
     { title: "Client", fields: ["client", "courriel", "type_compte"] },
@@ -77,7 +78,7 @@ const SECTIONS: Record<RegisterKind, Section[]> = {
 const LABELS: Record<string, string> = {
   date: "Date", reference: "Référence", type: "Type", statut: "Statut", client: "Client", courriel: "Courriel",
   type_compte: "Compte", identite: "Identité", montant_cad: "Montant CAD", montant_usdt: "Montant en cryptomonnaie", taux: "Taux",
-  frais_cad: "Frais CAD", reseau: "Réseau", adresse_portefeuille: "Adresse du portefeuille du client",
+  frais_cad: "Frais CAD", reseau: "Réseau", adresse_portefeuille: "Portefeuille du client", adresse_ooble: "Portefeuille d'Ooble", actif: "Cryptomonnaie",
   courriel_interac: "Courriel Interac", expediteur_interac: "Expéditeur Interac", reference_interac: "Référence Interac",
   hash_transaction: "Hash de la transaction", paiement_recu_le: "Paiement reçu le", termine_le: "Terminé le",
   verifie_le: "Vérifié le", fournisseur: "Fournisseur", reference_fournisseur: "Référence fournisseur",
@@ -100,7 +101,7 @@ const VALUE_FR: Record<string, string> = {
 };
 
 /** Champs affichés en police à chasse fixe (adresses, hash, références). */
-const MONO = new Set(["adresse_portefeuille", "hash_transaction", "adresse_emettrice", "adresse_beneficiaire", "reference_interac", "reference_fournisseur", "reference_canafe"]);
+const MONO = new Set(["adresse_portefeuille", "adresse_ooble", "hash_transaction", "adresse_emettrice", "adresse_beneficiaire", "reference_interac", "reference_fournisseur", "reference_canafe"]);
 
 const isIsoDate = (s: string) => /^\d{4}-\d{2}-\d{2}(T|\s)\d{2}:\d{2}/.test(s);
 const two = (n: number) => String(n).padStart(2, "0");
@@ -126,6 +127,12 @@ function fmt(key: string, v: unknown): string {
   if (isIsoDate(s)) return fmtDate(s);
   return VALUE_FR[s] ?? s;
 }
+
+/** Valeur d'une fiche : le montant en cryptomonnaie porte son nom (« 3,00 USDC »). */
+const cellText = (r: Record<string, unknown>, k: string) => {
+  const v = fmt(k, r[k]);
+  return k === "montant_usdt" && v && typeof r.actif === "string" ? `${v} ${r.actif}` : v;
+};
 
 export interface PdfMeta {
   kind: RegisterKind;
@@ -222,7 +229,7 @@ export async function buildRegisterPdf({ kind, rows, from, to, retentionYears, p
     startY: M + 154,
     margin: { left: M, right: M, bottom: FOOT + 10 },
     head: [idx.map((k) => LABELS[k] ?? k)],
-    body: rows.length ? rows.map((r) => idx.map((k) => fmt(k, r[k]) || "N/D")) : [[{ content: "Aucune donnée sur cette période.", colSpan: idx.length }]],
+    body: rows.length ? rows.map((r) => idx.map((k) => cellText(r, k) || "N/D")) : [[{ content: "Aucune donnée sur cette période.", colSpan: idx.length }]],
     styles: { font: "helvetica", fontSize: 8.5, cellPadding: { top: 5, right: 5, bottom: 5, left: 5 }, textColor: INK, lineColor: LINE, lineWidth: { bottom: 0.5 } },
     headStyles: { fillColor: INK, textColor: 255, fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [247, 247, 247] },
@@ -230,7 +237,7 @@ export async function buildRegisterPdf({ kind, rows, from, to, retentionYears, p
   }
 
   // ─── Fiches détaillées ───
-  const listed = new Set<string>(["statut", ...HEAD[kind], ...SECTIONS[kind].flatMap((s) => [...s.fields, ...(s.wide ?? [])])]);
+  const listed = new Set<string>(["statut", "actif", ...HEAD[kind], ...SECTIONS[kind].flatMap((s) => [...s.fields, ...(s.wide ?? [])])]);
   const extraKeys = rows.length ? Object.keys(rows[0]).filter((k) => !listed.has(k)) : [];
   const sections = extraKeys.length ? [...SECTIONS[kind], { title: "Autres informations", fields: extraKeys }] : SECTIONS[kind];
 
@@ -250,12 +257,12 @@ export async function buildRegisterPdf({ kind, rows, from, to, retentionYears, p
   const layout = (r: Row) => {
     let h = 34; // en-tête
     const blocks = sections.map((s) => {
-      const grid = s.fields.map((k) => ({ k, lines: fieldLines(k, fmt(k, r[k]), colW) }));
+      const grid = s.fields.map((k) => ({ k, lines: fieldLines(k, cellText(r, k), colW) }));
       const rowsH: number[] = [];
       for (let i = 0; i < grid.length; i += COLS) {
         rowsH.push(Math.max(...grid.slice(i, i + COLS).map((g) => fieldH(g.lines.length))));
       }
-      const wide = (s.wide ?? []).map((k) => ({ k, lines: fieldLines(k, fmt(k, r[k]), wideW) }));
+      const wide = (s.wide ?? []).map((k) => ({ k, lines: fieldLines(k, cellText(r, k), wideW) }));
       const bh = 20 + rowsH.reduce((a, b) => a + b, 0) + wide.reduce((a, w) => a + fieldH(w.lines.length), 0);
       h += bh;
       return { s, grid, rowsH, wide, bh };
