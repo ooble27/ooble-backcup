@@ -71,6 +71,7 @@ export async function fetchAlerts(): Promise<ComplianceAlert[]> {
   const me = await uid();
   const { data, error } = await db.from("compliance_alerts")
     .select("*, profiles(full_name, email, business_name)")
+    .eq("hidden", false)
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw new Error(error.message);

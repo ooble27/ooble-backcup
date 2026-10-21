@@ -200,6 +200,7 @@ export async function listMyOrders(limit = 20): Promise<OrderRow[]> {
     .from("orders")
     .select("*")
     .eq("user_id", uid)
+    .eq("hidden", false)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) return peekMyOrders(uid, limit) ?? [];

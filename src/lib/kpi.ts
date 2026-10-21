@@ -241,6 +241,7 @@ export async function getComplianceAlertsCount(): Promise<ComplianceAlertsCount>
     .from("compliance_alerts")
     .select("type")
     .in("status", ["nouveau", "en_cours"])
+    .filter("hidden", "eq", false)
     .order("id")
     .range(a, b)).catch(() => []);
   const rows = (data ?? []) as { type: string }[];

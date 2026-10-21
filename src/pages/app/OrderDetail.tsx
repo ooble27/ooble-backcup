@@ -33,7 +33,7 @@ const OrderDetail = () => {
     (async () => {
       const { data: auth } = await supabase.auth.getSession();
       const uid = auth.session?.user?.id;
-      const { data } = await supabase.from("orders").select("*").eq("id", id).eq("user_id", uid ?? "").maybeSingle();
+      const { data } = await supabase.from("orders").select("*").eq("id", id).eq("user_id", uid ?? "").eq("hidden", false).maybeSingle();
       if (!on) return;
       if (data) setOrder(data as OrderRow); else setMissing(true);
     })();
