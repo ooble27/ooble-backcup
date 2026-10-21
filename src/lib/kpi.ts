@@ -169,7 +169,7 @@ export async function getOrderStatusCounts(): Promise<OrderStatusCounts> {
   // Un comptage exact par état (sans charger les commandes) : juste à n'importe quel volume.
   const counts = zeroStatuses();
   await Promise.all((Object.keys(counts) as DbStatus[]).map(async (st) => {
-    const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", st);
+    const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", st).eq("hidden", false);
     counts[st] = count ?? 0;
   }));
   return counts;
@@ -186,7 +186,8 @@ export async function getPendingActionsCount(): Promise<number> {
   const { count, error } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
-    .in("status", ACTION_STATUSES);
+    .in("status", ACTION_STATUSES)
+    .eq("hidden", false);
   if (error || count == null) return 0;
   return count;
 }

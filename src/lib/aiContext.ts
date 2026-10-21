@@ -41,6 +41,7 @@ export async function fetchPlatformContext(): Promise<PlatformContext> {
     supabase
       .from("orders")
       .select("id, side, status, cad_amount, usdt_amount, created_at, network, wallet_address, profiles(full_name, email)")
+      .eq("hidden", false)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase

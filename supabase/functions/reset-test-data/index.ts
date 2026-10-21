@@ -39,7 +39,7 @@ const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
  * remise à zéro AVANT tout effacement, avec son nom, au lieu de la laisser à moitié faite.
  *   wipe    : la ligne n'a de sens qu'avec la commande, elle est effacée avec elle ;
  *   unlink  : la ligne est gardée, seul le lien vers la commande est retiré (et `also` remis à zéro) ;
- *   protect : la commande citée est gardée (registre de conformité).
+ *   protect : la commande citée est gardée (registre de conformité), mais masquée des listes.
  * Les liens que la base gère seule (la ligne suit ou se vide avec la commande) n'ont pas besoin de règle.
  */
 type Rule = { do: "wipe" } | { do: "unlink"; also?: Record<string, null> } | { do: "protect" };
@@ -221,6 +221,11 @@ Deno.serve(async (req) => {
       const done: Record<string, number> = {};
       await unlink(db, pl, keep);
       for (const t of [...pl.wipe, "orders"]) { done[t] = await count(db, t, keep); if (done[t]) await wipe(db, t, keep); }
+      // Commandes gardées pour le registre : elles restent en base, mais disparaissent des listes, des fiches et des comptes.
+      if (keep.length) {
+        const { error: eh } = await db.from("orders").update({ hidden: true }).in("id", keep);
+        if (eh) throw new Error(`Commandes gardées : ${eh.message}`);
+      }
       for (const t of [...(body.mail ? MAIL : []), ...(body.logs ? LOGS : [])]) { done[t] = await count(db, t, null); if (done[t]) await wipe(db, t, null); }
 
       const at = new Date().toISOString();

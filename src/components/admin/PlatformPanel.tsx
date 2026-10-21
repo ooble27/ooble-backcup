@@ -102,7 +102,7 @@ export function LaunchSections({ p, reload }: { p: PlatformPreview; reload: () =
               <Check style={{ width: 15, height: 15 }} strokeWidth={2.2} />
               <span style={{ flex: 1 }}>
                 {result.tables.orders ?? 0} commandes de test effacées.
-                {result.keptOrders > 0 && ` ${result.keptOrders} gardée(s), citée(s) par le registre de conformité.`}
+                {result.keptOrders > 0 && ` ${result.keptOrders} gardée(s) pour le registre de conformité, et masquée(s) des listes.`}
               </span>
               <Button size="sm" variant="ghost" icon={<RotateCcw style={{ width: 13, height: 13 }} />} onClick={() => window.location.reload()}>Recharger</Button>
             </span>
@@ -148,7 +148,7 @@ export function LaunchSections({ p, reload }: { p: PlatformPreview; reload: () =
           </div>
           <p style={{ margin: "20px 0 10px", fontSize: 12.5, color: C.t3 }}>
             {total} éléments seront effacés. Cette action ne peut pas être annulée.
-            {p.keptOrders > 0 && ` ${p.keptOrders} commande(s) citée(s) par le registre de conformité seront gardées.`}
+            {p.keptOrders > 0 && ` ${p.keptOrders} commande(s) citée(s) par le registre de conformité seront gardées en base, mais masquées des listes.`}
           </p>
           {p.blocked && <p style={{ margin: "0 0 10px", fontSize: 13, color: C.t1, lineHeight: 1.6, maxWidth: 680 }}>{p.blocked}</p>}
           <Confirm
