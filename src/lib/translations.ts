@@ -670,7 +670,7 @@ const dict = {
   "buy.sendEtransfer": { fr: "Envoyez votre e-Transfer", en: "Send your e-Transfer" },
   "buy.recipient": { fr: "Destinataire (e-mail Interac)", en: "Recipient (Interac email)" },
   "buy.exactAmount": { fr: "Montant exact", en: "Exact amount" },
-  "buy.reference": { fr: "Message / référence", en: "Message / reference" },
+  "buy.reference": { fr: "Référence à écrire dans le message", en: "Reference to write in the message" },
   "reg.errDisposable": {
     fr: "Les adresses courriel temporaires ne sont pas acceptées. Utilisez une adresse personnelle ou professionnelle.",
     en: "Temporary email addresses aren't accepted. Please use a personal or work address.",
@@ -680,12 +680,8 @@ const dict = {
   "act.tx": { fr: "Transaction", en: "Transaction" },
   "act.viewOn": { fr: "Voir sur {x}", en: "View on {x}" },
   "buy.autoNote": {
-    fr: "Écrivez la référence dans le message du virement et payez depuis un compte bancaire à votre nom, au montant exact : vos USDC vous sont alors envoyés dès la réception du paiement.",
-    en: "Put the reference in the transfer message and pay from a bank account in your name, for the exact amount: your USDC are then sent as soon as the payment arrives.",
-  },
-  "buy.refImportant": {
-    fr: "Important : écrivez {ref} dans le message du virement. Sans ce code, votre achat attend la vérification de l'équipe.",
-    en: "Important: write {ref} in the transfer message. Without this code, your order waits for the team to check it.",
+    fr: "Sans la référence, votre achat attend la vérification de l'équipe. Payez le montant exact, depuis un compte à votre nom.",
+    en: "Without the reference, your order waits for the team to check it. Pay the exact amount, from an account in your name.",
   },
   "buy.rulesLink": { fr: "Les règles du virement", en: "Transfer rules" },
   "buy.newOrder": { fr: "Nouvel ordre", en: "New order" },

@@ -265,7 +265,6 @@ const AppAcheterForm = () => {
         <CopyRow label={t("buy.exactAmount")} value={`${nfCad.format(cad)} CAD`} />
         <CopyRow label={t("buy.reference")} value={savedRef} mono />
       </div>
-      <p className="ac-note" style={{ fontWeight: 600 }}>{t("buy.refImportant").replace("{ref}", savedRef)}</p>
       {payBy && (
         <p className="ac-note">
           {t("buy.payBy").replace("{time}", payBy.toLocaleTimeString(getLang() === "en" ? "en-CA" : "fr-CA", { hour: "2-digit", minute: "2-digit" }))}
