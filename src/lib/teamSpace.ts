@@ -424,6 +424,17 @@ export function currentShift(shifts: Shift[], userId: string): Shift | null {
   }
   return null;
 }
+/** Prochaine garde d'un membre à partir de maintenant (dans les 7 jours) : la plage et dans combien de jours. */
+export function nextShift(shifts: Shift[], userId: string): { shift: Shift; inDays: number } | null {
+  const { dow, time } = nowMontreal();
+  const mine = shifts.filter((s) => s.userId === userId);
+  for (let i = 0; i < 8; i++) {
+    const d = ((dow - 1 + i) % 7) + 1;
+    const s = mine.find((x) => x.dow === d && (i > 0 || x.starts > time));
+    if (s) return { shift: s, inDays: i };
+  }
+  return null;
+}
 /** Résumé lisible des heures d'un membre : « Lun – Ven · 9 h – 17 h ; Sam · 10 h – 14 h ». */
 export function shiftSummary(shifts: Shift[], userId: string): string {
   const mine = shifts.filter((s) => s.userId === userId).sort((a, b) => a.dow - b.dow);

@@ -4,7 +4,8 @@ import { useAuth } from "@/lib/auth";
 import { orderRef } from "@/lib/orders";
 import { roleLabel, sortRoles } from "@/lib/roles";
 import {
-  PRESENCE_LABEL, STATUS_LABEL, firstName, loadMemberBundle, onOpenActivity, peekMemberBundle, shiftSummary, isLate, memberById, onOpenMember,
+  DOW_LABEL, DOW_SHORT, PRESENCE_LABEL, STATUS_LABEL, currentShift, firstName, hourLabel, loadMemberBundle, nextShift, nowMontreal, onOpenActivity,
+  peekMemberBundle, isLate, memberById, onOpenMember, type Shift,
   type Handoff, type MemberCard, type TeamTask,
 } from "@/lib/teamSpace";
 import { C } from "./adminTheme";
@@ -100,7 +101,7 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
             <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, marginRight: 7, background: m.status === "available" ? "var(--a-sage)" : m.status === "busy" ? "var(--a-sun)" : "var(--a-t3)" }} />
             {presence}{m.status !== "available" && m.statusNote ? ` · ${m.statusNote}` : ""}
           </p>
-          {shifts && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.t3 }}>{shiftSummary(shifts, m.userId) ? `De garde : ${shiftSummary(shifts, m.userId)}` : "Aucune heure de garde"}</p>}
+          {shifts && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.t3 }}><GuardLine shifts={shifts} userId={m.userId} /></p>}
           {card?.joined && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.t3 }}>Dans l'équipe depuis le {new Date(card.joined).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })}</p>}
         </div>
       </div>
@@ -113,6 +114,14 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
           </div>
         ))}
       </div>
+
+      {/* Ses heures de garde : la semaine d'un coup d'œil, comme dans le Planning. */}
+      {shifts && shifts.some((s) => s.userId === m.userId) && (
+        <>
+          {head(self ? "Ma semaine de garde" : "Sa semaine de garde")}
+          <WeekStrip shifts={shifts} userId={m.userId} color={nameColor(m.color)} />
+        </>
+      )}
 
       {head("En ce moment")}
       {card === undefined && (
@@ -163,5 +172,43 @@ function MemberSheet({ userId, onClose, onOpenOrder, onGoTasks }: { userId: stri
       {profile && <ProfilePanel onClose={() => setProfile(false)} />}
       {giving && <TaskForm task={null} members={members} me={me} preset={{ person: userId }} onClose={() => setGiving(false)} onSaved={() => { setGiving(false); load(); }} />}
     </SidePanel>
+  );
+}
+
+/** Sous le nom : de garde maintenant, ou la prochaine garde, en une phrase. */
+function GuardLine({ shifts, userId }: { shifts: Shift[]; userId: string }) {
+  const now = currentShift(shifts, userId);
+  if (now) return <><span style={{ color: C.sage }}>De garde maintenant</span> · jusqu'à {hourLabel(now.ends)}</>;
+  const next = nextShift(shifts, userId);
+  if (!next) return <>Aucune heure de garde</>;
+  const day = next.inDays === 0 ? "aujourd'hui" : next.inDays === 1 ? "demain" : DOW_LABEL[next.shift.dow].toLowerCase();
+  return <>Prochaine garde : {day} à {hourLabel(next.shift.starts)}</>;
+}
+
+/** Les 7 jours en colonnes : les heures dans la couleur du membre, aujourd'hui souligné, la garde en cours entourée. */
+function WeekStrip({ shifts, userId, color }: { shifts: Shift[]; userId: string; color: string }) {
+  const today = nowMontreal().dow;
+  const live = currentShift(shifts, userId);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4, marginTop: 6 }}>
+      {[1, 2, 3, 4, 5, 6, 7].map((d) => {
+        const s = shifts.find((x) => x.userId === userId && x.dow === d);
+        const isToday = d === today;
+        return (
+          <div key={d} title={s ? `${DOW_LABEL[d]} · ${hourLabel(s.starts)} – ${hourLabel(s.ends)}` : `${DOW_LABEL[d]} · pas de garde`}
+            style={{ display: "grid", gap: 6, justifyItems: "stretch", textAlign: "center", minWidth: 0 }}>
+            <span style={{ fontSize: 12, color: isToday ? C.t1 : C.t3, fontWeight: isToday ? 600 : 400, textDecoration: isToday ? "underline" : undefined, textUnderlineOffset: 4 }}>{DOW_SHORT[d]}</span>
+            {s ? (
+              <span style={{ display: "block", padding: "8px 2px", borderRadius: 8, fontSize: 12, lineHeight: 1.35, color: C.t1, fontVariantNumeric: "tabular-nums",
+                background: `color-mix(in srgb, ${color} 24%, transparent)`, boxShadow: live && live.dow === d ? `inset 0 0 0 1.5px ${C.t1}` : undefined }}>
+                {hourLabel(s.starts)}<br />{hourLabel(s.ends)}
+              </span>
+            ) : (
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 48, fontSize: 12, color: C.t3 }}>—</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
