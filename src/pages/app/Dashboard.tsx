@@ -50,12 +50,14 @@ const RecentActivity = () => {
       )}
       {orders && orders.length > 0 && (
         <div className="ac-lines mt-2">
-          {orders.map((o) => (
-            <ActivityRow
-              key={o.id}
-              o={o}
-              onClick={() => navigate(`/app/activite/${o.id}`, { state: { order: o } })}
-            />
+          {/* Sur téléphone, seulement la dernière opération ; « Voir tout » mène à l'Activité. */}
+          {orders.map((o, i) => (
+            <div key={o.id} className={i > 0 ? "hidden sm:block" : undefined}>
+              <ActivityRow
+                o={o}
+                onClick={() => navigate(`/app/activite/${o.id}`, { state: { order: o } })}
+              />
+            </div>
           ))}
         </div>
       )}
