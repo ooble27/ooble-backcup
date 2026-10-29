@@ -502,8 +502,8 @@ const dict = {
   },
   "faqp.6q": { fr: "Quels réseaux sont pris en charge ?", en: "Which networks are supported?" },
   "faqp.6a": {
-    fr: "Jusqu'à cinq blockchains : Ethereum (ERC20), Polygon, Solana, Avalanche (C-Chain) et BNB Chain (BEP20). Les réseaux ouverts s'affichent au moment de passer l'ordre. L'adresse doit correspondre au réseau choisi : une adresse Ethereum, Polygon, Avalanche ou BNB Chain commence par 0x, et une adresse Solana est une suite de lettres et de chiffres sans préfixe. Une transaction blockchain ne peut pas être annulée : vérifiez deux fois.",
-    en: "Up to five blockchains: Ethereum (ERC20), Polygon, Solana, Avalanche (C-Chain) and BNB Chain (BEP20). The open networks are shown when you place the order. The address must match the chosen network: an Ethereum, Polygon, Avalanche or BNB Chain address starts with 0x, and a Solana address is a string of letters and numbers with no prefix. A blockchain transaction can't be reversed: check twice.",
+    fr: "Quatre blockchains : BNB Chain (BEP20), Polygon, Solana et Avalanche (C-Chain). Les réseaux ouverts s'affichent au moment de passer l'ordre. L'adresse doit correspondre au réseau choisi : une adresse BNB Chain, Polygon ou Avalanche commence par 0x, et une adresse Solana est une suite de lettres et de chiffres sans préfixe. Une transaction blockchain ne peut pas être annulée : vérifiez deux fois.",
+    en: "Four blockchains: BNB Chain (BEP20), Polygon, Solana and Avalanche (C-Chain). The open networks are shown when you place the order. The address must match the chosen network: a BNB Chain, Polygon or Avalanche address starts with 0x, and a Solana address is a string of letters and numbers with no prefix. A blockchain transaction can't be reversed: check twice.",
   },
   "faqp.7q": { fr: "Combien de temps pour recevoir mes USDC ?", en: "How long until I receive my USDC?" },
   "faqp.7a": {
