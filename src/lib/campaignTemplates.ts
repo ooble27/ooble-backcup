@@ -4213,9 +4213,115 @@ const SERIE_3: CampaignTemplate[] = [
   nouvelAn, compteSecurise, annonceCourte, pointDuMois, mobile, entreprisesVille, enLigne,
 ];
 
+const usdcUsdt: CampaignTemplate = {
+  id: "usdc-usdt",
+  name: "USDC ou USDT ?",
+  description: "Les deux pièces côte à côte et un tableau simple : même valeur, même usage, et pourquoi Ooble propose l'USDC.",
+  category: "Éducation",
+  swatch: [K.forest, K.mint],
+  isNew: true,
+  fields: [
+    F.subject, F.preheader,
+    { key: "badge", label: "Pastille", kind: "text" },
+    F.headline, F.intro,
+    { key: "rows", label: "Tableau", kind: "lines", hint: "Une ligne par critère : Critère | USDC | USDT" },
+    { key: "whyTitle", label: "Titre de l'explication", kind: "text" },
+    { key: "why", label: "Explication", kind: "textarea" },
+    { key: "tip", label: "Encadré", kind: "textarea" },
+    F.cta, F.ctaUrl,
+  ],
+  copy: {
+    fr: {
+      subject: "USDC ou USDT : quelle différence ?",
+      preheader: "La même valeur, le même usage. Et une bonne raison de choisir l'USDC au Canada.",
+      badge: "Bon à savoir",
+      headline: "USDC ou USDT ?\nPour vous, ça ne\nchange presque rien.",
+      intro: "{{prenom}}, l'USDC et l'USDT sont deux dollars numériques. **1 USDC vaut 1 dollar américain**, exactement comme 1 USDT. Vous les envoyez, les gardez et les dépensez de la même façon.",
+      rows: "Valeur | 1 $ US | 1 $ US\nUsage | Envoyer, payer, épargner | Envoyer, payer, épargner\nÉmetteur | Circle (États-Unis) | Tether\nRéserves | Publiées chaque mois, vérifiées par un auditeur | Rapports trimestriels\nAu Canada | Autorisé sur les plateformes réglementées | Retiré des plateformes réglementées",
+      whyTitle: "Pourquoi Ooble propose l'USDC",
+      why: "Ooble est inscrite auprès du CANAFE. Au Canada, les plateformes réglementées ne peuvent plus offrir l'USDT : c'est la raison pour laquelle nous proposons l'USDC. Vous gardez un dollar numérique stable, acheté en dollars canadiens par Interac, auprès d'une entreprise québécoise en règle.",
+      tip: "Votre destinataire demande de l'USDT ? La plupart des portefeuilles (Trust Wallet, MetaMask, Phantom…) permettent d'échanger l'USDC contre de l'USDT en quelques secondes, sur le même réseau. Des frais d'échange peuvent s'appliquer.",
+      cta: "Acheter des USDC",
+      ctaUrl: "/app/acheter",
+    },
+    en: {
+      subject: "USDC or USDT: what's the difference?",
+      preheader: "Same value, same use. And a good reason to choose USDC in Canada.",
+      badge: "Good to know",
+      headline: "USDC or USDT?\nFor you, almost\nnothing changes.",
+      intro: "{{prenom}}, USDC and USDT are two digital dollars. **1 USDC is worth 1 US dollar**, just like 1 USDT. You send, hold and spend them the same way.",
+      rows: "Value | US$1 | US$1\nUse | Send, pay, save | Send, pay, save\nIssuer | Circle (United States) | Tether\nReserves | Published monthly, checked by an auditor | Quarterly reports\nIn Canada | Allowed on regulated platforms | Removed from regulated platforms",
+      whyTitle: "Why Ooble offers USDC",
+      why: "Ooble is registered with FINTRAC. In Canada, regulated platforms can no longer offer USDT: that's why we offer USDC. You keep a stable digital dollar, bought in Canadian dollars by Interac, from a Quebec company in good standing.",
+      tip: "Does your recipient ask for USDT? Most wallets (Trust Wallet, MetaMask, Phantom…) let you swap USDC for USDT in seconds, on the same network. Swap fees may apply.",
+      cta: "Buy USDC",
+      ctaUrl: "/app/acheter",
+    },
+  },
+  variants: [
+    {
+      id: "etranger",
+      label: "Pour envoyer à l'étranger",
+      copy: {
+        fr: {
+          subject: "Envoyer des dollars numériques à vos proches : l'USDC fait pareil",
+          preheader: "Même valeur que l'USDT, acheté en toute règle au Canada.",
+          badge: "Envoyer à l'étranger",
+          headline: "Vos proches attendent\nde l'USDT ? L'USDC\nfait le même travail.",
+          intro: "{{prenom}}, pour envoyer de l'argent à l'étranger, l'USDC fonctionne comme l'USDT : **1 USDC = 1 dollar américain**, reçu en quelques minutes dans le portefeuille de votre proche.",
+          whyTitle: "Pourquoi l'USDC chez Ooble",
+          why: "Au Canada, les plateformes réglementées ne peuvent plus offrir l'USDT. Ooble est inscrite auprès du CANAFE et vous vend l'USDC en dollars canadiens par Interac : simple, rapide et en règle.",
+        },
+        en: {
+          subject: "Sending digital dollars to family: USDC does the same job",
+          preheader: "Same value as USDT, bought the regulated way in Canada.",
+          badge: "Send abroad",
+          headline: "Family expecting\nUSDT? USDC does\nthe same job.",
+          intro: "{{prenom}}, to send money abroad, USDC works like USDT: **1 USDC = 1 US dollar**, received within minutes in your family member's wallet.",
+          whyTitle: "Why USDC at Ooble",
+          why: "In Canada, regulated platforms can no longer offer USDT. Ooble is registered with FINTRAC and sells you USDC in Canadian dollars by Interac: simple, fast and by the rules.",
+        },
+      },
+    },
+  ],
+  body: (v, ctx) => {
+    const coin = (src: string, label: string) =>
+      `<td align="center" valign="top" width="50%"><img src="${src}" width="84" height="84" alt="${label}" style="display:block;width:84px;height:84px;border:0;margin:0 auto;"><p style="margin:10px 0 0;font-family:${FONT};font-size:15px;font-weight:700;color:#ffffff;">${label}</p><p style="margin:2px 0 0;font-family:${FONT};font-size:13px;color:${K.mint};">= 1 $ US</p></td>`;
+    const rows = (v.rows ?? "").split("\n").map((l) => l.split("|").map((x) => x.trim())).filter((r) => r.length >= 3 && r[0]);
+    const table = rows.map((r, i) => `<tr>
+      <td style="padding:12px 10px 12px 0;${i < rows.length - 1 ? `border-bottom:1px solid ${K.line};` : ""}font-family:${FONT};font-size:13px;font-weight:600;color:${K.mute};" width="28%">${esc(r[0])}</td>
+      <td style="padding:12px 10px;${i < rows.length - 1 ? `border-bottom:1px solid ${K.line};` : ""}font-family:${FONT};font-size:14px;color:${K.ink};" width="36%">${esc(r[1])}</td>
+      <td style="padding:12px 0 12px 10px;${i < rows.length - 1 ? `border-bottom:1px solid ${K.line};` : ""}font-family:${FONT};font-size:14px;color:${K.body};" width="36%">${esc(r[2])}</td>
+    </tr>`).join("");
+    const head = `<tr>
+      <td width="28%"></td>
+      <td width="36%" style="padding:0 10px 8px;font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:0.08em;color:${K.forest};">USDC</td>
+      <td width="36%" style="padding:0 0 8px 10px;font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:0.08em;color:#8a8379;">USDT</td>
+    </tr>`;
+    return [
+      `<tr><td class="px" bgcolor="${K.forest}" style="background:${K.forest};padding:26px 32px 32px;">
+        ${brand("#ffffff", pill(esc(v.badge), K.mint, K.forest))}
+        ${gap(22)}
+        ${h1(rich(v.headline, ctx), "#ffffff", 40, 800)}
+        ${gap(26)}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          ${coin(`${SITE}/email-assets/coin-usdc.png`, "USDC")}
+          ${coin(`${SITE}/email-assets/coin-usdt.png`, "USDT")}
+        </tr></table>
+      </td></tr>`,
+      P("28px 32px 0", para(rich(v.intro, ctx), K.body, 16)),
+      table ? P("22px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${head}${table}</table>`) : "",
+      v.why ? P("26px 32px 0", `<p style="margin:0 0 8px;font-family:${FONT};font-size:18px;font-weight:700;color:${K.ink};">${esc(v.whyTitle ?? "")}</p>${para(rich(v.why, ctx), K.body, 15)}`) : "",
+      v.tip ? P("18px 32px 0", box(para(rich(v.tip, ctx), K.ink, 14), "#e4f4ec", { pad: "18px 22px" })) : "",
+      `<tr><td class="px" style="padding:28px 32px 32px;">${btn(v.cta, v.ctaUrl, K.forest, "#ffffff")}</td></tr>`,
+      footer(ctx, { bg: K.ink, color: "#b5aea4", link: K.mint, note: tr("Ooble est inscrite auprès du CANAFE.", "Ooble is registered with FINTRAC.") }),
+    ].join("");
+  },
+};
+
 export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
   ...SERIE_5, ...SERIE_4, ...SERIE_3,
-  lancement, bienvenue, verifie, relanceKyc, retour, premierAchat, guideInterac, vendre,
+  usdcUsdt, lancement, bienvenue, verifie, relanceKyc, retour, premierAchat, guideInterac, vendre,
   reseaux, otc, entreprises, affiche, quoiDeNeuf, nouveaute, lettre, fondateur,
   faq, appli, securite, alerte, avis, conditions, evenement, sondage, fetes,
 ];
