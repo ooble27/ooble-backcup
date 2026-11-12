@@ -82,7 +82,7 @@ const GROUPS: NavGroup[] = [
     { id: "settlement", label: "Règlement auto", desc: "Soldes du portefeuille, virements Interac lus automatiquement, envoi de la cryptomonnaie et réglages.", icon: NI.settle },
   ] },
   { label: "Clients", menu: { label: "Clients", icon: NI.clients }, items: [
-    { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: NI.clients },
+    { id: "clients", label: "Clients", desc: "Tous les inscrits : vérification, lieu, source, commandes et dernière connexion.", icon: NI.contacts },
     { id: "kyc", label: "Vérifications", desc: "Identité des particuliers et des entreprises, avant leurs transactions.", icon: NI.kyc },
   ] },
   { label: "Finance et conformité", menu: { label: "Finance et conformité", icon: NI.finance }, items: [
@@ -90,7 +90,7 @@ const GROUPS: NavGroup[] = [
     { id: "treasury", label: "Trésorerie", desc: "Stock de cryptomonnaie par réseau, réservé par les achats en cours, et alertes de stock bas.", icon: NI.vault },
     { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: NI.shield },
   ] },
-  { label: "Communication", menu: { label: "Communication", icon: NI.mail }, items: [
+  { label: "Communication", menu: { label: "Communication", icon: NI.send }, items: [
     { id: "mailbox", label: "Messagerie", desc: "Écrire à un client à partir d'un modèle, historique des envois, boîte de réception.", icon: NI.mail },
     { id: "campaigns", label: "Marketing", desc: "Campagnes, parcours automatiques et résultats, sous votre contrôle.", icon: NI.mega },
     { id: "announcements", label: "Bannière et maintenance", desc: "Message en haut du site pour tous les clients, et mode maintenance qui suspend les commandes.", icon: NI.flag },
@@ -455,11 +455,12 @@ const AdminPortal = () => {
       return (
         <button key={it.id} type="button" className="sh-nav" onClick={() => setTab(it.id)} aria-current={on ? "page" : undefined}
           style={{
-            display: "flex", alignItems: "center", gap: 12, width: "100%", border: "none", background: "transparent", cursor: "pointer", fontFamily: FONT, textAlign: "left",
-            padding: kind === "top" ? "4px 10px" : "3px 10px 3px 42px", fontSize: kind === "top" ? 14 : 13.5, letterSpacing: "-0.01em",
+            display: "flex", alignItems: "center", width: "100%", border: "none", background: "transparent", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+            padding: kind === "top" ? "4px 10px" : "3px 10px 3px 36px", fontSize: kind === "top" ? 14 : 13.5, gap: kind === "top" ? 12 : 11, letterSpacing: "-0.01em",
             color: on ? C.t1 : C.t2, fontWeight: on ? 500 : 400,
           }}>
-          {kind === "top" && <Icon className="sh-ic" style={{ width: 20, height: 20, flexShrink: 0 }} strokeWidth={1.5} />}
+          {/* Pages d'une section : leur icône, plus petite et décalée sous celle de la section (imbrication). */}
+          <Icon className="sh-ic" style={{ width: kind === "top" ? 20 : 18, height: kind === "top" ? 20 : 18, flexShrink: 0 }} strokeWidth={1.5} />
           <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "3px 0" }}><span className="sh-tx">{it.label}</span></span>
           {count(badges[it.id])}
         </button>
