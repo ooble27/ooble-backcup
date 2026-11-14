@@ -183,6 +183,38 @@ function StoryPreview({ post }: { post: SocialPost }) {
   );
 }
 
+/** Un jeu de couvertures « à la une » : la rangée sous le profil, et la couverture choisie en grand. */
+function HighlightPreview({ post }: { post: SocialPost }) {
+  const [i, setI] = useState(0);
+  useEffect(() => setI(0), [post.id]);
+  const names = post.highlight ?? [];
+  return (
+    <div style={{ width: "100%", maxWidth: 420, background: "#fff", color: "#111", borderRadius: 22, overflow: "hidden", boxShadow: "0 40px 90px rgba(0,0,0,.55)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 16px 6px" }}>
+        <Mark size={58} />
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>ooble</span>
+          <span style={{ display: "block", fontSize: 12.5, color: "#737373" }}>Ooble · Canada</span>
+        </span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px 16px" }}>
+        {post.images.map((src, k) => (
+          <button key={src} type="button" onClick={() => setI(k)} aria-label={names[k] ?? `Couverture ${k + 1}`} aria-pressed={k === i}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: 0, border: "none", background: "none", cursor: "pointer", width: "17.5%" }}>
+            <span style={{ width: "100%", aspectRatio: "1", borderRadius: 999, padding: 3, border: `1.5px solid ${k === i ? "#111" : "#dbdbdb"}`, display: "block" }}>
+              <span style={{ display: "block", width: "100%", height: "100%", borderRadius: 999, backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+            </span>
+            <span style={{ fontSize: 11.5, color: "#111", whiteSpace: "nowrap" }}>{names[k]}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{ position: "relative", aspectRatio: "9 / 16", maxHeight: 360, margin: "0 auto 16px", borderRadius: 16, overflow: "hidden" }}>
+        <img key={post.images[i]} className="st-slide" src={post.images[i]} alt={names[i] ?? post.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
+    </div>
+  );
+}
+
 /** L'aperçu façon Instagram. */
 function Preview({ post }: { post: SocialPost }) {
   const [i, setI] = useState(0);
@@ -284,10 +316,14 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
     <div role="button" tabIndex={0} className="st-card" style={{ animationDelay: `${delay}ms` }} onClick={onOpen} aria-label={`Ouvrir ${post.title}`}
       onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onOpen(); } }}
       >
-      <div className="st-frame" style={post.format === "story" ? { aspectRatio: "9 / 16" } : undefined}>
-        {post.images.map((src, k) => <img key={src} src={src} alt={k === 0 ? post.title : ""} loading="lazy" style={{ opacity: k === i ? 1 : 0 }} />)}
+      <div className="st-frame" style={post.highlight ? { aspectRatio: "9 / 16", background: "#fff" } : post.format === "story" ? { aspectRatio: "9 / 16" } : undefined}>
+        {post.highlight
+          ? <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "2.2%" }}>
+              {post.images.map((src) => <span key={src} style={{ width: "23%", aspectRatio: "1", borderRadius: 999, backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center", border: "3px solid #fff", boxShadow: "0 0 0 1.5px #dbdbdb" }} />)}
+            </div>
+          : post.images.map((src, k) => <img key={src} src={src} alt={k === 0 ? post.title : ""} loading="lazy" style={{ opacity: k === i ? 1 : 0 }} />)}
         <div className="st-shade" />
-        <span className="st-num">{String(n).padStart(2, "0")}{post.format === "story" ? (post.video ? " · story vidéo" : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
+        <span className="st-num">{String(n).padStart(2, "0")}{post.highlight ? " · à la une" : post.format === "story" ? (post.video ? " · story vidéo" : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
         <div className="st-quick" onClick={(ev) => ev.stopPropagation()}>
           <button type="button" className="st-q" aria-label="Copier la légende" title="Copier la légende" onClick={() => copy(post.id, post.caption)}>{done === post.id ? <Check size={16} /> : <Copy size={16} />}</button>
           <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => downloadAll(filesOf(post))}><Download size={16} /></button>
@@ -295,7 +331,7 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
         {many && <div className="st-dots">{post.images.map((_, k) => <span key={k} style={{ width: 5, height: 5, borderRadius: 9, background: k === i ? "#fff" : "rgba(255,255,255,.45)" }} />)}</div>}
         <div className="st-meta">
           <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: "#fff" }}>{post.title}</p>
-          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>Jour {n} · {post.format === "story" ? (post.video ? "story vidéo" : "story") : many ? "carrousel" : "image"}</p>
+          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>{post.highlight ? `${post.images.length} couvertures à la une` : <>Jour {n} · {post.format === "story" ? (post.video ? "story vidéo" : "story") : many ? "carrousel" : "image"}</>}</p>
         </div>
       </div>
     </div>
@@ -369,7 +405,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
         <div className="st-stage">
           <button type="button" className="st-arrow st-xm" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           <div style={{ position: "absolute", inset: -80, backgroundImage: `url(${post.images[0]})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(70px) saturate(1.3)", opacity: 0.45 }} />
-          <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>{post.format === "story" ? <StoryPreview post={post} /> : <Preview post={post} />}</div>
+          <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>{post.highlight ? <HighlightPreview post={post} /> : post.format === "story" ? <StoryPreview post={post} /> : <Preview post={post} />}</div>
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, color: K.t2, fontSize: 13 }}>
             {nav(-1, "Publication précédente", ArrowLeft)}
             <span style={{ fontVariantNumeric: "tabular-nums" }}>{index + 1} / {list.length}</span>
@@ -379,9 +415,9 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
         <div style={{ padding: "34px 34px 30px", display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 12.5, color: K.acc, fontWeight: 500 }}>{serie} · jour {n}</p>
+              <p style={{ margin: 0, fontSize: 12.5, color: K.acc, fontWeight: 500 }}>{serie}{post.highlight ? "" : ` · jour ${n}`}</p>
               <h2 style={{ margin: "8px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.035em", lineHeight: 1.1 }}>{post.title}</h2>
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.format === "story" ? (post.video ? "Story vidéo · MP4 · 7 secondes · 1080 × 1920" : "Story · 1080 × 1920 · vertical") : `${post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait`}</p>
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.highlight ? `${post.images.length} couvertures à la une · 1080 × 1920` : post.format === "story" ? (post.video ? "Story vidéo · MP4 · 7 secondes · 1080 × 1920" : "Story · 1080 × 1920 · vertical") : `${post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait`}</p>
             </div>
             <button type="button" className="st-arrow" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           </div>
@@ -390,7 +426,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
               {done === post.id ? <Check size={16} /> : <Copy size={16} />}{done === post.id ? "Copié" : post.format === "story" ? "Copier les consignes" : "Copier la légende"}
             </button>
             <button type="button" className="st-pill" style={{ background: K.s2, color: K.t1, justifyContent: "center" }} onClick={() => downloadAll(filesOf(post))}>
-              <Download size={16} />{post.video ? "Vidéo MP4" : post.images.length > 1 ? `${post.images.length} images` : "Télécharger"}
+              <Download size={16} />{post.video ? "Vidéo MP4" : post.highlight ? `${post.images.length} couvertures` : post.images.length > 1 ? `${post.images.length} images` : "Télécharger"}
             </button>
           </div>
           <div>
@@ -426,7 +462,7 @@ export default function SocialPanel() {
     ...s,
     title: lang === "en" && s.titleEn ? s.titleEn : s.title,
     description: lang === "en" && s.descriptionEn ? s.descriptionEn : s.description,
-    posts: s.posts.map((p) => ({ ...p, title: titleFor(p, lang), caption: captionFor(p, lang), images: imagesFor(p, lang), video: videoFor(p, lang) })),
+    posts: s.posts.map((p) => ({ ...p, title: titleFor(p, lang), caption: captionFor(p, lang), images: imagesFor(p, lang), video: videoFor(p, lang), highlight: lang === "en" && p.highlightEn ? p.highlightEn : p.highlight })),
   })), [lang]);
   const flat = useMemo<Entry[]>(() => SERIES.flatMap((s) => s.posts.map((post, k) => ({ post, n: k + 1, serie: s.title, serieId: s.id }))), [SERIES]);
   // À la une : la première publication de chaque série, sans les stories (sinon « Ooble arrive » apparaît deux fois).

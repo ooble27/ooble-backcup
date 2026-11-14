@@ -15,6 +15,9 @@ export interface SocialPost {
   format?: "story";
   /** Story animée : la vidéo MP4 (l'image sert d'aperçu fixe). La version anglaise porte le suffixe -en. */
   video?: string;
+  /** Jeu de couvertures « à la une » : le nom de chaque story à la une, dans l'ordre des images. */
+  highlight?: string[];
+  highlightEn?: string[];
   caption: string;
 }
 
@@ -1875,98 +1878,134 @@ Ajouter un sticker lien vers ooble.ca. Garder la mention : Les cryptoactifs comp
     id: "serie-15",
     title: "Série 15 · Stories à la une",
     titleEn: "Series 15 · Highlights",
-    description: "Cinq couvertures, une lettre chacune : la rangée du profil écrit oOble.",
-    descriptionEn: "Five covers, one letter each: the profile row spells oOble.",
+    description: "Six jeux de cinq couvertures : la rangée du profil écrit oOble. Trois écritures, deux palettes.",
+    descriptionEn: "Six sets of five covers: the profile row spells oOble. Three lettering styles, two palettes.",
     posts: [
       {
-        id: "une-o", title: "À la une · « o » Bienvenue", format: "story", images: img("serie-15", "102-une-o"),
-        titleEn: "Highlight · “o” Welcome",
-        captionEn: `Highlight cover, letter “o”. Place in the row: 1st (far left).
+        id: "une-pinceau-nuit", title: "À la une · Pinceau · bleu nuit", format: "story", highlight: ["Bienvenue", "Acheter", "Vendre", "Interac", "Sécurité"], highlightEn: ["Welcome", "Buy", "Sell", "Interac", "Safety"],
+        images: img("serie-15", "une-pinceau-nuit-1-o", "une-pinceau-nuit-2-O-maj", "une-pinceau-nuit-3-b", "une-pinceau-nuit-4-l", "une-pinceau-nuit-5-e"),
+        titleEn: "Highlights · Brush · navy",
+        captionEn: `Brush lettering, hand-drawn look. Navy background, white letters.
 
-1. Create the highlight “Welcome” (or open it if it exists).
-2. Edit highlight › Edit cover › choose this image from the camera roll.
-3. Put in it: Ooble is coming, the “Ooble in one minute” video, news.
+Choose one set and use all five covers, in this order from left to right: o, O, b, l, e. The row then spells oOble.
 
-The five covers spell oOble from left to right: o, O, b, l, e. Keep this order.`,
-        caption: `Couverture « à la une », lettre « o ». Place dans la rangée : 1re (tout à gauche).
+For each highlight (Welcome, Buy, Sell, Interac, Safety):
+1. Create the highlight, or open it if it exists.
+2. Edit highlight › Edit cover › choose the matching image from the camera roll.
+3. Put in it the stories on that topic.`,
+        caption: `Écriture au pinceau, comme à la main. Fond bleu nuit, lettres blanches.
 
-1. Créer la story à la une « Bienvenue » (ou l'ouvrir si elle existe).
-2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
-3. Y mettre : Ooble arrive, la vidéo « Ooble en une minute », les nouveautés.
+Choisir un seul jeu et utiliser les cinq couvertures, dans cet ordre de gauche à droite : o, O, b, l, e. La rangée écrit alors oOble.
 
-Les cinq couvertures écrivent oOble de gauche à droite : o, O, b, l, e. Garder cet ordre.`,
+Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
+1. Créer la story à la une, ou l'ouvrir si elle existe.
+2. Modifier la story à la une › Modifier la couverture › choisir l'image correspondante dans la pellicule.
+3. Y ranger les stories du sujet.`,
       },
       {
-        id: "une-o-maj", title: "À la une · « O » Acheter", format: "story", images: img("serie-15", "103-une-O-maj"),
-        titleEn: "Highlight · “O” Buy",
-        captionEn: `Highlight cover, letter “O”. Place in the row: 2nd.
+        id: "une-pinceau-couleurs", title: "À la une · Pinceau · couleurs", format: "story", highlight: ["Bienvenue", "Acheter", "Vendre", "Interac", "Sécurité"], highlightEn: ["Welcome", "Buy", "Sell", "Interac", "Safety"],
+        images: img("serie-15", "une-pinceau-couleurs-1-o", "une-pinceau-couleurs-2-O-maj", "une-pinceau-couleurs-3-b", "une-pinceau-couleurs-4-l", "une-pinceau-couleurs-5-e"),
+        titleEn: "Highlights · Brush · colours",
+        captionEn: `Brush lettering. One Ooble colour per letter.
 
-1. Create the highlight “Buy” (or open it if it exists).
-2. Edit highlight › Edit cover › choose this image from the camera roll.
-3. Put in it: stories about buying USDC and the 4 networks.
+Choose one set and use all five covers, in this order from left to right: o, O, b, l, e. The row then spells oOble.
 
-The five covers spell oOble from left to right: o, O, b, l, e. Keep this order.`,
-        caption: `Couverture « à la une », lettre « O ». Place dans la rangée : 2e.
+For each highlight (Welcome, Buy, Sell, Interac, Safety):
+1. Create the highlight, or open it if it exists.
+2. Edit highlight › Edit cover › choose the matching image from the camera roll.
+3. Put in it the stories on that topic.`,
+        caption: `Écriture au pinceau. Une couleur Ooble par lettre.
 
-1. Créer la story à la une « Acheter » (ou l'ouvrir si elle existe).
-2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
-3. Y mettre : les stories sur l'achat d'USDC et les 4 réseaux.
+Choisir un seul jeu et utiliser les cinq couvertures, dans cet ordre de gauche à droite : o, O, b, l, e. La rangée écrit alors oOble.
 
-Les cinq couvertures écrivent oOble de gauche à droite : o, O, b, l, e. Garder cet ordre.`,
+Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
+1. Créer la story à la une, ou l'ouvrir si elle existe.
+2. Modifier la story à la une › Modifier la couverture › choisir l'image correspondante dans la pellicule.
+3. Y ranger les stories du sujet.`,
       },
       {
-        id: "une-b", title: "À la une · « b » Vendre", format: "story", images: img("serie-15", "104-une-b"),
-        titleEn: "Highlight · “b” Sell",
-        captionEn: `Highlight cover, letter “b”. Place in the row: 3rd.
+        id: "une-craie-nuit", title: "À la une · Craie · bleu nuit", format: "story", highlight: ["Bienvenue", "Acheter", "Vendre", "Interac", "Sécurité"], highlightEn: ["Welcome", "Buy", "Sell", "Interac", "Safety"],
+        images: img("serie-15", "une-craie-nuit-1-o", "une-craie-nuit-2-O-maj", "une-craie-nuit-3-b", "une-craie-nuit-4-l", "une-craie-nuit-5-e"),
+        titleEn: "Highlights · Chalk · navy",
+        captionEn: `Slanted handwriting, chalk style. Navy background.
 
-1. Create the highlight “Sell” (or open it if it exists).
-2. Edit highlight › Edit cover › choose this image from the camera roll.
-3. Put in it: stories about selling USDC.
+Choose one set and use all five covers, in this order from left to right: o, O, b, l, e. The row then spells oOble.
 
-The five covers spell oOble from left to right: o, O, b, l, e. Keep this order.`,
-        caption: `Couverture « à la une », lettre « b ». Place dans la rangée : 3e.
+For each highlight (Welcome, Buy, Sell, Interac, Safety):
+1. Create the highlight, or open it if it exists.
+2. Edit highlight › Edit cover › choose the matching image from the camera roll.
+3. Put in it the stories on that topic.`,
+        caption: `Écriture manuscrite penchée, comme à la craie. Fond bleu nuit.
 
-1. Créer la story à la une « Vendre » (ou l'ouvrir si elle existe).
-2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
-3. Y mettre : les stories sur la vente d'USDC.
+Choisir un seul jeu et utiliser les cinq couvertures, dans cet ordre de gauche à droite : o, O, b, l, e. La rangée écrit alors oOble.
 
-Les cinq couvertures écrivent oOble de gauche à droite : o, O, b, l, e. Garder cet ordre.`,
+Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
+1. Créer la story à la une, ou l'ouvrir si elle existe.
+2. Modifier la story à la une › Modifier la couverture › choisir l'image correspondante dans la pellicule.
+3. Y ranger les stories du sujet.`,
       },
       {
-        id: "une-l", title: "À la une · « l » Interac", format: "story", images: img("serie-15", "105-une-l"),
-        titleEn: "Highlight · “l” Interac",
-        captionEn: `Highlight cover, letter “l”. Place in the row: 4th.
+        id: "une-craie-couleurs", title: "À la une · Craie · couleurs", format: "story", highlight: ["Bienvenue", "Acheter", "Vendre", "Interac", "Sécurité"], highlightEn: ["Welcome", "Buy", "Sell", "Interac", "Safety"],
+        images: img("serie-15", "une-craie-couleurs-1-o", "une-craie-couleurs-2-O-maj", "une-craie-couleurs-3-b", "une-craie-couleurs-4-l", "une-craie-couleurs-5-e"),
+        titleEn: "Highlights · Chalk · colours",
+        captionEn: `Slanted handwriting. One Ooble colour per letter.
 
-1. Create the highlight “Interac” (or open it if it exists).
-2. Edit highlight › Edit cover › choose this image from the camera roll.
-3. Put in it: stories about paying with Interac (exact amount, reference).
+Choose one set and use all five covers, in this order from left to right: o, O, b, l, e. The row then spells oOble.
 
-The five covers spell oOble from left to right: o, O, b, l, e. Keep this order.`,
-        caption: `Couverture « à la une », lettre « l ». Place dans la rangée : 4e.
+For each highlight (Welcome, Buy, Sell, Interac, Safety):
+1. Create the highlight, or open it if it exists.
+2. Edit highlight › Edit cover › choose the matching image from the camera roll.
+3. Put in it the stories on that topic.`,
+        caption: `Écriture manuscrite penchée. Une couleur Ooble par lettre.
 
-1. Créer la story à la une « Interac » (ou l'ouvrir si elle existe).
-2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
-3. Y mettre : les stories sur le paiement Interac (montant exact, référence).
+Choisir un seul jeu et utiliser les cinq couvertures, dans cet ordre de gauche à droite : o, O, b, l, e. La rangée écrit alors oOble.
 
-Les cinq couvertures écrivent oOble de gauche à droite : o, O, b, l, e. Garder cet ordre.`,
+Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
+1. Créer la story à la une, ou l'ouvrir si elle existe.
+2. Modifier la story à la une › Modifier la couverture › choisir l'image correspondante dans la pellicule.
+3. Y ranger les stories du sujet.`,
       },
       {
-        id: "une-e", title: "À la une · « e » Sécurité", format: "story", images: img("serie-15", "106-une-e"),
-        titleEn: "Highlight · “e” Safety",
-        captionEn: `Highlight cover, letter “e”. Place in the row: 5th (far right).
+        id: "une-poppins-nuit", title: "À la une · Classique · bleu nuit", format: "story", highlight: ["Bienvenue", "Acheter", "Vendre", "Interac", "Sécurité"], highlightEn: ["Welcome", "Buy", "Sell", "Interac", "Safety"],
+        images: img("serie-15", "une-poppins-nuit-1-o", "une-poppins-nuit-2-O-maj", "une-poppins-nuit-3-b", "une-poppins-nuit-4-l", "une-poppins-nuit-5-e"),
+        titleEn: "Highlights · Classic · navy",
+        captionEn: `Ooble's typeface, clean and even. Navy background.
 
-1. Create the highlight “Safety” (or open it if it exists).
-2. Edit highlight › Edit cover › choose this image from the camera roll.
-3. Put in it: stories about the secret phrase, the right network, fake emails.
+Choose one set and use all five covers, in this order from left to right: o, O, b, l, e. The row then spells oOble.
 
-The five covers spell oOble from left to right: o, O, b, l, e. Keep this order.`,
-        caption: `Couverture « à la une », lettre « e ». Place dans la rangée : 5e (tout à droite).
+For each highlight (Welcome, Buy, Sell, Interac, Safety):
+1. Create the highlight, or open it if it exists.
+2. Edit highlight › Edit cover › choose the matching image from the camera roll.
+3. Put in it the stories on that topic.`,
+        caption: `La police d'Ooble, nette et régulière. Fond bleu nuit.
 
-1. Créer la story à la une « Sécurité » (ou l'ouvrir si elle existe).
-2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
-3. Y mettre : les stories sur la phrase secrète, le bon réseau, les faux courriels.
+Choisir un seul jeu et utiliser les cinq couvertures, dans cet ordre de gauche à droite : o, O, b, l, e. La rangée écrit alors oOble.
 
-Les cinq couvertures écrivent oOble de gauche à droite : o, O, b, l, e. Garder cet ordre.`,
+Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
+1. Créer la story à la une, ou l'ouvrir si elle existe.
+2. Modifier la story à la une › Modifier la couverture › choisir l'image correspondante dans la pellicule.
+3. Y ranger les stories du sujet.`,
+      },
+      {
+        id: "une-poppins-couleurs", title: "À la une · Classique · couleurs", format: "story", highlight: ["Bienvenue", "Acheter", "Vendre", "Interac", "Sécurité"], highlightEn: ["Welcome", "Buy", "Sell", "Interac", "Safety"],
+        images: img("serie-15", "une-poppins-couleurs-1-o", "une-poppins-couleurs-2-O-maj", "une-poppins-couleurs-3-b", "une-poppins-couleurs-4-l", "une-poppins-couleurs-5-e"),
+        titleEn: "Highlights · Classic · colours",
+        captionEn: `Ooble's typeface. One Ooble colour per letter.
+
+Choose one set and use all five covers, in this order from left to right: o, O, b, l, e. The row then spells oOble.
+
+For each highlight (Welcome, Buy, Sell, Interac, Safety):
+1. Create the highlight, or open it if it exists.
+2. Edit highlight › Edit cover › choose the matching image from the camera roll.
+3. Put in it the stories on that topic.`,
+        caption: `La police d'Ooble. Une couleur Ooble par lettre.
+
+Choisir un seul jeu et utiliser les cinq couvertures, dans cet ordre de gauche à droite : o, O, b, l, e. La rangée écrit alors oOble.
+
+Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
+1. Créer la story à la une, ou l'ouvrir si elle existe.
+2. Modifier la story à la une › Modifier la couverture › choisir l'image correspondante dans la pellicule.
+3. Y ranger les stories du sujet.`,
       },
     ],
   },
