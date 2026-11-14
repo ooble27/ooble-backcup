@@ -1553,4 +1553,196 @@ Vérification d'identité, virement à votre nom, envoi direct à votre portefeu
       },
     ],
   },
+  {
+    id: "serie-11",
+    title: "Série 11 · Payer par Interac",
+    titleEn: "Series 11 · Paying with Interac",
+    description: "Le paiement Interac expliqué en trois gestes : banque, montant exact, référence.",
+    descriptionEn: "Interac payment in three steps: bank, exact amount, reference.",
+    posts: [
+      {
+        id: "payer-interac", title: "Payer par Interac, pas à pas", images: img("serie-11", "77-interac-couverture", "78-interac-banque", "79-interac-montant", "80-interac-reference"),
+        titleEn: "Paying with Interac, step by step",
+        captionEn: `Paying with Interac, step by step.
+
+1. Open your bank's app.
+2. Send the exact amount, from an account in your name.
+3. Add the reference in the message.
+
+Your order is matched right away.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #Interac`,
+        caption: `Payer par Interac, pas à pas.
+
+1. Ouvrez l'app de votre banque.
+2. Envoyez le montant exact, depuis un compte à votre nom.
+3. Ajoutez la référence dans le message.
+
+Votre achat est reconnu tout de suite.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #Interac`,
+      },
+      {
+        id: "montant-exact", title: "Le montant exact", images: img("serie-11", "81-montant-exact"),
+        titleEn: "The exact amount",
+        captionEn: `The exact amount. To the cent.
+
+Send exactly the amount shown: your order goes through without delay.
+
+#Ooble #USDC #Interac`,
+        caption: `Le montant exact. Au cent près.
+
+Envoyez exactement le montant affiché : votre achat est traité sans attente.
+
+#Ooble #USDC #Interac`,
+      },
+      {
+        id: "reference", title: "N'oubliez pas la référence", images: img("serie-11", "82-reference"),
+        titleEn: "Don't forget the reference",
+        captionEn: `Don't forget the reference.
+
+Write it in the message of your Interac e-Transfer: it links your payment to your order.
+
+#Ooble #USDC #Interac`,
+        caption: `N'oubliez pas la référence.
+
+Écrivez-la dans le message de votre virement Interac : c'est elle qui relie votre paiement à votre achat.
+
+#Ooble #USDC #Interac`,
+      },
+    ],
+  },
+  {
+    id: "serie-12",
+    title: "Série 12 · Occasions",
+    titleEn: "Series 12 · Occasions",
+    description: "Les fêtes et les grands moments de l'année, à publier le jour J.",
+    descriptionEn: "Holidays and key moments of the year, to post on the day.",
+    posts: [
+      {
+        id: "joyeuses-fetes", title: "Joyeuses fêtes", images: img("serie-12", "83-joyeuses-fetes"),
+        titleEn: "Happy holidays",
+        captionEn: `Happy holidays.
+
+The whole Ooble team wishes you a wonderful holiday season, with the people you love.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Joyeuses fêtes.
+
+Toute l'équipe Ooble vous souhaite de belles fêtes, entourés de ceux que vous aimez.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "bonne-annee", title: "Bonne année", images: img("serie-12", "84-bonne-annee"),
+        titleEn: "Happy New Year",
+        captionEn: `Happy New Year 2027.
+
+May this year be sweet and stable. Thank you for being with us.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bonne année 2027.
+
+Que cette année vous soit douce et stable. Merci d'être avec nous.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "saint-valentin", title: "Saint-Valentin", images: img("serie-12", "85-saint-valentin"),
+        titleEn: "Valentine's Day",
+        captionEn: `Happy Valentine's Day.
+
+Take care of the ones you love. And keep your secret phrase to yourself.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bonne Saint-Valentin.
+
+Prenez soin de ceux que vous aimez. Et gardez votre phrase secrète pour vous seul.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "fete-nationale", title: "Fête nationale", images: img("serie-12", "86-fete-nationale"),
+        titleEn: "Fête nationale",
+        captionEn: `Happy Fête nationale to all Quebecers.
+
+Happy June 24 from the whole Ooble team.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bonne Fête nationale à tous les Québécois et Québécoises.
+
+Bon 24 juin de la part de toute l'équipe Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "fete-du-canada", title: "Fête du Canada", images: img("serie-12", "87-fete-du-canada"),
+        titleEn: "Canada Day",
+        captionEn: `Happy Canada Day.
+
+Happy July 1st from the whole Ooble team.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bonne fête, Canada.
+
+Bon 1er juillet de la part de toute l'équipe Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "halloween", title: "Halloween", images: img("serie-12", "88-halloween"),
+        titleEn: "Halloween",
+        captionEn: `No scary prices.
+
+At Ooble, the price is shown before you pay. Happy Halloween.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Pas de frayeur sur le prix.
+
+Chez Ooble, le prix est affiché avant de payer. Joyeuse Halloween.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "action-de-grace", title: "Action de grâce", images: img("serie-12", "89-action-de-grace"),
+        titleEn: "Thanksgiving",
+        captionEn: `Thank you.
+
+Happy Thanksgiving, from the whole Ooble team. Thank you for trusting us.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Merci.
+
+Joyeuse Action de grâce, de toute l'équipe Ooble. Merci de nous faire confiance.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "black-friday", title: "Black Friday", images: img("serie-12", "90-black-friday"),
+        titleEn: "Black Friday",
+        captionEn: `No crazy deals.
+
+Just a clear price, shown before you pay. All year long.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Pas de promo folle.
+
+Juste un prix clair, affiché avant de payer. Toute l'année.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];
