@@ -82,7 +82,33 @@ const CSS = `
 .st-slide { animation: st-in .45s var(--e) }
 @keyframes st-in { from { opacity: .2; transform: scale(.97) } }
 @media (max-width: 980px) { .st-hero { grid-template-columns: 1fr; height: auto; padding: 36px 0 } .st-stack { height: 360px } .st-modal { grid-template-columns: 1fr } }
-@media (hover: none) { .st-meta, .st-shade, .st-quick { opacity: 1; transform: none } }
+@media (hover: none) { .st-meta, .st-shade { opacity: 1; transform: none } .st-quick { display: none } }
+/* Téléphone : tout se resserre, la vitrine passe au-dessus des cartes, la fenêtre prend tout l'écran. */
+@media (max-width: 640px) {
+  .st { border-radius: 22px; margin: 0 -6px }
+  .st-top { padding: 16px 18px; gap: 10px 18px }
+  .st-stats { width: 100%; justify-content: flex-start; gap: 18px !important }
+  .st-hero { margin: 0 10px; border-radius: 20px; padding: 26px 0 8px }
+  .st-copy { padding: 0 22px; gap: 12px }
+  .st-copy h2 { font-size: 34px !important }
+  .st-copy p { font-size: 14px !important }
+  .st-pill { height: 42px; padding: 0 16px; font-size: 13.5px; white-space: nowrap }
+  .st-stack { height: 300px }
+  .st-sheet { width: 180px; border-radius: 16px }
+  .st-sheet[data-pos="1"] { transform: translateX(86px) rotate(8deg) scale(.86) }
+  .st-sheet[data-pos="2"] { transform: translateX(-86px) rotate(-8deg) scale(.86) }
+  .st-rail-h { padding: 0 18px; margin: 32px 0 12px; flex-wrap: wrap }
+  .st-rail-h h3 { font-size: 19px !important }
+  .st-card { flex-basis: 58vw }
+  .st-track { gap: 12px; padding-left: 12px }
+  .st-dock { bottom: calc(12px + env(safe-area-inset-bottom, 0px)) }
+  .st-dock > div { width: 100% }
+  .st-dock label { min-width: 0 !important; flex: 1 }
+  .st-veil { padding: 0; align-items: stretch }
+  .st-modal { max-height: 100dvh; height: 100dvh; border-radius: 0 }
+  .st-stage { padding: calc(20px + env(safe-area-inset-top, 0px)) 16px 18px }
+  .st-modal > div:last-child { padding: 22px 18px calc(28px + env(safe-area-inset-bottom, 0px)) !important }
+}
 @media (prefers-reduced-motion: reduce) { .st *, .st-veil, .st-modal { animation: none !important; transition: none !important } .st-card { opacity: 1; transform: none } .st-rail { overflow-x: auto } }
 `;
 
@@ -378,12 +404,14 @@ export default function SocialPanel() {
           </span>
         </span>
         <span style={{ flex: 1 }} />
-        {[[flat.length, "publications"], [SOCIAL_SERIES.length, "séries"], [carousels, "carrousels"]].map(([v, l]) => (
-          <span key={String(l)} style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-            <span style={{ fontSize: 20, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{v}</span>
-            <span style={{ fontSize: 12.5, color: K.t3 }}>{l}</span>
-          </span>
-        ))}
+        <span className="st-stats" style={{ display: "flex", gap: 28 }}>
+          {[[flat.length, "publications"], [SOCIAL_SERIES.length, "séries"], [carousels, "carrousels"]].map(([v, l]) => (
+            <span key={String(l)} style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 20, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{v}</span>
+              <span style={{ fontSize: 12.5, color: K.t3 }}>{l}</span>
+            </span>
+          ))}
+        </span>
       </header>
 
       <Hero items={featured} onOpen={openEntry} done={done} copy={copy} />
