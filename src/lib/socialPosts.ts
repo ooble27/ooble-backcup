@@ -205,4 +205,83 @@ Une autre question ? Écrivez-nous en message privé.
       },
     ],
   },
+  {
+    id: "serie-3",
+    title: "Série 3 · Bien utiliser l'USDC",
+    description: "À quoi sert l'USDC, trouver l'adresse de son portefeuille, l'équipe, les entreprises et le lancement.",
+    posts: [
+      {
+        id: "dollars-americains", title: "Des dollars américains, sans compte américain", images: img("serie-3", "13-dollars-americains"),
+        caption: `Des dollars américains, sans compte américain. 💵
+
+Avec l'USDC, vous détenez une valeur en dollars américains, directement dans votre portefeuille numérique.
+Pas besoin d'ouvrir un compte bancaire aux États-Unis.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #DollarAméricain #Stablecoin #CryptoCanada #Finance`,
+      },
+      {
+        id: "adresse", title: "Où trouver votre adresse ?",
+        images: img("serie-3", "14a-adresse-couverture", "14b-adresse-recevoir", "14c-adresse-reseau", "14d-adresse-copier"),
+        caption: `Où trouver l'adresse de votre portefeuille ? Glissez 👉
+
+1️⃣ Ouvrez votre portefeuille et touchez « Recevoir » ou « Déposer ».
+2️⃣ Choisissez l'USDC et le bon réseau : le même que sur Ooble.
+3️⃣ Copiez l'adresse, puis collez-la dans Ooble.
+
+✅ Avant de confirmer, vérifiez les 4 premiers et les 4 derniers caractères.
+
+Enregistrez ce tutoriel 📌
+
+#Ooble #USDC #Portefeuille #Tutoriel #CryptoCanada #ConseilCrypto`,
+      },
+      {
+        id: "vraie-equipe", title: "Une vraie équipe, au Canada", images: img("serie-3", "15-vraie-equipe"),
+        caption: `Une vraie équipe, au Canada. 🇨🇦
+
+Une question avant votre premier achat ? Un doute sur une adresse ?
+Écrivez-nous : c'est une personne qui vous répond, pas un robot.
+
+🔗 ooble.ca/contact
+
+#Ooble #ServiceClient #USDC #CryptoCanada #Québec`,
+      },
+      {
+        id: "entreprises", title: "Ooble pour les entreprises", images: img("serie-3", "16-entreprises"),
+        caption: `Ooble pour les entreprises. 🏢
+
+✅ Des comptes pro vérifiés
+✅ Un desk OTC pour les montants importants
+✅ Un interlocuteur dédié
+
+Bientôt disponible. Pour en savoir plus : ooble.ca/entreprises
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #Entreprises #OTC #USDC #CryptoCanada #PME`,
+      },
+      {
+        id: "achat-vente", title: "Achat. Vente. C'est tout.", images: img("serie-3", "17-achat-vente"),
+        caption: `Achat. Vente. C'est tout.
+
+Ooble fait une seule chose, et la fait bien : l'achat et la vente d'USDC contre des dollars canadiens.
+Pas de produits compliqués, pas de jargon.
+
+#Ooble #USDC #Simple #Stablecoin #CryptoCanada`,
+      },
+      {
+        id: "bientot", title: "C'est pour bientôt", images: img("serie-3", "18-bientot"),
+        caption: `C'est pour bientôt. 🔔
+
+Abonnez-vous et activez les notifications pour être parmi les premiers à acheter de l'USDC avec Ooble.
+
+Partagez avec quelqu'un que ça intéresse 👇
+
+🔗 ooble.ca
+
+#Ooble #Bientôt #USDC #CryptoCanada #Lancement`,
+      },
+    ],
+  },
 ];
