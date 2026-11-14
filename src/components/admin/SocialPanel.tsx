@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronLeft, ChevronRight, Copy, Download, Heart, MessageCircle, Search, Send, X } from "lucide-react";
 import { FONT } from "./adminTheme";
-import { SOCIAL_BIO, SOCIAL_RULES, SOCIAL_SERIES, type SocialPost } from "@/lib/socialPosts";
+import { SOCIAL_BIO, SOCIAL_BIO_EN, SOCIAL_RULES, SOCIAL_SERIES, captionFor, imagesFor, titleFor, type SocialLang, type SocialPost } from "@/lib/socialPosts";
 
 /**
  * Studio des réseaux sociaux : fond noir en mode sombre, clair en mode clair ; sur téléphone, sans cadre :
@@ -414,14 +414,23 @@ export default function SocialPanel() {
   const [q, setQ] = useState("");
   const [kind, setKind] = useState<Kind>("all");
   const [open, setOpen] = useState<number | null>(null);
-  const flat = useMemo<Entry[]>(() => SOCIAL_SERIES.flatMap((s) => s.posts.map((post, k) => ({ post, n: k + 1, serie: s.title, serieId: s.id }))), []);
+  // Langue des publications : chaque image et chaque légende existent en français et en anglais.
+  const [lang, setLangState] = useState<SocialLang>(() => { try { return localStorage.getItem("ooble.studio.lang") === "en" ? "en" : "fr"; } catch { return "fr"; } });
+  const setLang = (l: SocialLang) => { setLangState(l); try { localStorage.setItem("ooble.studio.lang", l); } catch { /* stockage indisponible */ } };
+  const SERIES = useMemo(() => SOCIAL_SERIES.map((s) => ({
+    ...s,
+    title: lang === "en" && s.titleEn ? s.titleEn : s.title,
+    description: lang === "en" && s.descriptionEn ? s.descriptionEn : s.description,
+    posts: s.posts.map((p) => ({ ...p, title: titleFor(p, lang), caption: captionFor(p, lang), images: imagesFor(p, lang) })),
+  })), [lang]);
+  const flat = useMemo<Entry[]>(() => SERIES.flatMap((s) => s.posts.map((post, k) => ({ post, n: k + 1, serie: s.title, serieId: s.id }))), [SERIES]);
   // À la une : la première publication de chaque série, sans les stories (sinon « Ooble arrive » apparaît deux fois).
-  const featured = useMemo(() => SOCIAL_SERIES.map((s) => flat.find((e) => e.serieId === s.id && e.post.format !== "story")).filter((e): e is Entry => !!e), [flat]);
+  const featured = useMemo(() => SERIES.map((s) => flat.find((e) => e.serieId === s.id && e.post.format !== "story")).filter((e): e is Entry => !!e), [flat, SERIES]);
   const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
   const match = (e: Entry) =>
     (kind === "all" || (kind === "story" ? e.post.format === "story" : e.post.format !== "story" && (kind === "carousel" ? e.post.images.length > 1 : e.post.images.length === 1)))
     && (!q.trim() || norm(`${e.post.title} ${e.post.caption}`).includes(norm(q.trim())));
-  const rails = SOCIAL_SERIES.map((s) => ({ s, items: flat.filter((e) => e.serieId === s.id && match(e)) })).filter((r) => r.items.length);
+  const rails = SERIES.map((s) => ({ s, items: flat.filter((e) => e.serieId === s.id && match(e)) })).filter((r) => r.items.length);
   const openEntry = (e: Entry) => setOpen(flat.indexOf(e));
   const carousels = flat.filter((e) => e.post.images.length > 1).length;
 
@@ -439,6 +448,15 @@ export default function SocialPanel() {
           </span>
         </span>
         <span style={{ flex: 1 }} />
+        <span role="radiogroup" aria-label="Langue des publications" style={{ display: "inline-flex", padding: 4, borderRadius: 999, background: mix("var(--a-t1)", 7) }}>
+          {(["fr", "en"] as SocialLang[]).map((l) => (
+            <button key={l} type="button" role="radio" aria-checked={lang === l} onClick={() => setLang(l)}
+              style={{ height: 32, minWidth: 48, padding: "0 14px", borderRadius: 999, border: "none", cursor: "pointer", fontFamily: FONT, fontSize: 13, fontWeight: 600,
+                background: lang === l ? K.t1 : "transparent", color: lang === l ? K.bg : K.t2, transition: "background .2s, color .2s" }}>
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </span>
         <span className="st-stats" style={{ display: "flex", gap: 28 }}>
           {[[flat.length, "publications"], [SOCIAL_SERIES.length, "séries"], [carousels, "carrousels"]].map(([v, l]) => (
             <span key={String(l)} style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
@@ -460,9 +478,9 @@ export default function SocialPanel() {
         <div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Bio du compte</h3>
-            <button type="button" onClick={() => copy("bio", SOCIAL_BIO)} style={{ padding: 0, border: "none", background: "none", cursor: "pointer", fontFamily: FONT, fontSize: 13, color: K.t1, textDecoration: "underline", textUnderlineOffset: 3 }}>{done === "bio" ? "Copiée" : "Copier"}</button>
+            <button type="button" onClick={() => copy("bio", lang === "en" ? SOCIAL_BIO_EN : SOCIAL_BIO)} style={{ padding: 0, border: "none", background: "none", cursor: "pointer", fontFamily: FONT, fontSize: 13, color: K.t1, textDecoration: "underline", textUnderlineOffset: 3 }}>{done === "bio" ? "Copiée" : "Copier"}</button>
           </div>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: K.t2, whiteSpace: "pre-wrap" }}>{SOCIAL_BIO}</p>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: K.t2, whiteSpace: "pre-wrap" }}>{lang === "en" ? SOCIAL_BIO_EN : SOCIAL_BIO}</p>
         </div>
         <div>
           <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 600 }}>Avant de publier</h3>

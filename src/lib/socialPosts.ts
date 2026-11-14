@@ -6,6 +6,9 @@
 export interface SocialPost {
   id: string;
   title: string;
+  /** Titre et légende en anglais ; les images anglaises portent le suffixe -en (voir imagesFor). */
+  titleEn?: string;
+  captionEn?: string;
   /** Une image, ou plusieurs pour un carrousel (dans l'ordre de publication). */
   images: string[];
   /** « story » : format vertical 1080 × 1920, publié en story (sinon publication 1080 × 1350). */
@@ -17,10 +20,18 @@ export interface SocialSeries {
   id: string;
   title: string;
   description: string;
+  titleEn?: string;
+  descriptionEn?: string;
   posts: SocialPost[];
 }
 
 const img = (serie: string, ...names: string[]) => names.map((n) => `/social/${serie}/${n}.png`);
+
+export type SocialLang = "fr" | "en";
+/** Les images dans la langue choisie : chaque image existe aussi en anglais (suffixe -en). */
+export const imagesFor = (p: SocialPost, lang: SocialLang) => (lang === "en" ? p.images.map((x) => x.replace(/\.png$/, "-en.png")) : p.images);
+export const titleFor = (p: SocialPost, lang: SocialLang) => (lang === "en" && p.titleEn ? p.titleEn : p.title);
+export const captionFor = (p: SocialPost, lang: SocialLang) => (lang === "en" && p.captionEn ? p.captionEn : p.caption);
 
 export const SOCIAL_RULES = [
   "Une publication par jour, dans l'ordre de la série. Un carrousel se publie en une seule fois, images dans l'ordre.",
@@ -31,85 +42,151 @@ export const SOCIAL_RULES = [
   "Une question sur une commande ou de l'argent : inviter la personne à écrire en message privé ou par la page Contact du site.",
 ];
 
-export const SOCIAL_BIO = `Achetez et vendez de l'USDC en dollars canadiens 🇨🇦
+export const SOCIAL_BIO_EN = `Buy and sell USDC in Canadian dollars
+Pay with Interac · 4 networks
+Coming soon
+ooble.ca`;
+
+export const SOCIAL_BIO = `Achetez et vendez de l'USDC en dollars canadiens
 Paiement par Interac · 4 réseaux
-Bientôt disponible 👇
+Bientôt disponible
 ooble.ca`;
 
 export const SOCIAL_SERIES: SocialSeries[] = [
   {
     id: "serie-1",
     title: "Série 1 · Découvrir Ooble",
+    titleEn: "Series 1 · Discover Ooble",
+    descriptionEn: "The launch: what Ooble is, USDC, how to buy, the networks and Interac.",
     description: "Le lancement : ce qu'est Ooble, l'USDC, comment acheter, les réseaux et Interac.",
     posts: [
       {
         id: "ooble-arrive", title: "Ooble arrive", images: img("serie-1", "01-ooble-arrive"),
-        caption: `Ooble arrive. 👋
+        titleEn: "Ooble is coming",
+        captionEn: `Ooble is coming.
+
+Soon, buy and sell USDC in Canadian dollars, simply and in minutes.
+
+– Pay with Interac
+– USDC sent straight to your wallet
+– BNB Chain, Polygon, Solana and Avalanche
+
+Follow us to be among the first to know.
+
+ooble.ca
+
+#Ooble #USDC #Stablecoin #Crypto #Canada #Interac #CryptoCanada`,
+        caption: `Ooble arrive.
 
 Bientôt, achetez et vendez de l'USDC en dollars canadiens, simplement et en quelques minutes.
 
-✅ Paiement par Interac
-✅ USDC livré directement dans votre portefeuille
-✅ BNB Chain, Polygon, Solana et Avalanche
+– Paiement par Interac
+– USDC livré directement dans votre portefeuille
+– BNB Chain, Polygon, Solana et Avalanche
 
 Abonnez-vous pour être parmi les premiers informés.
 
-🔗 ooble.ca
+ ooble.ca
 
 #Ooble #USDC #Stablecoin #Crypto #Canada #Québec #Interac #CryptoCanada`,
       },
       {
         id: "usdc", title: "C'est quoi l'USDC ?",
-        images: img("serie-1", "02a-usdc-couverture", "02b-usdc-un-dollar", "02c-usdc-circle", "02d-usdc-reseaux"),
-        caption: `C'est quoi l'USDC ? Glissez pour comprendre en 4 images 👉
+        titleEn: "What is USDC?",
+        captionEn: `What is USDC? Swipe to understand it in 4 slides.
 
-💵 1 USDC vaut environ 1 dollar américain : sa valeur reste stable.
-🏦 Il est émis par Circle et adossé à des réserves en dollars américains.
-🌐 Vous le recevez sur le réseau de votre choix : BNB Chain, Polygon, Solana ou Avalanche.
+1 USDC is worth about 1 US dollar: its value stays stable.
+It is issued by Circle and backed by US dollar reserves.
+You get it on the network of your choice: BNB Chain, Polygon, Solana or Avalanche.
+
+A simple way to hold US dollars in digital form.
+
+Save this post for later.
+
+#USDC #Stablecoin #Circle #CryptoCanada #Finance #Crypto #Ooble #LearnCrypto`,
+        images: img("serie-1", "02a-usdc-couverture", "02b-usdc-un-dollar", "02c-usdc-circle", "02d-usdc-reseaux"),
+        caption: `C'est quoi l'USDC ? Glissez pour comprendre en 4 images
+
+– 1 USDC vaut environ 1 dollar américain : sa valeur reste stable.
+– Il est émis par Circle et adossé à des réserves en dollars américains.
+– Vous le recevez sur le réseau de votre choix : BNB Chain, Polygon, Solana ou Avalanche.
 
 Une façon simple de détenir des dollars américains en version numérique.
 
-Enregistrez cette publication pour la retrouver 📌
+Enregistrez cette publication pour la retrouver
 
 #USDC #Stablecoin #Circle #CryptoCanada #Finance #Crypto #Ooble #ApprendreLaCrypto`,
       },
       {
         id: "trois-etapes", title: "Acheter en 3 étapes", images: img("serie-1", "03-trois-etapes"),
+        titleEn: "Buy in 3 steps",
+        captionEn: `Buying USDC with Ooble takes 3 steps:
+
+1. Create your account and verify your identity in minutes.
+2. Pay by Interac e-Transfer, from a bank account in your name.
+3. Get your USDC straight in your wallet.
+
+No detours, no hassle.
+
+Crypto assets involve risks.
+
+ooble.ca
+
+#Ooble #USDC #Interac #BuyCrypto #CryptoCanada #Stablecoin`,
         caption: `Acheter de l'USDC avec Ooble, c'est 3 étapes :
 
-1️⃣ Créez votre compte et vérifiez votre identité en quelques minutes.
-2️⃣ Payez par virement Interac, depuis un compte bancaire à votre nom.
-3️⃣ Recevez vos USDC directement dans votre portefeuille.
+1. Créez votre compte et vérifiez votre identité en quelques minutes.
+2. Payez par virement Interac, depuis un compte bancaire à votre nom.
+3. Recevez vos USDC directement dans votre portefeuille.
 
 Pas de détour, pas de complications.
 
 Les cryptoactifs comportent des risques.
 
-🔗 ooble.ca
+ ooble.ca
 
 #Ooble #USDC #Interac #AcheterCrypto #CryptoCanada #Stablecoin #Québec`,
       },
       {
         id: "quatre-reseaux", title: "4 réseaux, 1 seul USDC", images: img("serie-1", "04-quatre-reseaux"),
+        titleEn: "4 networks, 1 single USDC",
+        captionEn: `4 networks. 1 single USDC.
+
+With Ooble, you choose where to receive your USDC:
+BNB Chain, Polygon, Solana or Avalanche.
+
+Tip: always check that the network matches your wallet before you buy.
+
+#USDC #BNBChain #Polygon #Solana #Avalanche #Crypto #Stablecoin #Ooble`,
         caption: `4 réseaux. 1 seul USDC.
 
 Avec Ooble, vous choisissez où recevoir vos USDC :
-🟡 BNB Chain
-🟣 Polygon
-🟢 Solana
-🔴 Avalanche
+ BNB Chain
+ Polygon
+ Solana
+ Avalanche
 
-⚠️ Conseil : vérifiez toujours que le réseau choisi correspond à celui de votre portefeuille avant d'acheter.
+– Conseil : vérifiez toujours que le réseau choisi correspond à celui de votre portefeuille avant d'acheter.
 
 #USDC #BNBChain #Polygon #Solana #Avalanche #Crypto #Stablecoin #Ooble`,
       },
       {
         id: "non-depositaire", title: "Vos fonds ne dorment jamais chez nous", images: img("serie-1", "05-non-depositaire"),
-        caption: `Vos fonds ne dorment jamais chez nous. 🔐
+        titleEn: "Your funds never sleep with us",
+        captionEn: `Your funds never sleep with us.
+
+Ooble keeps neither your money nor your USDC.
+When you buy, your USDC goes straight to your wallet.
+When you sell, your money goes straight to your bank account.
+
+You stay in control, from start to finish.
+
+#Ooble #USDC #Security #Crypto #CryptoCanada #Stablecoin`,
+        caption: `Vos fonds ne dorment jamais chez nous.
 
 Ooble ne garde ni votre argent ni vos USDC.
-➡️ Quand vous achetez, vos USDC partent directement vers votre portefeuille.
-➡️ Quand vous vendez, votre argent part directement vers votre compte bancaire.
+– Quand vous achetez, vos USDC partent directement vers votre portefeuille.
+– Quand vous vendez, votre argent part directement vers votre compte bancaire.
 
 Vous gardez le contrôle, du début à la fin.
 
@@ -117,7 +194,19 @@ Vous gardez le contrôle, du début à la fin.
       },
       {
         id: "interac", title: "Payez par Interac", images: img("serie-1", "06-payez-par-interac"),
-        caption: `Payez par Interac. 🇨🇦
+        titleEn: "Pay with Interac",
+        captionEn: `Pay with Interac.
+
+The transfer you already know, from your bank. No card, no extra app.
+
+Tip: always pay from a bank account in your name.
+
+Crypto assets involve risks.
+
+ooble.ca
+
+#Interac #Ooble #USDC #CryptoCanada #Stablecoin #Canada`,
+        caption: `Payez par Interac.
 
 Le virement que vous connaissez déjà, depuis votre banque. Aucune carte, aucune application en plus.
 
@@ -125,7 +214,7 @@ Un conseil : payez toujours depuis un compte bancaire à votre nom.
 
 Les cryptoactifs comportent des risques.
 
-🔗 ooble.ca
+ ooble.ca
 
 #Interac #Ooble #USDC #CryptoCanada #Stablecoin #Canada #Québec`,
       },
@@ -134,23 +223,44 @@ Les cryptoactifs comportent des risques.
   {
     id: "serie-2",
     title: "Série 2 · Sécurité et questions",
+    titleEn: "Series 2 · Safety and questions",
+    descriptionEn: "Good habits (network, secret phrase, fake emails, account in your name) and frequent questions.",
     description: "Les bons réflexes (réseau, phrase secrète, faux courriels, compte à son nom) et les questions fréquentes.",
     posts: [
       {
         id: "reseau", title: "Vérifiez le réseau", images: img("serie-2", "07-verifiez-le-reseau"),
-        caption: `Avant d'acheter, vérifiez le réseau. ⚠️
+        titleEn: "Check the network",
+        captionEn: `Before you buy, check the network.
+
+Your wallet must accept the network you choose: BNB Chain, Polygon, Solana or Avalanche.
+
+The wrong network, and your USDC may be lost. Ten seconds of checking beats a regret.
+
+Save this tip.
+
+#Ooble #USDC #CryptoSafety #CryptoTips #CryptoCanada`,
+        caption: `Avant d'acheter, vérifiez le réseau.
 
 Votre portefeuille doit accepter le réseau que vous choisissez : BNB Chain, Polygon, Solana ou Avalanche.
 
 Un mauvais réseau, et vos USDC peuvent être perdus. 10 secondes de vérification valent mieux qu'un regret.
 
-Enregistrez ce conseil 📌
+Enregistrez ce conseil
 
 #Ooble #USDC #SécuritéCrypto #ConseilCrypto #CryptoCanada #Stablecoin`,
       },
       {
         id: "phrase-secrete", title: "Jamais votre phrase secrète", images: img("serie-2", "08-phrase-secrete"),
-        caption: `Ooble ne vous demandera jamais votre phrase secrète. 🔒
+        titleEn: "Never your secret phrase",
+        captionEn: `Ooble will never ask for your secret phrase.
+
+Not by email, not by message, not on the phone.
+Your recovery phrase and private keys are never shared with anyone.
+
+If someone asks for them, it’s a scam.
+
+#Ooble #CryptoSafety #Scam #USDC #CryptoCanada`,
+        caption: `Ooble ne vous demandera jamais votre phrase secrète.
 
 Ni par courriel, ni par message, ni au téléphone.
 Votre phrase de récupération et vos clés privées ne se partagent avec personne, jamais.
@@ -161,18 +271,36 @@ Si quelqu'un vous les demande, c'est une arnaque.
       },
       {
         id: "faux-courriels", title: "Méfiez-vous des faux courriels", images: img("serie-2", "09-faux-courriels"),
-        caption: `Méfiez-vous des faux courriels. ✉️
+        titleEn: "Watch out for fake emails",
+        captionEn: `Watch out for fake emails.
+
+Before you click:
+– check the sender’s address;
+– check the site address: ooble.ca;
+– when in doubt, don’t open the link and sign in from your browser instead.
+
+#Ooble #Phishing #CryptoSafety #USDC #CryptoCanada`,
+        caption: `Méfiez-vous des faux courriels.
 
 Avant de cliquer :
-🔍 vérifiez l'adresse de l'expéditeur ;
-🔍 vérifiez l'adresse du site : ooble.ca ;
-🔍 dans le doute, n'ouvrez pas le lien et connectez-vous directement depuis votre navigateur.
+– vérifiez l'adresse de l'expéditeur ;
+– vérifiez l'adresse du site : ooble.ca ;
+– dans le doute, n'ouvrez pas le lien et connectez-vous directement depuis votre navigateur.
 
 #Ooble #Hameçonnage #SécuritéCrypto #USDC #CryptoCanada`,
       },
       {
         id: "compte-a-votre-nom", title: "Un virement, un nom : le vôtre", images: img("serie-2", "10-compte-a-votre-nom"),
-        caption: `Un virement, un nom : le vôtre. 🏦
+        titleEn: "One transfer, one name: yours",
+        captionEn: `One transfer, one name: yours.
+
+Always pay from a bank account in your name.
+It’s safer for you, and your order is handled faster.
+
+Crypto assets involve risks.
+
+#Ooble #Interac #USDC #CryptoCanada #Security`,
+        caption: `Un virement, un nom : le vôtre.
 
 Payez toujours depuis un compte bancaire à votre nom.
 C'est plus sûr pour vous, et votre achat est traité plus vite.
@@ -183,7 +311,15 @@ Les cryptoactifs comportent des risques.
       },
       {
         id: "vos-cles", title: "Votre portefeuille, vos clés", images: img("serie-2", "11-vos-cles"),
-        caption: `Votre portefeuille. Vos clés. 🔑
+        titleEn: "Your wallet, your keys",
+        captionEn: `Your wallet. Your keys.
+
+With Ooble, your USDC lands in your wallet, not with us. You stay in control.
+
+Keep your secret phrase offline, somewhere safe, and never take a photo of it.
+
+#Ooble #USDC #SelfCustody #CryptoSafety #CryptoCanada`,
+        caption: `Votre portefeuille. Vos clés.
 
 Avec Ooble, vos USDC arrivent dans votre portefeuille, pas chez nous.
 C'est vous qui en gardez le contrôle.
@@ -194,12 +330,22 @@ Gardez votre phrase secrète hors ligne, en lieu sûr, et ne la photographiez pa
       },
       {
         id: "faq", title: "Vos questions",
-        images: img("serie-2", "12a-faq-couverture", "12b-faq-delai", "12c-faq-prix", "12d-faq-qui"),
-        caption: `Vos questions, nos réponses. Glissez 👉
+        titleEn: "Your questions",
+        captionEn: `Your questions, our answers. Swipe.
 
-⏱️ Combien de temps ? Vos USDC partent quelques minutes après la réception de votre virement Interac.
-💲 Combien ça coûte ? Le prix est affiché avant de payer : ce que vous voyez est ce que vous recevez.
-🙋 Qui peut utiliser Ooble ? Toute personne majeure au Canada, après la vérification de son identité.
+How long does it take? Your USDC is sent a few minutes after your Interac e-Transfer arrives.
+How much does it cost? The price is shown before you pay: what you see is what you get.
+Who can use Ooble? Any adult in Canada, after identity verification.
+
+Another question? Send us a message.
+
+#Ooble #FAQ #USDC #CryptoCanada #Interac`,
+        images: img("serie-2", "12a-faq-couverture", "12b-faq-delai", "12c-faq-prix", "12d-faq-qui"),
+        caption: `Vos questions, nos réponses. Glissez
+
+– Combien de temps ? Vos USDC partent quelques minutes après la réception de votre virement Interac.
+– Combien ça coûte ? Le prix est affiché avant de payer : ce que vous voyez est ce que vous recevez.
+– Qui peut utiliser Ooble ? Toute personne majeure au Canada, après la vérification de son identité.
 
 Une autre question ? Écrivez-nous en message privé.
 
@@ -210,11 +356,22 @@ Une autre question ? Écrivez-nous en message privé.
   {
     id: "serie-3",
     title: "Série 3 · Bien utiliser l'USDC",
+    titleEn: "Series 3 · Using USDC well",
+    descriptionEn: "What USDC is for, finding your wallet address, the team, business and the launch.",
     description: "À quoi sert l'USDC, trouver l'adresse de son portefeuille, l'équipe, les entreprises et le lancement.",
     posts: [
       {
         id: "dollars-americains", title: "Des dollars américains, sans compte américain", images: img("serie-3", "13-dollars-americains"),
-        caption: `Des dollars américains, sans compte américain. 💵
+        titleEn: "US dollars, without a US account",
+        captionEn: `US dollars, without a US bank account.
+
+With USDC, you hold value in US dollars, right in your digital wallet.
+No need to open a bank account in the United States.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #USDollar #Stablecoin #CryptoCanada`,
+        caption: `Des dollars américains, sans compte américain.
 
 Avec l'USDC, vous détenez une valeur en dollars américains, directement dans votre portefeuille numérique.
 Pas besoin d'ouvrir un compte bancaire aux États-Unis.
@@ -225,37 +382,70 @@ Les cryptoactifs comportent des risques.
       },
       {
         id: "adresse", title: "Où trouver votre adresse ?",
+        titleEn: "Where is your address?",
+        captionEn: `Where is your wallet address? Swipe.
+
+1. Open your wallet and tap “Receive” or “Deposit”.
+2. Choose USDC and the right network: the same as on Ooble.
+3. Copy the address, then paste it into Ooble.
+
+Before you confirm, check the first 4 and last 4 characters.
+
+Save this guide.
+
+#Ooble #USDC #Wallet #Tutorial #CryptoCanada`,
         images: img("serie-3", "14a-adresse-couverture", "14b-adresse-recevoir", "14c-adresse-reseau", "14d-adresse-copier"),
-        caption: `Où trouver l'adresse de votre portefeuille ? Glissez 👉
+        caption: `Où trouver l'adresse de votre portefeuille ? Glissez
 
-1️⃣ Ouvrez votre portefeuille et touchez « Recevoir » ou « Déposer ».
-2️⃣ Choisissez l'USDC et le bon réseau : le même que sur Ooble.
-3️⃣ Copiez l'adresse, puis collez-la dans Ooble.
+1. Ouvrez votre portefeuille et touchez « Recevoir » ou « Déposer ».
+2. Choisissez l'USDC et le bon réseau : le même que sur Ooble.
+3. Copiez l'adresse, puis collez-la dans Ooble.
 
-✅ Avant de confirmer, vérifiez les 4 premiers et les 4 derniers caractères.
+– Avant de confirmer, vérifiez les 4 premiers et les 4 derniers caractères.
 
-Enregistrez ce tutoriel 📌
+Enregistrez ce tutoriel
 
 #Ooble #USDC #Portefeuille #Tutoriel #CryptoCanada #ConseilCrypto`,
       },
       {
         id: "vraie-equipe", title: "Une vraie équipe, au Canada", images: img("serie-3", "15-vraie-equipe"),
-        caption: `Une vraie équipe, au Canada. 🇨🇦
+        titleEn: "A real team, in Canada",
+        captionEn: `A real team, in Canada.
+
+A question before your first purchase? A doubt about an address?
+Write to us: a real person will answer, not a bot.
+
+ooble.ca/contact
+
+#Ooble #CustomerSupport #USDC #CryptoCanada`,
+        caption: `Une vraie équipe, au Canada.
 
 Une question avant votre premier achat ? Un doute sur une adresse ?
 Écrivez-nous : c'est une personne qui vous répond, pas un robot.
 
-🔗 ooble.ca/contact
+ ooble.ca/contact
 
 #Ooble #ServiceClient #USDC #CryptoCanada #Québec`,
       },
       {
         id: "entreprises", title: "Ooble pour les entreprises", images: img("serie-3", "16-entreprises"),
-        caption: `Ooble pour les entreprises. 🏢
+        titleEn: "Ooble for business",
+        captionEn: `Ooble for business.
 
-✅ Des comptes pro vérifiés
-✅ Un desk OTC pour les montants importants
-✅ Un interlocuteur dédié
+– Verified business accounts
+– An OTC desk for large amounts
+– A dedicated contact
+
+Coming soon. Learn more: ooble.ca/entreprises
+
+Crypto assets involve risks.
+
+#Ooble #Business #OTC #USDC #CryptoCanada`,
+        caption: `Ooble pour les entreprises.
+
+– Des comptes pro vérifiés
+– Un desk OTC pour les montants importants
+– Un interlocuteur dédié
 
 Bientôt disponible. Pour en savoir plus : ooble.ca/entreprises
 
@@ -265,6 +455,13 @@ Les cryptoactifs comportent des risques.
       },
       {
         id: "achat-vente", title: "Achat. Vente. C'est tout.", images: img("serie-3", "17-achat-vente"),
+        titleEn: "Buy. Sell. That’s it.",
+        captionEn: `Buy. Sell. That’s it.
+
+Ooble does one thing, and does it well: buying and selling USDC for Canadian dollars.
+No complicated products, no jargon.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Simple`,
         caption: `Achat. Vente. C'est tout.
 
 Ooble fait une seule chose, et la fait bien : l'achat et la vente d'USDC contre des dollars canadiens.
@@ -274,13 +471,23 @@ Pas de produits compliqués, pas de jargon.
       },
       {
         id: "bientot", title: "C'est pour bientôt", images: img("serie-3", "18-bientot"),
-        caption: `C'est pour bientôt. 🔔
+        titleEn: "It’s coming soon",
+        captionEn: `It’s coming soon.
+
+Follow us and turn on notifications to be among the first to buy USDC with Ooble.
+
+Share with someone who’d be interested.
+
+ooble.ca
+
+#Ooble #ComingSoon #USDC #CryptoCanada #Launch`,
+        caption: `C'est pour bientôt.
 
 Abonnez-vous et activez les notifications pour être parmi les premiers à acheter de l'USDC avec Ooble.
 
-Partagez avec quelqu'un que ça intéresse 👇
+Partagez avec quelqu'un que ça intéresse
 
-🔗 ooble.ca
+ ooble.ca
 
 #Ooble #Bientôt #USDC #CryptoCanada #Lancement`,
       },
@@ -289,30 +496,54 @@ Partagez avec quelqu'un que ça intéresse 👇
   {
     id: "serie-4",
     title: "Série 4 · Vendre et nos engagements",
+    titleEn: "Series 4 · Selling and our promises",
+    descriptionEn: "Selling USDC step by step, prices with no surprises, identity checks and who can use Ooble.",
     description: "Vendre ses USDC pas à pas, des prix sans surprise, la vérification d'identité et qui peut utiliser Ooble.",
     posts: [
       {
         id: "vendre", title: "Vendez vos USDC, simplement", images: img("serie-4", "19-vendre"),
-        caption: `Vendez vos USDC, simplement. 💸
+        titleEn: "Sell your USDC, simply",
+        captionEn: `Sell your USDC, simply.
+
+With Ooble, your USDC becomes Canadian dollars, paid by Interac e-Transfer to your bank account.
+
+Crypto assets involve risks.
+
+ooble.ca
+
+#Ooble #USDC #SellCrypto #Interac #CryptoCanada`,
+        caption: `Vendez vos USDC, simplement.
 
 Avec Ooble, vos USDC deviennent des dollars canadiens, versés par virement Interac sur votre compte bancaire.
 
 Les cryptoactifs comportent des risques.
 
-🔗 ooble.ca
+ ooble.ca
 
 #Ooble #USDC #VendreCrypto #Interac #CryptoCanada #Stablecoin`,
       },
       {
         id: "vendre-etapes", title: "Vendre en 3 étapes",
+        titleEn: "Sell in 3 steps",
+        captionEn: `Sell your USDC in 3 steps. Swipe.
+
+1. Enter how much you sell: the amount in Canadian dollars shows before you confirm.
+2. Send your USDC to the address Ooble gives you, on the chosen network.
+3. Get your dollars by Interac e-Transfer, once your USDC is confirmed.
+
+Always check the network before you send.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #SellCrypto #Tutorial #Interac`,
         images: img("serie-4", "20a-vendre-couverture", "20b-vendre-montant", "20c-vendre-envoyer", "20d-vendre-recevoir"),
-        caption: `Vendre vos USDC en 3 étapes. Glissez 👉
+        caption: `Vendre vos USDC en 3 étapes. Glissez
 
-1️⃣ Indiquez combien vous vendez : le montant en dollars canadiens s'affiche avant de confirmer.
-2️⃣ Envoyez vos USDC à l'adresse indiquée par Ooble, sur le réseau choisi.
-3️⃣ Recevez vos dollars par virement Interac, dès la réception de vos USDC confirmée.
+1. Indiquez combien vous vendez : le montant en dollars canadiens s'affiche avant de confirmer.
+2. Envoyez vos USDC à l'adresse indiquée par Ooble, sur le réseau choisi.
+3. Recevez vos dollars par virement Interac, dès la réception de vos USDC confirmée.
 
-⚠️ Vérifiez toujours le réseau avant d'envoyer.
+– Vérifiez toujours le réseau avant d'envoyer.
 
 Les cryptoactifs comportent des risques.
 
@@ -320,7 +551,14 @@ Les cryptoactifs comportent des risques.
       },
       {
         id: "sans-surprise", title: "Des prix sans surprise", images: img("serie-4", "21-sans-surprise"),
-        caption: `Des prix sans surprise. 🧾
+        titleEn: "No surprises",
+        captionEn: `No surprises.
+
+With Ooble, the price is shown before you pay.
+What you see is what you get: no hidden fees afterwards.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Transparency`,
+        caption: `Des prix sans surprise.
 
 Avec Ooble, le prix est affiché avant de payer.
 Ce que vous voyez est ce que vous recevez : pas de frais cachés après coup.
@@ -329,10 +567,19 @@ Ce que vous voyez est ce que vous recevez : pas de frais cachés après coup.
       },
       {
         id: "verification", title: "Pourquoi vérifier votre identité ?", images: img("serie-4", "22-verification"),
-        caption: `Pourquoi vérifier votre identité ? 🪪
+        titleEn: "Why verify your identity?",
+        captionEn: `Why verify your identity?
 
-✅ Pour protéger votre compte : personne ne peut acheter ou vendre à votre place.
-✅ Pour respecter les règles canadiennes contre le blanchiment d'argent.
+– To protect your account: no one can buy or sell in your place.
+– To follow Canadian anti-money-laundering rules.
+
+You verify once, in minutes, and your file stays confidential.
+
+#Ooble #Security #IdentityCheck #USDC #CryptoCanada`,
+        caption: `Pourquoi vérifier votre identité ?
+
+– Pour protéger votre compte : personne ne peut acheter ou vendre à votre place.
+– Pour respecter les règles canadiennes contre le blanchiment d'argent.
 
 La vérification se fait une seule fois, en quelques minutes, et votre dossier reste confidentiel.
 
@@ -340,18 +587,35 @@ La vérification se fait une seule fois, en quelques minutes, et votre dossier r
       },
       {
         id: "bienvenue", title: "Majeur et au Canada ? Bienvenue", images: img("serie-4", "23-bienvenue"),
-        caption: `Majeur et au Canada ? Bienvenue. 🇨🇦
+        titleEn: "Adult and in Canada? Welcome",
+        captionEn: `Adult and in Canada? Welcome.
+
+Ooble is open to any adult in Canada, after identity verification.
+Individuals and businesses are all welcome.
+
+ooble.ca
+
+#Ooble #Canada #USDC #CryptoCanada #Welcome`,
+        caption: `Majeur et au Canada ? Bienvenue.
 
 Ooble est ouvert à toute personne majeure au Canada, après la vérification de son identité.
 Particuliers et entreprises, tout le monde est le bienvenu.
 
-🔗 ooble.ca
+ ooble.ca
 
 #Ooble #Canada #Québec #USDC #CryptoCanada #Bienvenue`,
       },
       {
         id: "le-saviez-vous", title: "Le saviez-vous ? L'USDC depuis 2018", images: img("serie-4", "24-le-saviez-vous"),
-        caption: `Le saviez-vous ? 💡
+        titleEn: "Did you know? USDC since 2018",
+        captionEn: `Did you know?
+
+USDC has existed since 2018. Today it is one of the most widely used stablecoins in the world.
+
+Its value follows the US dollar, and every USDC is backed by US dollar reserves.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #DidYouKnow #Circle`,
+        caption: `Le saviez-vous ?
 
 L'USDC existe depuis 2018. C'est aujourd'hui l'une des cryptomonnaies stables les plus utilisées au monde.
 
@@ -364,101 +628,183 @@ Sa valeur suit celle du dollar américain, et chaque USDC est adossé à des ré
   {
     id: "serie-5",
     title: "Série 5 · Vrai ou faux",
+    titleEn: "Series 5 · True or false",
+    descriptionEn: "Eight common beliefs about USDC and safety, with the right answer.",
     description: "Huit idées reçues sur l'USDC et la sécurité, avec la bonne réponse.",
     posts: [
       {
         id: "vf-bitcoin", title: "L'USDC, c'est comme le Bitcoin.", images: img("serie-5", "25-vf-bitcoin"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "USDC is like Bitcoin.",
+        captionEn: `True or false?
+
+“USDC is like Bitcoin.”
+
+FALSE: Its value follows the US dollar: it stays stable. No roller coaster.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « L'USDC, c'est comme le Bitcoin. »
 
-❌ FAUX : Sa valeur suit celle du dollar américain : elle reste stable. Pas de montagnes russes.
+FAUX : Sa valeur suit celle du dollar américain : elle reste stable. Pas de montagnes russes.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Bitcoin`,
       },
       {
         id: "vf-compte-us", title: 'Il faut un compte américain pour avoir des dollars US.', images: img("serie-5", "26-vf-compte-us"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "You need a US account to hold US dollars.",
+        captionEn: `True or false?
+
+“You need a US account to hold US dollars.”
+
+FALSE: USDC is digital US dollars, right in your wallet.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « Il faut un compte américain pour avoir des dollars US. »
 
-❌ FAUX : L'USDC, ce sont des dollars US numériques, directement dans votre portefeuille.
+FAUX : L'USDC, ce sont des dollars US numériques, directement dans votre portefeuille.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #DollarAméricain`,
       },
       {
         id: "vf-garde", title: 'Ooble garde mes USDC.', images: img("serie-5", "27-vf-garde"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "Ooble holds my USDC.",
+        captionEn: `True or false?
+
+“Ooble holds my USDC.”
+
+FALSE: Your USDC goes straight to your wallet. Ooble keeps neither your money nor your USDC.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « Ooble garde mes USDC. »
 
-❌ FAUX : Vos USDC partent directement vers votre portefeuille. Ooble ne garde ni votre argent ni vos USDC.
+FAUX : Vos USDC partent directement vers votre portefeuille. Ooble ne garde ni votre argent ni vos USDC.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #NonDépositaire`,
       },
       {
         id: "vf-ami", title: "Je peux payer depuis le compte d'un ami.", images: img("serie-5", "28-vf-ami"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "I can pay from a friend’s account.",
+        captionEn: `True or false?
+
+“I can pay from a friend’s account.”
+
+FALSE: The Interac e-Transfer must come from a bank account in your name. It’s safer, and your order is handled faster.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « Je peux payer depuis le compte d'un ami. »
 
-❌ FAUX : Le virement Interac doit venir d'un compte bancaire à votre nom. C'est plus sûr, et votre achat est traité plus vite.
+FAUX : Le virement Interac doit venir d'un compte bancaire à votre nom. C'est plus sûr, et votre achat est traité plus vite.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Interac`,
       },
       {
         id: "vf-reseau", title: "Le réseau n'a pas d'importance.", images: img("serie-5", "29-vf-reseau"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "The network doesn’t matter.",
+        captionEn: `True or false?
+
+“The network doesn’t matter.”
+
+FALSE: The network must match your wallet’s, or your USDC may be lost.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « Le réseau n'a pas d'importance. »
 
-❌ FAUX : Le réseau doit correspondre à celui de votre portefeuille, sinon vos USDC peuvent être perdus.
+FAUX : Le réseau doit correspondre à celui de votre portefeuille, sinon vos USDC peuvent être perdus.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #SécuritéCrypto`,
       },
       {
         id: "vf-phrase", title: 'Ooble peut me demander ma phrase secrète.', images: img("serie-5", "30-vf-phrase"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "Ooble may ask for my secret phrase.",
+        captionEn: `True or false?
+
+“Ooble may ask for my secret phrase.”
+
+FALSE: Never. Not by email, not by message, not on the phone. If someone asks for it, it’s a scam.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « Ooble peut me demander ma phrase secrète. »
 
-❌ FAUX : Jamais. Ni par courriel, ni par message, ni au téléphone. Si quelqu'un vous la demande, c'est une arnaque.
+FAUX : Jamais. Ni par courriel, ni par message, ni au téléphone. Si quelqu'un vous la demande, c'est une arnaque.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Arnaque`,
       },
       {
         id: "vf-prix", title: 'Le prix est affiché avant de payer.', images: img("serie-5", "31-vf-prix"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "The price is shown before you pay.",
+        captionEn: `True or false?
+
+“The price is shown before you pay.”
+
+TRUE: What you see is what you get, no surprises.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « Le prix est affiché avant de payer. »
 
-✅ VRAI : Ce que vous voyez est ce que vous recevez, sans surprise.
+VRAI : Ce que vous voyez est ce que vous recevez, sans surprise.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Transparence`,
       },
       {
         id: "vf-circle", title: "L'USDC est émis par Circle.", images: img("serie-5", "32-vf-circle"),
-        caption: `Vrai ou faux ? 🤔
+        titleEn: "USDC is issued by Circle.",
+        captionEn: `True or false?
+
+“USDC is issued by Circle.”
+
+TRUE: And every USDC is backed by US dollar reserves.
+
+Did you know the answer? Tell us in the comments.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #TrueOrFalse`,
+        caption: `Vrai ou faux ?
 
 « L'USDC est émis par Circle. »
 
-✅ VRAI : Et chaque USDC est adossé à des réserves en dollars américains.
+VRAI : Et chaque USDC est adossé à des réserves en dollars américains.
 
-Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+Vous connaissiez la réponse ? Dites-le-nous en commentaire
 
 #Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Circle`,
       },
@@ -467,85 +813,151 @@ Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
   {
     id: "serie-6",
     title: "Série 6 · Le lexique",
+    titleEn: "Series 6 · The glossary",
+    descriptionEn: "Eight crypto words explained simply, one per post.",
     description: "Huit mots de la crypto expliqués simplement, un par publication.",
     posts: [
       {
         id: "lex-stablecoin", title: 'Stablecoin', images: img("serie-6", "33-lex-stablecoin"),
-        caption: `Le lexique Ooble 📖 : Stablecoin
+        titleEn: "Stablecoin",
+        captionEn: `The Ooble glossary: Stablecoin
+
+A cryptocurrency whose value follows a regular currency, like the US dollar. USDC is one.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Stablecoin
 
 Une cryptomonnaie dont la valeur suit une monnaie classique, comme le dollar américain. L'USDC en est un.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
       {
         id: "lex-portefeuille", title: 'Portefeuille', images: img("serie-6", "34-lex-portefeuille"),
-        caption: `Le lexique Ooble 📖 : Portefeuille
+        titleEn: "Wallet",
+        captionEn: `The Ooble glossary: Wallet
+
+The app where you keep your crypto. You hold the keys.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Portefeuille
 
 L'application où vous gardez vos cryptomonnaies. C'est vous qui en détenez les clés.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
       {
         id: "lex-adresse", title: 'Adresse', images: img("serie-6", "35-lex-adresse"),
-        caption: `Le lexique Ooble 📖 : Adresse
+        titleEn: "Address",
+        captionEn: `The Ooble glossary: Address
+
+The string of letters and numbers that identifies your wallet. It’s where your USDC is sent.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Adresse
 
 La suite de lettres et de chiffres qui identifie votre portefeuille. C'est là qu'on vous envoie vos USDC.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
       {
         id: "lex-reseau", title: 'Réseau', images: img("serie-6", "36-lex-reseau"),
-        caption: `Le lexique Ooble 📖 : Réseau
+        titleEn: "Network",
+        captionEn: `The Ooble glossary: Network
+
+The road your USDC travels on: BNB Chain, Polygon, Solana or Avalanche. It must be the same on both sides.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Réseau
 
 La route empruntée par vos USDC : BNB Chain, Polygon, Solana ou Avalanche. Il doit être le même des deux côtés.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
       {
         id: "lex-phrase", title: 'Phrase secrète', images: img("serie-6", "37-lex-phrase"),
-        caption: `Le lexique Ooble 📖 : Phrase secrète
+        titleEn: "Secret phrase",
+        captionEn: `The Ooble glossary: Secret phrase
+
+12 or 24 words that let you recover your wallet. Keep them offline, and never share them.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Phrase secrète
 
 12 ou 24 mots qui permettent de récupérer votre portefeuille. À garder hors ligne, et à ne jamais partager.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
       {
         id: "lex-frais", title: 'Frais de réseau', images: img("serie-6", "38-lex-frais"),
-        caption: `Le lexique Ooble 📖 : Frais de réseau
+        titleEn: "Network fee",
+        captionEn: `The Ooble glossary: Network fee
+
+The small amount paid to the network to move a transaction.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Frais de réseau
 
 Le petit montant payé au réseau pour faire circuler une transaction.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
       {
         id: "lex-verification", title: "Vérification d'identité", images: img("serie-6", "39-lex-verification"),
-        caption: `Le lexique Ooble 📖 : Vérification d'identité
+        titleEn: "Identity check",
+        captionEn: `The Ooble glossary: Identity check
+
+The step where you confirm who you are, once, to protect your account.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Vérification d'identité
 
 L'étape où vous confirmez qui vous êtes, une seule fois, pour protéger votre compte.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
       {
         id: "lex-interac", title: 'Virement Interac', images: img("serie-6", "40-lex-interac"),
-        caption: `Le lexique Ooble 📖 : Virement Interac
+        titleEn: "Interac e-Transfer",
+        captionEn: `The Ooble glossary: Interac e-Transfer
+
+The transfer between Canadian banks, sent to an email address. It’s how you pay on Ooble.
+
+Save this post to keep the whole glossary.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Glossary #LearnCrypto`,
+        caption: `Le lexique Ooble : Virement Interac
 
 Le virement entre banques canadiennes, envoyé à partir d'une adresse courriel. C'est ainsi que vous payez sur Ooble.
 
-Enregistrez cette publication pour retrouver tout le lexique 📌
+Enregistrez cette publication pour retrouver tout le lexique
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
       },
@@ -554,17 +966,33 @@ Enregistrez cette publication pour retrouver tout le lexique 📌
   {
     id: "serie-7",
     title: "Série 7 · Conseils pratiques",
+    titleEn: "Series 7 · Practical tips",
+    descriptionEn: "Checklists, key numbers and quotes: short formats, easy to share.",
     description: "Checklists, chiffres clés et citations : des formats courts, faciles à partager.",
     posts: [
       {
         id: "checklist-acheter", title: "Checklist : avant d'acheter", images: img("serie-7", "41-checklist-acheter"),
-        caption: `Votre checklist avant d'acheter ✅
+        titleEn: "Checklist: before you buy",
+        captionEn: `Your checklist before you buy:
 
-☑️ Mon compte est vérifié
-☑️ Mon portefeuille est prêt
-☑️ J'ai choisi le bon réseau
-☑️ J'ai vérifié mon adresse
-☑️ Je paie depuis un compte à mon nom
+– My account is verified
+– My wallet is ready
+– I picked the right network
+– I checked my address
+– I pay from an account in my name
+
+All ticked? You’re ready.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Checklist #BuyCrypto`,
+        caption: `Votre checklist avant d'acheter
+
+– Mon compte est vérifié
+– Mon portefeuille est prêt
+– J'ai choisi le bon réseau
+– J'ai vérifié mon adresse
+– Je paie depuis un compte à mon nom
 
 Tout est coché ? Vous êtes prêt.
 
@@ -574,14 +1002,27 @@ Les cryptoactifs comportent des risques.
       },
       {
         id: "checklist-vendre", title: 'Checklist : avant de vendre', images: img("serie-7", "42-checklist-vendre"),
-        caption: `Votre checklist avant de vendre ✅
+        titleEn: "Checklist: before you sell",
+        captionEn: `Your checklist before you sell:
 
-☑️ Je vérifie le montant affiché
-☑️ Je copie l'adresse donnée par Ooble
-☑️ J'envoie sur le bon réseau
-☑️ Mon compte bancaire est à mon nom
+– I check the amount shown
+– I copy the address Ooble gives me
+– I send on the right network
+– My bank account is in my name
 
-Enregistrez-la pour votre prochaine vente 📌
+Save it for your next sale.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Checklist #SellCrypto`,
+        caption: `Votre checklist avant de vendre
+
+– Je vérifie le montant affiché
+– Je copie l'adresse donnée par Ooble
+– J'envoie sur le bon réseau
+– Mon compte bancaire est à mon nom
+
+Enregistrez-la pour votre prochaine vente
 
 Les cryptoactifs comportent des risques.
 
@@ -589,17 +1030,33 @@ Les cryptoactifs comportent des risques.
       },
       {
         id: "chiffre-4", title: '4 réseaux pris en charge', images: img("serie-7", "43-chiffre-4"),
-        caption: `4️⃣ réseaux pris en charge.
+        titleEn: "4 supported networks",
+        captionEn: `4 supported networks.
+
+BNB Chain, Polygon, Solana and Avalanche: you choose where to receive your USDC.
+
+Always pick your wallet’s network.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #BNBChain #Polygon #Solana #Avalanche`,
+        caption: `4. réseaux pris en charge.
 
 BNB Chain, Polygon, Solana et Avalanche : vous choisissez où recevoir vos USDC.
 
-⚠️ Choisissez toujours le réseau de votre portefeuille.
+– Choisissez toujours le réseau de votre portefeuille.
 
 #Ooble #USDC #CryptoCanada #Stablecoin #BNBChain #Polygon #Solana #Avalanche`,
       },
       {
         id: "chiffre-18", title: '18+ : réservé aux adultes', images: img("serie-7", "44-chiffre-18"),
-        caption: `18+ 🔞
+        titleEn: "18+: adults only",
+        captionEn: `18+
+
+Ooble is for adults in Canada, after identity verification.
+
+It’s the law, and it protects everyone.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Security #Canada`,
+        caption: `18+
 
 Ooble est réservé aux personnes majeures au Canada, après la vérification de leur identité.
 
@@ -609,7 +1066,13 @@ C'est la loi, et c'est aussi ce qui protège tout le monde.
       },
       {
         id: "chiffre-0", title: '0 : votre phrase secrète demandée', images: img("serie-7", "45-chiffre-0"),
-        caption: `0️⃣ C'est le nombre de fois où Ooble vous demandera votre phrase secrète.
+        titleEn: "0: your secret phrase requested",
+        captionEn: `0 is the number of times Ooble will ask for your secret phrase.
+
+Never, for any reason. If someone claiming to be Ooble asks for it, it’s a scam: don’t reply, and write to us.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Scam #CryptoSafety`,
+        caption: `0. C'est le nombre de fois où Ooble vous demandera votre phrase secrète.
 
 Jamais, sous aucun prétexte. Si quelqu'un vous la demande en se présentant comme Ooble, c'est une arnaque : ne répondez pas et écrivez-nous.
 
@@ -617,17 +1080,31 @@ Jamais, sous aucun prétexte. Si quelqu'un vous la demande en se présentant com
       },
       {
         id: "citation-phrase", title: '« Ne partagez jamais votre phrase secrète. »', images: img("serie-7", "46-citation-phrase"),
-        caption: `« Ne partagez jamais votre phrase secrète. » 🔒
+        titleEn: "“Never share your secret phrase.”",
+        captionEn: `“Never share your secret phrase.”
+
+Not with a friend, not with “support”, not with Ooble. Keep it offline, somewhere safe.
+
+Share this tip.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #CryptoTips #CryptoSafety`,
+        caption: `« Ne partagez jamais votre phrase secrète. »
 
 Ni à un ami, ni à un « support », ni à Ooble. Gardez-la hors ligne, en lieu sûr.
 
-Partagez ce conseil autour de vous 👇
+Partagez ce conseil autour de vous
 
 #Ooble #USDC #CryptoCanada #Stablecoin #ConseilCrypto #SécuritéCrypto`,
       },
       {
         id: "citation-reseau", title: '« Vérifiez le réseau. Toujours. »', images: img("serie-7", "47-citation-reseau"),
-        caption: `« Vérifiez le réseau. Toujours. » ⚠️
+        titleEn: "“Check the network. Always.”",
+        captionEn: `“Check the network. Always.”
+
+Before every purchase and every sale, the network must be the same on both sides.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #CryptoTips #CryptoSafety`,
+        caption: `« Vérifiez le réseau. Toujours. »
 
 Avant chaque achat et chaque vente, le réseau doit être le même des deux côtés.
 
@@ -635,7 +1112,13 @@ Avant chaque achat et chaque vente, le réseau doit être le même des deux côt
       },
       {
         id: "citation-cles", title: '« Votre portefeuille, vos règles. »', images: img("serie-7", "48-citation-cles"),
-        caption: `« Votre portefeuille, vos règles. » 🔑
+        titleEn: "“Your wallet, your rules.”",
+        captionEn: `“Your wallet, your rules.”
+
+With Ooble, your USDC lands in your wallet, not with us. You stay in control.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #SelfCustody`,
+        caption: `« Votre portefeuille, vos règles. »
 
 Avec Ooble, vos USDC arrivent dans votre portefeuille, pas chez nous. C'est vous qui en gardez le contrôle.
 
@@ -646,16 +1129,31 @@ Avec Ooble, vos USDC arrivent dans votre portefeuille, pas chez nous. C'est vous
   {
     id: "serie-8",
     title: "Série 8 · Stories",
+    titleEn: "Series 8 · Stories",
+    descriptionEn: "Vertical 1080 × 1920: poll, quiz and its answer, tip of the day, countdown and questions.",
     description: "Format vertical 1080 × 1920 : sondage, quiz et sa réponse, conseil du jour, compte à rebours et questions.",
     posts: [
       {
         id: "story-ooble-arrive", title: 'Story · Ooble arrive', format: "story", images: img("serie-8", "49-story-ooble-arrive"),
+        titleEn: "Story · Ooble is coming",
+        captionEn: `Story to post as is.
+
+Add in Instagram: a “Link” sticker to ooble.ca, at the bottom of the image.`,
         caption: `Story à publier telle quelle.
 
 À ajouter dans Instagram : un sticker « Lien » vers ooble.ca, en bas de l'image.`,
       },
       {
         id: "story-sondage", title: "Story · Sondage : vous connaissez l'USDC ?", format: "story", images: img("serie-8", "50-story-sondage"),
+        titleEn: "Story · Poll: do you know USDC?",
+        captionEn: `Poll story.
+
+Add in Instagram: the “Poll” sticker (or a 3-choice “Quiz”) with the answers:
+A. Yes, I already use it
+B. I’ve heard of it
+C. Not yet
+
+Place it over the three drawn buttons.`,
         caption: `Story sondage.
 
 À ajouter dans Instagram : le sticker « Sondage » (ou « Quiz » à 3 choix) avec les réponses :
@@ -667,6 +1165,15 @@ Placez-le par-dessus les trois boutons dessinés.`,
       },
       {
         id: "story-quiz", title: 'Story · Quiz : combien vaut 1 USDC ?', format: "story", images: img("serie-8", "51-story-quiz"),
+        titleEn: "Story · Quiz: what is 1 USDC worth?",
+        captionEn: `Quiz story.
+
+Add in Instagram: the “Quiz” sticker with the answers:
+A. About US$1 (correct answer)
+B. About C$1
+C. It changes all the time
+
+Post the “Quiz answer” story the next day.`,
         caption: `Story quiz.
 
 À ajouter dans Instagram : le sticker « Quiz » avec les réponses :
@@ -678,35 +1185,214 @@ Publier la story « Réponse du quiz » le lendemain.`,
       },
       {
         id: "story-reponse-quiz", title: 'Story · Réponse du quiz', format: "story", images: img("serie-8", "52-story-reponse-quiz"),
+        titleEn: "Story · Quiz answer",
+        captionEn: `Story to post the day after the quiz.
+
+Add in Instagram (optional): a “Link” sticker to ooble.ca.`,
         caption: `Story à publier le lendemain du quiz.
 
 À ajouter dans Instagram (facultatif) : un sticker « Lien » vers ooble.ca.`,
       },
       {
         id: "story-conseil", title: 'Story · Le conseil du jour', format: "story", images: img("serie-8", "53-story-conseil"),
+        titleEn: "Story · Tip of the day",
+        captionEn: `Story to post as is.
+
+Add in Instagram (optional): the “Questions” sticker to collect questions about networks.`,
         caption: `Story à publier telle quelle.
 
 À ajouter dans Instagram (facultatif) : le sticker « Question » pour recevoir les questions sur les réseaux.`,
       },
       {
         id: "story-3-etapes", title: 'Story · Acheter en 3 étapes', format: "story", images: img("serie-8", "54-story-3-etapes"),
+        titleEn: "Story · Buy in 3 steps",
+        captionEn: `Story to post as is.
+
+Add in Instagram: a “Link” sticker to ooble.ca, at the bottom of the image.`,
         caption: `Story à publier telle quelle.
 
 À ajouter dans Instagram : un sticker « Lien » vers ooble.ca, en bas de l'image.`,
       },
       {
         id: "story-bientot", title: 'Story · Compte à rebours', format: "story", images: img("serie-8", "55-story-bientot"),
+        titleEn: "Story · Countdown",
+        captionEn: `Countdown story.
+
+Add in Instagram: the “Countdown” sticker, placed on the dotted frame. Title: “Ooble opening”. Only set a date once the opening date is decided.`,
         caption: `Story compte à rebours.
 
 À ajouter dans Instagram : le sticker « Compte à rebours », placé sur le cadre en pointillés. Titre : « Ouverture d'Ooble ». Ne mettre une date que lorsque la date d'ouverture est décidée.`,
       },
       {
         id: "story-questions", title: 'Story · Une question ?', format: "story", images: img("serie-8", "56-story-questions"),
+        titleEn: "Story · A question?",
+        captionEn: `Questions story.
+
+Add in Instagram: the “Questions” sticker, placed on the dotted frame. Sticker text: “Ask us your question”.
+
+Then answer the questions you receive in a story.`,
         caption: `Story questions.
 
 À ajouter dans Instagram : le sticker « Questions », placé sur le cadre en pointillés. Texte du sticker : « Posez-nous votre question ».
 
 Répondre ensuite en story aux questions reçues.`,
+      },
+    ],
+  },
+  {
+    id: "serie-9",
+    title: "Série 9 · Visuels",
+    titleEn: "Series 9 · Visuals",
+    description: "De grandes images et quelques mots : des publications qui se regardent plus qu'elles ne se lisent.",
+    descriptionEn: "Big images and a few words: posts made to be seen more than read.",
+    posts: [
+      {
+        id: "partagez", title: "Partagez Ooble", images: img("serie-9", "57-partagez"),
+        titleEn: "Share Ooble",
+        captionEn: `Share Ooble.
+
+Know someone interested in USDC? Send them this post.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Partagez Ooble.
+
+Vous connaissez quelqu'un que l'USDC intéresse ? Envoyez-lui cette publication.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "bientot-chez-vous", title: "Bientôt chez vous", images: img("serie-9", "58-bientot-chez-vous"),
+        titleEn: "Coming your way",
+        captionEn: `Coming your way.
+
+Ooble opens soon. Turn on notifications so you don't miss it.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bientôt chez vous.
+
+Ooble ouvre bientôt. Activez les notifications pour ne rien manquer.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "pour-tout-le-monde", title: "Fait pour tout le monde", images: img("serie-9", "59-pour-tout-le-monde"),
+        titleEn: "Made for everyone",
+        captionEn: `Made for everyone.
+
+No need to be an expert: Ooble is simple, clear, in English and French.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Fait pour tout le monde.
+
+Pas besoin d'être un expert : Ooble est simple, clair, en français et en anglais.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "equipe", title: "Une équipe à l'écoute", images: img("serie-9", "60-equipe"),
+        titleEn: "A team that listens",
+        captionEn: `A team that listens.
+
+A real team, in Canada, that answers your questions.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Une équipe à l'écoute.
+
+Une vraie équipe, au Canada, qui répond à vos questions.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "a-portee-de-main", title: "Vos dollars, à portée de main", images: img("serie-9", "61-a-portee-de-main"),
+        titleEn: "Your dollars, within reach",
+        captionEn: `Your dollars, within reach.
+
+With USDC, your digital US dollars stay in your wallet.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Vos dollars, à portée de main.
+
+Avec l'USDC, vos dollars américains numériques restent dans votre portefeuille.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "rejoignez", title: "Rejoignez la liste", images: img("serie-9", "62-rejoignez"),
+        titleEn: "Join the list",
+        captionEn: `Join the list.
+
+Sign up at ooble.ca to know when we open.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Rejoignez la liste.
+
+Inscrivez-vous sur ooble.ca pour être prévenu à l'ouverture.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "sur-votre-telephone", title: "Tout se passe sur votre téléphone", images: img("serie-9", "63-sur-votre-telephone"),
+        titleEn: "It all happens on your phone",
+        captionEn: `It all happens on your phone.
+
+Account, Interac payment, tracking: all in a few taps.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Tout se passe sur votre téléphone.
+
+Compte, paiement Interac, suivi : tout se fait en quelques gestes.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "simple-cadeau", title: "Simple comme un cadeau", images: img("serie-9", "64-simple-cadeau"),
+        titleEn: "Simple as a gift",
+        captionEn: `Simple as a gift.
+
+Buying USDC should be as easy as opening a gift. With Ooble, it is.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Simple comme un cadeau.
+
+Acheter de l'USDC devrait être aussi simple qu'ouvrir un cadeau. Avec Ooble, ça l'est.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "quatre-reseaux-un-clic", title: "4 réseaux, un seul geste", images: img("serie-9", "65-quatre-reseaux-un-clic"),
+        titleEn: "4 networks, one tap",
+        captionEn: `4 networks, one tap.
+
+BNB Chain, Polygon, Solana or Avalanche: you choose when you buy.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `4 réseaux, un seul geste.
+
+BNB Chain, Polygon, Solana ou Avalanche : vous choisissez au moment de l'achat.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "pense-pour-le-canada", title: "Pensé pour le Canada", images: img("serie-9", "66-pense-pour-le-canada"),
+        titleEn: "Built for Canada",
+        captionEn: `Built for Canada.
+
+In Canadian dollars, with Interac, by a local team.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Pensé pour le Canada.
+
+En dollars canadiens, avec Interac, par une équipe d'ici.
+
+#Ooble #USDC #CryptoCanada`,
       },
     ],
   },
