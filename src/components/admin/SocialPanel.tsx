@@ -415,7 +415,8 @@ export default function SocialPanel() {
   const [kind, setKind] = useState<Kind>("all");
   const [open, setOpen] = useState<number | null>(null);
   const flat = useMemo<Entry[]>(() => SOCIAL_SERIES.flatMap((s) => s.posts.map((post, k) => ({ post, n: k + 1, serie: s.title, serieId: s.id }))), []);
-  const featured = useMemo(() => SOCIAL_SERIES.map((s) => flat.find((e) => e.serieId === s.id)!).filter(Boolean), [flat]);
+  // À la une : la première publication de chaque série, sans les stories (sinon « Ooble arrive » apparaît deux fois).
+  const featured = useMemo(() => SOCIAL_SERIES.map((s) => flat.find((e) => e.serieId === s.id && e.post.format !== "story")).filter((e): e is Entry => !!e), [flat]);
   const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
   const match = (e: Entry) =>
     (kind === "all" || (kind === "story" ? e.post.format === "story" : e.post.format !== "story" && (kind === "carousel" ? e.post.images.length > 1 : e.post.images.length === 1)))
