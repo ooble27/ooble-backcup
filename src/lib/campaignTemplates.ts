@@ -65,30 +65,27 @@ const GUIDE_IMAGES: [string, string, string][] = [
   ["votre-securite", "Votre sécurité", "Staying safe"],
 ];
 
-/** Visuels de produit (interface, taux, portefeuille…), en français et en anglais. */
+/** Visuels en aplats de couleur (scènes et pièces), en français et en anglais. */
 const VISUALS: [string, string, string][] = [
   ["usdc", "L'USDC", "USDC"],
-  ["rate", "Taux du moment", "Current rate"],
-  ["wallet", "Portefeuille qui reçoit", "Wallet receiving"],
-  ["transfer", "Interac vers USDC", "Interac to USDC"],
+  ["rate", "USDC et dollar canadien", "USDC and Canadian dollar"],
+  ["wallet", "Arrivée à destination", "Arrival"],
+  ["transfer", "Paiement confirmé", "Payment confirmed"],
   ["networks", "Les 4 réseaux", "The 4 networks"],
-  ["verified", "Identité vérifiée", "Identity verified"],
-  ["tracker", "Suivi d'un ordre", "Order tracking"],
-  ["address", "Vérifier une adresse", "Check an address"],
-  ["invoice", "Facture payée en USDC", "Invoice paid in USDC"],
-  ["phone", "L'app sur téléphone", "The app on a phone"],
+  ["verified", "Le bouclier", "The shield"],
+  ["tracker", "La file qui avance", "Moving queue"],
+  ["address", "Sur la carte", "On the map"],
+  ["invoice", "En déplacement d'affaires", "Business trip"],
+  ["phone", "Téléphone en main", "Phone in hand"],
   ["week", "7 jours sur 7", "7 days a week"],
-  ["phishing", "Vrai ou faux courriel", "Real or fake email"],
-  ["invite", "Lien d'invitation", "Invite link"],
-  ["stats", "Chiffres du mois", "Monthly figures"],
+  ["phishing", "Courrier validé", "Checked mail"],
+  ["invite", "Les invitations", "Invitations"],
+  ["stats", "La communauté", "Community"],
   ["chat", "Conversation avec l'équipe", "Chat with the team"],
 ];
 
-/** Hauteur / largeur de chaque visuel (cadré au plus près, fond transparent sauf réseaux et adresse). */
-const VISUAL_RATIO: Record<string, number> = {
-  usdc: 0.625, rate: 0.8357, wallet: 0.7417, transfer: 0.245, networks: 0.625, verified: 0.7426, tracker: 0.7468, address: 0.3083,
-  invoice: 0.6834, phone: 1.5763, week: 0.329, phishing: 0.3374, invite: 0.5938, stats: 0.6935, chat: 0.5475,
-};
+/** Hauteur / largeur : tous les visuels font 840 × 702, sur un aplat de couleur. */
+const VISUAL_RATIO: Record<string, number> = Object.fromEntries(VISUALS.map(([slug]) => [slug, 702 / 840]));
 
 /** Illustrations dessinées : toujours au choix dans le sélecteur d'images. */
 const ILLUSTRATIONS: [string, string, string][] = [
