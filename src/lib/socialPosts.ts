@@ -1871,4 +1871,103 @@ Ajouter un sticker lien vers ooble.ca. Garder la mention : Les cryptoactifs comp
       },
     ],
   },
+  {
+    id: "serie-15",
+    title: "Série 15 · Stories à la une",
+    titleEn: "Series 15 · Highlights",
+    description: "Cinq couvertures, une lettre chacune : la rangée du profil écrit Ooble.",
+    descriptionEn: "Five covers, one letter each: the profile row spells Ooble.",
+    posts: [
+      {
+        id: "une-o-maj", title: "À la une · « O » Bienvenue", format: "story", images: img("serie-15", "102-une-O-maj"),
+        titleEn: "Highlight · “O” Welcome",
+        captionEn: `Highlight cover, letter “O”. Place in the row: 1st (far left).
+
+1. Create the highlight “Welcome” (or open it if it exists).
+2. Edit highlight › Edit cover › choose this image from the camera roll.
+3. Put in it: Ooble is coming, the “Ooble in one minute” video, news.
+
+The five covers spell Ooble from left to right: O, o, b, l, e. Keep this order.`,
+        caption: `Couverture « à la une », lettre « O ». Place dans la rangée : 1re (tout à gauche).
+
+1. Créer la story à la une « Bienvenue » (ou l'ouvrir si elle existe).
+2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
+3. Y mettre : Ooble arrive, la vidéo « Ooble en une minute », les nouveautés.
+
+Les cinq couvertures écrivent Ooble de gauche à droite : O, o, b, l, e. Garder cet ordre.`,
+      },
+      {
+        id: "une-o", title: "À la une · « o » Acheter", format: "story", images: img("serie-15", "103-une-o"),
+        titleEn: "Highlight · “o” Buy",
+        captionEn: `Highlight cover, letter “o”. Place in the row: 2nd.
+
+1. Create the highlight “Buy” (or open it if it exists).
+2. Edit highlight › Edit cover › choose this image from the camera roll.
+3. Put in it: stories about buying USDC and the 4 networks.
+
+The five covers spell Ooble from left to right: O, o, b, l, e. Keep this order.`,
+        caption: `Couverture « à la une », lettre « o ». Place dans la rangée : 2e.
+
+1. Créer la story à la une « Acheter » (ou l'ouvrir si elle existe).
+2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
+3. Y mettre : les stories sur l'achat d'USDC et les 4 réseaux.
+
+Les cinq couvertures écrivent Ooble de gauche à droite : O, o, b, l, e. Garder cet ordre.`,
+      },
+      {
+        id: "une-b", title: "À la une · « b » Vendre", format: "story", images: img("serie-15", "104-une-b"),
+        titleEn: "Highlight · “b” Sell",
+        captionEn: `Highlight cover, letter “b”. Place in the row: 3rd.
+
+1. Create the highlight “Sell” (or open it if it exists).
+2. Edit highlight › Edit cover › choose this image from the camera roll.
+3. Put in it: stories about selling USDC.
+
+The five covers spell Ooble from left to right: O, o, b, l, e. Keep this order.`,
+        caption: `Couverture « à la une », lettre « b ». Place dans la rangée : 3e.
+
+1. Créer la story à la une « Vendre » (ou l'ouvrir si elle existe).
+2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
+3. Y mettre : les stories sur la vente d'USDC.
+
+Les cinq couvertures écrivent Ooble de gauche à droite : O, o, b, l, e. Garder cet ordre.`,
+      },
+      {
+        id: "une-l", title: "À la une · « l » Interac", format: "story", images: img("serie-15", "105-une-l"),
+        titleEn: "Highlight · “l” Interac",
+        captionEn: `Highlight cover, letter “l”. Place in the row: 4th.
+
+1. Create the highlight “Interac” (or open it if it exists).
+2. Edit highlight › Edit cover › choose this image from the camera roll.
+3. Put in it: stories about paying with Interac (exact amount, reference).
+
+The five covers spell Ooble from left to right: O, o, b, l, e. Keep this order.`,
+        caption: `Couverture « à la une », lettre « l ». Place dans la rangée : 4e.
+
+1. Créer la story à la une « Interac » (ou l'ouvrir si elle existe).
+2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
+3. Y mettre : les stories sur le paiement Interac (montant exact, référence).
+
+Les cinq couvertures écrivent Ooble de gauche à droite : O, o, b, l, e. Garder cet ordre.`,
+      },
+      {
+        id: "une-e", title: "À la une · « e » Sécurité", format: "story", images: img("serie-15", "106-une-e"),
+        titleEn: "Highlight · “e” Safety",
+        captionEn: `Highlight cover, letter “e”. Place in the row: 5th (far right).
+
+1. Create the highlight “Safety” (or open it if it exists).
+2. Edit highlight › Edit cover › choose this image from the camera roll.
+3. Put in it: stories about the secret phrase, the right network, fake emails.
+
+The five covers spell Ooble from left to right: O, o, b, l, e. Keep this order.`,
+        caption: `Couverture « à la une », lettre « e ». Place dans la rangée : 5e (tout à droite).
+
+1. Créer la story à la une « Sécurité » (ou l'ouvrir si elle existe).
+2. Modifier la story à la une › Modifier la couverture › choisir cette image dans la pellicule.
+3. Y mettre : les stories sur la phrase secrète, le bon réseau, les faux courriels.
+
+Les cinq couvertures écrivent Ooble de gauche à droite : O, o, b, l, e. Garder cet ordre.`,
+      },
+    ],
+  },
 ];
