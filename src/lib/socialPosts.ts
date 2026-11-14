@@ -359,4 +359,194 @@ Sa valeur suit celle du dollar américain, et chaque USDC est adossé à des ré
       },
     ],
   },
+  {
+    id: "serie-5",
+    title: "Série 5 · Vrai ou faux",
+    description: "Huit idées reçues sur l'USDC et la sécurité, avec la bonne réponse.",
+    posts: [
+      {
+        id: "vf-bitcoin", title: "L'USDC, c'est comme le Bitcoin.", images: img("serie-5", "25-vf-bitcoin"),
+        caption: `Vrai ou faux ? 🤔
+
+« L'USDC, c'est comme le Bitcoin. »
+
+❌ FAUX : Sa valeur suit celle du dollar américain : elle reste stable. Pas de montagnes russes.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Bitcoin`,
+      },
+      {
+        id: "vf-compte-us", title: 'Il faut un compte américain pour avoir des dollars US.', images: img("serie-5", "26-vf-compte-us"),
+        caption: `Vrai ou faux ? 🤔
+
+« Il faut un compte américain pour avoir des dollars US. »
+
+❌ FAUX : L'USDC, ce sont des dollars US numériques, directement dans votre portefeuille.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #DollarAméricain`,
+      },
+      {
+        id: "vf-garde", title: 'Ooble garde mes USDC.', images: img("serie-5", "27-vf-garde"),
+        caption: `Vrai ou faux ? 🤔
+
+« Ooble garde mes USDC. »
+
+❌ FAUX : Vos USDC partent directement vers votre portefeuille. Ooble ne garde ni votre argent ni vos USDC.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #NonDépositaire`,
+      },
+      {
+        id: "vf-ami", title: "Je peux payer depuis le compte d'un ami.", images: img("serie-5", "28-vf-ami"),
+        caption: `Vrai ou faux ? 🤔
+
+« Je peux payer depuis le compte d'un ami. »
+
+❌ FAUX : Le virement Interac doit venir d'un compte bancaire à votre nom. C'est plus sûr, et votre achat est traité plus vite.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Interac`,
+      },
+      {
+        id: "vf-reseau", title: "Le réseau n'a pas d'importance.", images: img("serie-5", "29-vf-reseau"),
+        caption: `Vrai ou faux ? 🤔
+
+« Le réseau n'a pas d'importance. »
+
+❌ FAUX : Le réseau doit correspondre à celui de votre portefeuille, sinon vos USDC peuvent être perdus.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #SécuritéCrypto`,
+      },
+      {
+        id: "vf-phrase", title: 'Ooble peut me demander ma phrase secrète.', images: img("serie-5", "30-vf-phrase"),
+        caption: `Vrai ou faux ? 🤔
+
+« Ooble peut me demander ma phrase secrète. »
+
+❌ FAUX : Jamais. Ni par courriel, ni par message, ni au téléphone. Si quelqu'un vous la demande, c'est une arnaque.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Arnaque`,
+      },
+      {
+        id: "vf-prix", title: 'Le prix est affiché avant de payer.', images: img("serie-5", "31-vf-prix"),
+        caption: `Vrai ou faux ? 🤔
+
+« Le prix est affiché avant de payer. »
+
+✅ VRAI : Ce que vous voyez est ce que vous recevez, sans surprise.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Transparence`,
+      },
+      {
+        id: "vf-circle", title: "L'USDC est émis par Circle.", images: img("serie-5", "32-vf-circle"),
+        caption: `Vrai ou faux ? 🤔
+
+« L'USDC est émis par Circle. »
+
+✅ VRAI : Et chaque USDC est adossé à des réserves en dollars américains.
+
+Vous connaissiez la réponse ? Dites-le-nous en commentaire 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #VraiOuFaux #Circle`,
+      },
+    ],
+  },
+  {
+    id: "serie-6",
+    title: "Série 6 · Le lexique",
+    description: "Huit mots de la crypto expliqués simplement, un par publication.",
+    posts: [
+      {
+        id: "lex-stablecoin", title: 'Stablecoin', images: img("serie-6", "33-lex-stablecoin"),
+        caption: `Le lexique Ooble 📖 : Stablecoin
+
+Une cryptomonnaie dont la valeur suit une monnaie classique, comme le dollar américain. L'USDC en est un.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+      {
+        id: "lex-portefeuille", title: 'Portefeuille', images: img("serie-6", "34-lex-portefeuille"),
+        caption: `Le lexique Ooble 📖 : Portefeuille
+
+L'application où vous gardez vos cryptomonnaies. C'est vous qui en détenez les clés.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+      {
+        id: "lex-adresse", title: 'Adresse', images: img("serie-6", "35-lex-adresse"),
+        caption: `Le lexique Ooble 📖 : Adresse
+
+La suite de lettres et de chiffres qui identifie votre portefeuille. C'est là qu'on vous envoie vos USDC.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+      {
+        id: "lex-reseau", title: 'Réseau', images: img("serie-6", "36-lex-reseau"),
+        caption: `Le lexique Ooble 📖 : Réseau
+
+La route empruntée par vos USDC : BNB Chain, Polygon, Solana ou Avalanche. Il doit être le même des deux côtés.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+      {
+        id: "lex-phrase", title: 'Phrase secrète', images: img("serie-6", "37-lex-phrase"),
+        caption: `Le lexique Ooble 📖 : Phrase secrète
+
+12 ou 24 mots qui permettent de récupérer votre portefeuille. À garder hors ligne, et à ne jamais partager.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+      {
+        id: "lex-frais", title: 'Frais de réseau', images: img("serie-6", "38-lex-frais"),
+        caption: `Le lexique Ooble 📖 : Frais de réseau
+
+Le petit montant payé au réseau pour faire circuler une transaction.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+      {
+        id: "lex-verification", title: "Vérification d'identité", images: img("serie-6", "39-lex-verification"),
+        caption: `Le lexique Ooble 📖 : Vérification d'identité
+
+L'étape où vous confirmez qui vous êtes, une seule fois, pour protéger votre compte.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+      {
+        id: "lex-interac", title: 'Virement Interac', images: img("serie-6", "40-lex-interac"),
+        caption: `Le lexique Ooble 📖 : Virement Interac
+
+Le virement entre banques canadiennes, envoyé à partir d'une adresse courriel. C'est ainsi que vous payez sur Ooble.
+
+Enregistrez cette publication pour retrouver tout le lexique 📌
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Lexique #ApprendreLaCrypto`,
+      },
+    ],
+  },
 ];
