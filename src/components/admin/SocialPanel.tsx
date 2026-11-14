@@ -34,8 +34,6 @@ const CSS = `
 .st-sheet { position: absolute; width: 270px; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden; transition: transform .9s var(--e), opacity .9s var(--e) }
 .st-sheet img { width: 100%; height: 100%; object-fit: cover; display: block }
 .st-sheet[data-pos="0"] { z-index: 3; transform: translateX(0) rotate(0) }
-.st-sheet[data-pos="0"] img { animation: st-ken 7s ease-out both }
-@keyframes st-ken { from { transform: scale(1.12) } to { transform: scale(1) } }
 .st-sheet[data-pos="1"] { z-index: 2; transform: translateX(150px) rotate(8deg) scale(.88); opacity: .55 }
 .st-sheet[data-pos="2"] { z-index: 1; transform: translateX(-150px) rotate(-8deg) scale(.88); opacity: .55 }
 .st-sheet[data-pos="3"] { z-index: 0; transform: translateY(20px) scale(.75); opacity: 0 }
@@ -164,7 +162,7 @@ function StoryPreview({ post }: { post: SocialPost }) {
       <img key={post.images[0]} className="st-slide" src={post.images[0]} alt={post.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 90, background: "linear-gradient(180deg, rgba(0,0,0,.35), transparent)" }} />
       <div style={{ position: "absolute", left: 10, right: 10, top: 10, height: 3, borderRadius: 9, background: "rgba(255,255,255,.45)", overflow: "hidden" }}>
-        <span className="st-bar" style={{ display: "block", height: "100%", background: "none" }}><i key={post.id} style={{ display: "block", height: "100%", background: "#fff", transformOrigin: "left", animation: "st-fill 6s linear both" }} /></span>
+        <span className="st-bar" style={{ display: "block", height: "100%", background: "none" }}><i style={{ display: "block", width: "35%", height: "100%", background: "#fff" }} /></span>
       </div>
       <div style={{ position: "absolute", left: 12, right: 12, top: 22, display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>
         <Mark size={28} /><span style={{ fontSize: 13, fontWeight: 600 }}>ooble</span><span style={{ fontSize: 12, opacity: 0.75 }}>2 h</span>
@@ -221,15 +219,9 @@ function Preview({ post }: { post: SocialPost }) {
   );
 }
 
-/** La vitrine : une publication en grand sur son propre flou, qui tourne toute seule. */
+/** La vitrine : une publication en grand sur son propre flou ; on change de publication en touchant une barre ou une carte. */
 function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry) => void; done: string | null; copy: (k: string, t: string) => void }) {
   const [at, setAt] = useState(0);
-  const [pause, setPause] = useState(false);
-  useEffect(() => {
-    if (pause || items.length < 2) return;
-    const t = window.setTimeout(() => setAt((v) => (v + 1) % items.length), 7000);
-    return () => window.clearTimeout(t);
-  }, [at, pause, items.length]);
   if (!items.length) return null;
   const cur = items[at];
   const pos = (k: number) => {
@@ -237,7 +229,7 @@ function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry
     return d === 0 ? 0 : d === 1 ? 1 : d === items.length - 1 ? 2 : 3;
   };
   return (
-    <section className="st-hero" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)} aria-label="À la une">
+    <section className="st-hero" aria-label="À la une">
       <div className="st-back" style={{ backgroundImage: `url(${cur.post.images[0]})` }} />
       <div className="st-fade" />
       <div key={cur.post.id} className="st-copy">
@@ -253,7 +245,7 @@ function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 18, maxWidth: 360 }}>
           {items.map((e, k) => (
             <button key={e.post.id} type="button" onClick={() => setAt(k)} aria-label={e.post.title} style={{ flex: 1, padding: "8px 0", border: "none", background: "none", cursor: "pointer" }}>
-              <span className="st-bar" style={{ display: "block" }}>{k === at ? <i key={`${at}-${pause}`} style={pause ? { animationPlayState: "paused" } : undefined} /> : k < at ? <i style={{ animation: "none" }} /> : null}</span>
+              <span className="st-bar" style={{ display: "block" }}>{k === at ? <i style={{ animation: "none" }} /> : null}</span>
             </button>
           ))}
         </div>
@@ -269,21 +261,15 @@ function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry
   );
 }
 
-/** Une carte d'une rangée : l'image, et au survol le titre, le jour et deux actions. Un carrousel défile tout seul. */
+/** Une carte d'une rangée : l'image, et au survol le titre, le jour et deux actions. */
 function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpen: () => void; done: string | null; copy: (k: string, t: string) => void }) {
   const { post, n } = e;
   const many = post.images.length > 1;
-  const [i, setI] = useState(0);
-  const [hover, setHover] = useState(false);
-  useEffect(() => {
-    if (!many || !hover) { setI(0); return; }
-    const t = window.setInterval(() => setI((v) => (v + 1) % post.images.length), 1000);
-    return () => window.clearInterval(t);
-  }, [many, hover, post.images.length]);
+  const i = 0;
   return (
     <div role="button" tabIndex={0} className="st-card" style={{ animationDelay: `${delay}ms` }} onClick={onOpen} aria-label={`Ouvrir ${post.title}`}
       onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onOpen(); } }}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      >
       <div className="st-frame" style={post.format === "story" ? { aspectRatio: "9 / 16" } : undefined}>
         {post.images.map((src, k) => <img key={src} src={src} alt={k === 0 ? post.title : ""} loading="lazy" style={{ opacity: k === i ? 1 : 0 }} />)}
         <div className="st-shade" />
@@ -303,12 +289,11 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
 }
 
 /**
- * Une rangée qui avance toute seule, une carte à la fois (dans un sens ou dans l'autre selon la rangée),
- * et qu'on fait aussi glisser au doigt ou avec les flèches. Elle s'arrête dès qu'on la touche ou la survole.
+ * Une rangée qu'on fait avancer soi-même : au doigt (elle s'arrête sur une carte) ou avec les deux flèches.
+ * Rien ne bouge tout seul.
  */
 function Rail({ title, sub, items, reverse, onOpen, done, copy }: { title: string; sub: string; items: Entry[]; reverse: boolean; onOpen: (e: Entry) => void; done: string | null; copy: (k: string, t: string) => void }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const hold = useRef(0);
   const step = (dir: number) => {
     const el = ref.current;
     if (!el) return;
@@ -319,20 +304,7 @@ function Rail({ title, sub, items, reverse, onOpen, done, copy }: { title: strin
     else if (dir < 0 && el.scrollLeft <= 2) el.scrollTo({ left: max + 2, behavior: "smooth" });
     else el.scrollBy({ left: dir * w, behavior: "smooth" });
   };
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (reverse) el.scrollLeft = el.scrollWidth;
-    const pause = () => { hold.current = Date.now() + 6000; };
-    const evs = ["pointerdown", "touchstart", "wheel", "mouseenter", "focusin"] as const;
-    evs.forEach((e) => el.addEventListener(e, pause, { passive: true }));
-    const t = window.setInterval(() => {
-      if (Date.now() < hold.current || document.hidden || el.matches(":hover")) return;
-      step(reverse ? -1 : 1);
-    }, 3200 + (reverse ? 700 : 0));
-    return () => { window.clearInterval(t); evs.forEach((e) => el.removeEventListener(e, pause)); };
-  }, [reverse]);
-  const manual = (d: number) => { hold.current = Date.now() + 6000; step(d); };
+  const manual = (d: number) => step(d);
   return (
     <section>
       <div className="st-rail-h">
