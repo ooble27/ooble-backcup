@@ -169,8 +169,11 @@ function image(id: string): ResolvedImage {
 }
 
 /** Page du guide vidéo correspondant à une image, sinon le centre des guides. */
+/** Les visuels qui remplacent une vignette vidéo mènent au guide du même sujet. */
+const VISUAL_GUIDE: Record<string, string> = { "vis:interac": "payer-par-interac", "vis:lock": "votre-securite", "vis:direct": "acheter-usdc", "vis:welcome": "ooble-en-une-minute" };
 function guideUrlFor(imageId: string): string {
   const id = IMAGE_ALIAS[imageId] ?? imageId;
+  if (VISUAL_GUIDE[id]) return `/guide/${VISUAL_GUIDE[id]}`;
   return id.startsWith("guide:") ? `/guide/${id.slice(6)}` : "/guide";
 }
 
@@ -203,10 +206,10 @@ export interface RenderCtx {
 export type TemplateValues = Record<string, string>;
 
 export type TemplateCategory =
-  | "Lancement" | "Éducation" | "Relance" | "Infolettre" | "Offre" | "Annonce" | "Sécurité" | "Saison";
+  | "Accueil" | "Lancement" | "Éducation" | "Relance" | "Infolettre" | "Offre" | "Annonce" | "Sécurité" | "Saison";
 
 export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
-  "Lancement", "Éducation", "Relance", "Offre", "Infolettre", "Annonce", "Sécurité", "Saison",
+  "Accueil", "Lancement", "Éducation", "Relance", "Offre", "Infolettre", "Annonce", "Sécurité", "Saison",
 ];
 
 export interface CampaignTemplate {
@@ -589,7 +592,7 @@ const guideInterac: CampaignTemplate = {
       headline: "Vos USDC en quelques minutes :",
       highlight: "4 règles pour le virement Interac.",
       intro: "Quand votre virement respecte ces 4 règles, il est reconnu automatiquement et vos USDC partent tout seuls.",
-      image: "guide:payer-par-interac",
+      image: "vis:interac",
       videoLabel: "Voir la vidéo · 1 min",
       rules: [
         "Le bon destinataire | Envoyez à **interac@ooble.ca**. Le dépôt est automatique : aucune question de sécurité.",
@@ -607,7 +610,7 @@ const guideInterac: CampaignTemplate = {
       headline: "Your USDC in minutes:",
       highlight: "4 rules for your Interac transfer.",
       intro: "When your transfer follows these 4 rules, it's matched automatically and your USDC go out on their own.",
-      image: "guide:payer-par-interac",
+      image: "vis:interac",
       videoLabel: "Watch the video · 1 min",
       rules: [
         "The right recipient | Send to **interac@ooble.ca**. It's on autodeposit: no security question.",
@@ -1122,7 +1125,7 @@ const securite: CampaignTemplate = {
       preheader: "Six réflexes contre les arnaques les plus courantes.",
       headline: "Ooble ne vous demandera **jamais** vos codes.",
       intro: "Ni mot de passe, ni code reçu par courriel ou texto. Nos courriels viennent seulement de **@ooble.ca**. Voici six réflexes contre les arnaques les plus courantes.",
-      image: "guide:votre-securite",
+      image: "vis:lock",
       videoLabel: "Voir la vidéo · 50 s",
       reflexesTitle: "Les six réflexes",
       reflexes: [
@@ -1142,7 +1145,7 @@ const securite: CampaignTemplate = {
       preheader: "Six habits against the most common scams.",
       headline: "Ooble will **never** ask for your codes.",
       intro: "No password, no code sent by email or text. Our emails only come from **@ooble.ca**. Here are six habits against the most common scams.",
-      image: "guide:votre-securite",
+      image: "vis:lock",
       videoLabel: "Watch the video · 48 s",
       reflexesTitle: "Six habits",
       reflexes: [
@@ -1224,7 +1227,7 @@ const bienvenue: CampaignTemplate = {
       ].join("\n"),
       cta: "Accéder à mon espace",
       ctaUrl: "/app",
-      video: "guide:ooble-en-une-minute",
+      video: "vis:welcome",
       videoTitle: "Ooble en une minute",
     },
     en: {
@@ -1241,7 +1244,7 @@ const bienvenue: CampaignTemplate = {
       ].join("\n"),
       cta: "Go to my dashboard",
       ctaUrl: "/app",
-      video: "guide:ooble-en-une-minute",
+      video: "vis:welcome",
       videoTitle: "Ooble in one minute",
     },
   },
@@ -1711,7 +1714,7 @@ const premierAchat: CampaignTemplate = {
       preheader: "Six étapes, un virement Interac, et vos USDC arrivent dans votre wallet.",
       headline: "Votre premier achat,\npas à pas.",
       intro: "Six étapes, un virement Interac, et vos USDC arrivent directement dans votre wallet.",
-      image: "guide:acheter-usdc",
+      image: "vis:direct",
       videoLabel: "Voir la vidéo · 46 s",
       steps: [
         "Entrez le montant | En dollars canadiens ou en USDC. Le taux s'affiche en temps réel.",
@@ -1730,7 +1733,7 @@ const premierAchat: CampaignTemplate = {
       preheader: "Six steps, one Interac transfer, and your USDC land in your wallet.",
       headline: "Your first purchase,\nstep by step.",
       intro: "Six steps, one Interac transfer, and your USDC land directly in your wallet.",
-      image: "guide:acheter-usdc",
+      image: "vis:direct",
       videoLabel: "Watch the video · 44 s",
       steps: [
         "Enter the amount | In Canadian dollars or USDC. The rate updates in real time.",
@@ -4340,7 +4343,193 @@ const usdcUsdt: CampaignTemplate = {
   },
 };
 
+
+// ─── Séquence d'accueil : trois courriels pour un nouveau client ───
+// Jour 1 : ce qu'il faut savoir. Jour 3 : payer par Interac. Jour 6 : les bons réflexes.
+// Même gabarit pour les trois (bandeau de couleur, « 1 sur 3 », visuel arrondi, étapes numérotées).
+
+interface AccueilLook { n: 1 | 2 | 3; bg: string; fg: string; dotBg: string; dotFg: string; btnBg: string; btnFg: string }
+
+function accueilBody(look: AccueilLook) {
+  return (v: TemplateValues, ctx: RenderCtx) => {
+    const img = image(v.image);
+    const bars = [1, 2, 3].map((k) => `<td width="33%" style="padding:0 ${k < 3 ? 4 : 0}px 0 0;"><div style="height:4px;line-height:4px;font-size:1px;border-radius:9px;background:${k <= look.n ? look.fg : "rgba(20,17,15,.15)"};">&nbsp;</div></td>`).join("");
+    const steps = lines(v.steps).map(([t, d], i, arr) =>
+      `<tr><td style="padding:16px 0;${i < arr.length - 1 ? `border-bottom:1px solid ${K.line};` : ""}">${numbered(String(i + 1), esc(t ?? ""), rich(d, ctx), { dotBg: look.dotBg, dotFg: look.dotFg })}</td></tr>`,
+    ).join("");
+    return [
+      `<tr><td class="px" bgcolor="${look.bg}" style="background:${look.bg};padding:26px 32px 30px;">
+        ${brand(look.fg, `${tr("Accueil", "Welcome")} · ${look.n} ${tr("sur", "of")} 3`, look.fg, "font-size:13px;font-weight:600;")}
+        ${gap(14)}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${bars}</tr></table>
+        ${gap(28)}
+        ${h1(rich(v.headline, ctx), look.fg, 38, 700)}
+        ${para(rich(v.intro, ctx), look.fg, 16, "16px 0 24px")}
+        ${picture(img, guideUrlFor(v.image), 536, { radius: 20 })}
+      </td></tr>`,
+      v.stepsTitle ? P("30px 32px 0", h2(esc(v.stepsTitle))) : "",
+      P("6px 32px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}</table>`),
+      v.tip ? P("14px 32px 0", box(para(rich(v.tip, ctx), K.ink, 14), K.cream, { pad: "16px 18px", radius: 14 })) : "",
+      `<tr><td class="px" style="padding:26px 32px 34px;">${btn(v.cta, v.ctaUrl, look.btnBg, look.btnFg)}</td></tr>`,
+      v.next ? P("0 32px 30px", para(rich(v.next, ctx), K.mute, 13)) : "",
+      footer(ctx, { bg: K.cream, color: K.mute, link: K.ink }),
+    ].join("");
+  };
+}
+
+const ACCUEIL_FIELDS: TemplateField[] = [
+  F.subject, F.preheader, F.headline, F.intro,
+  { key: "image", label: "Visuel", kind: "image" },
+  { key: "stepsTitle", label: "Titre des étapes", kind: "text" },
+  { key: "steps", label: "Étapes", kind: "lines", hint: STEPS_HINT },
+  { key: "tip", label: "Encadré", kind: "textarea" },
+  F.cta, F.ctaUrl,
+  { key: "next", label: "Mot de la fin (prochain courriel)", kind: "textarea" },
+];
+
+const accueil1: CampaignTemplate = {
+  id: "accueil-1",
+  name: "Accueil 1 sur 3 · L'essentiel",
+  description: "Jour 1 après l'inscription. Ce qu'il faut savoir en trois points : l'USDC, Interac, votre portefeuille.",
+  category: "Accueil",
+  swatch: [K.coral, K.ink],
+  isNew: true,
+  fields: ACCUEIL_FIELDS,
+  copy: {
+    fr: {
+      subject: "{{prenom}}, l'essentiel d'Ooble en trois points",
+      preheader: "L'USDC, Interac et votre portefeuille : tout ce qu'il faut savoir pour commencer.",
+      headline: "Ravi de vous compter\nparmi nous, {{prenom}}.",
+      intro: "Avant votre premier ordre, voici l'essentiel en trois points. Deux minutes de lecture.",
+      image: "vis:welcome",
+      stepsTitle: "Ce qu'il faut savoir",
+      steps: [
+        "L'USDC, un dollar numérique | **1 USDC vaut 1 dollar américain.** Il sert à garder une valeur stable, à envoyer et à payer.",
+        "Vous payez en dollars canadiens | Par virement Interac, depuis un compte bancaire à votre nom. Le prix est affiché avant de payer.",
+        "Vos USDC restent à vous | Ils arrivent directement dans votre portefeuille. Ooble ne garde aucun solde.",
+      ].join("\n"),
+      tip: "Pour acheter ou vendre, une vérification d'identité est demandée une seule fois : une pièce d'identité et un selfie.",
+      cta: "Vérifier mon identité",
+      ctaUrl: "/app/verification",
+      next: "Dans deux jours : comment payer par Interac, en trois gestes.",
+    },
+    en: {
+      subject: "{{prenom}}, Ooble in three points",
+      preheader: "USDC, Interac and your wallet: everything you need to get started.",
+      headline: "Glad to have you\nwith us, {{prenom}}.",
+      intro: "Before your first order, here's what matters in three points. A two-minute read.",
+      image: "vis:welcome",
+      stepsTitle: "What to know",
+      steps: [
+        "USDC, a digital dollar | **1 USDC is worth 1 US dollar.** It's for holding a stable value, sending and paying.",
+        "You pay in Canadian dollars | By Interac e-Transfer, from a bank account in your name. The price is shown before you pay.",
+        "Your USDC stay yours | They land directly in your wallet. Ooble keeps no balance.",
+      ].join("\n"),
+      tip: "To buy or sell, we ask you to verify your identity just once: a photo ID and a selfie.",
+      cta: "Verify my identity",
+      ctaUrl: "/app/verification",
+      next: "In two days: how to pay with Interac, in three steps.",
+    },
+  },
+  body: accueilBody({ n: 1, bg: K.coral, fg: K.ink, dotBg: K.peach, dotFg: K.ink, btnBg: K.ink, btnFg: "#ffffff" }),
+};
+
+const accueil2: CampaignTemplate = {
+  id: "accueil-2",
+  name: "Accueil 2 sur 3 · Payer par Interac",
+  description: "Jour 3. Le paiement Interac en trois gestes : banque, montant exact, référence.",
+  category: "Accueil",
+  swatch: [K.sun, K.ink],
+  isNew: true,
+  fields: ACCUEIL_FIELDS,
+  copy: {
+    fr: {
+      subject: "Payer par Interac, en trois gestes",
+      preheader: "Votre banque, le montant exact, la référence. C'est tout.",
+      headline: "Payer par Interac,\nen trois gestes.",
+      intro: "{{prenom}}, quand vous achetez des USDC, vous payez par virement Interac depuis l'app de votre banque. Voici comment faire du premier coup.",
+      image: "vis:interac",
+      stepsTitle: "Pas à pas",
+      steps: [
+        "Ouvrez l'app de votre banque | Choisissez « Virement Interac », depuis un compte à votre nom.",
+        "Envoyez le montant exact | À **interac@ooble.ca**, au cent près : celui affiché dans votre ordre.",
+        "Ajoutez la référence | Dans le message du virement, par exemple **OOB-7C3E91A2**. Votre achat est ainsi reconnu.",
+      ].join("\n"),
+      tip: "Le montant et la référence se copient d'un geste depuis votre ordre, dans l'app Ooble.",
+      cta: "Acheter des USDC",
+      ctaUrl: "/app/acheter",
+      next: "Dans trois jours : les bons réflexes pour garder vos USDC en sécurité.",
+    },
+    en: {
+      subject: "Paying with Interac, in three steps",
+      preheader: "Your bank, the exact amount, the reference. That's it.",
+      headline: "Paying with Interac,\nin three steps.",
+      intro: "{{prenom}}, when you buy USDC, you pay by Interac e-Transfer from your bank's app. Here's how to get it right the first time.",
+      image: "vis:interac",
+      stepsTitle: "Step by step",
+      steps: [
+        "Open your bank's app | Choose “Interac e-Transfer”, from an account in your name.",
+        "Send the exact amount | To **interac@ooble.ca**, to the cent: the amount shown in your order.",
+        "Add the reference | In the transfer message, for example **OOB-7C3E91A2**. That's how your order is matched.",
+      ].join("\n"),
+      tip: "You can copy the amount and the reference in one tap from your order, in the Ooble app.",
+      cta: "Buy USDC",
+      ctaUrl: "/app/acheter",
+      next: "In three days: good habits to keep your USDC safe.",
+    },
+  },
+  body: accueilBody({ n: 2, bg: K.sun, fg: K.ink, dotBg: K.sun, dotFg: K.ink, btnBg: K.ink, btnFg: K.sun }),
+};
+
+const accueil3: CampaignTemplate = {
+  id: "accueil-3",
+  name: "Accueil 3 sur 3 · Les bons réflexes",
+  description: "Jour 6. Trois réflexes de sécurité : le bon réseau, la phrase secrète, les faux courriels.",
+  category: "Accueil",
+  swatch: [K.forest, K.mint],
+  isNew: true,
+  fields: ACCUEIL_FIELDS,
+  copy: {
+    fr: {
+      subject: "Trois réflexes pour garder vos USDC en sécurité",
+      preheader: "Le bon réseau, votre phrase secrète, et les faux courriels.",
+      headline: "Trois bons réflexes,\npour toujours.",
+      intro: "{{prenom}}, vos USDC sont dans votre portefeuille, donc sous votre contrôle. Ces trois réflexes suffisent à éviter l'essentiel des erreurs.",
+      image: "vis:lock",
+      stepsTitle: "À garder en tête",
+      steps: [
+        "Vérifiez le réseau et l'adresse | Avant chaque envoi. Une transaction sur la blockchain ne peut pas être annulée.",
+        "Gardez votre phrase secrète pour vous | Personne n'en a besoin, pas même Ooble. Ne la tapez jamais sur un site.",
+        "Méfiez-vous des faux courriels | Ooble ne vous demandera jamais votre mot de passe ni votre phrase secrète. Payez seulement selon les consignes affichées dans l'app.",
+      ].join("\n"),
+      tip: "Un doute sur un message ? Écrivez-nous depuis la page Contact du site : on vous répond.",
+      cta: "Voir les guides vidéo",
+      ctaUrl: "/guide",
+      next: "C'était le dernier courriel de bienvenue. Bonne suite avec Ooble.",
+    },
+    en: {
+      subject: "Three habits to keep your USDC safe",
+      preheader: "The right network, your secret phrase, and fake emails.",
+      headline: "Three good habits,\nfor good.",
+      intro: "{{prenom}}, your USDC are in your wallet, so under your control. These three habits are enough to avoid most mistakes.",
+      image: "vis:lock",
+      stepsTitle: "Keep in mind",
+      steps: [
+        "Check the network and address | Before every transfer. A blockchain transaction can't be reversed.",
+        "Keep your secret phrase to yourself | Nobody needs it, not even Ooble. Never type it on a website.",
+        "Watch out for fake emails | Ooble will never ask for your password or your secret phrase. Only pay as instructed in the app.",
+      ].join("\n"),
+      tip: "Unsure about a message? Write to us from the Contact page on the site: we'll answer.",
+      cta: "Watch the video guides",
+      ctaUrl: "/guide",
+      next: "That was the last welcome email. Enjoy Ooble.",
+    },
+  },
+  body: accueilBody({ n: 3, bg: K.mint, fg: K.ink, dotBg: K.forest, dotFg: "#ffffff", btnBg: K.forest, btnFg: "#ffffff" }),
+};
+
 export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
+  accueil1, accueil2, accueil3,
   ...SERIE_5, ...SERIE_4, ...SERIE_3,
   usdcUsdt, lancement, bienvenue, verifie, relanceKyc, retour, premierAchat, guideInterac, vendre,
   reseaux, otc, entreprises, affiche, quoiDeNeuf, nouveaute, lettre, fondateur,
