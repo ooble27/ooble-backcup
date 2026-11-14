@@ -210,6 +210,7 @@ const Mark = ({ size = 30 }: { size?: number }) => (
 
 /** L'aperçu d'une story : plein écran vertical, une barre par page, toucher à gauche ou à droite pour changer de page. */
 function StoryPreview({ post }: { post: SocialPost }) {
+  if (post.format === "reel") return <ReelPreview post={post} />;
   const [i, setI] = useState(0);
   useEffect(() => setI(0), [post.id]);
   const n = post.images.length;
@@ -237,6 +238,27 @@ function StoryPreview({ post }: { post: SocialPost }) {
       <div style={{ position: "absolute", left: 12, right: 12, bottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ flex: 1, height: 40, borderRadius: 99, border: "1px solid rgba(255,255,255,.7)", color: "rgba(255,255,255,.85)", fontSize: 13, display: "flex", alignItems: "center", padding: "0 14px" }}>Envoyer un message</span>
         <Heart size={22} color="#fff" strokeWidth={1.8} /><Send size={21} color="#fff" strokeWidth={1.8} />
+      </div>
+    </div>
+  );
+}
+
+/** L'aperçu d'un reel : la vidéo plein écran, le compte et la légende en bas, les actions à droite. */
+function ReelPreview({ post }: { post: SocialPost }) {
+  const first = splitCaption(post.caption).text.split("\n")[0];
+  return (
+    <div style={{ position: "relative", width: "100%", maxWidth: 330, aspectRatio: "9 / 16", borderRadius: 26, overflow: "hidden", background: "#000", boxShadow: "0 30px 70px rgba(0,0,0,.35)" }}>
+      {post.video
+        ? <video key={post.video} src={post.video} poster={post.images[0]} autoPlay muted loop playsInline aria-label={post.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        : <img src={post.images[0]} alt={post.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 160, background: "linear-gradient(0deg, rgba(0,0,0,.55), transparent)" }} />
+      <span style={{ position: "absolute", left: 14, top: 14, color: "#fff", fontSize: 16, fontWeight: 600 }}>Reels</span>
+      <div style={{ position: "absolute", right: 12, bottom: 70, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, color: "#fff" }}>
+        <Heart size={24} strokeWidth={1.8} /><MessageCircle size={23} strokeWidth={1.8} /><Send size={22} strokeWidth={1.8} />
+      </div>
+      <div style={{ position: "absolute", left: 12, right: 56, bottom: 16, color: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Mark size={26} /><span style={{ fontSize: 13, fontWeight: 600 }}>ooble</span></div>
+        <p style={{ margin: "8px 0 0", fontSize: 12.5, lineHeight: 1.4, opacity: 0.92, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{first}</p>
       </div>
     </div>
   );
@@ -375,14 +397,14 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
     <div role="button" tabIndex={0} className="st-card" style={{ animationDelay: `${delay}ms` }} onClick={onOpen} aria-label={`Ouvrir ${post.title}`}
       onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onOpen(); } }}
       >
-      <div className="st-frame" style={post.highlight ? { aspectRatio: "9 / 16", background: "#fff" } : post.format === "story" ? { aspectRatio: "9 / 16" } : undefined}>
+      <div className="st-frame" style={post.highlight ? { aspectRatio: "9 / 16", background: "#fff" } : post.format ? { aspectRatio: "9 / 16" } : undefined}>
         {post.highlight
           ? <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "2.2%" }}>
               {post.images.map((src) => <span key={src} style={{ width: "23%", aspectRatio: "1", borderRadius: 999, backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center", border: "3px solid #fff", boxShadow: "0 0 0 1.5px #dbdbdb" }} />)}
             </div>
           : <img key={post.images[i]} src={post.images[i]} alt={post.title} loading="lazy" />}
         <div className="st-shade" />
-        <span className="st-num">{String(n).padStart(2, "0")}{post.highlight ? " · à la une" : post.format === "story" ? (post.video ? " · story vidéo" : many ? ` · story · ${post.images.length} pages` : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
+        <span className="st-num">{String(n).padStart(2, "0")}{post.highlight ? " · à la une" : post.format === "reel" ? " · reel" : post.format === "story" ? (post.video ? " · story vidéo" : many ? ` · story · ${post.images.length} pages` : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
         <div className="st-quick" onClick={(ev) => ev.stopPropagation()} onPointerEnter={() => preload(filesOf(post))} onTouchStart={() => preload(filesOf(post))}>
           <button type="button" className="st-q" aria-label="Copier la légende" title="Copier la légende" onClick={() => copy(post.id, post.caption)}>{done === post.id ? <Check size={16} /> : <Copy size={16} />}</button>
           <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => void downloadAll(filesOf(post))}><Download size={16} /></button>
@@ -390,7 +412,7 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
         {many && <div className="st-dots">{post.images.map((_, k) => <span key={k} style={{ width: 5, height: 5, borderRadius: 9, background: k === i ? "#fff" : "rgba(255,255,255,.45)" }} />)}</div>}
         <div className="st-meta">
           <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: "#fff" }}>{post.title}</p>
-          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>{post.highlight ? `${post.images.length} couvertures à la une` : <>Jour {n} · {post.format === "story" ? (post.video ? "story vidéo" : many ? `story en ${post.images.length} pages` : "story") : many ? "carrousel" : "image"}</>}</p>
+          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>{post.highlight ? `${post.images.length} couvertures à la une` : <>Jour {n} · {post.format === "reel" ? "reel" : post.format === "story" ? (post.video ? "story vidéo" : many ? `story en ${post.images.length} pages` : "story") : many ? "carrousel" : "image"}</>}</p>
         </div>
       </div>
     </div>
@@ -466,7 +488,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
         <div className="st-stage">
           <button type="button" className="st-arrow st-xm" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           <div style={{ position: "absolute", inset: -80, backgroundImage: `url(${post.images[0]})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(70px) saturate(1.3)", opacity: 0.45 }} />
-          <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>{post.highlight ? <HighlightPreview post={post} /> : post.format === "story" ? <StoryPreview post={post} /> : <Preview post={post} />}</div>
+          <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>{post.highlight ? <HighlightPreview post={post} /> : post.format ? <StoryPreview post={post} /> : <Preview post={post} />}</div>
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, color: K.t2, fontSize: 13 }}>
             {nav(-1, "Publication précédente", ArrowLeft)}
             <span style={{ fontVariantNumeric: "tabular-nums" }}>{index + 1} / {list.length}</span>
@@ -478,7 +500,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 12.5, color: K.acc, fontWeight: 500 }}>{serie}{post.highlight ? "" : ` · jour ${n}`}</p>
               <h2 style={{ margin: "8px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.035em", lineHeight: 1.1 }}>{post.title}</h2>
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.highlight ? `${post.images.length} couvertures à la une · 1080 × 1920` : post.format === "story" ? (post.video ? "Story vidéo · MP4 · 7 secondes · 1080 × 1920" : post.images.length > 1 ? `Story en ${post.images.length} pages · 1080 × 1920` : "Story · 1080 × 1920 · vertical") : `${post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait`}</p>
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.highlight ? `${post.images.length} couvertures à la une · 1080 × 1920` : post.format === "reel" ? `Reel · MP4 · ${post.seconds ?? ""} secondes · 1080 × 1920` : post.format === "story" ? (post.video ? "Story vidéo · MP4 · 7 secondes · 1080 × 1920" : post.images.length > 1 ? `Story en ${post.images.length} pages · 1080 × 1920` : "Story · 1080 × 1920 · vertical") : `${post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait`}</p>
             </div>
             <button type="button" className="st-arrow" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           </div>
@@ -509,7 +531,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
   );
 }
 
-type Kind = "all" | "carousel" | "single" | "story";
+type Kind = "all" | "carousel" | "single" | "story" | "reel";
 
 export default function SocialPanel() {
   const { done, copy } = useCopy();
@@ -530,7 +552,7 @@ export default function SocialPanel() {
   const featured = useMemo(() => SERIES.map((s) => flat.find((e) => e.serieId === s.id && e.post.format !== "story")).filter((e): e is Entry => !!e), [flat, SERIES]);
   const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
   const match = (e: Entry) =>
-    (kind === "all" || (kind === "story" ? e.post.format === "story" : e.post.format !== "story" && (kind === "carousel" ? e.post.images.length > 1 : e.post.images.length === 1)))
+    (kind === "all" || (kind === "story" || kind === "reel" ? e.post.format === kind : !e.post.format && (kind === "carousel" ? e.post.images.length > 1 : e.post.images.length === 1)))
     && (!q.trim() || norm(`${e.post.title} ${e.post.caption}`).includes(norm(q.trim())));
   const rails = SERIES.map((s) => ({ s, items: flat.filter((e) => e.serieId === s.id && match(e)) })).filter((r) => r.items.length);
   const openEntry = (e: Entry) => setOpen(flat.indexOf(e));
@@ -600,7 +622,7 @@ export default function SocialPanel() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une publication" aria-label="Rechercher une publication"
               style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: K.t1, fontFamily: FONT, fontSize: 13.5 }} />
           </label>
-          {([["all", "Toutes"], ["carousel", "Carrousels"], ["single", "Images"], ["story", "Stories"]] as [Kind, string][]).map(([id, l]) => (
+          {([["all", "Toutes"], ["carousel", "Carrousels"], ["single", "Images"], ["story", "Stories"], ["reel", "Reels"]] as [Kind, string][]).map(([id, l]) => (
             <button key={id} type="button" className="st-chip" aria-pressed={kind === id} onClick={() => setKind(id)}>{l}</button>
           ))}
         </div>

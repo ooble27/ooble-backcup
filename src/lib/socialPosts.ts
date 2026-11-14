@@ -12,7 +12,9 @@ export interface SocialPost {
   /** Une image, ou plusieurs pour un carrousel (dans l'ordre de publication). */
   images: string[];
   /** « story » : format vertical 1080 × 1920, publié en story (sinon publication 1080 × 1350). */
-  format?: "story";
+  format?: "story" | "reel";
+  /** Durée de la vidéo, en secondes (reels et stories vidéo). */
+  seconds?: number;
   /** Story animée : la vidéo MP4 (l'image sert d'aperçu fixe). La version anglaise porte le suffixe -en. */
   video?: string;
   /** Jeu de couvertures « à la une » : le nom de chaque story à la une, dans l'ordre des images. */
@@ -2085,6 +2087,79 @@ Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
 1. Publier les 5 pages en story, l'une après l'autre, dans l'ordre.
 2. Sur chacune : À la une › choisir « Sécurité ».
 3. Les pages défilent alors dans l'ordre quand on touche la couverture.`,
+      },
+    ],
+  },
+  {
+    id: "serie-17",
+    title: "Série 17 · Motion design",
+    titleEn: "Series 17 · Motion design",
+    description: "Des reels animés de 8 à 13 secondes. Sans son : ajouter une musique dans Instagram au moment de publier.",
+    descriptionEn: "Animated reels, 8 to 13 seconds. No sound: add music in Instagram when posting.",
+    posts: [
+      {
+        id: "motion-ooble", title: "Ooble en 10 secondes", format: "reel", seconds: 13, video: vid("serie-17", "107-motion-ooble"), images: img("serie-17", "107-motion-ooble"),
+        titleEn: "Ooble in 10 seconds",
+        captionEn: `Ooble in 10 seconds.
+
+Buy and sell USDC in Canada, pay with Interac, on 4 networks. Coming soon.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Ooble en 10 secondes.
+
+Achetez et vendez de l'USDC au Canada, payez par Interac, sur 4 réseaux. Bientôt disponible.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "motion-interac", title: "Payer par Interac, en 10 secondes", format: "reel", seconds: 13, video: vid("serie-17", "108-motion-interac"), images: img("serie-17", "108-motion-interac"),
+        titleEn: "Paying with Interac, in 10 seconds",
+        captionEn: `Paying with Interac, in 10 seconds.
+
+The recipient, the exact amount, the reference in the message. And your USDC go out on their own.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #Interac`,
+        caption: `Payer par Interac, en 10 secondes.
+
+Le destinataire, le montant exact, la référence dans le message. Et vos USDC partent seuls.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #Interac`,
+      },
+      {
+        id: "motion-oOble", title: "Tout Ooble, en cinq ronds", format: "reel", seconds: 10, video: vid("serie-17", "109-motion-oOble"), images: img("serie-17", "109-motion-oOble"),
+        titleEn: "All of Ooble, in five circles",
+        captionEn: `All of Ooble, in five circles.
+
+Welcome, Buy, Sell, Interac, Safety: tap a letter on our profile to learn more.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Tout Ooble, en cinq ronds.
+
+Bienvenue, Acheter, Vendre, Interac, Sécurité : touchez une lettre sur notre profil pour tout savoir.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "motion-reseaux", title: "Un seul USDC, quatre réseaux", format: "reel", seconds: 8, video: vid("serie-17", "110-motion-reseaux"), images: img("serie-17", "110-motion-reseaux"),
+        titleEn: "One USDC, four networks",
+        captionEn: `One USDC. Four networks.
+
+BNB Chain, Polygon, Solana, Avalanche: choose the one your wallet uses.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Un seul USDC. Quatre réseaux.
+
+BNB Chain, Polygon, Solana, Avalanche : choisissez celui de votre portefeuille.
+
+#Ooble #USDC #CryptoCanada`,
       },
     ],
   },
