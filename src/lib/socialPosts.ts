@@ -13,6 +13,8 @@ export interface SocialPost {
   images: string[];
   /** « story » : format vertical 1080 × 1920, publié en story (sinon publication 1080 × 1350). */
   format?: "story";
+  /** Story animée : la vidéo MP4 (l'image sert d'aperçu fixe). La version anglaise porte le suffixe -en. */
+  video?: string;
   caption: string;
 }
 
@@ -26,10 +28,12 @@ export interface SocialSeries {
 }
 
 const img = (serie: string, ...names: string[]) => names.map((n) => `/social/${serie}/${n}.png`);
+const vid = (serie: string, name: string) => `/social/${serie}/${name}.mp4`;
 
 export type SocialLang = "fr" | "en";
 /** Les images dans la langue choisie : chaque image existe aussi en anglais (suffixe -en). */
 export const imagesFor = (p: SocialPost, lang: SocialLang) => (lang === "en" ? p.images.map((x) => x.replace(/\.png$/, "-en.png")) : p.images);
+export const videoFor = (p: SocialPost, lang: SocialLang) => (p.video && lang === "en" ? p.video.replace(/\.mp4$/, "-en.mp4") : p.video);
 export const titleFor = (p: SocialPost, lang: SocialLang) => (lang === "en" && p.titleEn ? p.titleEn : p.title);
 export const captionFor = (p: SocialPost, lang: SocialLang) => (lang === "en" && p.captionEn ? p.captionEn : p.caption);
 
@@ -1742,6 +1746,128 @@ Juste un prix clair, affiché avant de payer. Toute l'année.
 Les cryptoactifs comportent des risques.
 
 #Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
+  {
+    id: "serie-13",
+    title: "Série 13 · Vendre des USDC",
+    titleEn: "Series 13 · Selling USDC",
+    description: "Vendre en trois gestes, le minimum, le bon réseau et le paiement Interac.",
+    descriptionEn: "Selling in three steps, the minimum, the right network and Interac payment.",
+    posts: [
+      {
+        id: "vendre-pas-a-pas", title: "Vendre des USDC, pas à pas", images: img("serie-13", "91-vendre-couverture", "92-vendre-montant", "93-vendre-reseau", "94-vendre-interac"),
+        titleEn: "Selling USDC, step by step",
+        captionEn: `Selling USDC, step by step.
+
+1. Enter the amount: you see right away what you get in dollars.
+2. Send your USDC on the right network, to the address Ooble shows you.
+3. Get your dollars by Interac, at your account email.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #Interac`,
+        caption: `Vendre des USDC, pas à pas.
+
+1. Entrez le montant : vous voyez tout de suite ce que vous recevez en dollars.
+2. Envoyez vos USDC sur le bon réseau, à l'adresse indiquée par Ooble.
+3. Recevez vos dollars par Interac, au courriel de votre compte.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #Interac`,
+      },
+      {
+        id: "vendre-minimum", title: "100 $ minimum par vente", images: img("serie-13", "95-vendre-minimum"),
+        titleEn: "$100 minimum per sale",
+        captionEn: `$100 is the minimum per sale.
+
+And up to $9,999 over 24 hours.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `100 $, c'est le minimum par vente.
+
+Et jusqu'à 9 999 $ sur 24 heures.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "vendre-bon-reseau", title: "Un seul réseau : le bon", images: img("serie-13", "96-vendre-bon-reseau"),
+        titleEn: "One network: the right one",
+        captionEn: `One network: the right one.
+
+Only send your USDC on the network you chose in Ooble. Using another network would mean losing the funds.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Un seul réseau : le bon.
+
+Envoyez vos USDC uniquement sur le réseau choisi dans Ooble. Un autre réseau entraînerait la perte des fonds.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "vendre-courriel", title: "Payé au courriel de votre compte", images: img("serie-13", "97-vendre-courriel"),
+        titleEn: "Paid to your account email",
+        captionEn: `Paid to your account email.
+
+For your security, the Interac transfer for your sale is only sent to your Ooble account email.
+
+#Ooble #USDC #Interac`,
+        caption: `Payé au courriel de votre compte.
+
+Pour votre sécurité, le virement Interac de votre vente est envoyé uniquement au courriel de votre compte Ooble.
+
+#Ooble #USDC #Interac`,
+      },
+    ],
+  },
+  {
+    id: "serie-14",
+    title: "Série 14 · Stories animées",
+    titleEn: "Series 14 · Animated stories",
+    description: "Des stories vidéo de 7 secondes, prêtes à publier.",
+    descriptionEn: "7-second video stories, ready to post.",
+    posts: [
+      {
+        id: "anim-interac", title: "Story vidéo · Payer par Interac", format: "story", video: vid("serie-14", "98-story-interac"), images: img("serie-14", "98-story-interac"),
+        titleEn: "Video story · Paying with Interac",
+        captionEn: `Video story to post as is (MP4, 7 seconds).
+
+Add a link sticker to ooble.ca.`,
+        caption: `Story vidéo à publier telle quelle (MP4, 7 secondes).
+
+Ajouter un sticker lien vers ooble.ca.`,
+      },
+      {
+        id: "anim-vendre", title: "Story vidéo · Vos USDC en dollars", format: "story", video: vid("serie-14", "99-story-vendre"), images: img("serie-14", "99-story-vendre"),
+        titleEn: "Video story · Your USDC in dollars",
+        captionEn: `Video story to post as is (MP4, 7 seconds).
+
+Add a link sticker to ooble.ca.`,
+        caption: `Story vidéo à publier telle quelle (MP4, 7 secondes).
+
+Ajouter un sticker lien vers ooble.ca.`,
+      },
+      {
+        id: "anim-reseaux", title: "Story vidéo · 4 réseaux", format: "story", video: vid("serie-14", "100-story-reseaux"), images: img("serie-14", "100-story-reseaux"),
+        titleEn: "Video story · 4 networks",
+        captionEn: `Video story to post as is (MP4, 7 seconds).
+
+Add a poll sticker: “Which network do you use?” with two options.`,
+        caption: `Story vidéo à publier telle quelle (MP4, 7 secondes).
+
+Ajouter un sticker sondage : « Quel réseau utilisez-vous ? » avec deux choix.`,
+      },
+      {
+        id: "anim-prix", title: "Story vidéo · Le prix avant de payer", format: "story", video: vid("serie-14", "101-story-prix"), images: img("serie-14", "101-story-prix"),
+        titleEn: "Video story · The price before you pay",
+        captionEn: `Video story to post as is (MP4, 7 seconds).
+
+Add a link sticker to ooble.ca. Keep the mention: Crypto assets involve risks.`,
+        caption: `Story vidéo à publier telle quelle (MP4, 7 secondes).
+
+Ajouter un sticker lien vers ooble.ca. Garder la mention : Les cryptoactifs comportent des risques.`,
       },
     ],
   },

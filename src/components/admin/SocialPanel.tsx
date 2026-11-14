@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronLeft, ChevronRight, Copy, Download, Heart, MessageCircle, Search, Send, X } from "lucide-react";
 import { FONT } from "./adminTheme";
-import { SOCIAL_BIO, SOCIAL_BIO_EN, SOCIAL_RULES, SOCIAL_SERIES, captionFor, imagesFor, titleFor, type SocialLang, type SocialPost } from "@/lib/socialPosts";
+import { SOCIAL_BIO, SOCIAL_BIO_EN, SOCIAL_RULES, SOCIAL_SERIES, captionFor, imagesFor, titleFor, videoFor, type SocialLang, type SocialPost } from "@/lib/socialPosts";
 
 /**
  * Studio des réseaux sociaux : fond noir en mode sombre, clair en mode clair ; sur téléphone, sans cadre :
@@ -130,6 +130,9 @@ function useCopy() {
   return { done, copy };
 }
 
+/** Les fichiers à télécharger : la vidéo d'une story animée, sinon les images. */
+const filesOf = (p: SocialPost) => (p.video ? [p.video] : p.images);
+
 function downloadAll(images: string[]) {
   images.forEach((src, i) => {
     window.setTimeout(() => {
@@ -161,7 +164,9 @@ const Mark = ({ size = 30 }: { size?: number }) => (
 function StoryPreview({ post }: { post: SocialPost }) {
   return (
     <div style={{ position: "relative", width: "100%", maxWidth: 330, aspectRatio: "9 / 16", borderRadius: 26, overflow: "hidden", background: "#000", boxShadow: "0 30px 70px rgba(0,0,0,.35)" }}>
-      <img key={post.images[0]} className="st-slide" src={post.images[0]} alt={post.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      {post.video
+        ? <video key={post.video} src={post.video} poster={post.images[0]} autoPlay muted loop playsInline aria-label={post.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        : <img key={post.images[0]} className="st-slide" src={post.images[0]} alt={post.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
       <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 90, background: "linear-gradient(180deg, rgba(0,0,0,.35), transparent)" }} />
       <div style={{ position: "absolute", left: 10, right: 10, top: 10, height: 3, borderRadius: 9, background: "rgba(255,255,255,.45)", overflow: "hidden" }}>
         <span className="st-bar" style={{ display: "block", height: "100%", background: "none" }}><i style={{ display: "block", width: "35%", height: "100%", background: "#fff" }} /></span>
@@ -282,15 +287,15 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
       <div className="st-frame" style={post.format === "story" ? { aspectRatio: "9 / 16" } : undefined}>
         {post.images.map((src, k) => <img key={src} src={src} alt={k === 0 ? post.title : ""} loading="lazy" style={{ opacity: k === i ? 1 : 0 }} />)}
         <div className="st-shade" />
-        <span className="st-num">{String(n).padStart(2, "0")}{post.format === "story" ? " · story" : many ? ` · ${post.images.length} images` : ""}</span>
+        <span className="st-num">{String(n).padStart(2, "0")}{post.format === "story" ? (post.video ? " · story vidéo" : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
         <div className="st-quick" onClick={(ev) => ev.stopPropagation()}>
           <button type="button" className="st-q" aria-label="Copier la légende" title="Copier la légende" onClick={() => copy(post.id, post.caption)}>{done === post.id ? <Check size={16} /> : <Copy size={16} />}</button>
-          <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => downloadAll(post.images)}><Download size={16} /></button>
+          <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => downloadAll(filesOf(post))}><Download size={16} /></button>
         </div>
         {many && <div className="st-dots">{post.images.map((_, k) => <span key={k} style={{ width: 5, height: 5, borderRadius: 9, background: k === i ? "#fff" : "rgba(255,255,255,.45)" }} />)}</div>}
         <div className="st-meta">
           <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: "#fff" }}>{post.title}</p>
-          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>Jour {n} · {post.format === "story" ? "story" : many ? "carrousel" : "image"}</p>
+          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>Jour {n} · {post.format === "story" ? (post.video ? "story vidéo" : "story") : many ? "carrousel" : "image"}</p>
         </div>
       </div>
     </div>
@@ -376,7 +381,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 12.5, color: K.acc, fontWeight: 500 }}>{serie} · jour {n}</p>
               <h2 style={{ margin: "8px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.035em", lineHeight: 1.1 }}>{post.title}</h2>
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.format === "story" ? "Story · 1080 × 1920 · vertical" : `${post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait`}</p>
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.format === "story" ? (post.video ? "Story vidéo · MP4 · 7 secondes · 1080 × 1920" : "Story · 1080 × 1920 · vertical") : `${post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait`}</p>
             </div>
             <button type="button" className="st-arrow" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           </div>
@@ -384,8 +389,8 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
             <button type="button" className="st-pill" style={{ background: K.t1, color: K.bg, justifyContent: "center" }} onClick={() => copy(post.id, post.caption)}>
               {done === post.id ? <Check size={16} /> : <Copy size={16} />}{done === post.id ? "Copié" : post.format === "story" ? "Copier les consignes" : "Copier la légende"}
             </button>
-            <button type="button" className="st-pill" style={{ background: K.s2, color: K.t1, justifyContent: "center" }} onClick={() => downloadAll(post.images)}>
-              <Download size={16} />{post.images.length > 1 ? `${post.images.length} images` : "Télécharger"}
+            <button type="button" className="st-pill" style={{ background: K.s2, color: K.t1, justifyContent: "center" }} onClick={() => downloadAll(filesOf(post))}>
+              <Download size={16} />{post.video ? "Vidéo MP4" : post.images.length > 1 ? `${post.images.length} images` : "Télécharger"}
             </button>
           </div>
           <div>
@@ -421,7 +426,7 @@ export default function SocialPanel() {
     ...s,
     title: lang === "en" && s.titleEn ? s.titleEn : s.title,
     description: lang === "en" && s.descriptionEn ? s.descriptionEn : s.description,
-    posts: s.posts.map((p) => ({ ...p, title: titleFor(p, lang), caption: captionFor(p, lang), images: imagesFor(p, lang) })),
+    posts: s.posts.map((p) => ({ ...p, title: titleFor(p, lang), caption: captionFor(p, lang), images: imagesFor(p, lang), video: videoFor(p, lang) })),
   })), [lang]);
   const flat = useMemo<Entry[]>(() => SERIES.flatMap((s) => s.posts.map((post, k) => ({ post, n: k + 1, serie: s.title, serieId: s.id }))), [SERIES]);
   // À la une : la première publication de chaque série, sans les stories (sinon « Ooble arrive » apparaît deux fois).
