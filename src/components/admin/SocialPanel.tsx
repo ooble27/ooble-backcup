@@ -157,6 +157,27 @@ const Mark = ({ size = 30 }: { size?: number }) => (
   </span>
 );
 
+/** L'aperçu d'une story : plein écran vertical, barre de progression et compte en haut. */
+function StoryPreview({ post }: { post: SocialPost }) {
+  return (
+    <div style={{ position: "relative", width: "100%", maxWidth: 330, aspectRatio: "9 / 16", borderRadius: 26, overflow: "hidden", background: "#000", boxShadow: "0 30px 70px rgba(0,0,0,.35)" }}>
+      <img key={post.images[0]} className="st-slide" src={post.images[0]} alt={post.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 90, background: "linear-gradient(180deg, rgba(0,0,0,.35), transparent)" }} />
+      <div style={{ position: "absolute", left: 10, right: 10, top: 10, height: 3, borderRadius: 9, background: "rgba(255,255,255,.45)", overflow: "hidden" }}>
+        <span className="st-bar" style={{ display: "block", height: "100%", background: "none" }}><i key={post.id} style={{ display: "block", height: "100%", background: "#fff", transformOrigin: "left", animation: "st-fill 6s linear both" }} /></span>
+      </div>
+      <div style={{ position: "absolute", left: 12, right: 12, top: 22, display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>
+        <Mark size={28} /><span style={{ fontSize: 13, fontWeight: 600 }}>ooble</span><span style={{ fontSize: 12, opacity: 0.75 }}>2 h</span>
+        <span style={{ flex: 1 }} /><X size={18} />
+      </div>
+      <div style={{ position: "absolute", left: 12, right: 12, bottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ flex: 1, height: 40, borderRadius: 99, border: "1px solid rgba(255,255,255,.7)", color: "rgba(255,255,255,.85)", fontSize: 13, display: "flex", alignItems: "center", padding: "0 14px" }}>Envoyer un message</span>
+        <Heart size={22} color="#fff" strokeWidth={1.8} /><Send size={21} color="#fff" strokeWidth={1.8} />
+      </div>
+    </div>
+  );
+}
+
 /** L'aperçu façon Instagram. */
 function Preview({ post }: { post: SocialPost }) {
   const [i, setI] = useState(0);
@@ -263,10 +284,10 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
     <div role="button" tabIndex={0} className="st-card" style={{ animationDelay: `${delay}ms` }} onClick={onOpen} aria-label={`Ouvrir ${post.title}`}
       onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onOpen(); } }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <div className="st-frame">
+      <div className="st-frame" style={post.format === "story" ? { aspectRatio: "9 / 16" } : undefined}>
         {post.images.map((src, k) => <img key={src} src={src} alt={k === 0 ? post.title : ""} loading="lazy" style={{ opacity: k === i ? 1 : 0 }} />)}
         <div className="st-shade" />
-        <span className="st-num">{String(n).padStart(2, "0")}{many ? ` · ${post.images.length} images` : ""}</span>
+        <span className="st-num">{String(n).padStart(2, "0")}{post.format === "story" ? " · story" : many ? ` · ${post.images.length} images` : ""}</span>
         <div className="st-quick" onClick={(ev) => ev.stopPropagation()}>
           <button type="button" className="st-q" aria-label="Copier la légende" title="Copier la légende" onClick={() => copy(post.id, post.caption)}>{done === post.id ? <Check size={16} /> : <Copy size={16} />}</button>
           <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => downloadAll(post.images)}><Download size={16} /></button>
@@ -274,7 +295,7 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
         {many && <div className="st-dots">{post.images.map((_, k) => <span key={k} style={{ width: 5, height: 5, borderRadius: 9, background: k === i ? "#fff" : "rgba(255,255,255,.45)" }} />)}</div>}
         <div className="st-meta">
           <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: "#fff" }}>{post.title}</p>
-          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>Jour {n} · {many ? "carrousel" : "image"}</p>
+          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>Jour {n} · {post.format === "story" ? "story" : many ? "carrousel" : "image"}</p>
         </div>
       </div>
     </div>
@@ -362,7 +383,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
         <div className="st-stage">
           <button type="button" className="st-arrow st-xm" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           <div style={{ position: "absolute", inset: -80, backgroundImage: `url(${post.images[0]})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(70px) saturate(1.3)", opacity: 0.45 }} />
-          <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}><Preview post={post} /></div>
+          <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>{post.format === "story" ? <StoryPreview post={post} /> : <Preview post={post} />}</div>
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, color: K.t2, fontSize: 13 }}>
             {nav(-1, "Publication précédente", ArrowLeft)}
             <span style={{ fontVariantNumeric: "tabular-nums" }}>{index + 1} / {list.length}</span>
@@ -374,23 +395,23 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 12.5, color: K.acc, fontWeight: 500 }}>{serie} · jour {n}</p>
               <h2 style={{ margin: "8px 0 0", fontSize: 30, fontWeight: 600, letterSpacing: "-0.035em", lineHeight: 1.1 }}>{post.title}</h2>
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait</p>
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: K.t3 }}>{post.format === "story" ? "Story · 1080 × 1920 · vertical" : `${post.images.length > 1 ? `Carrousel · ${post.images.length} images` : "1 image"} · 1080 × 1350 · portrait`}</p>
             </div>
             <button type="button" className="st-arrow" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <button type="button" className="st-pill" style={{ background: K.t1, color: K.bg, justifyContent: "center" }} onClick={() => copy(post.id, post.caption)}>
-              {done === post.id ? <Check size={16} /> : <Copy size={16} />}{done === post.id ? "Copiée" : "Copier la légende"}
+              {done === post.id ? <Check size={16} /> : <Copy size={16} />}{done === post.id ? "Copié" : post.format === "story" ? "Copier les consignes" : "Copier la légende"}
             </button>
             <button type="button" className="st-pill" style={{ background: K.s2, color: K.t1, justifyContent: "center" }} onClick={() => downloadAll(post.images)}>
               <Download size={16} />{post.images.length > 1 ? `${post.images.length} images` : "Télécharger"}
             </button>
           </div>
           <div>
-            <p style={{ margin: "0 0 10px", fontSize: 12.5, color: K.t3 }}>Légende</p>
+            <p style={{ margin: "0 0 10px", fontSize: 12.5, color: K.t3 }}>{post.format === "story" ? "À faire dans Instagram" : "Légende"}</p>
             <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.7, color: K.t2, whiteSpace: "pre-wrap" }}>{text}</p>
           </div>
-          <div>
+          {tags.length > 0 && <div>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
               <p style={{ margin: 0, fontSize: 12.5, color: K.t3 }}>Hashtags · {tags.length}</p>
               <button type="button" style={link} onClick={() => copy(`${post.id}-tags`, tags.join(" "))}>{done === `${post.id}-tags` ? "Copiés" : "Copier"}</button>
@@ -398,14 +419,14 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {tags.map((t) => <span key={t} style={{ padding: "6px 12px", borderRadius: 99, background: K.s2, fontSize: 12.5, color: K.t2 }}>{t}</span>)}
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
   );
 }
 
-type Kind = "all" | "carousel" | "single";
+type Kind = "all" | "carousel" | "single" | "story";
 
 export default function SocialPanel() {
   const { done, copy } = useCopy();
@@ -416,7 +437,7 @@ export default function SocialPanel() {
   const featured = useMemo(() => SOCIAL_SERIES.map((s) => flat.find((e) => e.serieId === s.id)!).filter(Boolean), [flat]);
   const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
   const match = (e: Entry) =>
-    (kind === "all" || (kind === "carousel" ? e.post.images.length > 1 : e.post.images.length === 1))
+    (kind === "all" || (kind === "story" ? e.post.format === "story" : e.post.format !== "story" && (kind === "carousel" ? e.post.images.length > 1 : e.post.images.length === 1)))
     && (!q.trim() || norm(`${e.post.title} ${e.post.caption}`).includes(norm(q.trim())));
   const rails = SOCIAL_SERIES.map((s) => ({ s, items: flat.filter((e) => e.serieId === s.id && match(e)) })).filter((r) => r.items.length);
   const openEntry = (e: Entry) => setOpen(flat.indexOf(e));
@@ -477,7 +498,7 @@ export default function SocialPanel() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une publication" aria-label="Rechercher une publication"
               style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: K.t1, fontFamily: FONT, fontSize: 13.5 }} />
           </label>
-          {([["all", "Toutes"], ["carousel", "Carrousels"], ["single", "Images"]] as [Kind, string][]).map(([id, l]) => (
+          {([["all", "Toutes"], ["carousel", "Carrousels"], ["single", "Images"], ["story", "Stories"]] as [Kind, string][]).map(([id, l]) => (
             <button key={id} type="button" className="st-chip" aria-pressed={kind === id} onClick={() => setKind(id)}>{l}</button>
           ))}
         </div>

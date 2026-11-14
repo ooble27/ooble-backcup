@@ -8,6 +8,8 @@ export interface SocialPost {
   title: string;
   /** Une image, ou plusieurs pour un carrousel (dans l'ordre de publication). */
   images: string[];
+  /** « story » : format vertical 1080 × 1920, publié en story (sinon publication 1080 × 1350). */
+  format?: "story";
   caption: string;
 }
 
@@ -638,6 +640,73 @@ Avant chaque achat et chaque vente, le réseau doit être le même des deux côt
 Avec Ooble, vos USDC arrivent dans votre portefeuille, pas chez nous. C'est vous qui en gardez le contrôle.
 
 #Ooble #USDC #CryptoCanada #Stablecoin #Autonomie #NonDépositaire`,
+      },
+    ],
+  },
+  {
+    id: "serie-8",
+    title: "Série 8 · Stories",
+    description: "Format vertical 1080 × 1920 : sondage, quiz et sa réponse, conseil du jour, compte à rebours et questions.",
+    posts: [
+      {
+        id: "story-ooble-arrive", title: 'Story · Ooble arrive', format: "story", images: img("serie-8", "49-story-ooble-arrive"),
+        caption: `Story à publier telle quelle.
+
+À ajouter dans Instagram : un sticker « Lien » vers ooble.ca, en bas de l'image.`,
+      },
+      {
+        id: "story-sondage", title: "Story · Sondage : vous connaissez l'USDC ?", format: "story", images: img("serie-8", "50-story-sondage"),
+        caption: `Story sondage.
+
+À ajouter dans Instagram : le sticker « Sondage » (ou « Quiz » à 3 choix) avec les réponses :
+A. Oui, je l'utilise déjà
+B. J'en ai entendu parler
+C. Pas encore
+
+Placez-le par-dessus les trois boutons dessinés.`,
+      },
+      {
+        id: "story-quiz", title: 'Story · Quiz : combien vaut 1 USDC ?', format: "story", images: img("serie-8", "51-story-quiz"),
+        caption: `Story quiz.
+
+À ajouter dans Instagram : le sticker « Quiz » avec les réponses :
+A. Environ 1 $ US (bonne réponse)
+B. Environ 1 $ canadien
+C. Ça change tout le temps
+
+Publier la story « Réponse du quiz » le lendemain.`,
+      },
+      {
+        id: "story-reponse-quiz", title: 'Story · Réponse du quiz', format: "story", images: img("serie-8", "52-story-reponse-quiz"),
+        caption: `Story à publier le lendemain du quiz.
+
+À ajouter dans Instagram (facultatif) : un sticker « Lien » vers ooble.ca.`,
+      },
+      {
+        id: "story-conseil", title: 'Story · Le conseil du jour', format: "story", images: img("serie-8", "53-story-conseil"),
+        caption: `Story à publier telle quelle.
+
+À ajouter dans Instagram (facultatif) : le sticker « Question » pour recevoir les questions sur les réseaux.`,
+      },
+      {
+        id: "story-3-etapes", title: 'Story · Acheter en 3 étapes', format: "story", images: img("serie-8", "54-story-3-etapes"),
+        caption: `Story à publier telle quelle.
+
+À ajouter dans Instagram : un sticker « Lien » vers ooble.ca, en bas de l'image.`,
+      },
+      {
+        id: "story-bientot", title: 'Story · Compte à rebours', format: "story", images: img("serie-8", "55-story-bientot"),
+        caption: `Story compte à rebours.
+
+À ajouter dans Instagram : le sticker « Compte à rebours », placé sur le cadre en pointillés. Titre : « Ouverture d'Ooble ». Ne mettre une date que lorsque la date d'ouverture est décidée.`,
+      },
+      {
+        id: "story-questions", title: 'Story · Une question ?', format: "story", images: img("serie-8", "56-story-questions"),
+        caption: `Story questions.
+
+À ajouter dans Instagram : le sticker « Questions », placé sur le cadre en pointillés. Texte du sticker : « Posez-nous votre question ».
+
+Répondre ensuite en story aux questions reçues.`,
       },
     ],
   },
