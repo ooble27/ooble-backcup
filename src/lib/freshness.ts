@@ -7,11 +7,11 @@
  * à celui de /version.json ; s'il a changé, l'app se recharge d'elle-même, au bon moment :
  *  - dès qu'on revient sur l'app (onglet ou app remis au premier plan) ;
  *  - au prochain changement de page ;
- *  - ou après une minute sans saisie, jamais au milieu d'une frappe.
+ *  - ou après 20 secondes sans saisie, jamais au milieu d'une frappe (vérification toutes les 45 secondes).
  */
 
-const CHECK_EVERY = 3 * 60_000;
-const IDLE_BEFORE_RELOAD = 60_000;
+const CHECK_EVERY = 45_000;
+const IDLE_BEFORE_RELOAD = 20_000;
 
 let pending = false;
 let lastInput = Date.now();
@@ -83,7 +83,7 @@ export function startFreshnessCheck() {
     }) as History[typeof fn];
   }
 
-  // Écran ouvert longtemps : on recharge après une minute sans saisie.
+  // Écran ouvert longtemps : on recharge après 20 secondes sans saisie.
   for (const ev of ["pointerdown", "keydown", "input"]) window.addEventListener(ev, () => { lastInput = Date.now(); }, { passive: true, capture: true });
   window.setInterval(() => {
     if (document.visibilityState === "visible") void check();
