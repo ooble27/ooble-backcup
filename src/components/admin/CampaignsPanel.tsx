@@ -34,7 +34,7 @@ import {
 } from "@/lib/campaigns";
 import { renderCampaign } from "@/lib/campaignDesigns";
 import {
-  CAMPAIGN_TEMPLATES, TEMPLATE_CATEGORIES, EMAIL_IMAGES, getTemplate, renderTemplate, defaultsFor, variantValues,
+  CAMPAIGN_TEMPLATES, TEMPLATE_CATEGORIES, EMAIL_IMAGES, getTemplate, renderTemplate, defaultsFor, variantValues, DESIGNS, LAYOUT_KEY,
   type CampaignTemplate, type TemplateField, type TemplateValues, type EmailLang, type EmailImage,
 } from "@/lib/campaignTemplates";
 import { draftCampaign, isAIError, type DraftCampaignResult } from "@/lib/ai";
@@ -869,12 +869,16 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
   const [variant, setVariant] = useState<string | null>(null);
   const values = byLang[editLang];
   const setField = (k: string, v: string) => setByLang((s) => ({ ...s, [editLang]: { ...s[editLang], [k]: v } }));
-  const edited = (l: EmailLang) => JSON.stringify(byLang[l]) !== JSON.stringify(variantValues(templateId, variant, l));
+  // Mise en page : le dessin du modèle, ou l'une des huit mises en page (même texte, dans les deux langues).
+  const layout = byLang.fr[LAYOUT_KEY] || "modele";
+  const setLayout = (id: string) => setByLang((s) => ({ fr: { ...s.fr, [LAYOUT_KEY]: id }, en: { ...s.en, [LAYOUT_KEY]: id } }));
+  const strip = (o: TemplateValues) => { const { [LAYOUT_KEY]: _l, ...rest } = o; return rest; };
+  const edited = (l: EmailLang) => JSON.stringify(strip(byLang[l])) !== JSON.stringify(variantValues(templateId, variant, l));
   const pickVariant = (id: string | null) => {
     if (id === variant) return;
     if ((edited("fr") || edited("en")) && !window.confirm("Remplacer vos modifications par les textes de cette variante ?")) return;
     setVariant(id);
-    setByLang({ fr: variantValues(templateId, id, "fr"), en: variantValues(templateId, id, "en") });
+    setByLang((s) => ({ fr: { ...variantValues(templateId, id, "fr"), [LAYOUT_KEY]: s.fr[LAYOUT_KEY] ?? "" }, en: { ...variantValues(templateId, id, "en"), [LAYOUT_KEY]: s.en[LAYOUT_KEY] ?? "" } }));
   };
 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -1121,6 +1125,19 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
         </StudioSection>
       )}
 
+      <StudioSection title="Mise en page" hint="Le même texte, présenté autrement. Le choix vaut pour les deux langues.">
+        <div role="radiogroup" aria-label="Mise en page" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {[{ id: "modele", name: "Modèle", desc: `Le dessin d'origine de « ${template.name} ».`, tint: template.swatch[0] }, ...DESIGNS].map((d) => (
+            <button key={d.id} type="button" role="radio" title={d.desc} aria-checked={layout === d.id} onClick={() => setLayout(d.id)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 34, padding: "0 12px 0 8px", borderRadius: 99, border: "none", cursor: "pointer", fontFamily: FONT, fontSize: 13,
+                background: layout === d.id ? C.t1 : C.hover3, color: layout === d.id ? C.bg : C.t2, transition: "background .15s, color .15s" }}>
+              <span aria-hidden style={{ width: 18, height: 18, borderRadius: 99, background: d.tint, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.12)" }} />
+              {d.name}
+            </button>
+          ))}
+        </div>
+      </StudioSection>
+
       <StudioSection title="Dans la boîte de réception">
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px 10px", borderRadius: 16, background: C.hover3 }}>
           <img src="/icons/icon-192.png" alt="" width={36} height={36} style={{ borderRadius: 10, flexShrink: 0, marginTop: 4 }} />
@@ -1139,7 +1156,7 @@ function CampaignComposer({ templateId, startLang, onClose, onChangeTemplate, me
 
       <StudioSection title="Le courriel" right={
         edited(editLang) ? (
-          <button type="button" className="ui-btn" onClick={() => setByLang((s) => ({ ...s, [editLang]: variantValues(templateId, variant, editLang) }))}
+          <button type="button" className="ui-btn" onClick={() => setByLang((s) => ({ ...s, [editLang]: { ...variantValues(templateId, variant, editLang), [LAYOUT_KEY]: s[editLang][LAYOUT_KEY] ?? "" } }))}
             style={{ background: "none", border: "none", padding: 0, color: C.t3, cursor: "pointer", fontSize: 12.5, fontFamily: FONT, display: "inline-flex", alignItems: "center", gap: 5 }}>
             <RotateCcw style={{ width: 12, height: 12 }} /> Textes d'origine
           </button>

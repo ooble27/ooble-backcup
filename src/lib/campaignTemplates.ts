@@ -1357,7 +1357,7 @@ const nouveaute: CampaignTemplate = {
       preheader: "Envoyez vos USDC, recevez des dollars canadiens par Interac.",
       eyebrow: "Nouveau",
       headline: "Vendez vos USDC, recevez des dollars par Interac.",
-      image: "guide:vendre-usdc",
+      image: "vis:new",
       message: "Dans l'onglet Vendre, entrez le montant, choisissez le réseau et l'adresse courriel Interac où recevoir votre virement. Dès confirmation sur la blockchain, vos dollars partent.",
       points: [
         "À partir de 100 $ par vente",
@@ -1372,7 +1372,7 @@ const nouveaute: CampaignTemplate = {
       preheader: "Send your USDC, receive Canadian dollars by Interac.",
       eyebrow: "New",
       headline: "Sell your USDC, get dollars by Interac.",
-      image: "guide:vendre-usdc",
+      image: "vis:new",
       message: "In the Sell tab, enter the amount, pick the network and the Interac email where you want your transfer. As soon as it's confirmed on the blockchain, your dollars are on their way.",
       points: [
         "From $100 per sale",
@@ -1489,7 +1489,7 @@ const vendre: CampaignTemplate = {
       preheader: "Vendez vos USDC en quelques étapes, à partir de 100 $.",
       headline: "Vos USDC deviennent des dollars, sur votre compte.",
       intro: "Envoyez vos USDC et recevez des dollars canadiens par virement Interac e-Transfer, à partir de 100 $ par vente.",
-      image: "guide:vendre-usdc",
+      image: "vis:direct",
       stepsTitle: "En quatre étapes",
       steps: [
         "Entrez le montant | Dans l'onglet Vendre. Le montant en dollars s'affiche automatiquement.",
@@ -1506,7 +1506,7 @@ const vendre: CampaignTemplate = {
       preheader: "Sell your USDC in a few steps, from $100.",
       headline: "Your USDC become dollars, in your account.",
       intro: "Send your USDC and receive Canadian dollars by Interac e-Transfer, from $100 per sale.",
-      image: "guide:vendre-usdc",
+      image: "vis:direct",
       stepsTitle: "In four steps",
       steps: [
         "Enter the amount | In the Sell tab. The amount in dollars shows up automatically.",
@@ -4464,6 +4464,180 @@ const VARIANTS: Record<string, TemplateVariant[]> = {
 };
 for (const t of CAMPAIGN_TEMPLATES) if (VARIANTS[t.id]) t.variants = VARIANTS[t.id];
 
+// ─── Mises en page ─────────────────────────────────────────
+// Huit façons de présenter le même texte. « modele » garde le dessin d'origine du modèle.
+// Le choix voyage dans les textes du courriel (clé __layout), donc l'aperçu, le test et l'envoi
+// utilisent toujours la même mise en page.
+
+export type DesignId = "editorial" | "nuit" | "promo" | "etapes" | "lettre" | "recu" | "magazine" | "vitrine";
+export type LayoutId = "modele" | DesignId;
+export const LAYOUT_KEY = "__layout";
+
+export const DESIGNS: { id: DesignId; name: string; desc: string; tint: string }[] = [
+  { id: "editorial", name: "Éditorial", desc: "Grande image, chapeau et titre fort. Le plus passe-partout.", tint: "#e7f3ee" },
+  { id: "nuit", name: "Nuit", desc: "En-tête sombre, titre en très grand, l'image dessous.", tint: "#14110f" },
+  { id: "promo", name: "Promo", desc: "Bandeau vert, titre blanc, bouton au centre.", tint: "#0f5c45" },
+  { id: "etapes", name: "Étapes", desc: "L'image, puis la liste en étapes numérotées.", tint: "#eef2f0" },
+  { id: "lettre", name: "Lettre", desc: "Sans cadre, signée. Pour parler simplement.", tint: "#f6f1e7" },
+  { id: "recu", name: "Reçu", desc: "L'image en tête, le titre en grand, la liste en lignes.", tint: "#f0f0ed" },
+  { id: "magazine", name: "Magazine", desc: "Bandeau doré, titre immense, première phrase en exergue.", tint: "#ffc94d" },
+  { id: "vitrine", name: "Vitrine", desc: "Une tuile de couleur qui annonce la nouveauté.", tint: "#ffd2c4" },
+];
+
+interface DesignVars {
+  eyebrow: string;
+  headline: string;
+  paragraphs: string[];
+  listTitle: string;
+  items: string[][];
+  cta?: { label: string; url: string };
+  image?: ResolvedImage;
+  imageLink: string;
+  signature: string;
+}
+
+const TEXT_KEYS = ["intro", "message", "why", "note", "tip", "todo", "small"];
+const EYEBROW_KEYS = ["badge", "eyebrow", "label", "kicker", "tagline"];
+const CATEGORY_EN: Record<string, string> = { Lancement: "Launch", "Éducation": "Learn", Relance: "Reminder", Infolettre: "Newsletter", Offre: "Offer", Annonce: "News", "Sécurité": "Security", Saison: "Season" };
+
+function designVars(t: CampaignTemplate, v: TemplateValues, ctx: RenderCtx): DesignVars {
+  const val = (k: string) => (v[k] ?? "").trim();
+  const keys = new Set(t.fields.map((x) => x.key));
+  const eyebrowKey = EYEBROW_KEYS.find((k) => keys.has(k) && val(k));
+  const listField = t.fields.find((x) => x.kind === "lines" && val(x.key));
+  const imgField = t.fields.find((x) => x.kind === "image" && val(x.key));
+  const head = rich(val("headline").replace(/\n+/g, " "), ctx);
+  const accent = val("highlight") ? ` <span style="color:${K.forest};">${rich(val("highlight"), ctx)}</span>` : "";
+  const titleKey = ["stepsTitle", "whyTitle"].find((k) => keys.has(k) && val(k));
+  return {
+    eyebrow: eyebrowKey ? esc(vars(val(eyebrowKey), ctx)) : esc(L === "en" ? CATEGORY_EN[t.category] ?? t.category : t.category),
+    headline: (head || esc(t.name)) + accent,
+    paragraphs: TEXT_KEYS.filter((k) => keys.has(k)).flatMap((k) => paragraphs(val(k))).map((p) => rich(p, ctx)),
+    listTitle: titleKey ? esc(vars(val(titleKey), ctx)) : "",
+    items: listField ? lines(val(listField.key)).map((cells) => cells.map((c) => rich(c, ctx))) : [],
+    cta: val("cta") ? { label: vars(val("cta"), ctx), url: val("ctaUrl") } : undefined,
+    image: imgField ? image(val(imgField.key)) : undefined,
+    imageLink: imgField ? (val(imgField.key).startsWith("guide:") ? guideUrlFor(val(imgField.key)) : val("ctaUrl")) : val("ctaUrl"),
+    signature: keys.has("signature") && val("signature") ? esc(vars(val("signature"), ctx)) : tr("L'équipe Ooble", "The Ooble team"),
+  };
+}
+
+const dP = (html: string, color: string = K.body, size = 16) =>
+  `<p style="margin:0 0 16px;font-family:${FONT};font-size:${size}px;line-height:1.7;color:${color};">${html}</p>`;
+const dEyebrow = (text: string, color: string, align = "left") =>
+  `<p style="margin:0;text-align:${align};font-family:${FONT};font-size:11.5px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:${color};">${text}</p>`;
+const dTitle = (html: string, color: string, size: number, align = "left", weight = 700) =>
+  `<h1 class="h1" style="margin:14px 0 0;text-align:${align};font-family:${FONT};font-size:${size}px;line-height:1.08;font-weight:${weight};letter-spacing:-0.04em;color:${color};">${html}</h1>`;
+const dImg = (d: DesignVars, width: number, radius = 20) => (d.image ? picture(d.image, d.imageLink, width, { radius }) : "");
+const dCta = (d: DesignVars, bg: string, fg: string, opts: { block?: boolean } = {}) =>
+  d.cta ? btn(d.cta.label, d.cta.url, bg, fg, { radius: 12, ...opts }) : "";
+const dCenter = (inner: string) =>
+  `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;"><tr><td>${inner}</td></tr></table>`;
+
+function dList(d: DesignVars, color: string): string {
+  if (!d.items.length) return "";
+  const rows = d.items.map(([title, ...rest]) => {
+    const desc = rest.filter(Boolean).join(" · ");
+    return `<tr><td width="22" valign="top" style="padding:0 0 12px;font-family:${FONT};font-size:16px;line-height:1.6;color:${color};font-weight:700;">&bull;</td>
+<td valign="top" style="padding:0 0 12px 6px;font-family:${FONT};font-size:15.5px;line-height:1.6;color:${K.body};">${desc ? `<strong style="color:${K.ink};font-weight:600;">${title}</strong> — ${desc}` : title}</td></tr>`;
+  }).join("");
+  return `${d.listTitle ? `<p style="margin:6px 0 12px;font-family:${FONT};font-size:17px;font-weight:600;color:${K.ink};">${d.listTitle}</p>` : ""}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px;">${rows}</table>`;
+}
+
+const FOOT = (ctx: RenderCtx, dark = false) => footer(ctx, dark
+  ? { bg: "#14110f", color: "rgba(255,255,255,0.55)", link: "#ffffff", top: "rgba(255,255,255,0.08)" }
+  : { bg: "#ffffff", color: K.mute, link: K.ink, top: K.line });
+
+const DESIGN_RENDER: Record<DesignId, (d: DesignVars, ctx: RenderCtx) => { rows: string; card: string }> = {
+  // Grande image, chapeau vert, titre fort, corps posé.
+  editorial: (d, ctx) => ({ card: "#ffffff", rows: [
+    P("32px 40px 0", brand(K.ink)),
+    d.image ? P("26px 40px 0", dImg(d, 520)) : "",
+    P("34px 44px 0", dEyebrow(d.eyebrow, K.forest) + dTitle(d.headline, K.ink, 36) + gap(22) + d.paragraphs.map((p) => dP(p)).join("") + dList(d, K.forest)),
+    P("16px 44px 44px", dCta(d, K.ink, "#ffffff")),
+    FOOT(ctx),
+  ].join("") }),
+  // En-tête sombre, titre très grand, l'image posée dessous.
+  nuit: (d, ctx) => ({ card: "#ffffff", rows: [
+    P(`36px 40px ${d.image ? "32px" : "46px"}`, brand("#ffffff") + gap(34) + dEyebrow(d.eyebrow, K.sage) + dTitle(d.headline, "#ffffff", 42) + (d.image ? gap(30) + dImg(d, 520, 16) : ""), "background:#14110f;"),
+    P("36px 44px 0", d.paragraphs.map((p) => dP(p)).join("") + dList(d, K.forest)),
+    P("12px 44px 44px", dCta(d, K.forest, "#ffffff")),
+    FOOT(ctx),
+  ].join("") }),
+  // Bandeau vert, titre blanc immense centré, l'image à cheval, bouton centré.
+  promo: (d, ctx) => ({ card: "#ffffff", rows: [
+    P(`46px 44px ${d.image ? "34px" : "48px"}`, dEyebrow(d.eyebrow, K.sun, "center") + dTitle(d.headline, "#ffffff", 40, "center"), `background:${K.forest};text-align:center;`),
+    d.image ? P("0 28px", dImg(d, 544, 18), `background:${K.forest};background-image:linear-gradient(${K.forest} 50%,#ffffff 50%);`) : "",
+    P("34px 44px 0", d.paragraphs.map((p) => dP(p)).join("") + dList(d, K.forest)),
+    P("14px 44px 46px", d.cta ? dCenter(dCta(d, K.ink, "#ffffff")) : ""),
+    FOOT(ctx),
+  ].join("") }),
+  // L'image, puis la liste en étapes numérotées dans des cartes.
+  etapes: (d, ctx) => {
+    const steps = d.items.length ? d.items : d.paragraphs.slice(1).map((p) => [p]);
+    const intro = d.items.length ? d.paragraphs : d.paragraphs.slice(0, 1);
+    const cards = steps.map(([title, ...rest], i) => {
+      const desc = rest.filter(Boolean).join(" · ");
+      return `<tr><td style="padding:0 0 10px;">${box(numbered(String(i + 1), title, desc, { dotBg: K.forest, dotFg: "#ffffff", square: true, size: 38 }), K.cream, { pad: "18px 18px", radius: 16 })}</td></tr>`;
+    }).join("");
+    return { card: "#ffffff", rows: [
+      P("36px 40px 0", brand(K.ink) + dTitle(d.headline, K.ink, 34).replace("margin:14px 0 0", "margin:28px 0 0")),
+      P("18px 40px 0", intro.map((p) => dP(p)).join("")),
+      d.image ? P("4px 40px 26px", dImg(d, 520)) : "",
+      steps.length ? P("0 40px 0", `${d.listTitle ? `<p style="margin:0 0 14px;font-family:${FONT};font-size:17px;font-weight:600;color:${K.ink};">${d.listTitle}</p>` : ""}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${cards}</table>`) : "",
+      P("18px 40px 44px", dCta(d, K.forest, "#ffffff")),
+      FOOT(ctx),
+    ].join("") };
+  },
+  // Une lettre signée, sans cadre ; la photo au milieu, comme jointe au courrier.
+  lettre: (d, ctx) => ({ card: K.cream, rows: [
+    P("46px 44px 0", brand(K.ink)),
+    P("30px 44px 0", `<h1 class="h1" style="margin:0;font-family:${FONT};font-size:28px;line-height:1.3;font-weight:500;letter-spacing:-0.02em;color:${K.ink};">${d.headline}</h1>`),
+    P("24px 44px 0", dP(esc(tr("Bonjour", "Hi")) + (ctx.prenom.trim() ? ` ${esc(ctx.prenom.trim())}` : "") + ",") + d.paragraphs.slice(0, 1).map((p) => dP(p)).join("")),
+    d.image ? P("8px 44px 26px", dImg(d, 512, 18)) : "",
+    P("0 44px 0", d.paragraphs.slice(1).map((p) => dP(p)).join("") + dList(d, K.forest)
+      + (d.cta ? `<p style="margin:20px 0 0;font-family:${FONT};font-size:16px;"><a href="${href(d.cta.url)}" style="color:${K.ink};text-decoration:underline;text-underline-offset:4px;">${esc(d.cta.label)} &rarr;</a></p>` : "")
+      + `<p style="margin:30px 0 44px;font-family:${FONT};font-size:16px;line-height:1.7;color:${K.body};">${tr("À bientôt,", "Talk soon,")}<br><span style="color:${K.ink};font-weight:500;">${d.signature}</span></p>`),
+    FOOT(ctx),
+  ].join("") }),
+  // Comme un reçu : l'image en tête, le titre centré, la liste en lignes.
+  recu: (d, ctx) => ({ card: "#ffffff", rows: [
+    d.image ? P("28px 28px 0", dImg(d, 544, 20)) : "",
+    P("30px 44px 0", dCenter(brand(K.ink))),
+    P("22px 44px 0", dEyebrow(d.eyebrow, K.mute, "center") + dTitle(d.headline, K.ink, 34, "center")),
+    P("26px 44px 0", `<div style="border-top:1px dashed #d8d2c6;"></div>`),
+    d.items.length ? P("4px 44px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${d.items.map(([a, ...rest]) => `<tr><td style="padding:13px 0;border-bottom:1px solid ${K.line};font-family:${FONT};font-size:14px;color:${K.mute};">${a}</td><td align="right" style="padding:13px 0 13px 12px;border-bottom:1px solid ${K.line};font-family:${FONT};font-size:14.5px;font-weight:500;color:${K.ink};">${rest.filter(Boolean).join(" · ")}</td></tr>`).join("")}</table>`) : "",
+    P("24px 44px 0", d.paragraphs.map((p) => dP(p, K.body, 15)).join("")),
+    P("10px 44px 44px", d.cta ? dCenter(dCta(d, K.ink, "#ffffff")) : ""),
+    FOOT(ctx),
+  ].join("") }),
+  // Bandeau doré, titre immense, image pleine largeur, première phrase en exergue.
+  magazine: (d, ctx) => ({ card: "#ffffff", rows: [
+    P("36px 40px 42px", brand("#1a1408", d.eyebrow, "rgba(26,20,8,0.6)", "font-weight:600;letter-spacing:0.2em;text-transform:uppercase;font-size:10.5px;") + dTitle(d.headline, "#1a1408", 44, "left", 800).replace("margin:14px 0 0", "margin:28px 0 0"), `background:${K.sun};`),
+    d.image ? P("28px 28px 0", dImg(d, 544, 20)) : "",
+    P("36px 44px 0", d.paragraphs.slice(0, 1).map((p) => dP(p, K.ink, 19)).join("") + d.paragraphs.slice(1).map((p) => dP(p)).join("") + dList(d, "#c79a1e")),
+    P("18px 44px 44px", dCta(d, K.ink, "#ffffff")),
+    FOOT(ctx),
+  ].join("") }),
+  // Une grande tuile de couleur : l'image dedans, le message centré dessous.
+  vitrine: (d, ctx) => ({ card: "#ffffff", rows: [
+    P("32px 36px 0", brand(K.ink)),
+    P("22px 36px 0", `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${K.peach}" style="background:${K.peach};border-radius:24px;">
+${d.image ? `<tr><td style="padding:22px 22px 0;">${dImg(d, 484, 16)}</td></tr>` : ""}
+<tr><td align="center" style="padding:${d.image ? "28px" : "48px"} 30px 42px;">${dEyebrow(d.eyebrow, K.coralDeep, "center")}${dTitle(d.headline, "#1a1408", 34, "center")}</td></tr></table>`),
+    P("30px 44px 0", d.paragraphs.map((p) => dP(p)).join("") + dList(d, K.coralDeep)),
+    P("16px 44px 44px", dCta(d, K.ink, "#ffffff")),
+    FOOT(ctx),
+  ].join("") }),
+};
+
+/** Le modèle choisi, rendu dans l'une des huit mises en page (ou null pour garder son dessin). */
+function renderDesign(t: CampaignTemplate, v: TemplateValues, ctx: RenderCtx): { rows: string; card: string } | null {
+  const id = (v[LAYOUT_KEY] ?? "").trim() as LayoutId;
+  if (!id || id === "modele" || !DESIGN_RENDER[id as DesignId]) return null;
+  return DESIGN_RENDER[id as DesignId](designVars(t, v, ctx), ctx);
+}
+
 export function getTemplate(id: string): CampaignTemplate {
   return CAMPAIGN_TEMPLATES.find((t) => t.id === id) ?? CAMPAIGN_TEMPLATES[0];
 }
@@ -4486,7 +4660,10 @@ export function renderTemplate(id: string, values: TemplateValues, ctx: RenderCt
   L = ctx.lang;
   try {
     const v = { ...t.copy[ctx.lang], ...values };
-    const html = documentHtml(plainText(v.preheader ?? "", ctx), t.cardBg ?? "#ffffff", t.body(v, ctx));
+    const design = renderDesign(t, v, ctx);
+    const html = design
+      ? documentHtml(plainText(v.preheader ?? "", ctx), design.card, design.rows)
+      : documentHtml(plainText(v.preheader ?? "", ctx), t.cardBg ?? "#ffffff", t.body(v, ctx));
     return { subject: plainText(v.subject ?? "", ctx), html, text: htmlToText(html) };
   } finally {
     L = previous;
