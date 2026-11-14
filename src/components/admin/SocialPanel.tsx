@@ -1,31 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronLeft, ChevronRight, Copy, Download, Heart, MessageCircle, Search, Send, X } from "lucide-react";
 import { FONT } from "./adminTheme";
 import { SOCIAL_BIO, SOCIAL_RULES, SOCIAL_SERIES, type SocialPost } from "@/lib/socialPosts";
 
 /**
- * Studio des réseaux sociaux, toujours sombre et immersif :
+ * Studio des réseaux sociaux, aux couleurs du thème (clair ou sombre) :
  *  - une vitrine animée (la publication du moment, en grand, sur son propre flou) ;
  *  - une rangée qui défile par série, avec des cartes qui s'animent au survol ;
  *  - une barre flottante pour chercher et filtrer ;
  *  - un clic ouvre la publication en grand : aperçu Instagram, légende, hashtags, téléchargement.
  */
 
-const K = { bg: "#07090a", s1: "#111416", s2: "#1a1e21", t1: "#f5f7f6", t2: "#a9b1ae", t3: "#646d6a", acc: "#3cc2b2" };
+// Couleurs du thème du back-office : clair en mode clair, gris doux (pas noir) en mode sombre.
+const K = { bg: "var(--a-l1)", s1: "var(--a-l2)", s2: "var(--a-l2)", t1: "var(--a-t1)", t2: "var(--a-t2)", t3: "var(--a-t3)", acc: "var(--a-accent)" };
+const mix = (c: string, p: number) => `color-mix(in srgb, ${c} ${p}%, transparent)`;
 
 const CSS = `
 .st { --e: cubic-bezier(.22,1,.36,1); position: relative; background: ${K.bg}; color: ${K.t1}; border-radius: 28px; overflow: hidden; font-family: ${FONT}; isolation: isolate }
 .st * { box-sizing: border-box }
-.st-glow { position: absolute; inset: -20% -10% auto -10%; height: 760px; z-index: -1; pointer-events: none;
-  background: radial-gradient(60% 50% at 20% 10%, rgba(60,194,178,.16), transparent 70%), radial-gradient(40% 40% at 90% 0%, rgba(120,110,255,.12), transparent 70%) }
+.st-glow { position: absolute; inset: -20% -10% auto -10%; height: 760px; z-index: -1; pointer-events: none; animation: st-drift 18s ease-in-out infinite alternate;
+  background: radial-gradient(60% 50% at 20% 10%, rgba(60,194,178,.14), transparent 70%), radial-gradient(40% 40% at 90% 0%, rgba(120,110,255,.10), transparent 70%) }
+@keyframes st-drift { from { transform: translateX(-4%) } to { transform: translateX(6%) } }
 .st-top { display: flex; align-items: center; gap: 28px; padding: 22px 32px; flex-wrap: wrap }
 .st-hero { position: relative; margin: 0 20px; height: 470px; border-radius: 24px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center }
-.st-back { position: absolute; inset: -60px; background-size: cover; background-position: center; filter: blur(60px) saturate(1.3); opacity: .55; transform: scale(1.1); transition: background-image .8s }
-.st-fade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,9,10,.94) 0%, rgba(7,9,10,.7) 45%, rgba(7,9,10,.15) 100%) }
+.st-back { position: absolute; inset: -60px; background-size: cover; background-position: center; filter: blur(60px) saturate(1.3); opacity: .6; transform: scale(1.1); transition: background-image .8s }
+.st-fade { position: absolute; inset: 0; background: linear-gradient(90deg, var(--a-l1) 0%, ${mix("var(--a-l1)", 78)} 42%, ${mix("var(--a-l1)", 10)} 100%) }
 .st-copy { position: relative; padding: 0 48px; display: flex; flex-direction: column; gap: 18px; animation: st-rise .8s var(--e) both }
 @keyframes st-rise { from { opacity: 0; transform: translateY(16px) } }
-.st-stack { position: relative; height: 420px; display: flex; align-items: center; justify-content: center }
+.st-stack { position: relative; height: 420px; display: flex; align-items: center; justify-content: center; animation: st-float 7s ease-in-out infinite }
+@keyframes st-float { 0%, 100% { transform: translateY(-6px) } 50% { transform: translateY(8px) } }
 .st-sheet { position: absolute; width: 270px; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,.55); transition: transform .9s var(--e), opacity .9s var(--e), filter .9s }
 .st-sheet img { width: 100%; height: 100%; object-fit: cover; display: block }
 .st-sheet[data-pos="0"] { z-index: 3; transform: translateX(0) rotate(0) }
@@ -34,15 +38,17 @@ const CSS = `
 .st-sheet[data-pos="1"] { z-index: 2; transform: translateX(150px) rotate(8deg) scale(.88); opacity: .75; filter: brightness(.7) }
 .st-sheet[data-pos="2"] { z-index: 1; transform: translateX(-150px) rotate(-8deg) scale(.88); opacity: .75; filter: brightness(.7) }
 .st-sheet[data-pos="3"] { z-index: 0; transform: translateY(20px) scale(.75); opacity: 0 }
-.st-bar { height: 3px; border-radius: 9px; background: rgba(255,255,255,.14); overflow: hidden; flex: 1 }
+.st-bar { height: 3px; border-radius: 9px; background: ${mix("var(--a-t1)", 16)}; overflow: hidden; flex: 1 }
 .st-bar > i { display: block; height: 100%; background: ${K.t1}; transform-origin: left; animation: st-fill 7s linear both }
 @keyframes st-fill { from { transform: scaleX(0) } to { transform: scaleX(1) } }
 .st-pill { height: 46px; padding: 0 20px; border-radius: 999px; border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 9px; transition: transform .2s var(--e), background .2s, opacity .2s }
 .st-pill:hover { transform: translateY(-2px) } .st-pill:active { transform: scale(.97) }
 .st-rail-h { display: flex; align-items: flex-end; gap: 16px; padding: 0 32px; margin: 44px 0 16px }
-.st-rail { display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 8px 32px 26px; scrollbar-width: none; scroll-padding: 0 32px }
-.st-rail::-webkit-scrollbar { display: none }
-.st-card { flex: 0 0 clamp(200px, 17vw, 250px); scroll-snap-align: start; position: relative; border: none; padding: 0; background: none; cursor: pointer; text-align: left; font-family: inherit; color: inherit;
+.st-rail { overflow: hidden; padding: 10px 0 30px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent) }
+.st-track { display: flex; gap: 18px; width: max-content; padding-left: 18px; animation: st-marq var(--d) linear infinite; animation-direction: var(--dir) }
+.st-rail:hover .st-track, .st-track:focus-within { animation-play-state: paused }
+@keyframes st-marq { from { transform: translateX(0) } to { transform: translateX(calc(-100% / var(--c))) } }
+.st-card { flex: 0 0 clamp(200px, 17vw, 240px); position: relative; border: none; padding: 0; background: none; cursor: pointer; text-align: left; font-family: inherit; color: inherit;
   opacity: 0; transform: translateY(24px); animation: st-up .8s var(--e) forwards }
 @keyframes st-up { to { opacity: 1; transform: none } }
 .st-frame { position: relative; aspect-ratio: 4 / 5; border-radius: 20px; overflow: hidden; background: ${K.s1}; transition: transform .5s var(--e), box-shadow .5s var(--e) }
@@ -60,16 +66,16 @@ const CSS = `
 .st-q:hover { transform: scale(1.1) }
 .st-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; transition: opacity .3s }
 .st-card:hover .st-dots { opacity: 0 }
-.st-arrow { width: 38px; height: 38px; border-radius: 99px; border: none; background: ${K.s2}; color: ${K.t1}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .2s, background .2s }
-.st-arrow:hover { transform: scale(1.06); background: #262b2f }
+.st-arrow { width: 38px; height: 38px; border-radius: 99px; border: none; background: var(--a-l2); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .2s, background .2s }
+.st-arrow:hover { transform: scale(1.06); background: var(--a-l3) }
 .st-dock { position: sticky; bottom: 18px; z-index: 5; display: flex; justify-content: center; padding: 0 16px; margin-top: 30px; pointer-events: none }
-.st-dock > div { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: rgba(22,25,27,.78); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  box-shadow: 0 20px 50px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08); max-width: 100% ; overflow-x: auto; scrollbar-width: none }
+.st-dock > div { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: ${mix("var(--a-l2)", 82)}; backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: 0 20px 50px rgba(0,0,0,.28), inset 0 0 0 1px ${mix("var(--a-t1)", 9)}; max-width: 100% ; overflow-x: auto; scrollbar-width: none }
 .st-chip { height: 38px; padding: 0 16px; border-radius: 999px; border: none; background: transparent; color: ${K.t2}; font-family: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s }
 .st-chip:hover { color: ${K.t1} } .st-chip[aria-pressed="true"] { background: ${K.t1}; color: ${K.bg}; font-weight: 500 }
 .st-veil { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; padding: 24px; animation: st-fade .3s ease both; font-family: ${FONT} }
 @keyframes st-fade { from { opacity: 0 } }
-.st-modal { width: min(1140px, 100%); max-height: calc(100vh - 48px); overflow: auto; background: ${K.bg}; color: ${K.t1}; border-radius: 30px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+.st-modal { width: min(1140px, 100%); max-height: calc(100vh - 48px); overflow: auto; background: var(--a-l1); color: var(--a-t1); border-radius: 30px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   box-shadow: 0 50px 120px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06); animation: st-pop .5s var(--e) both }
 @keyframes st-pop { from { opacity: 0; transform: translateY(26px) scale(.96) } }
 .st-stage { position: relative; overflow: hidden; padding: 44px 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px }
@@ -77,7 +83,7 @@ const CSS = `
 @keyframes st-in { from { opacity: .2; transform: scale(.97) } }
 @media (max-width: 980px) { .st-hero { grid-template-columns: 1fr; height: auto; padding: 36px 0 } .st-stack { height: 360px } .st-modal { grid-template-columns: 1fr } }
 @media (hover: none) { .st-meta, .st-shade, .st-quick { opacity: 1; transform: none } }
-@media (prefers-reduced-motion: reduce) { .st *, .st-veil, .st-modal { animation: none !important; transition: none !important } .st-card { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) { .st *, .st-veil, .st-modal { animation: none !important; transition: none !important } .st-card { opacity: 1; transform: none } .st-rail { overflow-x: auto } }
 `;
 
 function useCopy() {
@@ -186,7 +192,7 @@ function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry
         <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: K.t2, maxWidth: 440 }}>{splitCaption(cur.post.caption).text.split("\n").filter(Boolean).slice(1, 3).join(" ")}</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
           <button type="button" className="st-pill" style={{ background: K.t1, color: K.bg }} onClick={() => onOpen(cur)}>Ouvrir la publication <ArrowRight size={16} /></button>
-          <button type="button" className="st-pill" style={{ background: "rgba(255,255,255,.1)", color: K.t1 }} onClick={() => copy(cur.post.id, cur.post.caption)}>
+          <button type="button" className="st-pill" style={{ background: mix("var(--a-t1)", 10), color: K.t1 }} onClick={() => copy(cur.post.id, cur.post.caption)}>
             {done === cur.post.id ? <Check size={16} /> : <Copy size={16} />}{done === cur.post.id ? "Copiée" : "Copier la légende"}
           </button>
         </div>
@@ -242,10 +248,11 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
   );
 }
 
-/** Une rangée qui défile, avec ses flèches. */
-function Rail({ title, sub, items, onOpen, done, copy }: { title: string; sub: string; items: Entry[]; onOpen: (e: Entry) => void; done: string | null; copy: (k: string, t: string) => void }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const go = (d: number) => ref.current?.scrollBy({ left: d * ref.current.clientWidth * 0.8, behavior: "smooth" });
+/** Une rangée qui défile toute seule, lentement, dans un sens ou dans l'autre ; elle s'arrête au survol. */
+function Rail({ title, sub, items, reverse, onOpen, done, copy }: { title: string; sub: string; items: Entry[]; reverse: boolean; onOpen: (e: Entry) => void; done: string | null; copy: (k: string, t: string) => void }) {
+  // Assez de copies pour que la rangée boucle sans trou, même avec peu de publications.
+  const copies = Math.max(2, Math.ceil(1800 / (items.length * 258)) + 1);
+  const loop = Array.from({ length: copies }, (_, c) => items.map((e) => ({ e, c }))).flat();
   return (
     <section>
       <div className="st-rail-h">
@@ -253,11 +260,16 @@ function Rail({ title, sub, items, onOpen, done, copy }: { title: string; sub: s
           <h3 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em" }}>{title}</h3>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: K.t3 }}>{sub}</p>
         </div>
-        <button type="button" className="st-arrow" onClick={() => go(-1)} aria-label="Défiler vers la gauche"><ChevronLeft size={18} /></button>
-        <button type="button" className="st-arrow" onClick={() => go(1)} aria-label="Défiler vers la droite"><ChevronRight size={18} /></button>
+        <span style={{ fontSize: 13, color: K.t3 }}>{items.length} publication{items.length > 1 ? "s" : ""}</span>
       </div>
-      <div className="st-rail" ref={ref}>
-        {items.map((e, k) => <Card key={e.post.id} e={e} delay={k * 60} onOpen={() => onOpen(e)} done={done} copy={copy} />)}
+      <div className="st-rail">
+        <div className="st-track" style={{ ["--c" as string]: copies, ["--d" as string]: `${items.length * copies * 7}s`, ["--dir" as string]: reverse ? "reverse" : "normal" }}>
+          {loop.map(({ e, c }, k) => (
+            <div key={`${e.post.id}-${c}`} aria-hidden={c > 0 || undefined} style={{ display: "contents" }}>
+              <Card e={e} delay={c === 0 ? k * 60 : 0} onOpen={() => onOpen(e)} done={done} copy={copy} />
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -280,7 +292,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
   const nav = (d: number, label: string, Icon: typeof ArrowLeft) => {
     const off = index + d < 0 || index + d >= list.length;
     return (
-      <button type="button" className="st-arrow" disabled={off} onClick={() => onIndex(index + d)} aria-label={label} style={{ opacity: off ? 0.3 : 1, cursor: off ? "default" : "pointer", background: "rgba(255,255,255,.1)" }}>
+      <button type="button" className="st-arrow" disabled={off} onClick={() => onIndex(index + d)} aria-label={label} style={{ opacity: off ? 0.3 : 1, cursor: off ? "default" : "pointer", background: mix("var(--a-t1)", 10) }}>
         <Icon size={17} />
       </button>
     );
@@ -293,7 +305,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
         <div className="st-stage">
           <div style={{ position: "absolute", inset: -80, backgroundImage: `url(${post.images[0]})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(70px) saturate(1.3)", opacity: 0.45 }} />
           <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}><Preview post={post} /></div>
-          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, color: "rgba(255,255,255,.75)", fontSize: 13 }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, color: K.t2, fontSize: 13 }}>
             {nav(-1, "Publication précédente", ArrowLeft)}
             <span style={{ fontVariantNumeric: "tabular-nums" }}>{index + 1} / {list.length}</span>
             {nav(1, "Publication suivante", ArrowRight)}
@@ -376,8 +388,8 @@ export default function SocialPanel() {
 
       <Hero items={featured} onOpen={openEntry} done={done} copy={copy} />
 
-      {rails.map(({ s, items }) => (
-        <Rail key={s.id + kind + q} title={s.title.split(" · ")[1] ?? s.title} sub={`${s.title.split(" · ")[0]} · ${s.description}`} items={items} onOpen={openEntry} done={done} copy={copy} />
+      {rails.map(({ s, items }, r) => (
+        <Rail key={s.id + kind + q} title={s.title.split(" · ")[1] ?? s.title} sub={`${s.title.split(" · ")[0]} · ${s.description}`} items={items} reverse={r % 2 === 1} onOpen={openEntry} done={done} copy={copy} />
       ))}
       {!rails.length && <p style={{ textAlign: "center", color: K.t3, fontSize: 14, margin: "60px 0" }}>Aucune publication ne correspond à « {q} ».</p>}
 
@@ -400,7 +412,7 @@ export default function SocialPanel() {
       {/* Barre flottante : chercher et filtrer, toujours à portée de main. */}
       <div className="st-dock">
         <div>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 38, borderRadius: 999, background: "rgba(255,255,255,.06)", minWidth: 220 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 38, borderRadius: 999, background: mix("var(--a-t1)", 6), minWidth: 220 }}>
             <Search size={16} color={K.t3} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une publication" aria-label="Rechercher une publication"
               style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: K.t1, fontFamily: FONT, fontSize: 13.5 }} />
@@ -413,7 +425,7 @@ export default function SocialPanel() {
       <div style={{ height: 24 }} />
 
       {open !== null && createPortal(
-        <Focus list={flat} index={open} onIndex={setOpen} onClose={() => setOpen(null)} done={done} copy={copy} />, document.body)}
+        <div className="admin-scope"><Focus list={flat} index={open} onIndex={setOpen} onClose={() => setOpen(null)} done={done} copy={copy} /></div>, document.body)}
     </div>
   );
 }
