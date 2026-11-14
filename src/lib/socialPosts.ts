@@ -1396,4 +1396,161 @@ En dollars canadiens, avec Interac, par une équipe d'ici.
       },
     ],
   },
+  {
+    id: "serie-10",
+    title: "Série 10 · Moments",
+    titleEn: "Series 10 · Moments",
+    description: "Des scènes du quotidien d'Ooble, en grand, avec quelques mots.",
+    descriptionEn: "Everyday Ooble moments, big, with a few words.",
+    posts: [
+      {
+        id: "ils-attendent", title: "Ils attendent Ooble", images: img("serie-10", "67-ils-attendent"),
+        titleEn: "They're waiting for Ooble",
+        captionEn: `They're waiting for Ooble.
+
+Are you? Follow us to know when we open.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Ils attendent Ooble.
+
+Et vous ? Abonnez-vous pour être prévenu à l'ouverture.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "fini-les-files", title: "Fini les files d'attente", images: img("serie-10", "68-fini-les-files"),
+        titleEn: "No more waiting in line",
+        captionEn: `No more waiting in line.
+
+No counter, no appointment: everything happens online, in minutes.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Fini les files d'attente.
+
+Pas de guichet, pas de rendez-vous : tout se fait en ligne, en quelques minutes.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "communaute", title: "Une communauté qui grandit", images: img("serie-10", "69-communaute"),
+        titleEn: "A growing community",
+        captionEn: `A growing community.
+
+Thank you to everyone following Ooble from the start.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Une communauté qui grandit.
+
+Merci à tous ceux qui suivent Ooble depuis le début.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "vous-choisissez", title: "Vous choisissez. On s'occupe du reste.", images: img("serie-10", "70-vous-choisissez"),
+        titleEn: "You choose. We handle the rest.",
+        captionEn: `You choose. We handle the rest.
+
+The amount, the network, the wallet: you decide, Ooble handles the sending.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Vous choisissez. On s'occupe du reste.
+
+Le montant, le réseau, le portefeuille : vous décidez, Ooble s'occupe de l'envoi.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "votre-compte", title: "Votre compte vous attend", images: img("serie-10", "71-votre-compte"),
+        titleEn: "Your account is waiting",
+        captionEn: `Your account is waiting.
+
+Create it at ooble.ca and verify your identity in minutes.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Votre compte vous attend.
+
+Créez-le sur ooble.ca et faites vérifier votre identité en quelques minutes.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "bon-port", title: "Arrivé à bon port", images: img("serie-10", "72-bon-port"),
+        titleEn: "Safely delivered",
+        captionEn: `Safely delivered.
+
+Your USDC lands straight in your wallet, on the network you chose.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Arrivé à bon port.
+
+Vos USDC arrivent directement dans votre portefeuille, sur le réseau que vous avez choisi.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "on-vous-repond", title: "On vous répond", images: img("serie-10", "73-on-vous-repond"),
+        titleEn: "We're here to answer",
+        captionEn: `We're here to answer.
+
+A question? Send us a message: someone from the team will reply.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `On vous répond.
+
+Une question ? Écrivez-nous en message privé : une personne de l'équipe vous répond.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "paiement-recu", title: "Paiement reçu", images: img("serie-10", "74-paiement-recu"),
+        titleEn: "Payment received",
+        captionEn: `Payment received.
+
+As soon as your Interac e-Transfer arrives, your USDC is on its way to your wallet.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Paiement reçu.
+
+Dès que votre virement Interac est reçu, vos USDC partent vers votre portefeuille.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "deux-sens", title: "Dans les deux sens", images: img("serie-10", "75-dans-les-deux-sens"),
+        titleEn: "Both ways",
+        captionEn: `Both ways.
+
+Buy USDC with Canadian dollars, or sell it for Canadian dollars.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Dans les deux sens.
+
+Achetez de l'USDC avec des dollars canadiens, ou vendez-le contre des dollars canadiens.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "protege", title: "Protégé, du début à la fin", images: img("serie-10", "76-protege"),
+        titleEn: "Protected, end to end",
+        captionEn: `Protected, end to end.
+
+Identity check, transfer in your name, sent straight to your wallet.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Protégé, du début à la fin.
+
+Vérification d'identité, virement à votre nom, envoi direct à votre portefeuille.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];
