@@ -549,4 +549,96 @@ Enregistrez cette publication pour retrouver tout le lexique 📌
       },
     ],
   },
+  {
+    id: "serie-7",
+    title: "Série 7 · Conseils pratiques",
+    description: "Checklists, chiffres clés et citations : des formats courts, faciles à partager.",
+    posts: [
+      {
+        id: "checklist-acheter", title: "Checklist : avant d'acheter", images: img("serie-7", "41-checklist-acheter"),
+        caption: `Votre checklist avant d'acheter ✅
+
+☑️ Mon compte est vérifié
+☑️ Mon portefeuille est prêt
+☑️ J'ai choisi le bon réseau
+☑️ J'ai vérifié mon adresse
+☑️ Je paie depuis un compte à mon nom
+
+Tout est coché ? Vous êtes prêt.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Checklist #AcheterCrypto`,
+      },
+      {
+        id: "checklist-vendre", title: 'Checklist : avant de vendre', images: img("serie-7", "42-checklist-vendre"),
+        caption: `Votre checklist avant de vendre ✅
+
+☑️ Je vérifie le montant affiché
+☑️ Je copie l'adresse donnée par Ooble
+☑️ J'envoie sur le bon réseau
+☑️ Mon compte bancaire est à mon nom
+
+Enregistrez-la pour votre prochaine vente 📌
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Checklist #VendreCrypto`,
+      },
+      {
+        id: "chiffre-4", title: '4 réseaux pris en charge', images: img("serie-7", "43-chiffre-4"),
+        caption: `4️⃣ réseaux pris en charge.
+
+BNB Chain, Polygon, Solana et Avalanche : vous choisissez où recevoir vos USDC.
+
+⚠️ Choisissez toujours le réseau de votre portefeuille.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #BNBChain #Polygon #Solana #Avalanche`,
+      },
+      {
+        id: "chiffre-18", title: '18+ : réservé aux adultes', images: img("serie-7", "44-chiffre-18"),
+        caption: `18+ 🔞
+
+Ooble est réservé aux personnes majeures au Canada, après la vérification de leur identité.
+
+C'est la loi, et c'est aussi ce qui protège tout le monde.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Sécurité #Canada`,
+      },
+      {
+        id: "chiffre-0", title: '0 : votre phrase secrète demandée', images: img("serie-7", "45-chiffre-0"),
+        caption: `0️⃣ C'est le nombre de fois où Ooble vous demandera votre phrase secrète.
+
+Jamais, sous aucun prétexte. Si quelqu'un vous la demande en se présentant comme Ooble, c'est une arnaque : ne répondez pas et écrivez-nous.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Arnaque #SécuritéCrypto`,
+      },
+      {
+        id: "citation-phrase", title: '« Ne partagez jamais votre phrase secrète. »', images: img("serie-7", "46-citation-phrase"),
+        caption: `« Ne partagez jamais votre phrase secrète. » 🔒
+
+Ni à un ami, ni à un « support », ni à Ooble. Gardez-la hors ligne, en lieu sûr.
+
+Partagez ce conseil autour de vous 👇
+
+#Ooble #USDC #CryptoCanada #Stablecoin #ConseilCrypto #SécuritéCrypto`,
+      },
+      {
+        id: "citation-reseau", title: '« Vérifiez le réseau. Toujours. »', images: img("serie-7", "47-citation-reseau"),
+        caption: `« Vérifiez le réseau. Toujours. » ⚠️
+
+Avant chaque achat et chaque vente, le réseau doit être le même des deux côtés.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #ConseilCrypto #SécuritéCrypto`,
+      },
+      {
+        id: "citation-cles", title: '« Votre portefeuille, vos règles. »', images: img("serie-7", "48-citation-cles"),
+        caption: `« Votre portefeuille, vos règles. » 🔑
+
+Avec Ooble, vos USDC arrivent dans votre portefeuille, pas chez nous. C'est vous qui en gardez le contrôle.
+
+#Ooble #USDC #CryptoCanada #Stablecoin #Autonomie #NonDépositaire`,
+      },
+    ],
+  },
 ];

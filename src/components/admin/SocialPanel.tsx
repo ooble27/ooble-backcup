@@ -21,7 +21,7 @@ const CSS = `
 :root:not(.dark) .st, :root:not(.dark) .st-modal { --st-bg: var(--a-l1) }
 .st { --e: cubic-bezier(.22,1,.36,1); position: relative; background: var(--st-bg); color: ${K.t1}; border-radius: 28px; overflow: hidden; font-family: ${FONT}; isolation: isolate }
 .st * { box-sizing: border-box }
-.st-glow { position: absolute; inset: -20% -10% auto -10%; height: 760px; z-index: -1; pointer-events: none; animation: st-drift 18s ease-in-out infinite alternate;
+.st-glow { position: absolute; inset: -20% -10% auto -10%; height: 760px; z-index: -1; pointer-events: none;
   background: radial-gradient(60% 50% at 20% 10%, rgba(60,194,178,.14), transparent 70%), radial-gradient(40% 40% at 90% 0%, rgba(120,110,255,.10), transparent 70%) }
 @keyframes st-drift { from { transform: translateX(-4%) } to { transform: translateX(6%) } }
 .st-top { display: flex; align-items: center; gap: 28px; padding: 22px 32px; flex-wrap: wrap }
@@ -30,15 +30,14 @@ const CSS = `
 .st-fade { position: absolute; inset: 0; background: linear-gradient(90deg, var(--st-bg) 0%, ${mix("var(--st-bg)", 78)} 42%, ${mix("var(--st-bg)", 10)} 100%) }
 .st-copy { position: relative; padding: 0 48px; display: flex; flex-direction: column; gap: 18px; animation: st-rise .8s var(--e) both }
 @keyframes st-rise { from { opacity: 0; transform: translateY(16px) } }
-.st-stack { position: relative; height: 420px; display: flex; align-items: center; justify-content: center; animation: st-float 7s ease-in-out infinite }
-@keyframes st-float { 0%, 100% { transform: translateY(-6px) } 50% { transform: translateY(8px) } }
-.st-sheet { position: absolute; width: 270px; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,.55); transition: transform .9s var(--e), opacity .9s var(--e), filter .9s }
+.st-stack { position: relative; height: 420px; display: flex; align-items: center; justify-content: center }
+.st-sheet { position: absolute; width: 270px; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden; transition: transform .9s var(--e), opacity .9s var(--e) }
 .st-sheet img { width: 100%; height: 100%; object-fit: cover; display: block }
 .st-sheet[data-pos="0"] { z-index: 3; transform: translateX(0) rotate(0) }
 .st-sheet[data-pos="0"] img { animation: st-ken 7s ease-out both }
 @keyframes st-ken { from { transform: scale(1.12) } to { transform: scale(1) } }
-.st-sheet[data-pos="1"] { z-index: 2; transform: translateX(150px) rotate(8deg) scale(.88); opacity: .75; filter: brightness(.7) }
-.st-sheet[data-pos="2"] { z-index: 1; transform: translateX(-150px) rotate(-8deg) scale(.88); opacity: .75; filter: brightness(.7) }
+.st-sheet[data-pos="1"] { z-index: 2; transform: translateX(150px) rotate(8deg) scale(.88); opacity: .55 }
+.st-sheet[data-pos="2"] { z-index: 1; transform: translateX(-150px) rotate(-8deg) scale(.88); opacity: .55 }
 .st-sheet[data-pos="3"] { z-index: 0; transform: translateY(20px) scale(.75); opacity: 0 }
 .st-bar { height: 3px; border-radius: 9px; background: ${mix("var(--a-t1)", 16)}; overflow: hidden; flex: 1 }
 .st-bar > i { display: block; height: 100%; background: ${K.t1}; transform-origin: left; animation: st-fill 7s linear both }
@@ -79,6 +78,7 @@ const CSS = `
   box-shadow: 0 50px 120px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06); animation: st-pop .5s var(--e) both }
 @keyframes st-pop { from { opacity: 0; transform: translateY(26px) scale(.96) } }
 .st-stage { position: relative; overflow: hidden; padding: 44px 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px }
+.st-xm { display: none !important; position: absolute; z-index: 3; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; background: rgba(0,0,0,.45) !important; color: #fff !important }
 .st-slide { animation: st-in .45s var(--e) }
 @keyframes st-in { from { opacity: .2; transform: scale(.97) } }
 @media (max-width: 980px) { .st-hero { grid-template-columns: 1fr; height: auto; padding: 36px 0 } .st-stack { height: 360px } .st-modal { grid-template-columns: 1fr } }
@@ -110,8 +110,10 @@ const CSS = `
   .st-dock label { min-width: 0 !important; flex: 1 1 100% }
   .st-chip { flex: 1; padding: 0 10px }
   .st-veil { padding: 0; align-items: stretch }
-  .st-modal { max-height: 100dvh; height: 100dvh; border-radius: 0 }
-  .st-stage { padding: calc(20px + env(safe-area-inset-top, 0px)) 16px 18px }
+  .st-modal { display: block; max-height: 100dvh; height: 100dvh; overflow-y: auto; border-radius: 0; -webkit-overflow-scrolling: touch }
+  .st-stage { justify-content: flex-start }
+  .st-stage { padding: calc(58px + env(safe-area-inset-top, 0px)) 16px 18px }
+  .st-xm { display: flex !important }
   .st-modal > div:last-child { padding: 22px 18px calc(28px + env(safe-area-inset-bottom, 0px)) !important }
 }
 @media (prefers-reduced-motion: reduce) { .st *, .st-veil, .st-modal { animation: none !important; transition: none !important } .st-card { opacity: 1; transform: none } }
@@ -330,6 +332,9 @@ function Rail({ title, sub, items, reverse, onOpen, done, copy }: { title: strin
 /** La publication ouverte en grand. */
 function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; index: number; onIndex: (i: number) => void; onClose: () => void; done: string | null; copy: (k: string, t: string) => void }) {
   const { post, n, serie } = list[index];
+  const box = useRef<HTMLDivElement | null>(null);
+  // Chaque publication s'ouvre en haut : l'aperçu d'abord, la légende en dessous.
+  useEffect(() => { box.current?.scrollTo({ top: 0 }); }, [index]);
   const { text, tags } = splitCaption(post.caption);
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
@@ -353,8 +358,9 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
   return (
     <div className="st-veil" onClick={onClose} role="dialog" aria-modal="true" aria-label={post.title}>
       <style>{CSS}</style>
-      <div className="st-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="st-modal" ref={box} onClick={(e) => e.stopPropagation()}>
         <div className="st-stage">
+          <button type="button" className="st-arrow st-xm" onClick={onClose} aria-label="Fermer"><X size={17} /></button>
           <div style={{ position: "absolute", inset: -80, backgroundImage: `url(${post.images[0]})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(70px) saturate(1.3)", opacity: 0.45 }} />
           <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}><Preview post={post} /></div>
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, color: K.t2, fontSize: 13 }}>
