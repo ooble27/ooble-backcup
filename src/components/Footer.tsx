@@ -7,25 +7,30 @@ import { CanadaFlag, InteracLogo } from "./marks";
 const Footer = () => {
   const t = useT();
 
+  // Trois colonnes côte à côte, aussi sur téléphone : des listes courtes plutôt qu'une longue colonne.
   const columns = [
     {
       title: t("footer.product"),
       links: [
         { label: t("nav.home"), to: "/" },
-        { label: t("nav.business"), to: "/entreprises" },
-        { label: t("nav.otc"), to: "/otc" },
         { label: t("nav.signup"), to: "/inscription" },
+        { label: t("nav.login"), to: "/connexion" },
       ],
     },
     {
-      title: t("footer.resources"),
+      title: t("footer.company"),
+      links: [
+        { label: t("footer.businessAccounts"), to: "/entreprises" },
+        { label: t("nav.otc"), to: "/otc" },
+        { label: t("footer.privacy"), to: "/politique-confidentialite" },
+      ],
+    },
+    {
+      title: t("footer.support"),
       links: [
         { label: t("guide.title"), to: "/guide" },
         { label: t("nav.faq"), to: "/faq" },
         { label: t("nav.contact"), to: "/contact" },
-        { label: t("nav.login"), to: "/connexion" },
-        { label: t("footer.terms"), to: "/conditions-utilisation" },
-        { label: t("footer.privacy"), to: "/politique-confidentialite" },
       ],
     },
   ];
@@ -33,7 +38,7 @@ const Footer = () => {
   return (
     <footer className="bg-background">
       <div className="mx-auto max-w-[1200px] px-6 pt-24 sm:px-10">
-        <div className="grid gap-12 border-b pb-12 sm:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="grid gap-10 border-b pb-12 lg:grid-cols-[1.4fr_2fr]">
           <div>
             <Logo />
             <p className="mt-5 max-w-xs text-[14px] leading-[1.6] text-muted-foreground">
@@ -45,9 +50,10 @@ const Footer = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-3 gap-4 sm:gap-8">
           {columns.map((col) => (
-            <div key={col.title}>
-              <h4 className="font-display text-[13px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div key={col.title} className="min-w-0">
+              <h4 className="font-display text-[11.5px] uppercase tracking-[0.12em] text-muted-foreground sm:text-[13px] sm:tracking-[0.14em]">
                 {col.title}
               </h4>
               <ul className="mt-4 space-y-3">
@@ -55,7 +61,7 @@ const Footer = () => {
                   <li key={link.to}>
                     <Link
                       to={link.to}
-                      className="text-[15px] text-foreground/80 transition-colors hover:text-foreground"
+                      className="text-[14px] text-foreground/80 transition-colors hover:text-foreground sm:text-[15px]"
                     >
                       {link.label}
                     </Link>
@@ -64,6 +70,7 @@ const Footer = () => {
               </ul>
             </div>
           ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5 border-b py-5 text-xs text-muted-foreground">
@@ -75,7 +82,8 @@ const Footer = () => {
 
         <div className="flex flex-col gap-4 py-8 sm:flex-row sm:items-start sm:justify-between">
           <p className="shrink-0 text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Ooble · Canada
+            © {new Date().getFullYear()} Ooble · Canada ·{" "}
+            <Link to="/conditions-utilisation" className="underline-offset-4 hover:text-foreground hover:underline">{t("footer.terms")}</Link>
           </p>
           <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">
             {t("footer.risk")}

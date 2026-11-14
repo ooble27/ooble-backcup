@@ -19,6 +19,9 @@ const dict = {
   // ── Footer ──
   "footer.product": { fr: "Produit", en: "Product" },
   "footer.resources": { fr: "Ressources", en: "Resources" },
+  "footer.company": { fr: "Entreprise", en: "Company" },
+  "footer.support": { fr: "Support", en: "Support" },
+  "footer.businessAccounts": { fr: "Comptes pro", en: "Business accounts" },
   "footer.terms": { fr: "Conditions d'utilisation", en: "Terms of use" },
   "footer.privacy": { fr: "Confidentialité", en: "Privacy" },
   "footer.desc": {
