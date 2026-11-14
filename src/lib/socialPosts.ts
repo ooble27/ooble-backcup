@@ -284,4 +284,79 @@ Partagez avec quelqu'un que ça intéresse 👇
       },
     ],
   },
+  {
+    id: "serie-4",
+    title: "Série 4 · Vendre et nos engagements",
+    description: "Vendre ses USDC pas à pas, des prix sans surprise, la vérification d'identité et qui peut utiliser Ooble.",
+    posts: [
+      {
+        id: "vendre", title: "Vendez vos USDC, simplement", images: img("serie-4", "19-vendre"),
+        caption: `Vendez vos USDC, simplement. 💸
+
+Avec Ooble, vos USDC deviennent des dollars canadiens, versés par virement Interac sur votre compte bancaire.
+
+Les cryptoactifs comportent des risques.
+
+🔗 ooble.ca
+
+#Ooble #USDC #VendreCrypto #Interac #CryptoCanada #Stablecoin`,
+      },
+      {
+        id: "vendre-etapes", title: "Vendre en 3 étapes",
+        images: img("serie-4", "20a-vendre-couverture", "20b-vendre-montant", "20c-vendre-envoyer", "20d-vendre-recevoir"),
+        caption: `Vendre vos USDC en 3 étapes. Glissez 👉
+
+1️⃣ Indiquez combien vous vendez : le montant en dollars canadiens s'affiche avant de confirmer.
+2️⃣ Envoyez vos USDC à l'adresse indiquée par Ooble, sur le réseau choisi.
+3️⃣ Recevez vos dollars par virement Interac, dès la réception de vos USDC confirmée.
+
+⚠️ Vérifiez toujours le réseau avant d'envoyer.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #VendreCrypto #Tutoriel #Interac #CryptoCanada`,
+      },
+      {
+        id: "sans-surprise", title: "Des prix sans surprise", images: img("serie-4", "21-sans-surprise"),
+        caption: `Des prix sans surprise. 🧾
+
+Avec Ooble, le prix est affiché avant de payer.
+Ce que vous voyez est ce que vous recevez : pas de frais cachés après coup.
+
+#Ooble #Transparence #USDC #CryptoCanada #Stablecoin`,
+      },
+      {
+        id: "verification", title: "Pourquoi vérifier votre identité ?", images: img("serie-4", "22-verification"),
+        caption: `Pourquoi vérifier votre identité ? 🪪
+
+✅ Pour protéger votre compte : personne ne peut acheter ou vendre à votre place.
+✅ Pour respecter les règles canadiennes contre le blanchiment d'argent.
+
+La vérification se fait une seule fois, en quelques minutes, et votre dossier reste confidentiel.
+
+#Ooble #Sécurité #VérificationIdentité #USDC #CryptoCanada`,
+      },
+      {
+        id: "bienvenue", title: "Majeur et au Canada ? Bienvenue", images: img("serie-4", "23-bienvenue"),
+        caption: `Majeur et au Canada ? Bienvenue. 🇨🇦
+
+Ooble est ouvert à toute personne majeure au Canada, après la vérification de son identité.
+Particuliers et entreprises, tout le monde est le bienvenu.
+
+🔗 ooble.ca
+
+#Ooble #Canada #Québec #USDC #CryptoCanada #Bienvenue`,
+      },
+      {
+        id: "le-saviez-vous", title: "Le saviez-vous ? L'USDC depuis 2018", images: img("serie-4", "24-le-saviez-vous"),
+        caption: `Le saviez-vous ? 💡
+
+L'USDC existe depuis 2018. C'est aujourd'hui l'une des cryptomonnaies stables les plus utilisées au monde.
+
+Sa valeur suit celle du dollar américain, et chaque USDC est adossé à des réserves en dollars américains.
+
+#Ooble #USDC #LeSaviezVous #Stablecoin #Circle #CryptoCanada`,
+      },
+    ],
+  },
 ];
