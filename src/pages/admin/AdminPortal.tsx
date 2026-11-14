@@ -577,7 +577,7 @@ const AdminPortal = () => {
           ) : (
             <>
               {/* Téléphone : la messagerie prend toute la hauteur (le nom de la page est déjà dans la barre du haut). */}
-              {tab !== "me" && tab !== "dashboard" && tab !== "control" && tab !== "campaigns" && !(tab === "notes" && !panel) && <PageHeader title={active.label} description={active.desc} />}
+              {tab !== "me" && tab !== "dashboard" && tab !== "control" && tab !== "campaigns" && tab !== "social" && !(tab === "notes" && !panel) && <PageHeader title={active.label} description={active.desc} />}
               {loading && (tab === "queue" || tab === "control" || tab === "orders" || tab === "accounting" || tab === "compliance") ? (
                 <p style={{ padding: "60px 0", textAlign: "center", fontSize: 13.5, color: C.t3 }}>Chargement des commandes…</p>
               ) : (

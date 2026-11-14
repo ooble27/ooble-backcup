@@ -57,7 +57,7 @@ Abonnez-vous pour être parmi les premiers informés.
 #Ooble #USDC #Stablecoin #Crypto #Canada #Québec #Interac #CryptoCanada`,
       },
       {
-        id: "usdc", title: "C'est quoi l'USDC ? (carrousel)",
+        id: "usdc", title: "C'est quoi l'USDC ?",
         images: img("serie-1", "02a-usdc-couverture", "02b-usdc-un-dollar", "02c-usdc-circle", "02d-usdc-reseaux"),
         caption: `C'est quoi l'USDC ? Glissez pour comprendre en 4 images 👉
 
@@ -191,7 +191,7 @@ Gardez votre phrase secrète hors ligne, en lieu sûr, et ne la photographiez pa
 #Ooble #USDC #Autonomie #SécuritéCrypto #CryptoCanada #Stablecoin`,
       },
       {
-        id: "faq", title: "Vos questions (carrousel)",
+        id: "faq", title: "Vos questions",
         images: img("serie-2", "12a-faq-couverture", "12b-faq-delai", "12c-faq-prix", "12d-faq-qui"),
         caption: `Vos questions, nos réponses. Glissez 👉
 
