@@ -34,6 +34,8 @@ const CSS = `
 .st-sheet { position: absolute; width: 270px; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden; transition: transform .9s var(--e), opacity .9s var(--e) }
 .st-sheet img { width: 100%; height: 100%; object-fit: cover; display: block }
 .st-sheet[data-pos="0"] { z-index: 3; transform: translateX(0) rotate(0) }
+.st-sheet[data-pos="0"] img { animation: st-ken 7s ease-out both }
+@keyframes st-ken { from { transform: scale(1.12) } to { transform: scale(1) } }
 .st-sheet[data-pos="1"] { z-index: 2; transform: translateX(150px) rotate(8deg) scale(.88); opacity: .55 }
 .st-sheet[data-pos="2"] { z-index: 1; transform: translateX(-150px) rotate(-8deg) scale(.88); opacity: .55 }
 .st-sheet[data-pos="3"] { z-index: 0; transform: translateY(20px) scale(.75); opacity: 0 }
@@ -219,9 +221,16 @@ function Preview({ post }: { post: SocialPost }) {
   );
 }
 
-/** La vitrine : une publication en grand sur son propre flou ; on change de publication en touchant une barre ou une carte. */
+/** La vitrine : une publication en grand sur son propre flou, qui tourne toute seule (seule partie animée du studio). */
 function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry) => void; done: string | null; copy: (k: string, t: string) => void }) {
   const [at, setAt] = useState(0);
+  const [pause, setPause] = useState(false);
+  // La vitrine est la seule partie qui avance seule : une publication toutes les 7 secondes, en pause au survol.
+  useEffect(() => {
+    if (pause || items.length < 2) return;
+    const t = window.setTimeout(() => setAt((v) => (v + 1) % items.length), 7000);
+    return () => window.clearTimeout(t);
+  }, [at, pause, items.length]);
   if (!items.length) return null;
   const cur = items[at];
   const pos = (k: number) => {
@@ -229,7 +238,7 @@ function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry
     return d === 0 ? 0 : d === 1 ? 1 : d === items.length - 1 ? 2 : 3;
   };
   return (
-    <section className="st-hero" aria-label="À la une">
+    <section className="st-hero" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)} aria-label="À la une">
       <div className="st-back" style={{ backgroundImage: `url(${cur.post.images[0]})` }} />
       <div className="st-fade" />
       <div key={cur.post.id} className="st-copy">
@@ -245,7 +254,7 @@ function Hero({ items, onOpen, done, copy }: { items: Entry[]; onOpen: (e: Entry
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 18, maxWidth: 360 }}>
           {items.map((e, k) => (
             <button key={e.post.id} type="button" onClick={() => setAt(k)} aria-label={e.post.title} style={{ flex: 1, padding: "8px 0", border: "none", background: "none", cursor: "pointer" }}>
-              <span className="st-bar" style={{ display: "block" }}>{k === at ? <i style={{ animation: "none" }} /> : null}</span>
+              <span className="st-bar" style={{ display: "block" }}>{k === at ? <i key={`${at}-${pause}`} style={pause ? { animationPlayState: "paused" } : undefined} /> : k < at ? <i style={{ animation: "none" }} /> : null}</span>
             </button>
           ))}
         </div>
