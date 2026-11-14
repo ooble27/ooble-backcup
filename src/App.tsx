@@ -10,6 +10,7 @@ import GuideDetail from "./pages/GuideDetail";
 import Contact from "./pages/Contact";
 import Invitation from "./pages/Invitation";
 import OTC from "./pages/OTC";
+import Interac from "./pages/Interac";
 import Entreprises from "./pages/Entreprises";
 import Connexion from "./pages/Connexion";
 import Inscription from "./pages/Inscription";
@@ -85,6 +86,7 @@ export const AppRoutes = () => (
         <Route path="/i/:code" element={<Invitation />} />
         <Route path="/invitation" element={<Invitation />} />
         <Route path="/otc" element={<OTC />} />
+        <Route path="/interac" element={<Interac />} />
         <Route path="/entreprises" element={<Entreprises />} />
         <Route path="/connexion" element={<Connexion />} />
         <Route path="/au-revoir" element={<AuRevoir />} />

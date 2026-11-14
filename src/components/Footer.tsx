@@ -28,6 +28,7 @@ const Footer = () => {
     {
       title: t("footer.support"),
       links: [
+        { label: t("footer.payInterac"), to: "/interac" },
         { label: t("guide.title"), to: "/guide" },
         { label: t("nav.faq"), to: "/faq" },
         { label: t("nav.contact"), to: "/contact" },

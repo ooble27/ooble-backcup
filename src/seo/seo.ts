@@ -57,6 +57,18 @@ const PAGES: Record<string, { fr: Copy; en: Copy; noindex?: boolean }> = {
         "Buying or selling over $10,000 in USDC? Ooble's OTC desk gives you a firm price, one dedicated contact and settlement by bank transfer.",
     },
   ),
+  "/interac": page(
+    {
+      title: "Payer ses USDC par virement Interac : les étapes | Ooble",
+      description:
+        "Comment payer un achat de USDC par virement Interac : montant exact à interac@ooble.ca, référence dans le message, compte à votre nom. Dépôt automatique, sans question de sécurité.",
+    },
+    {
+      title: "Pay for USDC with Interac e-Transfer: the Steps | Ooble",
+      description:
+        "How to pay for a USDC purchase by Interac e-Transfer: exact amount to interac@ooble.ca, reference in the message, account in your name. Autodeposit, no security question.",
+    },
+  ),
   "/entreprises": page(
     {
       title: "Compte entreprise pour acheter des USDC au Canada | Ooble",
@@ -176,6 +188,7 @@ const crumbs = (lang: Lang, items: [string, string][]): Json => ({
 /** Nom court de chaque page dans le fil d'Ariane. */
 const CRUMB: Record<string, Record<Lang, string>> = {
   "/otc": { fr: "Desk OTC", en: "OTC desk" },
+  "/interac": { fr: "Payer par Interac", en: "Paying with Interac" },
   "/entreprises": { fr: "Entreprises", en: "Business" },
   "/contact": { fr: "Nous joindre", en: "Contact" },
   "/conditions-utilisation": { fr: "Conditions d'utilisation", en: "Terms of use" },
