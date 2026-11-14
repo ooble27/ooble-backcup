@@ -13,7 +13,7 @@ Toujours répondre en **français**.
   seulement le correctif (`git diff … | git apply`). `src/pages/admin/AdminPortal.tsx` diffère en production.
 - Le **Centre de contrôle** (`src/components/admin/ControlRoom.tsx`) reste sur la branche, jamais en production.
 - **Jamais de code cassé** : `npx tsc --noEmit -p tsconfig.app.json` puis `npm run build` avant chaque envoi.
-- **Design** : montrer des captures d'abord ; publier quand l'utilisateur dit « Publie ».
+- **Publication automatique** : publier les deux dépôts dès qu'une partie est terminée et vérifiée, sans attendre « Publie ». Pour le design, montrer les captures en même temps.
 - Aucun identifiant de modèle dans les commits, le code ou les descriptions.
 
 ## Base de données (Supabase, projet `uukxacjjviiktmbikdwp`)
