@@ -2009,4 +2009,83 @@ Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
       },
     ],
   },
+  {
+    id: "serie-16",
+    title: "Série 16 · Stories des highlights",
+    titleEn: "Series 16 · Highlight stories",
+    description: "Le contenu de chaque story à la une : Bienvenue, Acheter, Vendre, Interac, Sécurité. Mêmes couleurs que les couvertures.",
+    descriptionEn: "What goes in each highlight: Welcome, Buy, Sell, Interac, Safety. Same colours as the covers.",
+    posts: [
+      {
+        id: "hl-bienvenue", title: "Story à la une · Bienvenue", format: "story", images: img("serie-16", "hl-bienvenue-1", "hl-bienvenue-2", "hl-bienvenue-3", "hl-bienvenue-4"),
+        titleEn: "Highlight stories · Welcome",
+        captionEn: `Stories for the “Welcome” highlight (first cover, letter “o”). 4 pages, in this order.
+
+1. Post the 4 pages as stories, one after the other, in order.
+2. On each one: Highlight › choose “Welcome”.
+3. The pages then play in order when someone taps the cover.`,
+        caption: `Stories de la story à la une « Bienvenue » (premier rond, lettre « o »). 4 pages, dans cet ordre.
+
+1. Publier les 4 pages en story, l'une après l'autre, dans l'ordre.
+2. Sur chacune : À la une › choisir « Bienvenue ».
+3. Les pages défilent alors dans l'ordre quand on touche la couverture.`,
+      },
+      {
+        id: "hl-acheter", title: "Story à la une · Acheter", format: "story", images: img("serie-16", "hl-acheter-1", "hl-acheter-2", "hl-acheter-3", "hl-acheter-4", "hl-acheter-5"),
+        titleEn: "Highlight stories · Buy",
+        captionEn: `Stories for the “Buy” highlight (second cover, letter “O”). 5 pages, in this order.
+
+1. Post the 5 pages as stories, one after the other, in order.
+2. On each one: Highlight › choose “Buy”.
+3. The pages then play in order when someone taps the cover.`,
+        caption: `Stories de la story à la une « Acheter » (deuxième rond, lettre « O »). 5 pages, dans cet ordre.
+
+1. Publier les 5 pages en story, l'une après l'autre, dans l'ordre.
+2. Sur chacune : À la une › choisir « Acheter ».
+3. Les pages défilent alors dans l'ordre quand on touche la couverture.`,
+      },
+      {
+        id: "hl-vendre", title: "Story à la une · Vendre", format: "story", images: img("serie-16", "hl-vendre-1", "hl-vendre-2", "hl-vendre-3", "hl-vendre-4"),
+        titleEn: "Highlight stories · Sell",
+        captionEn: `Stories for the “Sell” highlight (third cover, letter “b”). 4 pages, in this order.
+
+1. Post the 4 pages as stories, one after the other, in order.
+2. On each one: Highlight › choose “Sell”.
+3. The pages then play in order when someone taps the cover.`,
+        caption: `Stories de la story à la une « Vendre » (troisième rond, lettre « b »). 4 pages, dans cet ordre.
+
+1. Publier les 4 pages en story, l'une après l'autre, dans l'ordre.
+2. Sur chacune : À la une › choisir « Vendre ».
+3. Les pages défilent alors dans l'ordre quand on touche la couverture.`,
+      },
+      {
+        id: "hl-interac", title: "Story à la une · Interac", format: "story", images: img("serie-16", "hl-interac-1", "hl-interac-2", "hl-interac-3", "hl-interac-4", "hl-interac-5"),
+        titleEn: "Highlight stories · Interac",
+        captionEn: `Stories for the “Interac” highlight (fourth cover, letter “l”). 5 pages, in this order.
+
+1. Post the 5 pages as stories, one after the other, in order.
+2. On each one: Highlight › choose “Interac”.
+3. The pages then play in order when someone taps the cover.`,
+        caption: `Stories de la story à la une « Interac » (quatrième rond, lettre « l »). 5 pages, dans cet ordre.
+
+1. Publier les 5 pages en story, l'une après l'autre, dans l'ordre.
+2. Sur chacune : À la une › choisir « Interac ».
+3. Les pages défilent alors dans l'ordre quand on touche la couverture.`,
+      },
+      {
+        id: "hl-securite", title: "Story à la une · Sécurité", format: "story", images: img("serie-16", "hl-securite-1", "hl-securite-2", "hl-securite-3", "hl-securite-4", "hl-securite-5"),
+        titleEn: "Highlight stories · Safety",
+        captionEn: `Stories for the “Safety” highlight (fifth cover, letter “e”). 5 pages, in this order.
+
+1. Post the 5 pages as stories, one after the other, in order.
+2. On each one: Highlight › choose “Safety”.
+3. The pages then play in order when someone taps the cover.`,
+        caption: `Stories de la story à la une « Sécurité » (cinquième rond, lettre « e »). 5 pages, dans cet ordre.
+
+1. Publier les 5 pages en story, l'une après l'autre, dans l'ordre.
+2. Sur chacune : À la une › choisir « Sécurité ».
+3. Les pages défilent alors dans l'ordre quand on touche la couverture.`,
+      },
+    ],
+  },
 ];
