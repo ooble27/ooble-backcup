@@ -1,23 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronLeft, ChevronRight, Copy, Download, Heart, MessageCircle, Search, Send, X } from "lucide-react";
 import { FONT } from "./adminTheme";
 import { SOCIAL_BIO, SOCIAL_RULES, SOCIAL_SERIES, type SocialPost } from "@/lib/socialPosts";
 
 /**
- * Studio des réseaux sociaux, aux couleurs du thème (clair ou sombre) :
+ * Studio des réseaux sociaux : fond noir en mode sombre, clair en mode clair ; sur téléphone, sans cadre :
  *  - une vitrine animée (la publication du moment, en grand, sur son propre flou) ;
- *  - une rangée qui défile par série, avec des cartes qui s'animent au survol ;
+ *  - une rangée par série, qui avance seule une carte à la fois et qu'on fait glisser au doigt ;
  *  - une barre flottante pour chercher et filtrer ;
  *  - un clic ouvre la publication en grand : aperçu Instagram, légende, hashtags, téléchargement.
  */
 
 // Couleurs du thème du back-office : clair en mode clair, gris doux (pas noir) en mode sombre.
-const K = { bg: "var(--a-l1)", s1: "var(--a-l2)", s2: "var(--a-l2)", t1: "var(--a-t1)", t2: "var(--a-t2)", t3: "var(--a-t3)", acc: "var(--a-accent)" };
+const K = { bg: "var(--st-bg)", s1: "var(--a-l2)", s2: "var(--a-l2)", t1: "var(--a-t1)", t2: "var(--a-t2)", t3: "var(--a-t3)", acc: "var(--a-accent)" };
 const mix = (c: string, p: number) => `color-mix(in srgb, ${c} ${p}%, transparent)`;
 
 const CSS = `
-.st { --e: cubic-bezier(.22,1,.36,1); position: relative; background: ${K.bg}; color: ${K.t1}; border-radius: 28px; overflow: hidden; font-family: ${FONT}; isolation: isolate }
+.st, .st-modal { --st-bg: #0b0d0e }
+:root:not(.dark) .st, :root:not(.dark) .st-modal { --st-bg: var(--a-l1) }
+.st { --e: cubic-bezier(.22,1,.36,1); position: relative; background: var(--st-bg); color: ${K.t1}; border-radius: 28px; overflow: hidden; font-family: ${FONT}; isolation: isolate }
 .st * { box-sizing: border-box }
 .st-glow { position: absolute; inset: -20% -10% auto -10%; height: 760px; z-index: -1; pointer-events: none; animation: st-drift 18s ease-in-out infinite alternate;
   background: radial-gradient(60% 50% at 20% 10%, rgba(60,194,178,.14), transparent 70%), radial-gradient(40% 40% at 90% 0%, rgba(120,110,255,.10), transparent 70%) }
@@ -25,7 +27,7 @@ const CSS = `
 .st-top { display: flex; align-items: center; gap: 28px; padding: 22px 32px; flex-wrap: wrap }
 .st-hero { position: relative; margin: 0 20px; height: 470px; border-radius: 24px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center }
 .st-back { position: absolute; inset: -60px; background-size: cover; background-position: center; filter: blur(60px) saturate(1.3); opacity: .6; transform: scale(1.1); transition: background-image .8s }
-.st-fade { position: absolute; inset: 0; background: linear-gradient(90deg, var(--a-l1) 0%, ${mix("var(--a-l1)", 78)} 42%, ${mix("var(--a-l1)", 10)} 100%) }
+.st-fade { position: absolute; inset: 0; background: linear-gradient(90deg, var(--st-bg) 0%, ${mix("var(--st-bg)", 78)} 42%, ${mix("var(--st-bg)", 10)} 100%) }
 .st-copy { position: relative; padding: 0 48px; display: flex; flex-direction: column; gap: 18px; animation: st-rise .8s var(--e) both }
 @keyframes st-rise { from { opacity: 0; transform: translateY(16px) } }
 .st-stack { position: relative; height: 420px; display: flex; align-items: center; justify-content: center; animation: st-float 7s ease-in-out infinite }
@@ -44,22 +46,20 @@ const CSS = `
 .st-pill { height: 46px; padding: 0 20px; border-radius: 999px; border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 9px; transition: transform .2s var(--e), background .2s, opacity .2s }
 .st-pill:hover { transform: translateY(-2px) } .st-pill:active { transform: scale(.97) }
 .st-rail-h { display: flex; align-items: flex-end; gap: 16px; padding: 0 32px; margin: 44px 0 16px }
-.st-rail { overflow: hidden; padding: 10px 0 30px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent) }
-.st-track { display: flex; gap: 18px; width: max-content; padding-left: 18px; animation: st-marq var(--d) linear infinite; animation-direction: var(--dir) }
-.st-rail:hover .st-track, .st-track:focus-within { animation-play-state: paused }
-@keyframes st-marq { from { transform: translateX(0) } to { transform: translateX(calc(-100% / var(--c))) } }
-.st-card { flex: 0 0 clamp(200px, 17vw, 240px); position: relative; border: none; padding: 0; background: none; cursor: pointer; text-align: left; font-family: inherit; color: inherit;
+.st-rail { display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 32px; padding: 10px 32px 30px; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain }
+.st-rail::-webkit-scrollbar { display: none }
+.st-card { flex: 0 0 clamp(200px, 17vw, 240px); scroll-snap-align: start; position: relative; border: none; padding: 0; background: none; cursor: pointer; text-align: left; font-family: inherit; color: inherit;
   opacity: 0; transform: translateY(24px); animation: st-up .8s var(--e) forwards }
 @keyframes st-up { to { opacity: 1; transform: none } }
-.st-frame { position: relative; aspect-ratio: 4 / 5; border-radius: 20px; overflow: hidden; background: ${K.s1}; transition: transform .5s var(--e), box-shadow .5s var(--e) }
-.st-card:hover .st-frame, .st-card:focus-visible .st-frame { transform: translateY(-8px) scale(1.02); box-shadow: 0 30px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08) }
+.st-frame { position: relative; aspect-ratio: 4 / 5; border-radius: 20px; overflow: hidden; background: ${K.s1}; transition: transform .5s var(--e) }
+.st-card:hover .st-frame, .st-card:focus-visible .st-frame { transform: translateY(-6px) }
 .st-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1s var(--e), opacity .6s }
 .st-card:hover .st-frame img { transform: scale(1.08) }
 .st-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35) 0%, transparent 30%, transparent 50%, rgba(0,0,0,.82) 100%); opacity: .0; transition: opacity .4s }
 .st-card:hover .st-shade, .st-card:focus-visible .st-shade { opacity: 1 }
 .st-meta { position: absolute; left: 16px; right: 16px; bottom: 14px; transform: translateY(12px); opacity: 0; transition: transform .5s var(--e), opacity .35s }
 .st-card:hover .st-meta, .st-card:focus-visible .st-meta { transform: none; opacity: 1 }
-.st-num { position: absolute; top: 12px; left: 12px; padding: 5px 10px; border-radius: 99px; background: rgba(10,10,10,.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: 12px; font-weight: 500 }
+.st-num { position: absolute; top: 12px; left: 12px; padding: 5px 10px; border-radius: 99px; background: rgba(10,10,10,.6); color: #fff; font-size: 12px; font-weight: 500 }
 .st-quick { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; opacity: 0; transform: translateY(-8px); transition: opacity .3s, transform .45s var(--e) }
 .st-card:hover .st-quick, .st-card:focus-within .st-quick { opacity: 1; transform: none }
 .st-q { width: 36px; height: 36px; border-radius: 99px; border: none; background: rgba(255,255,255,.95); color: #111; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .2s }
@@ -75,7 +75,7 @@ const CSS = `
 .st-chip:hover { color: ${K.t1} } .st-chip[aria-pressed="true"] { background: ${K.t1}; color: ${K.bg}; font-weight: 500 }
 .st-veil { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; padding: 24px; animation: st-fade .3s ease both; font-family: ${FONT} }
 @keyframes st-fade { from { opacity: 0 } }
-.st-modal { width: min(1140px, 100%); max-height: calc(100vh - 48px); overflow: auto; background: var(--a-l1); color: var(--a-t1); border-radius: 30px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+.st-modal { width: min(1140px, 100%); max-height: calc(100vh - 48px); overflow: auto; background: var(--st-bg); color: var(--a-t1); border-radius: 30px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   box-shadow: 0 50px 120px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06); animation: st-pop .5s var(--e) both }
 @keyframes st-pop { from { opacity: 0; transform: translateY(26px) scale(.96) } }
 .st-stage { position: relative; overflow: hidden; padding: 44px 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px }
@@ -89,8 +89,9 @@ const CSS = `
   .st-glow { display: none }
   .st-top { padding: 4px 0 14px; gap: 10px 18px }
   .st-stats { width: 100%; justify-content: flex-start; gap: 18px !important }
-  .st-hero { margin: 0; border-radius: 20px; padding: 26px 0 8px }
-  .st-copy { padding: 0 22px; gap: 12px }
+  .st-hero { margin: 0; border-radius: 0; padding: 6px 0 0; overflow: visible }
+  .st-back, .st-fade { display: none }
+  .st-copy { padding: 0; gap: 12px }
   .st-copy h2 { font-size: 34px !important }
   .st-copy p { font-size: 14px !important }
   .st-pill { height: 42px; padding: 0 16px; font-size: 13.5px; white-space: nowrap }
@@ -99,10 +100,10 @@ const CSS = `
   .st-sheet[data-pos="1"] { transform: translateX(86px) rotate(8deg) scale(.86) }
   .st-sheet[data-pos="2"] { transform: translateX(-86px) rotate(-8deg) scale(.86) }
   .st-rail-h { padding: 0; margin: 32px 0 12px; flex-wrap: wrap }
-  .st-rail { margin: 0 -16px }
+  .st-rail-h .st-arrow { display: none }
+  .st-rail { margin: 0 -16px; padding: 6px 16px 24px; scroll-padding: 0 16px; gap: 12px }
   .st-rail-h h3 { font-size: 19px !important }
   .st-card { flex-basis: 58vw }
-  .st-track { gap: 12px; padding-left: 12px }
   .st-foot { padding: 30px 0 10px !important }
   .st-dock { bottom: calc(12px + env(safe-area-inset-bottom, 0px)) }
   .st-dock > div { width: 100%; flex-wrap: wrap; border-radius: 24px; justify-content: space-between }
@@ -113,7 +114,7 @@ const CSS = `
   .st-stage { padding: calc(20px + env(safe-area-inset-top, 0px)) 16px 18px }
   .st-modal > div:last-child { padding: 22px 18px calc(28px + env(safe-area-inset-bottom, 0px)) !important }
 }
-@media (prefers-reduced-motion: reduce) { .st *, .st-veil, .st-modal { animation: none !important; transition: none !important } .st-card { opacity: 1; transform: none } .st-rail { overflow-x: auto } }
+@media (prefers-reduced-motion: reduce) { .st *, .st-veil, .st-modal { animation: none !important; transition: none !important } .st-card { opacity: 1; transform: none } }
 `;
 
 function useCopy() {
@@ -278,11 +279,37 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
   );
 }
 
-/** Une rangée qui défile toute seule, lentement, dans un sens ou dans l'autre ; elle s'arrête au survol. */
+/**
+ * Une rangée qui avance toute seule, une carte à la fois (dans un sens ou dans l'autre selon la rangée),
+ * et qu'on fait aussi glisser au doigt ou avec les flèches. Elle s'arrête dès qu'on la touche ou la survole.
+ */
 function Rail({ title, sub, items, reverse, onOpen, done, copy }: { title: string; sub: string; items: Entry[]; reverse: boolean; onOpen: (e: Entry) => void; done: string | null; copy: (k: string, t: string) => void }) {
-  // Assez de copies pour que la rangée boucle sans trou, même avec peu de publications.
-  const copies = Math.max(2, Math.ceil(1800 / (items.length * 258)) + 1);
-  const loop = Array.from({ length: copies }, (_, c) => items.map((e) => ({ e, c }))).flat();
+  const ref = useRef<HTMLDivElement | null>(null);
+  const hold = useRef(0);
+  const step = (dir: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>(".st-card");
+    const w = card ? card.offsetWidth + 16 : el.clientWidth * 0.8;
+    const max = el.scrollWidth - el.clientWidth - 2;
+    if (dir > 0 && el.scrollLeft >= max) el.scrollTo({ left: 0, behavior: "smooth" });
+    else if (dir < 0 && el.scrollLeft <= 2) el.scrollTo({ left: max + 2, behavior: "smooth" });
+    else el.scrollBy({ left: dir * w, behavior: "smooth" });
+  };
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reverse) el.scrollLeft = el.scrollWidth;
+    const pause = () => { hold.current = Date.now() + 6000; };
+    const evs = ["pointerdown", "touchstart", "wheel", "mouseenter", "focusin"] as const;
+    evs.forEach((e) => el.addEventListener(e, pause, { passive: true }));
+    const t = window.setInterval(() => {
+      if (Date.now() < hold.current || document.hidden || el.matches(":hover")) return;
+      step(reverse ? -1 : 1);
+    }, 3200 + (reverse ? 700 : 0));
+    return () => { window.clearInterval(t); evs.forEach((e) => el.removeEventListener(e, pause)); };
+  }, [reverse]);
+  const manual = (d: number) => { hold.current = Date.now() + 6000; step(d); };
   return (
     <section>
       <div className="st-rail-h">
@@ -290,16 +317,11 @@ function Rail({ title, sub, items, reverse, onOpen, done, copy }: { title: strin
           <h3 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em" }}>{title}</h3>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: K.t3 }}>{sub}</p>
         </div>
-        <span style={{ fontSize: 13, color: K.t3 }}>{items.length} publication{items.length > 1 ? "s" : ""}</span>
+        <button type="button" className="st-arrow" onClick={() => manual(-1)} aria-label="Publication précédente"><ChevronLeft size={18} /></button>
+        <button type="button" className="st-arrow" onClick={() => manual(1)} aria-label="Publication suivante"><ChevronRight size={18} /></button>
       </div>
-      <div className="st-rail">
-        <div className="st-track" style={{ ["--c" as string]: copies, ["--d" as string]: `${items.length * copies * 7}s`, ["--dir" as string]: reverse ? "reverse" : "normal" }}>
-          {loop.map(({ e, c }, k) => (
-            <div key={`${e.post.id}-${c}`} aria-hidden={c > 0 || undefined} style={{ display: "contents" }}>
-              <Card e={e} delay={c === 0 ? k * 60 : 0} onOpen={() => onOpen(e)} done={done} copy={copy} />
-            </div>
-          ))}
-        </div>
+      <div className="st-rail" ref={ref}>
+        {items.map((e, k) => <Card key={e.post.id} e={e} delay={k * 60} onOpen={() => onOpen(e)} done={done} copy={copy} />)}
       </div>
     </section>
   );
