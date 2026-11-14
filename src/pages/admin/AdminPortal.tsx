@@ -28,6 +28,7 @@ import AnnouncementsPanel from "@/components/admin/AnnouncementsPanel";
 import SettlementPanel from "@/components/admin/SettlementPanel";
 import MailboxPanel from "@/components/admin/MailboxPanel";
 import CampaignsPanel from "@/components/admin/CampaignsPanel";
+import SocialPanel from "@/components/admin/SocialPanel";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import ClientsPanel from "@/components/admin/ClientsPanel";
 import DocsPanel from "@/components/admin/DocsPanel";
@@ -93,6 +94,7 @@ const GROUPS: NavGroup[] = [
   { label: "Communication", menu: { label: "Communication", icon: NI.send }, items: [
     { id: "mailbox", label: "Messagerie", desc: "Écrire à un client à partir d'un modèle, historique des envois, boîte de réception.", icon: NI.mail },
     { id: "campaigns", label: "Marketing", desc: "Campagnes, parcours automatiques et résultats, sous votre contrôle.", icon: NI.mega },
+    { id: "social", label: "Réseaux sociaux", desc: "Les publications prêtes pour Instagram : images à télécharger et légendes à copier.", icon: NI.social },
     { id: "announcements", label: "Bannière et maintenance", desc: "Message en haut du site pour tous les clients, et mode maintenance qui suspend les commandes.", icon: NI.flag },
   ] },
   { label: "Administration", place: "foot", menu: { label: "Administration", icon: NI.sliders }, items: [
@@ -596,6 +598,7 @@ const AdminPortal = () => {
                   {tab === "settlement" && <SettlementPanel />}
                   {tab === "mailbox" && <MailboxPanel onShowClient={allowedTabs.has("clients") ? showClient : undefined} onOpenOrder={allowedTabs.has("orders") ? openOrderById : undefined} />}
                   {tab === "campaigns" && <CampaignsPanel />}
+                  {tab === "social" && <SocialPanel />}
                   {tab === "announcements" && <AnnouncementsPanel />}
                   {tab === "team" && (
                     <>

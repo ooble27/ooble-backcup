@@ -10,9 +10,9 @@ import { useAuth } from "@/lib/auth";
 
 export type Role = "admin" | "operator" | "kyc_reviewer" | "support" | "marketing" | "compliance" | "accounting";
 
-export type TabId = "me" | "dashboard" | "control" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs" | "tools";
+export type TabId = "me" | "dashboard" | "control" | "notes" | "tasks" | "queue" | "orders" | "clients" | "kyc" | "accounting" | "treasury" | "compliance" | "settlement" | "mailbox" | "campaigns" | "social" | "announcements" | "team" | "platform" | "kb" | "manual" | "techdocs" | "tools";
 
-export const ALL_TABS: TabId[] = ["me", "dashboard", "notes", "tasks", "control", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "announcements", "team", "platform", "tools", "kb", "manual", "techdocs"];
+export const ALL_TABS: TabId[] = ["me", "dashboard", "notes", "tasks", "control", "queue", "orders", "settlement", "clients", "kyc", "accounting", "treasury", "compliance", "mailbox", "campaigns", "social", "announcements", "team", "platform", "tools", "kb", "manual", "techdocs"];
 const HELP: TabId[] = ["tools", "kb", "manual"];
 /** Espace de l'équipe : ouvert à tous les membres. */
 const TEAM: TabId[] = ["me", "notes", "tasks"];
@@ -20,7 +20,7 @@ const TEAM: TabId[] = ["me", "notes", "tasks"];
 /** Nom des pages, pour dire à un membre ce qu'il verra. */
 export const TAB_LABEL: Record<TabId, string> = {
   me: "Mon espace", dashboard: "Tableau de bord", control: "Salle de contrôle", notes: "Notes à l'équipe", tasks: "Tâches", queue: "File d'attente", orders: "Commandes", settlement: "Règlement auto", clients: "Clients", kyc: "Vérifications",
-  accounting: "Comptabilité", treasury: "Trésorerie", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", announcements: "Bannière et maintenance",
+  accounting: "Comptabilité", treasury: "Trésorerie", compliance: "Conformité", mailbox: "Messagerie", campaigns: "Marketing", social: "Réseaux sociaux", announcements: "Bannière et maintenance",
   team: "Équipe", platform: "Réglages", tools: "Outils", kb: "Base de connaissances", manual: "Manuel", techdocs: "Documentation technique",
 };
 
@@ -48,7 +48,7 @@ export const ROLES: RoleDef[] = [
   { id: "support", label: "Support", mission: "Répond aux clients et suit leurs demandes.", home: "mailbox",
     tabs: ["mailbox", "clients", "orders", ...TEAM, ...HELP] },
   { id: "marketing", label: "Marketing", mission: "Fait connaître Ooble : campagnes de courriels aux clients.", home: "campaigns",
-    tabs: ["campaigns", "mailbox", ...TEAM, ...HELP] },
+    tabs: ["campaigns", "social", "mailbox", ...TEAM, ...HELP] },
 ];
 
 export const ROLE_BY_ID = new Map(ROLES.map((r) => [r.id, r] as const));
