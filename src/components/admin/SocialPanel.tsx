@@ -133,17 +133,65 @@ function useCopy() {
 /** Les fichiers à télécharger : la vidéo d'une story animée, sinon les images. */
 const filesOf = (p: SocialPost) => (p.video ? [p.video] : p.images);
 
-function downloadAll(images: string[]) {
-  images.forEach((src, i) => {
+const nameOf = (src: string) => `ooble-${src.split("/").pop()}`;
+
+/** Les fichiers d'une publication, chargés à l'avance : le partage doit partir tout de suite au toucher. */
+const fileCache = new Map<string, Promise<File>>();
+function loadFile(src: string): Promise<File> {
+  let f = fileCache.get(src);
+  if (!f) {
+    f = fetch(src).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.blob(); })
+      .then((b) => new File([b], nameOf(src), { type: b.type || (src.endsWith(".mp4") ? "video/mp4" : "image/png") }));
+    f.catch(() => fileCache.delete(src));
+    fileCache.set(src, f);
+  }
+  return f;
+}
+const ready = new Map<string, File>();
+function preload(srcs: string[]) {
+  srcs.forEach((src) => { if (!ready.has(src)) loadFile(src).then((f) => ready.set(src, f)).catch(() => undefined); });
+}
+
+/** Sur iPad et téléphone : la feuille de partage (Enregistrer les images), sans quitter la plateforme. */
+const canShareFiles = () => {
+  try {
+    const n = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+    const touch = window.matchMedia("(pointer: coarse)").matches;
+    return touch && typeof n.share === "function" && typeof n.canShare === "function" && n.canShare({ files: [new File([""], "x.png", { type: "image/png" })] });
+  } catch { return false; }
+};
+
+/** Téléchargement depuis la mémoire (blob) : la page reste affichée, chaque fichier part l'un après l'autre. */
+function saveFiles(files: File[]) {
+  files.forEach((file, i) => {
     window.setTimeout(() => {
+      const url = URL.createObjectURL(file);
       const a = document.createElement("a");
-      a.href = src;
-      a.download = `ooble-${src.split("/").pop()}`;
+      a.href = url;
+      a.download = file.name;
       document.body.appendChild(a);
       a.click();
       a.remove();
-    }, i * 350);
+      window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }, i * 400);
   });
+}
+
+async function downloadAll(srcs: string[]) {
+  const have = srcs.map((s) => ready.get(s));
+  if (canShareFiles()) {
+    // Tous les fichiers déjà en mémoire : le partage part dans le même geste (exigé par Safari).
+    if (have.every(Boolean)) {
+      try { await navigator.share({ files: have as File[] }); return; } catch (e) { if ((e as Error).name === "AbortError") return; }
+    } else {
+      try {
+        const files = await Promise.all(srcs.map(loadFile));
+        await navigator.share({ files });
+        return;
+      } catch (e) { if ((e as Error).name === "AbortError") return; }
+    }
+  }
+  try { saveFiles(await Promise.all(srcs.map(loadFile))); } catch { /* réseau indisponible : rien à enregistrer */ }
 }
 
 const splitCaption = (c: string) => {
@@ -324,9 +372,9 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
           : post.images.map((src, k) => <img key={src} src={src} alt={k === 0 ? post.title : ""} loading="lazy" style={{ opacity: k === i ? 1 : 0 }} />)}
         <div className="st-shade" />
         <span className="st-num">{String(n).padStart(2, "0")}{post.highlight ? " · à la une" : post.format === "story" ? (post.video ? " · story vidéo" : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
-        <div className="st-quick" onClick={(ev) => ev.stopPropagation()}>
+        <div className="st-quick" onClick={(ev) => ev.stopPropagation()} onPointerEnter={() => preload(filesOf(post))} onTouchStart={() => preload(filesOf(post))}>
           <button type="button" className="st-q" aria-label="Copier la légende" title="Copier la légende" onClick={() => copy(post.id, post.caption)}>{done === post.id ? <Check size={16} /> : <Copy size={16} />}</button>
-          <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => downloadAll(filesOf(post))}><Download size={16} /></button>
+          <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => void downloadAll(filesOf(post))}><Download size={16} /></button>
         </div>
         {many && <div className="st-dots">{post.images.map((_, k) => <span key={k} style={{ width: 5, height: 5, borderRadius: 9, background: k === i ? "#fff" : "rgba(255,255,255,.45)" }} />)}</div>}
         <div className="st-meta">
@@ -375,6 +423,8 @@ function Rail({ title, sub, items, reverse, onOpen, done, copy }: { title: strin
 /** La publication ouverte en grand. */
 function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; index: number; onIndex: (i: number) => void; onClose: () => void; done: string | null; copy: (k: string, t: string) => void }) {
   const { post, n, serie } = list[index];
+  // Les fichiers se chargent dès l'ouverture : le bouton Télécharger partage alors sans attendre.
+  useEffect(() => { preload(filesOf(post)); }, [post]);
   const box = useRef<HTMLDivElement | null>(null);
   // Chaque publication s'ouvre en haut : l'aperçu d'abord, la légende en dessous.
   useEffect(() => { box.current?.scrollTo({ top: 0 }); }, [index]);
@@ -425,7 +475,7 @@ function Focus({ list, index, onIndex, onClose, done, copy }: { list: Entry[]; i
             <button type="button" className="st-pill" style={{ background: K.t1, color: K.bg, justifyContent: "center" }} onClick={() => copy(post.id, post.caption)}>
               {done === post.id ? <Check size={16} /> : <Copy size={16} />}{done === post.id ? "Copié" : post.format === "story" ? "Copier les consignes" : "Copier la légende"}
             </button>
-            <button type="button" className="st-pill" style={{ background: K.s2, color: K.t1, justifyContent: "center" }} onClick={() => downloadAll(filesOf(post))}>
+            <button type="button" className="st-pill" style={{ background: K.s2, color: K.t1, justifyContent: "center" }} onClick={() => void downloadAll(filesOf(post))}>
               <Download size={16} />{post.video ? "Vidéo MP4" : post.highlight ? `${post.images.length} couvertures` : post.images.length > 1 ? `${post.images.length} images` : "Télécharger"}
             </button>
           </div>
