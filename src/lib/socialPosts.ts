@@ -2371,4 +2371,231 @@ BNB Chain, Polygon, Solana, Avalanche. Un seul USDC.
       },
     ],
   },
+  {
+    id: "serie-20",
+    title: "Série 20 · Signature, la peluche",
+    titleEn: "Series 20 · Signature, the plush",
+    description: "La peluche en photos et en situations : pile d'USDC, tuque, vitrine, humeurs, sécurité.",
+    descriptionEn: "The plush in photos and situations: USDC stack, toque, display case, moods, safety.",
+    posts: [
+      {
+        id: "pile-usdc", title: "Bien assis", images: img("serie-20", "124-pile-usdc"),
+        titleEn: "Comfortably seated",
+        captionEn: `Comfortably seated.
+
+1 USDC = US$1. A stable digital dollar.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bien assis.
+
+1 USDC = 1 $ US. Un dollar numérique, stable.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "dodo", title: "Pendant que vous dormez", images: img("serie-20", "125-dodo"),
+        titleEn: "While you sleep",
+        captionEn: `While you sleep, your USDC stay in your wallet.
+
+Ooble keeps no balance.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Pendant que vous dormez, vos USDC restent dans votre portefeuille.
+
+Ooble ne garde aucun solde.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "vitrine", title: "En cas de doute", images: img("serie-20", "126-vitrine"),
+        titleEn: "In case of doubt",
+        captionEn: `In case of doubt, break the glass.
+
+Or write to us, it's easier: ooble.ca/contact
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `En cas de doute, brisez la vitre.
+
+Ou écrivez-nous, c'est plus simple : ooble.ca/contact
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "tuque", title: "Prêt pour l'hiver", images: img("serie-20", "127-tuque"),
+        titleEn: "Ready for winter",
+        captionEn: `Ready for winter.
+
+Pay with Interac, even in your pyjamas.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Prêt pour l'hiver.
+
+Payez par Interac, même en pyjama.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "lunettes", title: "Stable", images: img("serie-20", "128-lunettes"),
+        titleEn: "Stable",
+        captionEn: `Stable.
+
+Just like USDC.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Stable.
+
+Comme l'USDC.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "question", title: "Une question ?", images: img("serie-20", "129-question"),
+        titleEn: "A question?",
+        captionEn: `A question?
+
+Write to us. A real person answers.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Une question ?
+
+Écrivez-nous. Une vraie personne vous répond.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "carte-identite", title: "Carte d'identité", images: img("serie-20", "130-carte-identite"),
+        titleEn: "ID card",
+        captionEn: `Our mascot's ID card.
+
+Material: 100% softness. Holds your USDC: never.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Carte d'identité de notre mascotte.
+
+Matière : 100 % douceur. Garde vos USDC : jamais.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "humeurs", title: "Humeurs du jour", images: img("serie-20", "131-humeurs"),
+        titleEn: "Moods of the day",
+        captionEn: `Moods of the day.
+
+Which one is yours today?
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Humeurs du jour.
+
+Laquelle est la vôtre aujourd'hui ?
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "phrase-non", title: "Ta phrase secrète ? Non.", images: img("serie-20", "132-phrase-non"),
+        titleEn: "Your secret phrase? No.",
+        captionEn: `Can you give me your secret phrase? No.
+
+Nobody needs it. Not even Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Tu peux me donner ta phrase secrète ? Non.
+
+Personne n'en a besoin. Pas même Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "avant-apres", title: "Sans ou avec référence", images: img("serie-20", "133-avant-apres"),
+        titleEn: "Without or with reference",
+        captionEn: `No reference: checked by hand.
+With reference: matched automatically.
+
+Remember the reference in your Interac transfer message.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Sans référence : vérifié à la main.
+Avec référence : reconnu tout seul.
+
+Pensez à la référence dans le message de votre virement Interac.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "quel-reseau", title: "Quel réseau ?", images: img("serie-20", "134-quel-reseau"),
+        titleEn: "Which network?",
+        captionEn: `Which network is your wallet on?
+
+Choose the same one in Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Votre portefeuille est sur quel réseau ?
+
+Choisissez le même dans Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "motif", title: "Le motif", images: img("serie-20", "135-motif"),
+        titleEn: "The pattern",
+        captionEn: `A lot of softness in one place.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Beaucoup de douceur au même endroit.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "gm-peluche", title: "gm", images: img("serie-20", "136-gm"),
+        titleEn: "gm",
+        captionEn: `gm.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `gm.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "regard-usdc", title: "Un dollar numérique", images: img("serie-20", "137-regard-usdc"),
+        titleEn: "A digital dollar",
+        captionEn: `A digital dollar.
+
+1 USDC is worth 1 US dollar.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Un dollar numérique.
+
+1 USDC vaut 1 dollar américain.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "bientot-calendrier", title: "On ouvre bientôt", images: img("serie-20", "138-bientot"),
+        titleEn: "Opening soon",
+        captionEn: `Opening soon.
+
+Follow us to know when.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `On ouvre bientôt.
+
+Abonnez-vous pour être prévenu.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "telephone-copie", title: "Copié !", images: img("serie-20", "139-telephone"),
+        titleEn: "Copied!",
+        captionEn: `Copied!
+
+The reference, the amount and the recipient copy in one tap from your order.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Copié !
+
+La référence, le montant et le destinataire se copient d'un geste depuis votre ordre.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];
