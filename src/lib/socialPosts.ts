@@ -2167,8 +2167,8 @@ BNB Chain, Polygon, Solana, Avalanche : choisissez celui de votre portefeuille.
     id: "serie-18",
     title: "Série 18 · Signature",
     titleEn: "Series 18 · Signature",
-    description: "La direction artistique d'Ooble : la mascotte aux deux anneaux, des autocollants, des écrans de l'app, peu de texte.",
-    descriptionEn: "Ooble's art direction: the two-ring mascot, stickers, app screens, very little text.",
+    description: "La direction artistique d'Ooble : la mascotte en peluche, des autocollants, des écrans de l'app, peu de texte.",
+    descriptionEn: "Ooble's art direction: the plush mascot, stickers, app screens, very little text.",
     posts: [
       {
         id: "oobi-gm", title: "gm.", images: img("serie-18", "111-oobi-gm"),
@@ -2189,12 +2189,12 @@ Bonne journée de la part de toute l'équipe Ooble.
         titleEn: "Nice to meet you",
         captionEn: `Nice to meet you.
 
-Ooble's two rings, in person. You'll see them a lot around here.
+Ooble's mascot, soft and fluffy. You'll see it a lot around here.
 
 #Ooble #USDC #CryptoCanada`,
         caption: `Enchanté.
 
-Les deux anneaux d'Ooble, en personne. Vous allez les voir souvent par ici.
+La mascotte d'Ooble, toute douce. Vous allez la voir souvent par ici.
 
 #Ooble #USDC #CryptoCanada`,
       },
