@@ -54,7 +54,8 @@ const CSS = `
 .st-frame img, .st-frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .3s }
 .st-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35) 0%, transparent 30%, transparent 50%, rgba(0,0,0,.82) 100%); opacity: .0; transition: opacity .4s }
 .st-card:hover .st-shade, .st-card:focus-visible .st-shade { opacity: 1 }
-.st-meta { padding: 12px 4px 0 }
+.st-meta { position: absolute; left: 16px; right: 16px; bottom: 14px; transform: translateY(12px); opacity: 0; transition: transform .5s var(--e), opacity .35s }
+.st-card:hover .st-meta, .st-card:focus-visible .st-meta { transform: none; opacity: 1 }
 .st-num { position: absolute; top: 12px; left: 12px; padding: 5px 10px; border-radius: 99px; background: rgba(10,10,10,.6); color: #fff; font-size: 12px; font-weight: 500 }
 .st-quick { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; opacity: 0; transform: translateY(-8px); transition: opacity .3s, transform .45s var(--e) }
 .st-card:hover .st-quick, .st-card:focus-within .st-quick { opacity: 1; transform: none }
@@ -80,7 +81,7 @@ const CSS = `
 .st-slide { animation: st-in .45s var(--e) }
 @keyframes st-in { from { opacity: .2; transform: scale(.97) } }
 @media (max-width: 980px) { .st-hero { grid-template-columns: 1fr; height: auto; padding: 36px 0 } .st-stack { height: 360px } .st-modal { grid-template-columns: 1fr } }
-@media (hover: none) { .st-quick { display: none } }
+@media (hover: none) { .st-meta, .st-shade { opacity: 1; transform: none } .st-quick { display: none } }
 /* Téléphone : pas de cadre, le studio est posé sur le fond de la page ; la vitrine passe au-dessus des cartes, la fenêtre prend tout l'écran. */
 @media (max-width: 640px) {
   .st { background: transparent; border-radius: 0; margin: 0; overflow: visible }
@@ -421,16 +422,17 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
             </div>
           : <img key={post.images[i]} src={post.images[i]} alt={post.title} loading="lazy" />}
         {post.video && <video ref={vid} src={post.video} muted loop playsInline preload="none" aria-hidden style={{ opacity: playing ? 1 : 0 }} />}
+        <div className="st-shade" />
+        <span className="st-num">{String(n).padStart(2, "0")}{post.highlight ? " · à la une" : post.format === "reel" ? " · reel" : post.format === "story" ? (post.video ? " · story vidéo" : many ? ` · story · ${post.images.length} pages` : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
         <div className="st-quick" onClick={(ev) => ev.stopPropagation()} onPointerEnter={() => preload(filesOf(post))} onTouchStart={() => preload(filesOf(post))}>
           <button type="button" className="st-q" aria-label="Copier la légende" title="Copier la légende" onClick={() => copy(post.id, post.caption)}>{done === post.id ? <Check size={16} /> : <Copy size={16} />}</button>
           <button type="button" className="st-q" aria-label="Télécharger" title="Télécharger" onClick={() => void downloadAll(filesOf(post))}><Download size={16} /></button>
         </div>
         {many && <div className="st-dots">{post.images.map((_, k) => <span key={k} style={{ width: 5, height: 5, borderRadius: 9, background: k === i ? "#fff" : "rgba(255,255,255,.45)" }} />)}</div>}
-      </div>
-      {/* Le titre sous l'image, jamais dessus : les images ont déjà leur propre texte. */}
-      <div className="st-meta">
-        <p style={{ margin: 0, fontSize: 14.5, fontWeight: 600, lineHeight: 1.3, color: K.t1 }}>{post.title}</p>
-        <p style={{ margin: "3px 0 0", fontSize: 12.5, color: K.t3 }}>{String(n).padStart(2, "0")} · {post.highlight ? `${post.images.length} couvertures à la une` : post.format === "reel" ? "reel" : post.format === "story" ? (post.video ? "story vidéo" : many ? `story en ${post.images.length} pages` : "story") : many ? `carrousel · ${post.images.length} images` : "image"}</p>
+        <div className="st-meta">
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: "#fff" }}>{post.title}</p>
+          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "rgba(255,255,255,.75)" }}>{post.highlight ? `${post.images.length} couvertures à la une` : <>Jour {n} · {post.format === "reel" ? "reel" : post.format === "story" ? (post.video ? "story vidéo" : many ? `story en ${post.images.length} pages` : "story") : many ? "carrousel" : "image"}</>}</p>
+        </div>
       </div>
     </div>
   );
