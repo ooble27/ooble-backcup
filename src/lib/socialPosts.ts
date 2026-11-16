@@ -364,8 +364,8 @@ Une autre question ? Écrivez-nous en message privé.
     id: "serie-3",
     title: "Série 3 · Bien utiliser l'USDC",
     titleEn: "Series 3 · Using USDC well",
-    descriptionEn: "What USDC is for, finding your wallet address, the team, business and the launch.",
-    description: "À quoi sert l'USDC, trouver l'adresse de son portefeuille, l'équipe, les entreprises et le lancement.",
+    descriptionEn: "What USDC is for, finding your wallet address, the team and business.",
+    description: "À quoi sert l'USDC, trouver l'adresse de son portefeuille, l'équipe et les entreprises.",
     posts: [
       {
         id: "dollars-americains", title: "Des dollars américains, sans compte américain", images: img("serie-3", "13-dollars-americains"),

@@ -106,9 +106,11 @@ const CSS = `
   .st-card { flex-basis: 58vw }
   .st-foot { padding: 30px 0 10px !important }
   .st-dock { bottom: calc(12px + env(safe-area-inset-bottom, 0px)) }
-  .st-dock > div { width: 100%; flex-wrap: wrap; border-radius: 24px; justify-content: space-between }
-  .st-dock label { min-width: 0 !important; flex: 1 1 100% }
-  .st-chip { flex: 1; padding: 0 10px }
+  /* Sur téléphone : pas de champ de recherche, les filtres sur une seule ligne qu'on fait défiler. */
+  .st-dock > div { max-width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 2px; padding: 4px }
+  .st-dock > div::-webkit-scrollbar { display: none }
+  .st-dock label { display: none !important }
+  .st-chip { flex: 0 0 auto; height: 34px; padding: 0 13px; font-size: 13px }
   .st-veil { padding: 0; align-items: stretch }
   .st-modal { display: block; max-height: 100dvh; height: 100dvh; overflow-y: auto; border-radius: 0; -webkit-overflow-scrolling: touch }
   .st-stage { justify-content: flex-start }
