@@ -14,7 +14,7 @@ import { SOCIAL_LINKS } from "@/lib/socialLinks";
 
 export const SITE = "https://ooble.ca";
 // Le paramètre force WhatsApp, Facebook et iMessage à recharger l'image après un changement.
-const OG_IMAGE = `${SITE}/og-image.png?v=usdc`;
+const OG_IMAGE: Record<Lang, string> = { fr: `${SITE}/og-image.png?v=usdc`, en: `${SITE}/og-image-en.png?v=usdc` };
 const LOCALE: Record<Lang, string> = { fr: "fr_CA", en: "en_CA" };
 
 type Json = Record<string, unknown>;
@@ -319,7 +319,7 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 /** Balises <head> de la page (repérées par data-seo pour être remplacées). */
 export function seoHeadHtml(seo: Seo, lang: Lang): string {
   const url = urlFor(seo.path, lang);
-  const image = seo.image ?? OG_IMAGE;
+  const image = seo.image ?? OG_IMAGE[lang];
   const tags = [
     `<meta data-seo name="description" content="${esc(seo.description)}">`,
     seo.noindex ? `<meta data-seo name="robots" content="noindex, nofollow">` : `<meta data-seo name="robots" content="index, follow, max-image-preview:large">`,

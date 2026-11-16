@@ -16,6 +16,8 @@
     2. Capturer ce HTML depuis le dossier scripts/ (les pièces sont lues dans
        ../public/coins/) en 1200×630, device scale 1, avec un navigateur headless.
     3. Enregistrer le résultat dans public/og-image.png.
+    4. Version anglaise : capturer og-image.html?en et l'enregistrer dans
+       public/og-image-en.png.
 -->
 <!doctype html>
 <html>
@@ -143,6 +145,11 @@
   .n3 { left: 153px; bottom: -17px; }
   .n4 { left: -17px; top: 153px; }
 
+  /* Langue : og-image.html (français) ou og-image.html?en (anglais). */
+  .en { display: none; }
+  html.lang-en .en { display: revert; }
+  html.lang-en .fr { display: none; }
+
   .domain {
     position: absolute;
     right: 36px;
@@ -154,6 +161,7 @@
 </style>
 </head>
 <body>
+  <script>if (location.search.indexOf("en") > -1) document.documentElement.className = "lang-en";</script>
   <div class="panel-left">
     <div class="logo">
       <span class="logo-mark">
@@ -166,11 +174,13 @@
     </div>
 
     <div class="left-content">
-      <h1>Achetez et<br />vendez de l'USDC<br /><span class="accent">en dollars canadiens</span></h1>
-      <p class="sub">Payez par Interac. Vos USDC arrivent directement dans votre portefeuille. Ooble ne garde aucun solde.</p>
+      <h1 class="fr">Achetez et<br />vendez de l'USDC<br /><span class="accent">en dollars canadiens</span></h1>
+      <h1 class="en">Buy and<br />sell USDC<br /><span class="accent">with Canadian dollars</span></h1>
+      <p class="sub fr">Payez par Interac. Vos USDC arrivent directement dans votre portefeuille. Ooble ne garde aucun solde.</p>
+      <p class="sub en">Pay with Interac. Your USDC go straight to your wallet. Ooble never holds a balance.</p>
       <div class="badges">
         <span class="badge"><span class="dot"></span>Interac e-Transfer</span>
-        <span class="badge"><span class="dot"></span>4 réseaux</span>
+        <span class="badge"><span class="dot"></span><span class="fr">4 réseaux</span><span class="en">4 networks</span></span>
         <span class="badge"><span class="dot"></span>Non-custodial</span>
       </div>
     </div>
