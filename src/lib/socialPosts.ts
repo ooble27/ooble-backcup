@@ -2598,4 +2598,163 @@ La référence, le montant et le destinataire se copient d'un geste depuis votre
       },
     ],
   },
+  {
+    id: "serie-22",
+    title: "Série 22 · Signature, le quotidien",
+    titleEn: "Series 22 · Signature, everyday",
+    description: "La peluche au fil de la semaine : quiz, lundi, vendredi, week-end, et les règles qui protègent.",
+    descriptionEn: "The plush through the week: quiz, Monday, Friday, weekend, and the rules that protect you.",
+    posts: [
+      {
+        id: "quiz-usdc", title: "Quiz : 1 USDC vaut…", images: img("serie-22", "146-quiz"),
+        titleEn: "Quiz: 1 USDC is worth…",
+        captionEn: `Quiz: 1 USDC is worth…
+
+A. C$1
+B. US$1
+C. Depends on the day
+
+Answer: B. Comment before you peek.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Quiz : 1 USDC vaut…
+
+A. 1 $ CA
+B. 1 $ US
+C. Ça dépend du jour
+
+Réponse : B. Répondez en commentaire avant de regarder.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "jamais", title: "Ce qu'on ne fait jamais", images: img("serie-22", "147-jamais"),
+        titleEn: "What we never do",
+        captionEn: `What we never do:
+
+Hold your funds.
+Ask for your secret phrase.
+Promise you returns.
+Rush you by message.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Ce qu'on ne fait jamais :
+
+Garder vos fonds.
+Vous demander votre phrase secrète.
+Vous promettre des gains.
+Vous presser par message.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "weekend", title: "Bon week-end", images: img("serie-22", "148-weekend"),
+        titleEn: "Have a good weekend",
+        captionEn: `Have a good weekend.
+
+We rest. Your USDC too.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bon week-end.
+
+On se repose. Vos USDC aussi.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "vendredi", title: "C'est vendredi", images: img("serie-22", "149-vendredi"),
+        titleEn: "It's Friday",
+        captionEn: `It's Friday.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `C'est vendredi.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "vendre-simple", title: "Vendre, aussi simple", images: img("serie-22", "150-vendre"),
+        titleEn: "Selling, just as simple",
+        captionEn: `Selling, just as simple.
+
+Send your USDC, get your dollars by Interac.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Vendre, aussi simple.
+
+Envoyez vos USDC, recevez vos dollars par Interac.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "mefiez-vous", title: "Méfiez-vous des faux courriels", images: img("serie-22", "151-mefiez-vous"),
+        titleEn: "Watch out for fake emails",
+        captionEn: `Watch out for fake emails.
+
+Our emails only come from @ooble.ca. No one at Ooble will ever ask for your secret phrase.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Méfiez-vous des faux courriels.
+
+Nos courriels viennent seulement de @ooble.ca. Personne chez Ooble ne vous demandera votre phrase secrète.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "meme-nom", title: "Le même nom", images: img("serie-22", "152-a-votre-nom"),
+        titleEn: "The same name",
+        captionEn: `The same name.
+
+The Interac transfer must come from a bank account in your name, the same as your Ooble account.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Le même nom.
+
+Le virement Interac doit venir d'un compte bancaire à votre nom, le même que votre compte Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "cent-pres", title: "Au cent près", images: img("serie-22", "153-montant-exact"),
+        titleEn: "To the cent",
+        captionEn: `To the cent.
+
+Send exactly the amount shown in your order.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Au cent près.
+
+Envoyez exactement le montant affiché dans votre ordre.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "lundi", title: "Lundi", images: img("serie-22", "154-lundi"),
+        titleEn: "Monday",
+        captionEn: `Monday. Waking up slowly.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Lundi. On se réveille doucement.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "merci", title: "Merci d'être là", images: img("serie-22", "155-merci"),
+        titleEn: "Thanks for being here",
+        captionEn: `Thanks for being here.
+
+We are building Ooble with you.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Merci d'être là.
+
+On construit Ooble avec vous.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];
