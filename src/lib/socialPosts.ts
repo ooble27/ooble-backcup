@@ -32,13 +32,19 @@ export interface SocialSeries {
   posts: SocialPost[];
 }
 
-const img = (serie: string, ...names: string[]) => names.map((n) => `/social/${serie}/${n}.png`);
-const vid = (serie: string, name: string) => `/social/${serie}/${name}.mp4`;
+/**
+ * Version des images et vidéos du studio, ajoutée à leur adresse (?v=…). À changer chaque fois qu'on
+ * remplace un fichier sous le même nom : l'app installée (iPad, iPhone) garde les images en mémoire,
+ * et une nouvelle adresse l'oblige à prendre la nouvelle version tout de suite.
+ */
+export const SOCIAL_ASSET_VERSION = "2026-11-16b";
+const img = (serie: string, ...names: string[]) => names.map((n) => `/social/${serie}/${n}.png?v=${SOCIAL_ASSET_VERSION}`);
+const vid = (serie: string, name: string) => `/social/${serie}/${name}.mp4?v=${SOCIAL_ASSET_VERSION}`;
 
 export type SocialLang = "fr" | "en";
 /** Les images dans la langue choisie : chaque image existe aussi en anglais (suffixe -en). */
-export const imagesFor = (p: SocialPost, lang: SocialLang) => (lang === "en" ? p.images.map((x) => x.replace(/\.png$/, "-en.png")) : p.images);
-export const videoFor = (p: SocialPost, lang: SocialLang) => (p.video && lang === "en" ? p.video.replace(/\.mp4$/, "-en.mp4") : p.video);
+export const imagesFor = (p: SocialPost, lang: SocialLang) => (lang === "en" ? p.images.map((x) => x.replace(/\.png(\?|$)/, "-en.png$1")) : p.images);
+export const videoFor = (p: SocialPost, lang: SocialLang) => (p.video && lang === "en" ? p.video.replace(/\.mp4(\?|$)/, "-en.mp4$1") : p.video);
 export const titleFor = (p: SocialPost, lang: SocialLang) => (lang === "en" && p.titleEn ? p.titleEn : p.title);
 export const captionFor = (p: SocialPost, lang: SocialLang) => (lang === "en" && p.captionEn ? p.captionEn : p.caption);
 

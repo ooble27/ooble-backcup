@@ -138,7 +138,7 @@ function useCopy() {
 /** Les fichiers à télécharger : la vidéo d'une story animée, sinon les images. */
 const filesOf = (p: SocialPost) => (p.video ? [p.video] : p.images);
 
-const nameOf = (src: string) => `ooble-${src.split("/").pop()}`;
+const nameOf = (src: string) => `ooble-${(src.split("/").pop() ?? "").split("?")[0]}`;
 
 /** Les fichiers d'une publication, chargés à l'avance : le partage doit partir tout de suite au toucher. */
 const fileCache = new Map<string, Promise<File>>();
@@ -146,7 +146,7 @@ function loadFile(src: string): Promise<File> {
   let f = fileCache.get(src);
   if (!f) {
     f = fetch(src).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.blob(); })
-      .then((b) => new File([b], nameOf(src), { type: b.type || (src.endsWith(".mp4") ? "video/mp4" : "image/png") }));
+      .then((b) => new File([b], nameOf(src), { type: b.type || (src.split("?")[0].endsWith(".mp4") ? "video/mp4" : "image/png") }));
     f.catch(() => fileCache.delete(src));
     fileCache.set(src, f);
   }
