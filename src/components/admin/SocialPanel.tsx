@@ -51,9 +51,7 @@ const CSS = `
   opacity: 0; transform: translateY(24px); animation: st-up .8s var(--e) forwards }
 @keyframes st-up { to { opacity: 1; transform: none } }
 .st-frame { position: relative; aspect-ratio: 4 / 5; border-radius: 20px; overflow: hidden; background: ${K.s1}; transition: transform .5s var(--e) }
-.st-card:hover .st-frame, .st-card:focus-visible .st-frame { transform: translateY(-6px) }
-.st-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1s var(--e), opacity .6s }
-.st-card:hover .st-frame img { transform: scale(1.08) }
+.st-frame img, .st-frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .3s }
 .st-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35) 0%, transparent 30%, transparent 50%, rgba(0,0,0,.82) 100%); opacity: .0; transition: opacity .4s }
 .st-card:hover .st-shade, .st-card:focus-visible .st-shade { opacity: 1 }
 .st-meta { position: absolute; left: 16px; right: 16px; bottom: 14px; transform: translateY(12px); opacity: 0; transition: transform .5s var(--e), opacity .35s }
@@ -398,9 +396,24 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
   const { post, n } = e;
   const many = post.images.length > 1;
   const i = 0;
+  // Vidéo (reel, story vidéo) : elle joue au survol de la souris, et toute seule au doigt quand la carte est bien visible.
+  const vid = useRef<HTMLVideoElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const play = () => { const v = vid.current; if (!v) return; v.play().then(() => setPlaying(true)).catch(() => undefined); };
+  const stop = () => { const v = vid.current; if (!v) return; v.pause(); v.currentTime = 0; setPlaying(false); };
+  const box = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!post.video || !box.current || !window.matchMedia("(hover: none)").matches || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([en]) => { if (en.intersectionRatio >= 0.7) play(); else stop(); }, { threshold: [0, 0.7] });
+    io.observe(box.current);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.video]);
   return (
-    <div role="button" tabIndex={0} className="st-card" style={{ animationDelay: `${delay}ms` }} onClick={onOpen} aria-label={`Ouvrir ${post.title}`}
+    <div ref={box} role="button" tabIndex={0} className="st-card" style={{ animationDelay: `${delay}ms` }} onClick={onOpen} aria-label={`Ouvrir ${post.title}`}
       onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onOpen(); } }}
+      onPointerEnter={(ev) => { if (post.video && ev.pointerType === "mouse") play(); }}
+      onPointerLeave={(ev) => { if (post.video && ev.pointerType === "mouse") stop(); }}
       >
       <div className="st-frame" style={post.highlight ? { aspectRatio: "9 / 16", background: "#fff" } : post.format ? { aspectRatio: "9 / 16" } : undefined}>
         {post.highlight
@@ -408,6 +421,7 @@ function Card({ e, delay, onOpen, done, copy }: { e: Entry; delay: number; onOpe
               {post.images.map((src) => <span key={src} style={{ width: "23%", aspectRatio: "1", borderRadius: 999, backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center", border: "3px solid #fff", boxShadow: "0 0 0 1.5px #dbdbdb" }} />)}
             </div>
           : <img key={post.images[i]} src={post.images[i]} alt={post.title} loading="lazy" />}
+        {post.video && <video ref={vid} src={post.video} muted loop playsInline preload="none" aria-hidden style={{ opacity: playing ? 1 : 0 }} />}
         <div className="st-shade" />
         <span className="st-num">{String(n).padStart(2, "0")}{post.highlight ? " · à la une" : post.format === "reel" ? " · reel" : post.format === "story" ? (post.video ? " · story vidéo" : many ? ` · story · ${post.images.length} pages` : " · story") : many ? ` · ${post.images.length} images` : ""}</span>
         <div className="st-quick" onClick={(ev) => ev.stopPropagation()} onPointerEnter={() => preload(filesOf(post))} onTouchStart={() => preload(filesOf(post))}>
