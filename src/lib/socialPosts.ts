@@ -2163,4 +2163,212 @@ BNB Chain, Polygon, Solana, Avalanche : choisissez celui de votre portefeuille.
       },
     ],
   },
+  {
+    id: "serie-18",
+    title: "Série 18 · Signature",
+    titleEn: "Series 18 · Signature",
+    description: "La direction artistique d'Ooble : Oobi la mascotte, des autocollants, des écrans de l'app, peu de texte.",
+    descriptionEn: "Ooble's art direction: Oobi the mascot, stickers, app screens, very little text.",
+    posts: [
+      {
+        id: "oobi-gm", title: "gm.", images: img("serie-18", "111-oobi-gm"),
+        titleEn: "gm.",
+        captionEn: `gm.
+
+Have a good day, from Oobi and the whole Ooble team.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `gm.
+
+Bonne journée de la part d'Oobi et de toute l'équipe Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "voici-oobi", title: "Voici Oobi", images: img("serie-18", "112-oobi-salut"),
+        titleEn: "Meet Oobi",
+        captionEn: `Meet Oobi.
+
+Ooble's two rings, in person. You'll see a lot of him around here.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Voici Oobi.
+
+Les deux anneaux d'Ooble, en personne. Vous allez le voir souvent par ici.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "grand-4", title: "4 réseaux", images: img("serie-18", "113-grand-4"),
+        titleEn: "4 networks",
+        captionEn: `4 networks.
+
+BNB Chain, Polygon, Solana, Avalanche. Choose the one your wallet uses.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `4 réseaux.
+
+BNB Chain, Polygon, Solana, Avalanche. Choisissez celui de votre portefeuille.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "app-acheter", title: "Bientôt dans l'app", images: img("serie-18", "114-app-acheter"),
+        titleEn: "Soon in the app",
+        captionEn: `Soon in the app.
+
+The amount in dollars, what you get in USDC, the network. And you pay with Interac.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bientôt dans l'app.
+
+Le montant en dollars, ce que vous recevez en USDC, le réseau. Et vous payez par Interac.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "app-recu", title: "Virement reçu", images: img("serie-18", "115-app-recu"),
+        titleEn: "Transfer received",
+        captionEn: `Transfer received.
+
+Oobi's favourite moment.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Virement reçu.
+
+Le moment préféré d'Oobi.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "retro", title: "Ooble, version rétro", images: img("serie-18", "116-retro"),
+        titleEn: "Ooble, retro edition",
+        captionEn: `Buy. Sell. USDC.
+
+Ooble, retro edition.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Acheter. Vendre. USDC.
+
+Ooble, version rétro.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "plan", title: "Espace de vie idéal", images: img("serie-18", "117-plan"),
+        titleEn: "Ideal living space",
+        captionEn: `Ideal living space.
+
+A room just for your secret phrase. No one goes in, not even Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Espace de vie idéal.
+
+Une pièce rien que pour votre phrase secrète. Personne n'y entre, pas même Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "autocollants", title: "La planche d'autocollants", images: img("serie-18", "118-autocollants"),
+        titleEn: "The sticker sheet",
+        captionEn: `Our sticker sheet.
+
+Which one looks the most like you?
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Notre planche d'autocollants.
+
+Lequel vous ressemble le plus ?
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "oobi-usdc", title: "1 USDC = 1 $ US", images: img("serie-18", "119-oobi-usdc"),
+        titleEn: "1 USDC = US$1",
+        captionEn: `1 USDC = US$1.
+
+A stable digital dollar. Oobi checked.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `1 USDC = 1 $ US.
+
+Un dollar numérique, stable. Oobi l'a vérifié.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "cest-regle", title: "C'est réglé", images: img("serie-18", "120-cest-regle"),
+        titleEn: "All set",
+        captionEn: `All set.
+
+The transfer is out, Oobi is happy.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `C'est réglé.
+
+Le virement est parti, Oobi est content.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
+  {
+    id: "serie-19",
+    title: "Série 19 · Reels signature",
+    titleEn: "Series 19 · Signature reels",
+    description: "Les reels animés dans le style signature, avec Oobi. Sans son : ajouter une musique dans Instagram.",
+    descriptionEn: "Animated reels in the signature style, with Oobi. No sound: add music in Instagram.",
+    posts: [
+      {
+        id: "reel-oobi", title: "Reel · Voici Oobi", format: "reel", seconds: 8, video: vid("serie-19", "121-reel-oobi"), images: img("serie-19", "121-reel-oobi"),
+        titleEn: "Reel · Meet Oobi",
+        captionEn: `Meet Oobi.
+
+He blinks, he says gm, and he's coming soon to ooble.ca.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Voici Oobi.
+
+Il cligne des yeux, il dit gm, et il arrive bientôt sur ooble.ca.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-app", title: "Reel · Un achat, de bout en bout", format: "reel", seconds: 10, video: vid("serie-19", "122-reel-app"), images: img("serie-19", "122-reel-app"),
+        titleEn: "Reel · One purchase, start to finish",
+        captionEn: `One purchase, start to finish.
+
+The amount, the network, you pay with Interac. Transfer received. That's it.
+
+Crypto assets involve risks.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Un achat, de bout en bout.
+
+Le montant, le réseau, on paie par Interac. Virement reçu. C'est tout.
+
+Les cryptoactifs comportent des risques.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-4", title: "Reel · Le grand 4", format: "reel", seconds: 8, video: vid("serie-19", "123-reel-4"), images: img("serie-19", "123-reel-4"),
+        titleEn: "Reel · The big 4",
+        captionEn: `4 networks.
+
+BNB Chain, Polygon, Solana, Avalanche. One USDC.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `4 réseaux.
+
+BNB Chain, Polygon, Solana, Avalanche. Un seul USDC.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];
