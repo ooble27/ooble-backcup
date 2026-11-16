@@ -2766,4 +2766,217 @@ Payez par Interac, même en pyjama.
       },
     ],
   },
+  {
+    id: "serie-23",
+    title: "Série 23 · Signature, encore plus",
+    titleEn: "Series 23 · Signature, even more",
+    description: "La peluche et ses expressions : météo, bulletin, énigme, café, selfie, −20 °C, mode week-end.",
+    descriptionEn: "The plush and its expressions: forecast, report card, riddle, coffee, selfie, −20 °C, weekend mode.",
+    posts: [
+      {
+        id: "meteo", title: "Stable toute la semaine", images: img("serie-23", "157-meteo"),
+        titleEn: "Stable all week",
+        captionEn: `This week's forecast: stable.
+
+Just like USDC. 1 USDC = US$1, Monday to Friday.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Prévisions de la semaine : stable.
+
+Comme l'USDC. 1 USDC = 1 $ US, du lundi au vendredi.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "bulletin", title: "Bulletin parfait", images: img("serie-23", "158-bulletin"),
+        titleEn: "Perfect report card",
+        captionEn: `The plush's report card.
+
+Softness: A+. Clarity: A+. Good mood: A+. Holds your USDC: never.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Le bulletin de la peluche.
+
+Douceur : A+. Clarté : A+. Bonne humeur : A+. Garde vos USDC : jamais.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "enigme", title: "Qui suis-je ?", images: img("serie-23", "159-enigme"),
+        titleEn: "Who am I?",
+        captionEn: `I'm digital, stable, and worth US$1. Who am I?
+
+Answer: USDC. Did you get it?
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Je suis numérique, stable, et je vaux 1 $ US. Qui suis-je ?
+
+Réponse : l'USDC. Vous aviez trouvé ?
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "pas-de-panique", title: "Pas de panique", images: img("serie-23", "160-pas-de-panique"),
+        titleEn: "Don't panic",
+        captionEn: `Don't panic.
+
+Wrong amount or forgot the reference? Your money isn't lost. Write to us with the order reference, we'll take care of it.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Pas de panique.
+
+Mauvais montant ou référence oubliée ? Votre argent n'est pas perdu. Écrivez-nous avec la référence de l'ordre, on s'en occupe.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "conseil-adresse", title: "Les 4 premiers et les 4 derniers", images: img("serie-23", "161-conseil-adresse"),
+        titleEn: "The first 4 and the last 4",
+        captionEn: `Tip of the day: check the first 4 and the last 4 characters of the address before every transfer.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Conseil du jour : vérifiez les 4 premiers et les 4 derniers caractères de l'adresse avant chaque envoi.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "premier-achat-avant-apres", title: "Votre premier achat", images: img("serie-23", "162-premier-achat"),
+        titleEn: "Your first purchase",
+        captionEn: `Your first purchase: before, during, after.
+
+Spoiler: it goes well.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Votre premier achat : avant, pendant, après.
+
+Spoiler : ça se passe bien.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "mauvais-reseau", title: "Jamais sur un autre réseau", images: img("serie-23", "163-mauvais-reseau"),
+        titleEn: "Never on another network",
+        captionEn: `Never on another network.
+
+Send your USDC on the network chosen in Ooble, and only that one. Another network would mean losing the funds.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Jamais sur un autre réseau.
+
+Envoyez vos USDC sur le réseau choisi dans Ooble, et seulement celui-là. Un autre réseau entraînerait la perte des fonds.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "interac-coeur", title: "Notre façon de payer préférée", images: img("serie-23", "164-interac-coeur"),
+        titleEn: "Our favourite way to pay",
+        captionEn: `Our favourite way to pay: Interac e-Transfer, from your bank's app.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Notre façon de payer préférée : le virement Interac, depuis l'app de votre banque.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "gros-plan", title: "Bonjour", images: img("serie-23", "165-gros-plan"),
+        titleEn: "Hello",
+        captionEn: `Hello. Mind if we get a little closer?
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Bonjour. On se rapproche un peu ?
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "fond-ecran", title: "Fond d'écran offert", images: img("serie-23", "166-fond-ecran"),
+        titleEn: "Free wallpaper",
+        captionEn: `Free wallpaper.
+
+Save the image and put it on your phone. Which one is your favourite?
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Fond d'écran offert.
+
+Enregistrez l'image et mettez-la sur votre téléphone. Laquelle est votre préférée ?
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "cafe", title: "D'abord un café", images: img("serie-23", "167-cafe"),
+        titleEn: "Coffee first",
+        captionEn: `Coffee first. Then, we check the network.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `D'abord un café. Ensuite, on vérifie le réseau.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "virement-reconnu", title: "Quand le virement est reconnu", images: img("serie-23", "168-virement-reconnu"),
+        titleEn: "When the transfer is matched",
+        captionEn: `When the transfer is matched.
+
+Exact amount + reference in the message = matched automatically.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Quand le virement est reconnu.
+
+Montant exact + référence dans le message = reconnu tout seul.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "taux-garanti", title: "Le taux est garanti 15 minutes", images: img("serie-23", "169-taux-garanti"),
+        titleEn: "The rate is locked for 15 minutes",
+        captionEn: `The rate is locked for 15 minutes.
+
+Time to pay, no surprises.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Le taux est garanti 15 minutes.
+
+Le temps de payer, sans surprise.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "selfie", title: "Une pièce d'identité et un selfie", images: img("serie-23", "170-selfie"),
+        titleEn: "A photo ID and a selfie",
+        captionEn: `A photo ID and a selfie.
+
+Verification happens once, to protect your account.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Une pièce d'identité et un selfie.
+
+La vérification se fait une seule fois, pour protéger votre compte.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "moins-vingt", title: "Vos USDC n'ont pas froid", images: img("serie-23", "171-moins-vingt"),
+        titleEn: "Your USDC aren't cold",
+        captionEn: `−20 °C outside.
+
+Your USDC are warm and cozy in your wallet.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `−20 °C dehors.
+
+Vos USDC, eux, sont bien au chaud dans votre portefeuille.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "mode-weekend", title: "Mode week-end activé", images: img("serie-23", "172-mode-weekend"),
+        titleEn: "Weekend mode on",
+        captionEn: `Weekend mode on.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Mode week-end activé.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];
