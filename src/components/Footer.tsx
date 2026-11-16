@@ -3,6 +3,13 @@ import { useT } from "@/lib/i18n";
 import { FINTRAC_MSB_NUMBER } from "@/lib/legal";
 import Logo from "./Logo";
 import { CanadaFlag, InteracLogo } from "./marks";
+import { SOCIAL_LINKS } from "@/lib/socialLinks";
+
+/** Icônes des réseaux, au trait, dans la couleur du texte. */
+const SOCIAL_ICON: Record<string, string> = {
+  instagram: "M7.5 3.5h9a4 4 0 0 1 4 4v9a4 4 0 0 1-4 4h-9a4 4 0 0 1-4-4v-9a4 4 0 0 1 4-4zM8.5 12a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0M17 7h.01",
+  facebook: "M14 8h2.5V4.5H14A4 4 0 0 0 10 8.5V11H7.5v3.5H10V21h3.5v-6.5H16l.5-3.5h-3v-2.2c0-.5.3-.8.8-.8z",
+};
 
 const Footer = () => {
   const t = useT();
@@ -79,6 +86,23 @@ const Footer = () => {
           <span>
             FINTRAC <span className="font-medium tabular-nums text-foreground/80">{FINTRAC_MSB_NUMBER}</span>
           </span>
+          <div className="ml-auto flex items-center gap-1">
+            {SOCIAL_LINKS.map((s) => (
+              <a
+                key={s.id}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Ooble ${s.label}`}
+                title={s.label}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              >
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d={SOCIAL_ICON[s.id]} />
+                </svg>
+              </a>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col gap-4 py-8 sm:flex-row sm:items-start sm:justify-between">

@@ -3,6 +3,7 @@ import { COMPANY_ADDRESS, COMPANY_LEGAL_NAME, FINTRAC_MSB_NUMBER } from "@/lib/l
 import { GUIDES, guideKey, guideMedia } from "@/lib/guides";
 import { t } from "@/lib/translations";
 import { withEn, type Lang } from "@/lib/i18n";
+import { SOCIAL_LINKS } from "@/lib/socialLinks";
 
 /*
  * Référencement : titre, description, adresse canonique, versions FR / EN
@@ -166,6 +167,7 @@ const ORG: Json = {
   url: `${SITE}/`,
   logo: `${SITE}/icons/icon-512.png`,
   email: "support@ooble.ca",
+  sameAs: SOCIAL_LINKS.map((s) => s.url),
   areaServed: { "@type": "Country", name: "Canada" },
   legalName: COMPANY_LEGAL_NAME,
   address: {
