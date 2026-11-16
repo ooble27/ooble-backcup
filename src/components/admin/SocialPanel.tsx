@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronLeft, ChevronRight, Clapperboard, Copy, Download, GalleryHorizontal, Heart, Image as ImageIcon, LayoutGrid, MessageCircle, Search, Send, Smartphone, X } from "lucide-react";
 import { FONT } from "./adminTheme";
-import { SOCIAL_BIO, SOCIAL_BIO_EN, SOCIAL_RULES, SOCIAL_SERIES, captionFor, imagesFor, titleFor, videoFor, type SocialLang, type SocialPost } from "@/lib/socialPosts";
+import { SOCIAL_BIO, SOCIAL_BIO_EN, SOCIAL_GROUPS, SOCIAL_RULES, SOCIAL_SERIES, captionFor, imagesFor, titleFor, videoFor, type SocialLang, type SocialPost } from "@/lib/socialPosts";
 
 /**
  * Studio des réseaux sociaux : fond noir en mode sombre, clair en mode clair ; sur téléphone, sans cadre :
@@ -45,6 +45,10 @@ const CSS = `
 .st-pill { height: 46px; padding: 0 20px; border-radius: 999px; border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 9px; transition: transform .2s var(--e), background .2s, opacity .2s }
 .st-pill:hover { transform: translateY(-2px) } .st-pill:active { transform: scale(.97) }
 .st-rail-h { display: flex; align-items: flex-end; gap: 16px; padding: 0 32px; margin: 44px 0 16px }
+.st-group { margin-top: 64px }
+.st-group-h { display: flex; align-items: baseline; gap: 14px; padding: 0 32px 14px; border-bottom: 1px solid ${mix("var(--a-t1)", 12)} }
+.st-group-h h2 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; color: ${K.t1} }
+.st-group-h span { font-size: 13.5px; color: ${K.t3} }
 .st-rail { display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 32px; padding: 10px 32px 30px; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain }
 .st-rail::-webkit-scrollbar { display: none }
 .st-card { flex: 0 0 clamp(200px, 17vw, 240px); scroll-snap-align: start; position: relative; border: none; padding: 0; background: none; cursor: pointer; text-align: left; font-family: inherit; color: inherit;
@@ -99,6 +103,9 @@ const CSS = `
   .st-sheet[data-pos="1"] { transform: translateX(86px) rotate(8deg) scale(.86) }
   .st-sheet[data-pos="2"] { transform: translateX(-86px) rotate(-8deg) scale(.86) }
   .st-rail-h { padding: 0; margin: 32px 0 12px; flex-wrap: wrap }
+  .st-group { margin-top: 48px }
+  .st-group-h { padding: 0 0 12px }
+  .st-group-h h2 { font-size: 26px }
   .st-rail-h .st-arrow { display: none }
   .st-rail { margin: 0 -16px; padding: 6px 16px 24px; scroll-padding: 0 16px; gap: 12px }
   .st-rail-h h3 { font-size: 19px !important }
@@ -574,6 +581,12 @@ export default function SocialPanel() {
     (kind === "all" || (kind === "story" || kind === "reel" ? e.post.format === kind : !e.post.format && (kind === "carousel" ? e.post.images.length > 1 : e.post.images.length === 1)))
     && (!q.trim() || norm(`${e.post.title} ${e.post.caption}`).includes(norm(q.trim())));
   const rails = SERIES.map((s) => ({ s, items: flat.filter((e) => e.serieId === s.id && match(e)) })).filter((r) => r.items.length);
+  // Les séries regroupées par rubrique (la peluche ensemble, Interac ensemble…), dans l'ordre des rubriques.
+  const grouped = useMemo(() => {
+    const known = new Set(SOCIAL_GROUPS.flatMap((g) => g.series));
+    const groups = [...SOCIAL_GROUPS, { id: "autres", title: "Autres", titleEn: "Other", series: SERIES.map((s) => s.id).filter((id) => !known.has(id)) }];
+    return groups.map((g) => ({ g, rails: g.series.map((id) => rails.find((r) => r.s.id === id)).filter((r): r is (typeof rails)[number] => !!r) })).filter((x) => x.rails.length);
+  }, [rails]);
   const openEntry = (e: Entry) => setOpen(flat.indexOf(e));
   const carousels = flat.filter((e) => e.post.images.length > 1).length;
 
@@ -612,8 +625,16 @@ export default function SocialPanel() {
 
       <Hero items={featured} onOpen={openEntry} done={done} copy={copy} />
 
-      {rails.map(({ s, items }, r) => (
-        <Rail key={s.id + kind + q} title={s.title.split(" · ")[1] ?? s.title} sub={`${s.title.split(" · ")[0]} · ${s.description}`} items={items} reverse={r % 2 === 1} onOpen={openEntry} done={done} copy={copy} />
+      {grouped.map(({ g, rails: gr }) => (
+        <section key={g.id} className="st-group" aria-label={lang === "en" ? g.titleEn : g.title}>
+          <div className="st-group-h">
+            <h2>{lang === "en" ? g.titleEn : g.title}</h2>
+            <span>{gr.reduce((n, r) => n + r.items.length, 0)} {lang === "en" ? "posts" : "publications"}</span>
+          </div>
+          {gr.map(({ s, items }, r) => (
+            <Rail key={s.id + kind + q} title={s.title.split(" · ")[1] ?? s.title} sub={`${s.title.split(" · ")[0]} · ${s.description}`} items={items} reverse={r % 2 === 1} onOpen={openEntry} done={done} copy={copy} />
+          ))}
+        </section>
       ))}
       {!rails.length && <p style={{ textAlign: "center", color: K.t3, fontSize: 14, margin: "60px 0" }}>Aucune publication ne correspond à « {q} ».</p>}
 

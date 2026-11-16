@@ -65,6 +65,22 @@ export const SOCIAL_BIO = `Achetez et vendez de l'USDC en dollars canadiens
 Paiement par Interac · 4 réseaux
 ooble.ca`;
 
+/**
+ * Les rubriques du studio : chaque série appartient à une rubrique, et le studio affiche les rubriques
+ * dans cet ordre, leurs séries regroupées dessous. Toute nouvelle série doit être ajoutée ici, dans la
+ * bonne rubrique (les affiches avant les reels) ; une série oubliée tombe dans « Autres », à la fin.
+ */
+export interface SocialGroup { id: string; title: string; titleEn: string; series: string[] }
+export const SOCIAL_GROUPS: SocialGroup[] = [
+  { id: "peluche", title: "La peluche", titleEn: "The plush", series: ["serie-18", "serie-20", "serie-22", "serie-23", "serie-19", "serie-21", "serie-24"] },
+  { id: "decouvrir", title: "Découvrir Ooble", titleEn: "Discover Ooble", series: ["serie-1", "serie-3", "serie-9", "serie-10"] },
+  { id: "payer", title: "Acheter, vendre, payer", titleEn: "Buy, sell, pay", series: ["serie-11", "serie-13", "serie-4"] },
+  { id: "securite", title: "Sécurité et conseils", titleEn: "Safety and tips", series: ["serie-2", "serie-7", "serie-5", "serie-6"] },
+  { id: "stories", title: "Stories et stories à la une", titleEn: "Stories and highlights", series: ["serie-15", "serie-16", "serie-8", "serie-14"] },
+  { id: "motion", title: "Motion design", titleEn: "Motion design", series: ["serie-17"] },
+  { id: "occasions", title: "Occasions", titleEn: "Occasions", series: ["serie-12"] },
+];
+
 export const SOCIAL_SERIES: SocialSeries[] = [
   {
     id: "serie-1",
