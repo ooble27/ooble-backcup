@@ -37,7 +37,7 @@ export interface SocialSeries {
  * remplace un fichier sous le même nom : l'app installée (iPad, iPhone) garde les images en mémoire,
  * et une nouvelle adresse l'oblige à prendre la nouvelle version tout de suite.
  */
-export const SOCIAL_ASSET_VERSION = "2026-11-16c";
+export const SOCIAL_ASSET_VERSION = "2026-11-17a";
 const img = (serie: string, ...names: string[]) => names.map((n) => `/social/${serie}/${n}.png?v=${SOCIAL_ASSET_VERSION}`);
 const vid = (serie: string, name: string) => `/social/${serie}/${name}.mp4?v=${SOCIAL_ASSET_VERSION}`;
 
