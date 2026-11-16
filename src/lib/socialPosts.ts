@@ -2167,34 +2167,34 @@ BNB Chain, Polygon, Solana, Avalanche : choisissez celui de votre portefeuille.
     id: "serie-18",
     title: "Série 18 · Signature",
     titleEn: "Series 18 · Signature",
-    description: "La direction artistique d'Ooble : Oobi la mascotte, des autocollants, des écrans de l'app, peu de texte.",
-    descriptionEn: "Ooble's art direction: Oobi the mascot, stickers, app screens, very little text.",
+    description: "La direction artistique d'Ooble : la mascotte aux deux anneaux, des autocollants, des écrans de l'app, peu de texte.",
+    descriptionEn: "Ooble's art direction: the two-ring mascot, stickers, app screens, very little text.",
     posts: [
       {
         id: "oobi-gm", title: "gm.", images: img("serie-18", "111-oobi-gm"),
         titleEn: "gm.",
         captionEn: `gm.
 
-Have a good day, from Oobi and the whole Ooble team.
+Have a good day, from the whole Ooble team.
 
 #Ooble #USDC #CryptoCanada`,
         caption: `gm.
 
-Bonne journée de la part d'Oobi et de toute l'équipe Ooble.
+Bonne journée de la part de toute l'équipe Ooble.
 
 #Ooble #USDC #CryptoCanada`,
       },
       {
-        id: "voici-oobi", title: "Voici Oobi", images: img("serie-18", "112-oobi-salut"),
-        titleEn: "Meet Oobi",
-        captionEn: `Meet Oobi.
+        id: "voici-oobi", title: "Enchanté", images: img("serie-18", "112-oobi-salut"),
+        titleEn: "Nice to meet you",
+        captionEn: `Nice to meet you.
 
-Ooble's two rings, in person. You'll see a lot of him around here.
+Ooble's two rings, in person. You'll see them a lot around here.
 
 #Ooble #USDC #CryptoCanada`,
-        caption: `Voici Oobi.
+        caption: `Enchanté.
 
-Les deux anneaux d'Ooble, en personne. Vous allez le voir souvent par ici.
+Les deux anneaux d'Ooble, en personne. Vous allez les voir souvent par ici.
 
 #Ooble #USDC #CryptoCanada`,
       },
@@ -2235,12 +2235,12 @@ Les cryptoactifs comportent des risques.
         titleEn: "Transfer received",
         captionEn: `Transfer received.
 
-Oobi's favourite moment.
+Our favourite moment.
 
 #Ooble #USDC #CryptoCanada`,
         caption: `Virement reçu.
 
-Le moment préféré d'Oobi.
+Notre moment préféré.
 
 #Ooble #USDC #CryptoCanada`,
       },
@@ -2291,12 +2291,12 @@ Lequel vous ressemble le plus ?
         titleEn: "1 USDC = US$1",
         captionEn: `1 USDC = US$1.
 
-A stable digital dollar. Oobi checked.
+A stable digital dollar.
 
 #Ooble #USDC #CryptoCanada`,
         caption: `1 USDC = 1 $ US.
 
-Un dollar numérique, stable. Oobi l'a vérifié.
+Un dollar numérique, stable.
 
 #Ooble #USDC #CryptoCanada`,
       },
@@ -2305,12 +2305,12 @@ Un dollar numérique, stable. Oobi l'a vérifié.
         titleEn: "All set",
         captionEn: `All set.
 
-The transfer is out, Oobi is happy.
+The transfer is out.
 
 #Ooble #USDC #CryptoCanada`,
         caption: `C'est réglé.
 
-Le virement est parti, Oobi est content.
+Le virement est parti.
 
 #Ooble #USDC #CryptoCanada`,
       },
@@ -2320,20 +2320,20 @@ Le virement est parti, Oobi est content.
     id: "serie-19",
     title: "Série 19 · Reels signature",
     titleEn: "Series 19 · Signature reels",
-    description: "Les reels animés dans le style signature, avec Oobi. Sans son : ajouter une musique dans Instagram.",
-    descriptionEn: "Animated reels in the signature style, with Oobi. No sound: add music in Instagram.",
+    description: "Les reels animés dans le style signature, avec la mascotte. Sans son : ajouter une musique dans Instagram.",
+    descriptionEn: "Animated reels in the signature style, with the mascot. No sound: add music in Instagram.",
     posts: [
       {
-        id: "reel-oobi", title: "Reel · Voici Oobi", format: "reel", seconds: 8, video: vid("serie-19", "121-reel-oobi"), images: img("serie-19", "121-reel-oobi"),
-        titleEn: "Reel · Meet Oobi",
-        captionEn: `Meet Oobi.
+        id: "reel-oobi", title: "Reel · Enchanté", format: "reel", seconds: 8, video: vid("serie-19", "121-reel-oobi"), images: img("serie-19", "121-reel-oobi"),
+        titleEn: "Reel · Nice to meet you",
+        captionEn: `Nice to meet you.
 
-He blinks, he says gm, and he's coming soon to ooble.ca.
+A blink, a gm, and Ooble is coming soon to ooble.ca.
 
 #Ooble #USDC #CryptoCanada`,
-        caption: `Voici Oobi.
+        caption: `Enchanté.
 
-Il cligne des yeux, il dit gm, et il arrive bientôt sur ooble.ca.
+Un clin d'œil, un gm, et Ooble arrive bientôt sur ooble.ca.
 
 #Ooble #USDC #CryptoCanada`,
       },
