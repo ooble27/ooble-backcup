@@ -26,28 +26,42 @@ async function latestId(): Promise<string | null> {
   }
 }
 
-// Garde-fou : une seule tentative par version (si un cache réseau servait encore l'ancienne page,
-// on ne recharge pas en boucle).
+// Garde-fou : trois tentatives au plus par version, espacées d'une minute. Juste après une publication,
+// le réseau peut encore servir l'ancienne page quelques instants : on réessaie au lieu de rester bloqué,
+// sans jamais recharger en boucle.
 const TRIED = "ooble.freshness.tried";
+const MAX_TRIES = 3, RETRY_AFTER = 60_000;
 let target: string | null = null;
+type Tried = { id: string; n: number; at: number };
+const readTried = (): Tried | null => {
+  try { const v = JSON.parse(sessionStorage.getItem(TRIED) || "null"); return v && typeof v.id === "string" ? v as Tried : null; } catch { return null; }
+};
 const reload = () => {
-  try { if (target) sessionStorage.setItem(TRIED, target); } catch { /* stockage indisponible */ }
-  window.location.reload();
+  const prev = readTried();
+  try { if (target) sessionStorage.setItem(TRIED, JSON.stringify({ id: target, n: prev && prev.id === target ? prev.n + 1 : 1, at: Date.now() })); } catch { /* stockage indisponible */ }
+  // Adresse légèrement différente : le navigateur redemande la page au lieu de reprendre sa copie en mémoire.
+  const u = new URL(window.location.href); u.searchParams.set("v", target ?? String(Date.now()));
+  window.location.replace(u.toString());
 };
 
 async function check() {
   if (pending) return;
   const id = await latestId();
   if (!id || id === __BUILD_ID__) return;
-  let tried: string | null = null;
-  try { tried = sessionStorage.getItem(TRIED); } catch { /* stockage indisponible */ }
-  if (tried === id) return;
+  const tried = readTried();
+  if (tried && tried.id === id && (tried.n >= MAX_TRIES || Date.now() - tried.at < RETRY_AFTER)) return;
   target = id;
   pending = true;
 }
 
 export function startFreshnessCheck() {
   if (import.meta.env.DEV || typeof window === "undefined") return;
+
+  // Après un rechargement forcé, on retire le petit paramètre « v » de l'adresse.
+  try {
+    const u = new URL(window.location.href);
+    if (u.searchParams.has("v")) { u.searchParams.delete("v"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); }
+  } catch { /* adresse inhabituelle : on laisse tel quel */ }
 
   // Fichier de l'ancienne version introuvable après une publication (page gardée en mémoire) : on
   // recharge une fois sur la nouvelle version au lieu de laisser un écran vide.

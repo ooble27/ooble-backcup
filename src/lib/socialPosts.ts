@@ -2667,4 +2667,97 @@ On construit Ooble avec vous.
       },
     ],
   },
+  {
+    id: "serie-21",
+    title: "Série 21 · Reels de la peluche",
+    titleEn: "Series 21 · Plush reels",
+    description: "La peluche animée en 3D : elle saute, regarde, dort, dit non, grelotte. Sans son : ajouter une musique dans Instagram.",
+    descriptionEn: "The plush animated in 3D: it jumps, looks around, sleeps, says no, shivers. No sound: add music in Instagram.",
+    posts: [
+      {
+        id: "reel-bonjour", title: "Reel · Bonjour", format: "reel", seconds: 9, video: vid("serie-21", "140-reel-bonjour"), images: img("serie-21", "140-reel-bonjour"),
+        titleEn: "Reel · Hello",
+        captionEn: `Nice to meet you.
+
+A jump, a look, a smile. See you on ooble.ca.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Enchanté.
+
+Un saut, un regard, un sourire. Rendez-vous sur ooble.ca.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-non", title: "Reel · Phrase secrète : non", format: "reel", seconds: 8, video: vid("serie-21", "141-reel-non"), images: img("serie-21", "141-reel-non"),
+        titleEn: "Reel · Secret phrase: no",
+        captionEn: `Can you give me your secret phrase? No.
+
+Nobody needs it. Not even Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Tu peux me donner ta phrase secrète ? Non.
+
+Personne n'en a besoin. Pas même Ooble.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-dodo", title: "Reel · Pendant que vous dormez", format: "reel", seconds: 8.5, video: vid("serie-21", "142-reel-dodo"), images: img("serie-21", "142-reel-dodo"),
+        titleEn: "Reel · While you sleep",
+        captionEn: `While you sleep, your USDC stay in your wallet.
+
+Ooble keeps no balance.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Pendant que vous dormez, vos USDC restent dans votre portefeuille.
+
+Ooble ne garde aucun solde.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-pieces", title: "Reel · 1 USDC = 1 $ US", format: "reel", seconds: 8, video: vid("serie-21", "143-reel-pieces"), images: img("serie-21", "143-reel-pieces"),
+        titleEn: "Reel · 1 USDC = US$1",
+        captionEn: `1 USDC = US$1.
+
+A stable digital dollar.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `1 USDC = 1 $ US.
+
+Un dollar numérique, stable.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-orbite", title: "Reel · Un seul USDC, quatre réseaux", format: "reel", seconds: 8, video: vid("serie-21", "144-reel-orbite"), images: img("serie-21", "144-reel-orbite"),
+        titleEn: "Reel · One USDC, four networks",
+        captionEn: `One USDC. Four networks.
+
+BNB Chain, Polygon, Solana, Avalanche.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Un seul USDC. Quatre réseaux.
+
+BNB Chain, Polygon, Solana, Avalanche.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-hiver", title: "Reel · Prêt pour l'hiver", format: "reel", seconds: 8, video: vid("serie-21", "145-reel-hiver"), images: img("serie-21", "145-reel-hiver"),
+        titleEn: "Reel · Ready for winter",
+        captionEn: `Ready for winter.
+
+Pay with Interac, even in your pyjamas.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Prêt pour l'hiver.
+
+Payez par Interac, même en pyjama.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];

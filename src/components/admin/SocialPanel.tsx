@@ -68,8 +68,8 @@ const CSS = `
 .st-arrow { width: 38px; height: 38px; border-radius: 99px; border: none; background: var(--a-l2); color: var(--a-t1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .2s, background .2s }
 .st-arrow:hover { transform: scale(1.06); background: var(--a-l3) }
 .st-dock { position: sticky; bottom: 18px; z-index: 5; display: flex; justify-content: center; padding: 0 16px; margin-top: 30px; pointer-events: none }
-.st-dock > div { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: ${mix("var(--a-l2)", 82)}; backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  box-shadow: 0 20px 50px rgba(0,0,0,.28), inset 0 0 0 1px ${mix("var(--a-t1)", 9)}; max-width: 100% ; overflow-x: auto; scrollbar-width: none }
+.st-dock > div { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: var(--a-l2);
+  box-shadow: inset 0 0 0 1px ${mix("var(--a-t1)", 9)}; max-width: 100% ; overflow-x: auto; scrollbar-width: none }
 .st-chip { height: 38px; padding: 0 16px; border-radius: 999px; border: none; background: transparent; color: ${K.t2}; font-family: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s }
 .st-ci { display: none }
 .st-chip:hover { color: ${K.t1} } .st-chip[aria-pressed="true"] { background: ${K.t1}; color: ${K.bg}; font-weight: 500 }
@@ -108,7 +108,7 @@ const CSS = `
   .st-foot { padding: 30px 0 10px !important }
   .st-dock { bottom: calc(12px + env(safe-area-inset-bottom, 0px)) }
   /* Sur téléphone : une petite barre d'icônes, sans recherche ni texte. */
-  .st-dock > div { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: ${mix("var(--a-l2)", 94)} }
+  .st-dock > div { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--a-l2) }
   .st-dock label { display: none !important }
   .st-chip { width: 42px; height: 38px; padding: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: ${K.t3} }
   .st-ci { display: flex }
