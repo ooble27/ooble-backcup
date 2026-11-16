@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronLeft, ChevronRight, Copy, Download, Heart, MessageCircle, Search, Send, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronLeft, ChevronRight, Clapperboard, Copy, Download, GalleryHorizontal, Heart, Image as ImageIcon, LayoutGrid, MessageCircle, Search, Send, Smartphone, X } from "lucide-react";
 import { FONT } from "./adminTheme";
 import { SOCIAL_BIO, SOCIAL_BIO_EN, SOCIAL_RULES, SOCIAL_SERIES, captionFor, imagesFor, titleFor, videoFor, type SocialLang, type SocialPost } from "@/lib/socialPosts";
 
@@ -71,6 +71,7 @@ const CSS = `
 .st-dock > div { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: ${mix("var(--a-l2)", 82)}; backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   box-shadow: 0 20px 50px rgba(0,0,0,.28), inset 0 0 0 1px ${mix("var(--a-t1)", 9)}; max-width: 100% ; overflow-x: auto; scrollbar-width: none }
 .st-chip { height: 38px; padding: 0 16px; border-radius: 999px; border: none; background: transparent; color: ${K.t2}; font-family: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s }
+.st-ci { display: none }
 .st-chip:hover { color: ${K.t1} } .st-chip[aria-pressed="true"] { background: ${K.t1}; color: ${K.bg}; font-weight: 500 }
 .st-veil { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; padding: 24px; animation: st-fade .3s ease both; font-family: ${FONT} }
 @keyframes st-fade { from { opacity: 0 } }
@@ -106,11 +107,13 @@ const CSS = `
   .st-card { flex-basis: 58vw }
   .st-foot { padding: 30px 0 10px !important }
   .st-dock { bottom: calc(12px + env(safe-area-inset-bottom, 0px)) }
-  /* Sur téléphone : pas de champ de recherche, les filtres sur une seule ligne qu'on fait défiler. */
-  .st-dock > div { max-width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 2px; padding: 4px }
-  .st-dock > div::-webkit-scrollbar { display: none }
+  /* Sur téléphone : une barre d'onglets, comme dans une app. Pas de recherche ; cinq filtres égaux, icône et nom. */
+  .st-dock { padding: 0 12px }
+  .st-dock > div { width: 100%; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; padding: 6px; border-radius: 26px; overflow: visible; background: ${mix("var(--a-l2)", 94)} }
   .st-dock label { display: none !important }
-  .st-chip { flex: 0 0 auto; height: 34px; padding: 0 13px; font-size: 13px }
+  .st-chip { height: 54px; padding: 0 2px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10.5px; letter-spacing: .01em; color: ${K.t3} }
+  .st-ci { display: flex }
+  .st-chip[aria-pressed="true"] { background: ${mix("var(--a-t1)", 11)}; color: ${K.t1}; font-weight: 600 }
   .st-veil { padding: 0; align-items: stretch }
   .st-modal { display: block; max-height: 100dvh; height: 100dvh; overflow-y: auto; border-radius: 0; -webkit-overflow-scrolling: touch }
   .st-stage { justify-content: flex-start }
@@ -624,8 +627,8 @@ export default function SocialPanel() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une publication" aria-label="Rechercher une publication"
               style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: K.t1, fontFamily: FONT, fontSize: 13.5 }} />
           </label>
-          {([["all", "Toutes"], ["carousel", "Carrousels"], ["single", "Images"], ["story", "Stories"], ["reel", "Reels"]] as [Kind, string][]).map(([id, l]) => (
-            <button key={id} type="button" className="st-chip" aria-pressed={kind === id} onClick={() => setKind(id)}>{l}</button>
+          {([["all", "Toutes", LayoutGrid], ["carousel", "Carrousels", GalleryHorizontal], ["single", "Images", ImageIcon], ["story", "Stories", Smartphone], ["reel", "Reels", Clapperboard]] as [Kind, string, typeof Search][]).map(([id, l, Ico]) => (
+            <button key={id} type="button" className="st-chip" aria-pressed={kind === id} onClick={() => setKind(id)}><span className="st-ci"><Ico size={19} strokeWidth={1.7} /></span><span>{l}</span></button>
           ))}
         </div>
       </div>
