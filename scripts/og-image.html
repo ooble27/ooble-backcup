@@ -4,19 +4,18 @@
   Composition à deux panneaux plutôt qu'une capture de la section héros :
   panneau blanc à gauche (logo, titre, pastille) au même thème « noir et
   blanc » que la landing page — pas de fond de couleur, pas de texture —,
-  panneau blanc à droite avec l'illustration de pièce USDT réutilisée telle
-  quelle depuis `CoinsArt`/`UsdtCoin` (src/components/illustrations.tsx) —
-  même tracé, mêmes couleurs, pour rester une vraie pièce de la marque.
+  panneau blanc à droite avec la pièce USDC au centre d'une orbite, et les
+  quatre réseaux ouverts autour (BNB Chain, Polygon, Solana, Avalanche).
+  Les pièces viennent de public/coins/ (mêmes fichiers que le site).
 
-  FONT_500/600/700/800 sont des marqueurs à remplacer par les polices Poppins
-  encodées en base64 avant capture (ce fichier n'affiche pas le bon texte tel
-  quel, faute de police). Pour régénérer :
+  FONT_500/600 sont des marqueurs à remplacer par les polices Poppins
+  (fichier .ttf, ou "data:font/ttf;base64,<contenu>") avant capture.
+  Pour régénérer :
 
-    1. Récupérer les 4 fichiers .ttf Poppins (poids 500/600/700/800) depuis
-       https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800
-    2. Remplacer chaque FONT_<poids> par "data:font/ttf;base64,<contenu>"
-    3. Capturer ce HTML en 1200×630 (device scale 1) avec un navigateur headless
-       et enregistrer le résultat dans public/og-image.png
+    1. Remplacer FONT_500 et FONT_600 par les fichiers Poppins Medium et SemiBold.
+    2. Capturer ce HTML depuis le dossier scripts/ (les pièces sont lues dans
+       ../public/coins/) en 1200×630, device scale 1, avec un navigateur headless.
+    3. Enregistrer le résultat dans public/og-image.png.
 -->
 <!doctype html>
 <html>
@@ -25,8 +24,6 @@
 <style>
   @font-face { font-family: "Poppins"; font-weight: 500; src: url("FONT_500") format("truetype"); }
   @font-face { font-family: "Poppins"; font-weight: 600; src: url("FONT_600") format("truetype"); }
-  @font-face { font-family: "Poppins"; font-weight: 700; src: url("FONT_700") format("truetype"); }
-  @font-face { font-family: "Poppins"; font-weight: 800; src: url("FONT_800") format("truetype"); }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -76,7 +73,7 @@
   .left-content {
     position: relative;
     height: 100%;
-    padding: 0 72px;
+    padding: 40px 72px 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -84,7 +81,7 @@
 
   h1 {
     font-weight: 500;
-    font-size: 58px;
+    font-size: 50px;
     line-height: 1.05;
     letter-spacing: -0.03em;
     color: #171717;
@@ -137,6 +134,15 @@
     justify-content: center;
   }
 
+  .orbit { position: relative; width: 380px; height: 380px; }
+  .ring { position: absolute; inset: 20px; border-radius: 50%; border: 2.5px dashed rgba(15,52,62,.22); }
+  .usdc { position: absolute; left: 95px; top: 95px; width: 190px; height: 190px; border-radius: 50%; box-shadow: 0 18px 40px rgba(39,117,202,.25); }
+  .net { position: absolute; width: 74px; height: 74px; border-radius: 50%; box-shadow: 0 0 0 6px #ffffff; }
+  .n1 { left: 153px; top: -17px; }
+  .n2 { right: -17px; top: 153px; }
+  .n3 { left: 153px; bottom: -17px; }
+  .n4 { left: -17px; top: 153px; }
+
   .domain {
     position: absolute;
     right: 36px;
@@ -160,52 +166,26 @@
     </div>
 
     <div class="left-content">
-      <h1>Achetez et<br />vendez des USDT<br /><span class="accent">en dollars canadiens</span></h1>
-      <p class="sub">Réglé directement vers votre wallet ou votre compte Interac. Ooble ne conserve aucun solde.</p>
+      <h1>Achetez et<br />vendez de l'USDC<br /><span class="accent">en dollars canadiens</span></h1>
+      <p class="sub">Payez par Interac. Vos USDC arrivent directement dans votre portefeuille. Ooble ne garde aucun solde.</p>
       <div class="badges">
-        <span class="badge"><span class="dot"></span>Non-custodial</span>
         <span class="badge"><span class="dot"></span>Interac e-Transfer</span>
+        <span class="badge"><span class="dot"></span>4 réseaux</span>
+        <span class="badge"><span class="dot"></span>Non-custodial</span>
       </div>
     </div>
   </div>
 
   <div class="panel-right">
-    <!-- CoinsArt, reprise à l'identique depuis src/components/illustrations.tsx -->
-    <svg viewBox="78 62 272 186" width="440" fill="none">
-      <path
-        d="M120 160 a 90 90 0 1 1 26 60"
-        fill="none"
-        stroke="#0F3A43"
-        stroke-width="3.5"
-        stroke-linecap="round"
-        stroke-dasharray="2 12"
-        opacity="0.5"
-      />
-      <!-- grande pièce -->
-      <g transform="translate(210 155)">
-        <circle cx="0" cy="11.5" r="72" fill="#17694f" stroke="#14201f" stroke-width="3" />
-        <circle cx="0" cy="0" r="72" fill="#26A17B" stroke="#14201f" stroke-width="3" />
-        <rect x="-30.2" y="-31.7" width="60.5" height="10.8" rx="5.4" fill="#fff" />
-        <rect x="-5.4" y="-31.7" width="10.8" height="59" rx="5.4" fill="#fff" />
-        <rect x="-17.3" y="-1.4" width="34.6" height="10.8" rx="5.4" fill="#fff" />
-      </g>
-      <!-- petite pièce haut droite -->
-      <g transform="translate(318 96) rotate(12)">
-        <circle cx="0" cy="4.2" r="26" fill="#17694f" stroke="#14201f" stroke-width="3" />
-        <circle cx="0" cy="0" r="26" fill="#26A17B" stroke="#14201f" stroke-width="3" />
-        <rect x="-10.9" y="-11.4" width="21.8" height="3.9" rx="1.95" fill="#fff" />
-        <rect x="-1.95" y="-11.4" width="3.9" height="21.3" rx="1.95" fill="#fff" />
-        <rect x="-6.2" y="-0.5" width="12.5" height="3.9" rx="1.95" fill="#fff" />
-      </g>
-      <!-- petite pièce bas gauche -->
-      <g transform="translate(104 214) rotate(-14)">
-        <circle cx="0" cy="3.2" r="20" fill="#17694f" stroke="#14201f" stroke-width="3" />
-        <circle cx="0" cy="0" r="20" fill="#26A17B" stroke="#14201f" stroke-width="3" />
-        <rect x="-8.4" y="-8.8" width="16.8" height="3" rx="1.5" fill="#fff" />
-        <rect x="-1.5" y="-8.8" width="3" height="16.4" rx="1.5" fill="#fff" />
-        <rect x="-4.8" y="-0.4" width="9.6" height="3" rx="1.5" fill="#fff" />
-      </g>
-    </svg>
+    <!-- La pièce USDC au centre d'une orbite, les quatre réseaux autour. -->
+    <div class="orbit">
+      <span class="ring"></span>
+      <img class="usdc" src="../public/coins/usdc.svg" alt="" />
+      <img class="net n1" src="../public/coins/bnb.svg" alt="" />
+      <img class="net n2" src="../public/coins/matic.svg" alt="" />
+      <img class="net n3" src="../public/coins/sol.svg" alt="" />
+      <img class="net n4" src="../public/coins/avax.svg" alt="" />
+    </div>
   </div>
 
   <div class="domain">ooble.ca</div>

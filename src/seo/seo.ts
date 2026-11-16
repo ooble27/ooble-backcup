@@ -13,7 +13,8 @@ import { SOCIAL_LINKS } from "@/lib/socialLinks";
  */
 
 export const SITE = "https://ooble.ca";
-const OG_IMAGE = `${SITE}/og-image.png`;
+// Le paramètre force WhatsApp, Facebook et iMessage à recharger l'image après un changement.
+const OG_IMAGE = `${SITE}/og-image.png?v=usdc`;
 const LOCALE: Record<Lang, string> = { fr: "fr_CA", en: "en_CA" };
 
 type Json = Record<string, unknown>;
