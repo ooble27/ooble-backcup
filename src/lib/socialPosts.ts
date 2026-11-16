@@ -2979,4 +2979,93 @@ Vos USDC, eux, sont bien au chaud dans votre portefeuille.
       },
     ],
   },
+  {
+    id: "serie-24",
+    title: "Série 24 · Reels de la peluche, ses humeurs",
+    titleEn: "Series 24 · Plush reels, its moods",
+    description: "La peluche change d'expression pendant la vidéo : surprise, yeux en cœur, inquiétude, sourcils froncés, yeux en étoile. Sans son.",
+    descriptionEn: "The plush changes expression during the video: surprise, heart eyes, worry, frown, star eyes. No sound.",
+    posts: [
+      {
+        id: "reel-prix", title: "Reel · Le prix, avant de payer", format: "reel", seconds: 8, video: vid("serie-24", "173-reel-prix"), images: img("serie-24", "173-reel-prix"),
+        titleEn: "Reel · The price, before you pay",
+        captionEn: `The price, before you pay.
+
+No surprises.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Le prix, avant de payer.
+
+Pas de surprise.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-coeur", title: "Reel · Vos USDC sont arrivés", format: "reel", seconds: 8, video: vid("serie-24", "174-reel-coeur"), images: img("serie-24", "174-reel-coeur"),
+        titleEn: "Reel · Your USDC have arrived",
+        captionEn: `Your USDC have arrived.
+
+Straight to your wallet.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Vos USDC sont arrivés.
+
+Directement dans votre portefeuille.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-oubli", title: "Reel · Référence oubliée ?", format: "reel", seconds: 8, video: vid("serie-24", "175-reel-oubli"), images: img("serie-24", "175-reel-oubli"),
+        titleEn: "Reel · Forgot the reference?",
+        captionEn: `Forgot the reference? Don't panic.
+
+Your money isn't lost. Write to us with the order reference.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Référence oubliée ? Pas de panique.
+
+Votre argent n'est pas perdu. Écrivez-nous avec la référence de l'ordre.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-faux", title: "Reel · Faux courriel", format: "reel", seconds: 8, video: vid("serie-24", "176-reel-faux"), images: img("serie-24", "176-reel-faux"),
+        titleEn: "Reel · Fake email",
+        captionEn: `Watch out for fake emails.
+
+Our emails only come from @ooble.ca.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Méfiez-vous des faux courriels.
+
+Nos courriels viennent seulement de @ooble.ca.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-lundi", title: "Reel · Lundi", format: "reel", seconds: 8, video: vid("serie-24", "177-reel-lundi"), images: img("serie-24", "177-reel-lundi"),
+        titleEn: "Reel · Monday",
+        captionEn: `Monday. Coffee first.
+
+Then, we check the network.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `Lundi. D'abord un café.
+
+Ensuite, on vérifie le réseau.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+      {
+        id: "reel-vendredi", title: "Reel · Vendredi", format: "reel", seconds: 8, video: vid("serie-24", "178-reel-vendredi"), images: img("serie-24", "178-reel-vendredi"),
+        titleEn: "Reel · Friday",
+        captionEn: `It's Friday.
+
+#Ooble #USDC #CryptoCanada`,
+        caption: `C'est vendredi.
+
+#Ooble #USDC #CryptoCanada`,
+      },
+    ],
+  },
 ];
