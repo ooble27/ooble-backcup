@@ -107,13 +107,13 @@ const CSS = `
   .st-card { flex-basis: 58vw }
   .st-foot { padding: 30px 0 10px !important }
   .st-dock { bottom: calc(12px + env(safe-area-inset-bottom, 0px)) }
-  /* Sur téléphone : une barre d'onglets, comme dans une app. Pas de recherche ; cinq filtres égaux, icône et nom. */
-  .st-dock { padding: 0 12px }
-  .st-dock > div { width: 100%; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; padding: 6px; border-radius: 26px; overflow: visible; background: ${mix("var(--a-l2)", 94)} }
+  /* Sur téléphone : une petite barre d'icônes, sans recherche ni texte. */
+  .st-dock > div { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: ${mix("var(--a-l2)", 94)} }
   .st-dock label { display: none !important }
-  .st-chip { height: 54px; padding: 0 2px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10.5px; letter-spacing: .01em; color: ${K.t3} }
+  .st-chip { width: 42px; height: 38px; padding: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: ${K.t3} }
   .st-ci { display: flex }
-  .st-chip[aria-pressed="true"] { background: ${mix("var(--a-t1)", 11)}; color: ${K.t1}; font-weight: 600 }
+  .st-cl { display: none }
+  .st-chip[aria-pressed="true"] { background: ${K.t1}; color: ${K.bg} }
   .st-veil { padding: 0; align-items: stretch }
   .st-modal { display: block; max-height: 100dvh; height: 100dvh; overflow-y: auto; border-radius: 0; -webkit-overflow-scrolling: touch }
   .st-stage { justify-content: flex-start }
@@ -628,7 +628,7 @@ export default function SocialPanel() {
               style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: K.t1, fontFamily: FONT, fontSize: 13.5 }} />
           </label>
           {([["all", "Toutes", LayoutGrid], ["carousel", "Carrousels", GalleryHorizontal], ["single", "Images", ImageIcon], ["story", "Stories", Smartphone], ["reel", "Reels", Clapperboard]] as [Kind, string, typeof Search][]).map(([id, l, Ico]) => (
-            <button key={id} type="button" className="st-chip" aria-pressed={kind === id} onClick={() => setKind(id)}><span className="st-ci"><Ico size={19} strokeWidth={1.7} /></span><span>{l}</span></button>
+            <button key={id} type="button" className="st-chip" aria-pressed={kind === id} aria-label={l} title={l} onClick={() => setKind(id)}><span className="st-ci"><Ico size={19} strokeWidth={1.7} /></span><span className="st-cl">{l}</span></button>
           ))}
         </div>
       </div>
