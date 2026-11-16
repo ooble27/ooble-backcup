@@ -47,18 +47,16 @@ export const SOCIAL_RULES = [
   "Ne jamais citer d'autres plateformes d'échange, ni dans les publications ni dans les réponses aux commentaires.",
   "Ne jamais promettre de gains ni de rendement : l'USDC sert à garder une valeur stable, pas à spéculer.",
   "Garder « Les cryptoactifs comportent des risques. » sur les publications qui parlent d'acheter.",
-  "Tant que la plateforme n'est pas ouverte, parler de « bientôt », sans annoncer de date.",
+  "Ne pas parler de « bientôt » ni d'ouverture : présenter Ooble au présent.",
   "Une question sur une commande ou de l'argent : inviter la personne à écrire en message privé ou par la page Contact du site.",
 ];
 
 export const SOCIAL_BIO_EN = `Buy and sell USDC in Canadian dollars
 Pay with Interac · 4 networks
-Coming soon
 ooble.ca`;
 
 export const SOCIAL_BIO = `Achetez et vendez de l'USDC en dollars canadiens
 Paiement par Interac · 4 réseaux
-Bientôt disponible
 ooble.ca`;
 
 export const SOCIAL_SERIES: SocialSeries[] = [
@@ -70,24 +68,24 @@ export const SOCIAL_SERIES: SocialSeries[] = [
     description: "Le lancement : ce qu'est Ooble, l'USDC, comment acheter, les réseaux et Interac.",
     posts: [
       {
-        id: "ooble-arrive", title: "Ooble arrive", images: img("serie-1", "01-ooble-arrive"),
-        titleEn: "Ooble is coming",
-        captionEn: `Ooble is coming.
+        id: "ooble-arrive", title: "Voici Ooble", images: img("serie-1", "01-ooble-arrive"),
+        titleEn: "Meet Ooble",
+        captionEn: `Meet Ooble.
 
-Soon, buy and sell USDC in Canadian dollars, simply and in minutes.
+Buy and sell USDC in Canadian dollars, simply.
 
 – Pay with Interac
 – USDC sent straight to your wallet
 – BNB Chain, Polygon, Solana and Avalanche
 
-Follow us to be among the first to know.
+Follow us for tips and news.
 
 ooble.ca
 
 #Ooble #USDC #Stablecoin #Crypto #Canada #Interac #CryptoCanada`,
-        caption: `Ooble arrive.
+        caption: `Voici Ooble.
 
-Bientôt, achetez et vendez de l'USDC en dollars canadiens, simplement et en quelques minutes.
+Achetez et vendez de l'USDC en dollars canadiens, simplement.
 
 – Paiement par Interac
 – USDC livré directement dans votre portefeuille
@@ -445,7 +443,7 @@ Une question avant votre premier achat ? Un doute sur une adresse ?
 – An OTC desk for large amounts
 – A dedicated contact
 
-Coming soon. Learn more: ooble.ca/entreprises
+Learn more: ooble.ca/entreprises
 
 Crypto assets involve risks.
 
@@ -456,7 +454,7 @@ Crypto assets involve risks.
 – Un desk OTC pour les montants importants
 – Un interlocuteur dédié
 
-Bientôt disponible. Pour en savoir plus : ooble.ca/entreprises
+Pour en savoir plus : ooble.ca/entreprises
 
 Les cryptoactifs comportent des risques.
 
@@ -477,28 +475,6 @@ Ooble fait une seule chose, et la fait bien : l'achat et la vente d'USDC contre 
 Pas de produits compliqués, pas de jargon.
 
 #Ooble #USDC #Simple #Stablecoin #CryptoCanada`,
-      },
-      {
-        id: "bientot", title: "C'est pour bientôt", images: img("serie-3", "18-bientot"),
-        titleEn: "It’s coming soon",
-        captionEn: `It’s coming soon.
-
-Follow us and turn on notifications to be among the first to buy USDC with Ooble.
-
-Share with someone who’d be interested.
-
-ooble.ca
-
-#Ooble #ComingSoon #USDC #CryptoCanada #Launch`,
-        caption: `C'est pour bientôt.
-
-Abonnez-vous et activez les notifications pour être parmi les premiers à acheter de l'USDC avec Ooble.
-
-Partagez avec quelqu'un que ça intéresse
-
- ooble.ca
-
-#Ooble #Bientôt #USDC #CryptoCanada #Lancement`,
       },
     ],
   },
@@ -1139,12 +1115,12 @@ Avec Ooble, vos USDC arrivent dans votre portefeuille, pas chez nous. C'est vous
     id: "serie-8",
     title: "Série 8 · Stories",
     titleEn: "Series 8 · Stories",
-    descriptionEn: "Vertical 1080 × 1920: poll, quiz and its answer, tip of the day, countdown and questions.",
-    description: "Format vertical 1080 × 1920 : sondage, quiz et sa réponse, conseil du jour, compte à rebours et questions.",
+    descriptionEn: "Vertical 1080 × 1920: poll, quiz and its answer, tip of the day and questions.",
+    description: "Format vertical 1080 × 1920 : sondage, quiz et sa réponse, conseil du jour et questions.",
     posts: [
       {
-        id: "story-ooble-arrive", title: 'Story · Ooble arrive', format: "story", images: img("serie-8", "49-story-ooble-arrive"),
-        titleEn: "Story · Ooble is coming",
+        id: "story-ooble-arrive", title: 'Story · Voici Ooble', format: "story", images: img("serie-8", "49-story-ooble-arrive"),
+        titleEn: "Story · Meet Ooble",
         captionEn: `Story to post as is.
 
 Add in Instagram: a “Link” sticker to ooble.ca, at the bottom of the image.`,
@@ -1223,16 +1199,6 @@ Add in Instagram: a “Link” sticker to ooble.ca, at the bottom of the image.`
 À ajouter dans Instagram : un sticker « Lien » vers ooble.ca, en bas de l'image.`,
       },
       {
-        id: "story-bientot", title: 'Story · Compte à rebours', format: "story", images: img("serie-8", "55-story-bientot"),
-        titleEn: "Story · Countdown",
-        captionEn: `Countdown story.
-
-Add in Instagram: the “Countdown” sticker, placed on the dotted frame. Title: “Ooble opening”. Only set a date once the opening date is decided.`,
-        caption: `Story compte à rebours.
-
-À ajouter dans Instagram : le sticker « Compte à rebours », placé sur le cadre en pointillés. Titre : « Ouverture d'Ooble ». Ne mettre une date que lorsque la date d'ouverture est décidée.`,
-      },
-      {
         id: "story-questions", title: 'Story · Une question ?', format: "story", images: img("serie-8", "56-story-questions"),
         titleEn: "Story · A question?",
         captionEn: `Questions story.
@@ -1266,20 +1232,6 @@ Know someone interested in USDC? Send them this post.
         caption: `Partagez Ooble.
 
 Vous connaissez quelqu'un que l'USDC intéresse ? Envoyez-lui cette publication.
-
-#Ooble #USDC #CryptoCanada`,
-      },
-      {
-        id: "bientot-chez-vous", title: "Bientôt chez vous", images: img("serie-9", "58-bientot-chez-vous"),
-        titleEn: "Coming your way",
-        captionEn: `Coming your way.
-
-Ooble opens soon. Turn on notifications so you don't miss it.
-
-#Ooble #USDC #CryptoCanada`,
-        caption: `Bientôt chez vous.
-
-Ooble ouvre bientôt. Activez les notifications pour ne rien manquer.
 
 #Ooble #USDC #CryptoCanada`,
       },
@@ -1326,20 +1278,6 @@ Crypto assets involve risks.
 Avec l'USDC, vos dollars américains numériques restent dans votre portefeuille.
 
 Les cryptoactifs comportent des risques.
-
-#Ooble #USDC #CryptoCanada`,
-      },
-      {
-        id: "rejoignez", title: "Rejoignez la liste", images: img("serie-9", "62-rejoignez"),
-        titleEn: "Join the list",
-        captionEn: `Join the list.
-
-Sign up at ooble.ca to know when we open.
-
-#Ooble #USDC #CryptoCanada`,
-        caption: `Rejoignez la liste.
-
-Inscrivez-vous sur ooble.ca pour être prévenu à l'ouverture.
 
 #Ooble #USDC #CryptoCanada`,
       },
@@ -1412,20 +1350,6 @@ En dollars canadiens, avec Interac, par une équipe d'ici.
     description: "Des scènes du quotidien d'Ooble, en grand, avec quelques mots.",
     descriptionEn: "Everyday Ooble moments, big, with a few words.",
     posts: [
-      {
-        id: "ils-attendent", title: "Ils attendent Ooble", images: img("serie-10", "67-ils-attendent"),
-        titleEn: "They're waiting for Ooble",
-        captionEn: `They're waiting for Ooble.
-
-Are you? Follow us to know when we open.
-
-#Ooble #USDC #CryptoCanada`,
-        caption: `Ils attendent Ooble.
-
-Et vous ? Abonnez-vous pour être prévenu à l'ouverture.
-
-#Ooble #USDC #CryptoCanada`,
-      },
       {
         id: "fini-les-files", title: "Fini les files d'attente", images: img("serie-10", "68-fini-les-files"),
         titleEn: "No more waiting in line",
@@ -2102,14 +2026,14 @@ Pour chaque story à la une (Bienvenue, Acheter, Vendre, Interac, Sécurité) :
         titleEn: "Ooble in 10 seconds",
         captionEn: `Ooble in 10 seconds.
 
-Buy and sell USDC in Canada, pay with Interac, on 4 networks. Coming soon.
+Buy and sell USDC in Canada, pay with Interac, on 4 networks.
 
 Crypto assets involve risks.
 
 #Ooble #USDC #CryptoCanada`,
         caption: `Ooble en 10 secondes.
 
-Achetez et vendez de l'USDC au Canada, payez par Interac, sur 4 réseaux. Bientôt disponible.
+Achetez et vendez de l'USDC au Canada, payez par Interac, sur 4 réseaux.
 
 Les cryptoactifs comportent des risques.
 
@@ -2213,16 +2137,16 @@ BNB Chain, Polygon, Solana, Avalanche. Choisissez celui de votre portefeuille.
 #Ooble #USDC #CryptoCanada`,
       },
       {
-        id: "app-acheter", title: "Bientôt dans l'app", images: img("serie-18", "114-app-acheter"),
-        titleEn: "Soon in the app",
-        captionEn: `Soon in the app.
+        id: "app-acheter", title: "Dans l'app", images: img("serie-18", "114-app-acheter"),
+        titleEn: "In the app",
+        captionEn: `In the app.
 
 The amount in dollars, what you get in USDC, the network. And you pay with Interac.
 
 Crypto assets involve risks.
 
 #Ooble #USDC #CryptoCanada`,
-        caption: `Bientôt dans l'app.
+        caption: `Dans l'app.
 
 Le montant en dollars, ce que vous recevez en USDC, le réseau. Et vous payez par Interac.
 
@@ -2328,12 +2252,12 @@ Le virement est parti.
         titleEn: "Reel · Nice to meet you",
         captionEn: `Nice to meet you.
 
-A blink, a gm, and Ooble is coming soon to ooble.ca.
+A blink, a gm, and see you on ooble.ca.
 
 #Ooble #USDC #CryptoCanada`,
         caption: `Enchanté.
 
-Un clin d'œil, un gm, et Ooble arrive bientôt sur ooble.ca.
+Un clin d'œil, un gm, et rendez-vous sur ooble.ca.
 
 #Ooble #USDC #CryptoCanada`,
       },
@@ -2565,20 +2489,6 @@ Choisissez le même dans Ooble.
         caption: `Un dollar numérique.
 
 1 USDC vaut 1 dollar américain.
-
-#Ooble #USDC #CryptoCanada`,
-      },
-      {
-        id: "bientot-calendrier", title: "On ouvre bientôt", images: img("serie-20", "138-bientot"),
-        titleEn: "Opening soon",
-        captionEn: `Opening soon.
-
-Follow us to know when.
-
-#Ooble #USDC #CryptoCanada`,
-        caption: `On ouvre bientôt.
-
-Abonnez-vous pour être prévenu.
 
 #Ooble #USDC #CryptoCanada`,
       },
