@@ -107,7 +107,7 @@ const AppShell = ({ children, header, wide, wider, center, bare, lead, className
       <div
         className={cn(
           "animate-page flex-1",
-          center && "flex flex-col justify-center pb-[18vh] lg:justify-start lg:pb-0",
+          center && !lead && "flex flex-col justify-center pb-[18vh] lg:justify-start lg:pb-0",
           className,
         )}
       >

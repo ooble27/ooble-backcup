@@ -128,9 +128,14 @@ export const FLAT_CSS = `
 
 /* ───────── Parcours Acheter et Vendre (variante A) ───────── */
 /* Le haut, posé sur la couleur : retour, barre d'étapes, titre. */
-.ap-lead .mb-8 { margin-bottom: 14px; }
-.ap-lead .ac-title { font-size: clamp(28px, 7.6vw, 40px); }
-.ap-lead .ac-sub { color: #222; }
+.ap-lead .mb-8 { margin-bottom: 4px; }
+/* Pas de titre ni de barre d'étapes affichés en haut des parcours : seulement « ← Retour ».
+   Le titre reste lu par les lecteurs d'écran. */
+.ap-lead .ac-steps { display: none; }
+/* Dans les parcours, la mascotte un peu plus petite : le bouton « Continuer » reste au-dessus du menu. */
+.ap-lead + .pl-mascot { width: 136px; height: 77px; }
+.ap-lead + .pl-mascot svg { width: 136px; height: 88px; }
+.ap-lead .ac-title, .ap-lead .ac-sub { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .ac-steps { display: flex; gap: 5px; margin: 4px 0 14px; }
 .ac-steps span { flex: 1; height: 7px; border-radius: 9px; background: rgba(17,17,17,.18); }
 .ac-steps span.on { background: #111; }
@@ -139,12 +144,12 @@ export const FLAT_CSS = `
 .ac-seg { gap: 2px; padding: 2px; border: 2px solid #111; border-radius: 999px; background: #fff; }
 .ac-seg button { border: none; padding: 3px 12px; font-size: 12px; font-weight: 600; }
 /* Le montant en très grand, sans contour : la carte est le champ. */
-.ac-in.ac-amount { border: none; border-radius: 0; background: transparent; padding: 6px 96px 6px 0; font-size: clamp(48px, 13vw, 64px); font-weight: 500; letter-spacing: -0.05em; }
+.ac-in.ac-amount { border: none; border-radius: 0; background: transparent; padding: 2px 96px 2px 0; font-size: clamp(46px, 12vw, 60px); font-weight: 500; letter-spacing: -0.05em; }
 .ac-in.ac-amount:focus { background: transparent; }
 .ac-amount + span { right: 0 !important; font-size: 20px; }
 .ac-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 13px; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.3; }
 /* La conversion, bien en vue : ce qu'on reçoit (ou paie), en grand, dans un encadré jaune pâle. */
-.ac-result { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding: 12px 14px; border: 2.5px solid #111; border-radius: 18px; background: #fff6c9; }
+.ac-result { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; padding: 10px 14px; border: 2.5px solid #111; border-radius: 18px; background: #fff6c9; }
 .ac-result-k { font-size: 12.5px; font-weight: 500; color: #333; }
 .ac-result-v { display: flex; align-items: center; gap: 8px; font-size: clamp(26px, 7.4vw, 32px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; color: #111; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .ac-result-r { font-size: 12px; color: #444; }
