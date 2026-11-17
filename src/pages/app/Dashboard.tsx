@@ -3,9 +3,7 @@ import { useAppSettings } from "@/lib/settings";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Clock, Coins, HandCoins, ChevronRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
-import RateChart from "@/components/app/RateChart";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
-import { useUsdtHistory } from "@/hooks/useUsdtHistory";
 import { listMyOrders, peekMyOrders, type OrderRow } from "@/lib/orders";
 import { ActivityRow } from "@/components/app/ActivityList";
 import { useAuth } from "@/lib/auth";
@@ -16,6 +14,7 @@ import { businessBlocked } from "@/components/app/BusinessGate";
 import InAppMessage from "@/components/app/InAppMessage";
 import { primaryAsset } from "@/lib/assets";
 import { PAGE_COLORS } from "@/lib/installed";
+import { Sparkle, WholeMascot } from "@/components/launch/PlayLogin";
 
 /** Le taux d'achat (cours du marché + marge d'achat), à 4 décimales. */
 const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
@@ -65,7 +64,7 @@ const RecentActivity = () => {
   );
 };
 
-/** Acheter ou vendre : une tuile de couleur au trait noir (nouveau design) ; grisée quand les échanges sont fermés. */
+/** Acheter ou vendre : une grande tuile carrée de couleur au trait noir ; grisée quand les échanges sont fermés. */
 const Trade = ({ to, icon: Icon, name, desc, open, bg }: { to: string; icon: React.ElementType; name: string; desc: string; open: boolean; bg: string }) => (
   <Link
     to={to}
@@ -75,21 +74,33 @@ const Trade = ({ to, icon: Icon, name, desc, open, bg }: { to: string; icon: Rea
     tabIndex={open ? undefined : -1}
   >
     <span className="dash-tile-ic"><Icon className="h-[22px] w-[22px]" strokeWidth={2} /></span>
-    <span className="min-w-0 flex-1">
-      <span className="block text-[20px] font-medium leading-tight tracking-[-0.02em] text-[#111]">{name}</span>
-      <span className="mt-0.5 block text-[13.5px] leading-snug text-[#222]">{desc}</span>
+    <span>
+      <span className="block text-[21px] font-medium leading-tight tracking-[-0.02em] text-[#111]">{name}</span>
+      <span className="mt-0.5 block text-[12.5px] leading-snug text-[#111]">{desc} »</span>
     </span>
-    <span className="dash-tile-go" aria-hidden>»</span>
   </Link>
 );
 
-const TILE_CSS = `
-.dash-tile { display: flex; align-items: center; gap: 14px; padding: 16px 16px 16px 14px; border: 2.5px solid #111; border-radius: 22px; color: #111; text-decoration: none; transition: transform .15s; }
-.dash-tile + .dash-tile { margin-top: 12px; }
-.dash-tile:active { transform: scale(.98); }
+const DASH_CSS = `
+.dash-hero { position: relative; padding-top: 8px; }
+.dash-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 4px 0 13px; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 500; }
+.dash-pill i { font-style: normal; width: 22px; height: 22px; border-radius: 999px; background: #ff6a3d; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.dash-rate { margin-top: 12px; font-size: clamp(56px, 17vw, 76px); font-weight: 500; letter-spacing: -0.05em; line-height: 1; color: #111; font-variant-numeric: tabular-nums; }
+.dash-cap { margin: 8px 0 0; font-size: 14px; color: #111; }
+.dash-mascot { position: absolute; right: -4px; top: -26px; }
+.dash-spark { position: absolute; right: 92px; top: -20px; }
+@media (prefers-reduced-motion: no-preference) {
+  .dash-mascot { animation: dash-float 3.4s ease-in-out infinite; }
+  .dash-spark { animation: dash-tw 2.6s ease-in-out infinite; }
+}
+@keyframes dash-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes dash-tw { 0%, 100% { transform: scale(.85) rotate(0); } 50% { transform: scale(1.1) rotate(20deg); } }
+.dash-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 26px; }
+.dash-tile { display: flex; flex-direction: column; justify-content: space-between; min-height: 164px; padding: 16px; border: 3px solid #111; border-radius: 26px; color: #111; text-decoration: none; transition: transform .15s; }
+.dash-tile:active { transform: scale(.97); }
 @media (hover: hover) { .dash-tile:hover { transform: translateY(-2px); } }
-.dash-tile-ic { width: 46px; height: 46px; flex-shrink: 0; border-radius: 999px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; }
-.dash-tile-go { font-size: 24px; line-height: 1; padding-right: 4px; }
+.dash-tile-ic { width: 46px; height: 46px; border-radius: 999px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; }
+.dash-act { margin-top: 12px; padding: 12px 18px 8px; }
 `;
 
 const Dashboard = () => {
@@ -100,7 +111,6 @@ const Dashboard = () => {
   // Taux de la cryptomonnaie principale (la seule ouverte, sinon l'USDC).
   const coin = primaryAsset(settings);
   const rate = useUsdtRate({ live: true, asset: coin.id });
-  const history = useUsdtHistory();
 
   const { user, isStaff } = useAuth();
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
@@ -119,6 +129,7 @@ const Dashboard = () => {
   return (
     <AppShell
       wide
+      bare
       header={
         firstName ? (
           <div className="min-w-0">
@@ -136,43 +147,40 @@ const Dashboard = () => {
         )
       }
     >
+      <style>{DASH_CSS}</style>
       <InAppMessage />
 
       {!isStaff && businessBlocked(profile) && (
-        <Link to="/app/entreprise" className="ac-todo" style={{ marginTop: 0, marginBottom: 40 }}>
+        <Link to="/app/entreprise" className="ac-todo" style={{ marginTop: 0, marginBottom: 24 }}>
           <span className="ac-todo-t flex items-center gap-2">{kybPending && <Clock className="h-4 w-4 text-muted-foreground" />}{kybPending ? t("kyb.stPending") : t("kyb.gateTitle")}</span>
           <span className="ac-todo-s">{kybPending ? t("kyb.gatePending") : t("kyb.gateSub")}</span>
           <span className="ac-todo-c">{kybPending ? t("kyb.gateView") : t("kyb.gateCta")} <ArrowRight className="h-4 w-4" strokeWidth={1.9} /></span>
         </Link>
       )}
 
-      <div className="grid grid-cols-1 gap-x-16 gap-y-12 md:grid-cols-2">
-        {/* Taux de la cryptomonnaie en CAD — toujours en premier */}
-        <section className="flex flex-col">
-          <p className="ac-k">{t("dash.rate").replace("USDT", coin.symbol)}</p>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="font-display text-[46px] leading-none tracking-[-0.04em] tabular-nums text-[#111]">
-              {nfRate.format(rate.buy)}
-            </span>
-            <span className="text-[16px] font-medium text-muted-foreground">CAD</span>
-          </div>
-          <RateChart data={history.points} className="hidden w-full text-foreground/55 md:mt-6 md:block md:min-h-[6rem] md:flex-1" />
+      <div className="md:mx-auto md:max-w-[520px]">
+        {/* Le taux en très grand, la mascotte qui flotte à côté */}
+        <section className="dash-hero" aria-label={t("dash.rate").replace("USDT", coin.symbol)}>
+          <span className="dash-pill">{coin.symbol} → CAD <i>$</i></span>
+          <div className="dash-rate">{nfRate.format(rate.buy)}</div>
+          <p className="dash-cap">{t("dash.rateCaption").replace("{coin}", coin.symbol)}</p>
+          <WholeMascot size={96} className="dash-mascot" />
+          <Sparkle size={18} className="dash-spark" />
         </section>
 
-        {/* Acheter et vendre — col droite sur desktop, juste après le taux sur mobile */}
-        <div className="md:row-span-2">
-          <style>{TILE_CSS}</style>
-          <div>
-            <Trade to="/app/acheter" icon={Coins} name={t("dash.buy")} desc={t("dash.buySub")} bg={PAGE_COLORS.lavender} open={tradingEnabled || isStaff || !!profile?.testAccount} />
-            <Trade to="/app/vendre" icon={HandCoins} name={t("dash.sell")} desc={t("dash.sellSub")} bg={PAGE_COLORS.coral} open={tradingEnabled || isStaff || !!profile?.testAccount} />
-          </div>
-          {!tradingEnabled && !isStaff && !profile?.testAccount && (
-            <p className="mt-2 text-[12.5px] text-muted-foreground">{t("dash.tradingSuspended")}</p>
-          )}
+        {/* Acheter et vendre : deux grandes tuiles carrées */}
+        <div className="dash-tiles">
+          <Trade to="/app/acheter" icon={Coins} name={t("dash.buy")} desc={t("dash.buyShort")} bg={PAGE_COLORS.lavender} open={tradingEnabled || isStaff || !!profile?.testAccount} />
+          <Trade to="/app/vendre" icon={HandCoins} name={t("dash.sell")} desc={t("dash.sellShort")} bg={PAGE_COLORS.coral} open={tradingEnabled || isStaff || !!profile?.testAccount} />
         </div>
+        {!tradingEnabled && !isStaff && !profile?.testAccount && (
+          <p className="mt-3 text-[13px] text-[#111]">{t("dash.tradingSuspended")}</p>
+        )}
 
-        {/* Activité récente — sous Acheter et Vendre sur mobile, sous le taux sur desktop */}
-        <RecentActivity />
+        {/* La dernière opération, dans une carte blanche */}
+        <div className="ap-card dash-act">
+          <RecentActivity />
+        </div>
       </div>
     </AppShell>
   );

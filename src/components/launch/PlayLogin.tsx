@@ -135,3 +135,30 @@ export function PeekMascot({ look, hide, peek, typing }: { look: number; hide: b
     </div>
   );
 }
+
+/** La mascotte entière qui sourit (accueil de l'app). */
+export function WholeMascot({ size = 96, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+  const BODY = "M64 26C104 4 160 22 172 74C184 126 152 176 98 176C44 176 14 142 20 94C24 60 38 40 64 26Z";
+  return (
+    <svg width={size} height={size} viewBox="0 0 200 200" className={className} style={style} aria-hidden>
+      <defs>
+        <pattern id="wm-dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.15" fill="#111" /></pattern>
+        <clipPath id="wm-clip"><path d={BODY} /></clipPath>
+      </defs>
+      <path d={BODY} fill="#fff" />
+      <g clipPath="url(#wm-clip)"><path d="M150 40C190 90 170 170 90 185L190 200 200 40Z" fill="url(#wm-dots)" /></g>
+      <path d={BODY} fill="none" stroke="#111" strokeWidth="4" strokeLinejoin="round" />
+      <path d="M44 52c4-8 10-14 18-18" fill="none" stroke="#111" strokeWidth="3" strokeLinecap="round" />
+      <ellipse cx="76" cy="92" rx="10" ry="12" fill="#fff" stroke="#111" strokeWidth="3" /><circle cx="77" cy="94" r="5.5" fill="#111" /><circle cx="79" cy="91.5" r="1.7" fill="#fff" />
+      <ellipse cx="120" cy="92" rx="10" ry="12" fill="#fff" stroke="#111" strokeWidth="3" /><circle cx="121" cy="94" r="5.5" fill="#111" /><circle cx="123" cy="91.5" r="1.7" fill="#fff" />
+      <circle cx="60" cy="116" r="5" fill="#ff6a3d" opacity=".55" /><circle cx="138" cy="116" r="5" fill="#ff6a3d" opacity=".55" />
+      <path d="M84 118q14 13 28 0" fill="none" stroke="#111" strokeWidth="3.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export const Sparkle = ({ size = 18, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" className={className} style={style} aria-hidden>
+    <path d="M20 3C21.5 14 26 18.5 37 20C26 21.5 21.5 26 20 37C18.5 26 14 21.5 3 20C14 18.5 18.5 14 20 3Z" fill="none" stroke="#111" strokeWidth="2.6" strokeLinejoin="round" />
+  </svg>
+);

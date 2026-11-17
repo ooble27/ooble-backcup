@@ -40,6 +40,8 @@ interface AppShellProps {
   wider?: boolean;
   /** Centre verticalement le contenu (écrans courts de saisie). */
   center?: boolean;
+  /** Sans la carte blanche : la page pose elle-même ses blocs sur la couleur (accueil). */
+  bare?: boolean;
   className?: string;
 }
 
@@ -50,7 +52,7 @@ interface AppShellProps {
  * largeur ; les pages de saisie gardent une colonne un peu plus large que le
  * mobile (600px, alignée à gauche) pour respirer sans être trop grosses.
  */
-const AppShell = ({ children, header, wide, wider, center, className }: AppShellProps) => {
+const AppShell = ({ children, header, wide, wider, center, bare, className }: AppShellProps) => {
   const { pathname } = useLocation();
   const color = pageColor(pathname);
   useAppScope(color);
@@ -103,8 +105,8 @@ const AppShell = ({ children, header, wide, wider, center, className }: AppShell
         )}
       >
         {/* Les trois pages du menu : la mascotte dépasse de la carte, comme à la connexion. */}
-        {withNav && <PeekMascot look={0} typing={false} hide={false} peek={false} />}
-        <div className="ap-card">{children}</div>
+        {withNav && !bare && <PeekMascot look={0} typing={false} hide={false} peek={false} />}
+        {bare ? children : <div className="ap-card">{children}</div>}
       </div>
     </div>
 
