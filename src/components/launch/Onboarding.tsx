@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
+import { paintPage } from "@/lib/installed";
 import { ART, ART_DEFS, WAVE } from "./onboardingArt";
 
 /*
@@ -87,11 +88,7 @@ export default function Onboarding({ onLogin, onSignup }: { onLogin: () => void;
     return () => window.removeEventListener("resize", fit);
   }, []);
   // Couleur de la barre d'état assortie à l'écran.
-  useEffect(() => {
-    const m = document.querySelector('meta[name="theme-color"]'); const prev = m?.getAttribute("content");
-    m?.setAttribute("content", SCREENS[i].bg);
-    return () => { if (m && prev) m.setAttribute("content", prev); };
-  }, [i]);
+  useEffect(() => paintPage(SCREENS[i].bg), [i]);
 
   const next = () => (i < SCREENS.length - 1 ? setI(i + 1) : onSignup());
   return (

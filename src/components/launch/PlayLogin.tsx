@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { paintPage } from "@/lib/installed";
 
 /*
  * Connexion de l'app installée : fond jaune, gros titre, carte blanche au trait noir.
@@ -39,6 +40,7 @@ const CSS = `
 `;
 
 export function PlayShell({ title, children }: { title: ReactNode; children: ReactNode }) {
+  useEffect(() => paintPage("#fdd94e"), []);
   return (
     <div className="pl">
       <style>{CSS}</style>

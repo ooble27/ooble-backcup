@@ -22,7 +22,7 @@
         // App installée, personne de connecté : l'accueil et la connexion sont jaunes (le lancement aussi).
         var inst = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
         var authed = Object.keys(localStorage).some(function (k) { return /^sb-.*-auth-token$/.test(k); });
-        if (inst && !authed && /^\/(app|connexion)(\/|$)/.test(p)) bg = "#fdd94e";
+        if (inst && (p === "/connexion" || (!authed && /^\/app(\/|$)/.test(p)))) bg = "#fdd94e";
         h.style.backgroundColor = bg;
         document.querySelector('meta[name="theme-color"]').setAttribute("content", bg);
         if (localStorage.getItem("ooble.lang") === "en" && !/^\/(en|app|admin)(\/|$)/.test(p))

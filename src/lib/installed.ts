@@ -19,3 +19,22 @@ export const hasOnboarded = () => {
   } catch { return true; }
 };
 export const markOnboarded = () => { try { localStorage.setItem(ONBOARDED, "1"); } catch { /* stockage indisponible */ } };
+
+/**
+ * Peint toute la page (html, body, barre d'état) d'une couleur tant que l'écran est affiché, puis rend
+ * l'ancienne couleur. Sinon le fond de l'app (sombre ou clair) apparaît au-dessus de l'écran, sous la
+ * barre d'état ou quand le clavier fait remonter la page sur iPhone.
+ */
+export function paintPage(color: string): () => void {
+  const html = document.documentElement, body = document.body;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const prev = { html: html.style.backgroundColor, body: body.style.backgroundColor, meta: meta?.getAttribute("content") ?? null };
+  html.style.backgroundColor = color;
+  body.style.backgroundColor = color;
+  meta?.setAttribute("content", color);
+  return () => {
+    html.style.backgroundColor = prev.html;
+    body.style.backgroundColor = prev.body;
+    if (meta && prev.meta) meta.setAttribute("content", prev.meta);
+  };
+}

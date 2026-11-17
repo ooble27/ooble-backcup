@@ -20,7 +20,7 @@ type Look = { bg: string; ink: string; soft: string };
 function look(): Look {
   let authed = true;
   try { authed = Object.keys(localStorage).some((k) => /^sb-.*-auth-token$/.test(k)); } catch { /* stockage indisponible */ }
-  if (!authed) return { bg: "#fdd94e", ink: "#111", soft: "rgba(17,17,17,.65)" };
+  if (!authed || /\/connexion$/.test(window.location.pathname)) return { bg: "#fdd94e", ink: "#111", soft: "rgba(17,17,17,.65)" };
   return document.documentElement.classList.contains("dark")
     ? { bg: "#171717", ink: "#fff", soft: "rgba(255,255,255,.6)" }
     : { bg: "#f5f5f3", ink: "#111", soft: "rgba(17,17,17,.6)" };
