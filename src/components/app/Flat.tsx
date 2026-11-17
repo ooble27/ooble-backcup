@@ -53,13 +53,11 @@ export const ClosedPage = ({ title, message }: { title: string; message: string 
  * Le montant : étiquette, CAD / cryptomonnaie et Min / Max en mots soulignés, le nombre en très grand.
  * L'unité « USDT » désigne la cryptomonnaie de la commande : `coin` donne son symbole affiché (USDC…).
  */
-export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, coin = "USDC", hint, quick, children }: {
+export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, coin = "USDC", result, children }: {
   label: string; units: U[]; unit: U; onUnit: (u: U) => void; value: string; onChange: (v: string) => void; disabled?: boolean;
   onMin?: () => void; onMax?: () => void; coin?: string;
-  /** La conversion, en pastille noire sous le montant (« ≈ 342,16 USDC · 1 USDC = 1,4613 $ »). */
-  hint?: string;
-  /** Montants tout prêts à toucher, dans l'unité choisie. */
-  quick?: number[];
+  /** La conversion, bien en vue sous le montant : « Vous recevez 342,16 USDC », puis le taux en petit. */
+  result?: { label: string; value: string; coin?: string; rate: string };
   children?: React.ReactNode;
 }) => (
   <div>
@@ -86,18 +84,22 @@ export const AmountField = <U extends string>({ label, units, unit, onUnit, valu
         {unit === "USDT" ? coin : "$"}
       </span>
     </div>
-    {hint && <div className="mt-1"><span className="ac-pill">{hint}</span></div>}
-    {(quick?.length || onMin || onMax) ? (
+    {result && (
+      <div className="ac-result">
+        <span className="ac-result-k">{result.label}</span>
+        <span className="ac-result-v">
+          {result.coin && <img src={`/coins/${result.coin.toLowerCase()}.svg`} alt="" className="h-7 w-7 shrink-0" />}
+          {result.value}
+        </span>
+        <span className="ac-result-r">{result.rate}</span>
+      </div>
+    )}
+    {(onMin || onMax) && (
       <div className="ac-chips" role="group" aria-label={label}>
         {onMin && <button type="button" onClick={onMin}>Min</button>}
-        {quick?.map((n) => (
-          <button key={n} type="button" aria-pressed={Number(value.replace(",", ".")) === n} onClick={() => onChange(String(n))}>
-            {new Intl.NumberFormat("fr-CA").format(n)}{unit === "USDT" ? "" : " $"}
-          </button>
-        ))}
         {onMax && <button type="button" onClick={onMax}>Max</button>}
       </div>
-    ) : null}
+    )}
     {children}
   </div>
 );

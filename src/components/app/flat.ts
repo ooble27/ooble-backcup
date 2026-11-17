@@ -143,7 +143,12 @@ export const FLAT_CSS = `
 .ac-in.ac-amount:focus { background: transparent; }
 .ac-amount + span { right: 0 !important; font-size: 20px; }
 .ac-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 13px; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.3; }
-/* Montants tout prêts. */
+/* La conversion, bien en vue : ce qu'on reçoit (ou paie), en grand, dans un encadré jaune pâle. */
+.ac-result { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding: 12px 14px; border: 2.5px solid #111; border-radius: 18px; background: #fff6c9; }
+.ac-result-k { font-size: 12.5px; font-weight: 500; color: #333; }
+.ac-result-v { display: flex; align-items: center; gap: 8px; font-size: clamp(26px, 7.4vw, 32px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; color: #111; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ac-result-r { font-size: 12px; color: #444; }
+/* Min et Max. */
 .ac-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
 .ac-chips button { height: 34px; padding: 0 13px; border: 2px solid #111; border-radius: 999px; background: #fff; color: #111; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: transform .12s; }
 .ac-chips button[aria-pressed="true"] { background: #111; color: #fff; }

@@ -96,10 +96,6 @@ const AppAcheterForm = () => {
     else setAmount(clean);
   };
 
-  // Montants tout prêts, dans l'unité choisie, seulement ceux qui sont permis.
-  const quick = (unit === "CAD" ? [100, 250, 500, 1000] : [50, 100, 250, 500])
-    .filter((n) => { const c = toCad(n, unit, buyRate); return c >= minCad && c <= maxCad; });
-
   const setPreset = (kind: "min" | "max") => setAmount(kind === "min" ? minText(unit) : maxText(unit));
 
   const nextAtText = allowance?.nextAt
@@ -174,8 +170,9 @@ const AppAcheterForm = () => {
           onPick={(a) => { if (a !== asset) { setAsset(a); setNet(null); setAddress(""); } }} />
         <AmountField label={t("buy.amount")} units={["CAD", "USDT"] as Unit[]} unit={unit} coin={coin} onUnit={(u) => { setUnit(u); setAmount(""); }}
           value={amount} onChange={onAmount} disabled={blocked} onMin={() => setPreset("min")} onMax={() => setPreset("max")}
-          hint={value > 0 ? `≈ ${unit === "CAD" ? `${nfUsdt.format(usdt)} ${coin}` : `${nfCad.format(cad)} $`} · 1 ${coin} = ${nfRate.format(buyRate)} $` : `1 ${coin} = ${nfRate.format(buyRate)} $`}
-          quick={quick}>
+          result={unit === "CAD"
+            ? { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} ${coin}`, coin, rate: `1 ${coin} = ${nfRate.format(buyRate)} $` }
+            : { label: t("buy.youPay"), value: `${nfCad.format(cad)} $`, rate: `1 ${coin} = ${nfRate.format(buyRate)} $` }}>
           {blocked ? (
             <p className="ac-note">{t("buy.limitReached").replace("{time}", nextAtText)}</p>
           ) : belowMin ? (

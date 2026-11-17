@@ -222,10 +222,6 @@ const AppVendreForm = () => {
     });
   };
 
-  // Montants tout prêts, dans l'unité choisie, seulement ceux qui sont permis.
-  const quick = (unit === "CAD" ? [100, 250, 500, 1000] : [50, 100, 250, 500])
-    .filter((n) => { const c = toCad(n, unit, sellRate); return c >= minCad && c <= maxCad; });
-
   const next = (go: () => void, disabled: boolean) => (
     <Actions><Action disabled={disabled} onClick={go}>{t("sell.continue")}</Action></Actions>
   );
@@ -238,8 +234,9 @@ const AppVendreForm = () => {
         <AmountField label={t("sell.amount")} units={["USDT", "CAD"] as Unit[]} unit={unit} coin={coin} onUnit={(u) => { setUnit(u); setAmount(""); }}
           value={amount} onChange={onAmount} disabled={blocked}
           onMin={isStaff ? undefined : () => setAmount(minText(unit))} onMax={isStaff ? undefined : () => setAmount(maxText(unit))}
-          hint={value > 0 ? `≈ ${unit === "USDT" ? `${nfCad.format(cad)} $` : `${nfUsdt.format(usdt)} ${coin}`} · 1 ${coin} = ${nfRate.format(sellRate)} $` : `1 ${coin} = ${nfRate.format(sellRate)} $`}
-          quick={quick}>
+          result={unit === "USDT"
+            ? { label: t("sell.youReceive"), value: `${nfCad.format(cad)} $`, rate: `1 ${coin} = ${nfRate.format(sellRate)} $` }
+            : { label: t("sell.youSend"), value: `${nfUsdt.format(usdt)} ${coin}`, coin, rate: `1 ${coin} = ${nfRate.format(sellRate)} $` }}>
           {blocked ? (
             <p className="ac-note">{t("sell.limitReached").replace("{time}", nextAtText)}</p>
           ) : belowMin ? (
