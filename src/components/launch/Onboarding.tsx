@@ -46,6 +46,16 @@ const CSS = `
 @keyframes ob-twinkle{0%,100%{transform:scale(.85) rotate(0)}50%{transform:scale(1.12) rotate(25deg)}}
 @keyframes ob-beat{0%,60%,100%{transform:scale(1)}30%{transform:scale(1.14)}}
 @keyframes ob-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+/* Tablette en paysage et ordinateur : le texte à gauche, le dessin en grand à droite, le bouton sous le texte. */
+.ob.wide .ob-sc{display:flex;align-items:center;padding:0 6vw;text-align:left!important}
+.ob.wide .ob-txt{width:46%;max-width:620px;margin-top:-8vh}
+.ob.wide h1{font-size:clamp(46px,5.4vw,84px);line-height:1.12}
+.ob.wide p.ob-sub{font-size:clamp(17px,1.4vw,20px);max-width:460px;margin:22px 0 0!important}
+.ob.wide .ob-login{right:6vw;top:calc(env(safe-area-inset-top,0px) + 28px);font-size:16px}
+.ob.wide .ob-foot{left:6vw;right:auto;width:min(440px,40vw);bottom:calc(env(safe-area-inset-bottom,0px) + 9vh)}
+.ob.wide .ob-dots{justify-content:flex-start}
+/* Tablette en portrait : le texte plus grand, le bouton centré, pas sur toute la largeur. */
+@media (min-width:600px){.ob:not(.wide) .ob-sc{padding-left:8vw;padding-right:8vw;padding-top:calc(env(safe-area-inset-top,0px) + 96px)}.ob:not(.wide) h1{font-size:clamp(44px,7vw,64px)}.ob:not(.wide) p.ob-sub{font-size:18px;max-width:460px}.ob:not(.wide) .ob-foot{left:50%;right:auto;width:440px;margin-left:-220px;bottom:calc(env(safe-area-inset-bottom,0px) + 40px)}}
 @media (prefers-reduced-motion: reduce){.ob *{animation:none!important}.ob-track{transition:none}}
 `;
 
@@ -90,9 +100,25 @@ export default function Onboarding({ onLogin, onSignup }: { onLogin: () => void;
   // Couleur de la barre d'état assortie à l'écran.
   useEffect(() => paintPage(SCREENS[i].bg), [i]);
 
+  // Tablette en paysage et ordinateur : deux colonnes.
+  const wide = size.w >= 768 && size.w > size.h * 0.9;
+  const artStyle = (center?: boolean): React.CSSProperties => {
+    if (wide) {
+      const k = Math.max(0.8, Math.min(1.75, (size.h * 0.68) / 400, (size.w * 0.42) / 390));
+      return { left: "calc(75% - 195px)", marginLeft: 0, top: `calc(50% - ${Math.round(190 * k)}px)`, transform: `scale(${k})` };
+    }
+    if (size.w >= 600) {
+      // Tablette en portrait : le dessin plus grand, dans la place entre le texte et le bouton.
+      const k = Math.max(0.9, Math.min(1.7, (size.w * 0.6) / 390, (size.h * 0.42) / 400));
+      return { top: `${Math.round(size.h * 0.38)}px`, transform: `scale(${k})` };
+    }
+    const top = center ? 300 : 330;
+    return { top: `calc(env(safe-area-inset-top,0px) + ${top}px)`, transform: `scale(${Math.max(0.5, Math.min(1, size.w / 400, (size.h - top - 140) / 360))})` };
+  };
+
   const next = () => (i < SCREENS.length - 1 ? setI(i + 1) : onSignup());
   return (
-    <div className="ob" style={{ background: SCREENS[i].bg, transition: "background .55s" }}
+    <div className={wide ? "ob wide" : "ob"} style={{ background: SCREENS[i].bg, transition: "background .55s" }}
       onPointerDown={(e) => { start.current = e.clientX; }}
       onPointerUp={(e) => {
         if (start.current === null) return; const dx = e.clientX - start.current; start.current = null;
@@ -104,10 +130,12 @@ export default function Onboarding({ onLogin, onSignup }: { onLogin: () => void;
       <div className="ob-track" style={{ transform: `translateX(${-i * 100}%)` }}>
         {SCREENS.map((s, n) => (
           <section key={n} className="ob-sc" data-on={n === i ? "1" : "0"} style={{ background: s.bg, textAlign: s.center ? "center" : "left" }} aria-hidden={n !== i}>
-            <h1 className="ob-in">{s.title(WAVE)}</h1>
-            <p className="ob-sub ob-in" style={{ animationDelay: ".12s", margin: s.center ? "16px auto 0" : undefined }}>{T(s.sub)}</p>
-            {/* Le dessin occupe la place entre le texte et le bouton (environ 360 px de haut à taille réelle). */}
-            <div className="ob-art" style={{ top: `calc(env(safe-area-inset-top,0px) + ${s.center ? 300 : 330}px)`, transform: `scale(${Math.max(0.5, Math.min(1, size.w / 400, (size.h - (s.center ? 300 : 330) - 140) / 360))})` }}>
+            <div className="ob-txt">
+              <h1 className="ob-in">{s.title(WAVE)}</h1>
+              <p className="ob-sub ob-in" style={{ animationDelay: ".12s", margin: s.center ? "16px auto 0" : undefined }}>{T(s.sub)}</p>
+            </div>
+            {/* Téléphone : le dessin occupe la place entre le texte et le bouton. Grand écran : la moitié droite. */}
+            <div className="ob-art" style={artStyle(s.center)}>
               <div className="ob-pop" style={{ position: "absolute", inset: 0 }}>
                 <div className="ob-float" style={{ position: "absolute", inset: 0 }}>
                   <div className="ill" style={{ position: "absolute", inset: 0, transform: ART[s.art].style.match(/scale\([^)]*\)/)?.[0], transformOrigin: "50% 0" }}
