@@ -7,7 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import AppShell from "@/components/app/AppShell";
 import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { Action, Actions, AmountField, AssetPick, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
+import { Action, Actions, AmountField, AssetPick, ClosedPage, Facts, NetworkPick, NumberedCopy, StepHeader } from "@/components/app/Flat";
 import { ASSET_BY_ID, openAssets, type AssetId } from "@/lib/assets";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
@@ -30,6 +30,7 @@ const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}
 
 const nfCad = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
+const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
 
 /* Commandes fermées aux clients : la page d'attente. Composant à part, pour que les rôles de
    l'équipe, chargés après le premier affichage, ne changent jamais le nombre de hooks du formulaire. */
@@ -221,19 +222,24 @@ const AppVendreForm = () => {
     });
   };
 
+  // Montants tout prêts, dans l'unité choisie, seulement ceux qui sont permis.
+  const quick = (unit === "CAD" ? [100, 250, 500, 1000] : [50, 100, 250, 500])
+    .filter((n) => { const c = toCad(n, unit, sellRate); return c >= minCad && c <= maxCad; });
+
   const next = (go: () => void, disabled: boolean) => (
     <Actions><Action disabled={disabled} onClick={go}>{t("sell.continue")}</Action></Actions>
   );
 
   if (step === "amount") {
     return (
-      <AppShell center>
-        <StepHeader title={t("sell.title")} sub={t("sell.sub")} />
+      <AppShell center lead={<StepHeader title={t("sell.amountQ")} step={1} total={6} />}>
         <AssetPick list={assets} value={asset} label={getLang() === "en" ? "Cryptocurrency" : "Cryptomonnaie"}
           onPick={(a) => { if (a !== asset) { setAsset(a); setNet(null); setSender(""); setConnected(false); } }} />
         <AmountField label={t("sell.amount")} units={["USDT", "CAD"] as Unit[]} unit={unit} coin={coin} onUnit={(u) => { setUnit(u); setAmount(""); }}
           value={amount} onChange={onAmount} disabled={blocked}
-          onMin={isStaff ? undefined : () => setAmount(minText(unit))} onMax={isStaff ? undefined : () => setAmount(maxText(unit))}>
+          onMin={isStaff ? undefined : () => setAmount(minText(unit))} onMax={isStaff ? undefined : () => setAmount(maxText(unit))}
+          hint={value > 0 ? `≈ ${unit === "USDT" ? `${nfCad.format(cad)} $` : `${nfUsdt.format(usdt)} ${coin}`} · 1 ${coin} = ${nfRate.format(sellRate)} $` : `1 ${coin} = ${nfRate.format(sellRate)} $`}
+          quick={quick}>
           {blocked ? (
             <p className="ac-note">{t("sell.limitReached").replace("{time}", nextAtText)}</p>
           ) : belowMin ? (
@@ -244,11 +250,7 @@ const AppVendreForm = () => {
           )}
         </AmountField>
 
-        <div className="mt-6">
-          <Facts rows={[
-            { label: unit === "USDT" ? t("sell.youReceive") : t("sell.youSend"), value: unit === "USDT" ? `${nfCad.format(cad)} CAD` : `${nfUsdt.format(usdt)} ${coin}`, usdt: unit !== "USDT", coin },
-            { label: t("sell.rate"), value: `1 ${coin} = ${nfCad.format(sellRate)} CAD` },
-          ]} />
+        <div className="mt-4">
           <PromoField state={bonusState} />
         </div>
 
@@ -259,8 +261,7 @@ const AppVendreForm = () => {
 
   if (step === "reception") {
     return (
-      <AppShell center>
-        <StepHeader title={t("sell.reception")} sub={t("sell.receptionSub")} onBack={() => setStep("amount")} />
+      <AppShell center lead={<StepHeader title={t("sell.reception")} sub={t("sell.receptionSub")} onBack={() => setStep("amount")} step={2} total={6} />}>
         <p className="ac-k">{t("sell.interacEmail")}</p>
         <div className="mt-1 flex items-center gap-3 py-3">
           <Mail className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />
@@ -291,8 +292,7 @@ const AppVendreForm = () => {
 
   if (step === "network") {
     return (
-      <AppShell center>
-        <StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} />
+      <AppShell center lead={<StepHeader title={t("sell.network")} sub={t("sell.networkSub")} onBack={() => setStep("reception")} step={3} total={6} />}>
         <NetworkPick list={openNetworks(networks, "sell", asset)} value={net} onPick={(id) => { if (net !== id) { setSender(""); setConnected(false); } setNet(id); }} />
         {next(() => setStep("from"), !net)}
       </AppShell>
@@ -314,8 +314,7 @@ const AppVendreForm = () => {
       setLinking(false);
     };
     return (
-      <AppShell center>
-        <StepHeader title={t("sell.walletTitle")} sub={`${t("sell.walletSub")} ${network?.tag ?? ""}.`} onBack={() => setStep("network")} />
+      <AppShell center lead={<StepHeader title={t("sell.walletTitle")} sub={`${t("sell.walletSub")} ${network?.tag ?? ""}.`} onBack={() => setStep("network")} step={4} total={6} />}>
 
         {connected && senderOk ? (
           <>
@@ -361,7 +360,7 @@ const AppVendreForm = () => {
 
   if (step === "deposit") {
     return (
-      <AppShell header={<StepHeader title={t("sell.sendUsdt")} sub={t("sell.sendUsdtSub")} />}>
+      <AppShell lead={<StepHeader title={t("sell.sendUsdt")} sub={t("sell.sendUsdtSub")} step={5} total={6} />}>
         {/* Le QR garde son fond blanc : les appareils photo le lisent mieux. */}
         <div className="inline-block rounded-2xl bg-white p-4">
           <QRCodeSVG value={depositAddr} size={180} level="M" />
@@ -372,9 +371,9 @@ const AppVendreForm = () => {
           <span className="ac-k">{network?.name}</span>
           <span className="ml-auto text-[12px] text-muted-foreground">{network?.tag}</span>
         </div>
-        <div className="ac-lines mt-1">
-          <CopyRow label={t("sell.depositAddr")} value={depositAddr} mono />
-          <CopyRow label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} ${coin}`} />
+        <div className="mt-3">
+          <NumberedCopy n={1} label={t("sell.depositAddr")} value={depositAddr} mono />
+          <NumberedCopy n={2} label={t("sell.exactToSend")} value={`${nfUsdt.format(usdt)} ${coin}`} mark />
         </div>
 
         <p className="ac-note flex items-start gap-2">
@@ -398,7 +397,7 @@ const AppVendreForm = () => {
   }
 
   return (
-    <AppShell header={<StepHeader title={t("sell.sentTitle")} sub={t("sell.sentSub")} />}>
+    <AppShell lead={<StepHeader title={t("sell.sentTitle")} sub={t("sell.sentSub")} step={6} total={6} />}>
       <p className="mb-6 flex items-start gap-2.5 text-[14px] leading-relaxed text-muted-foreground">
         <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" strokeWidth={2.4} />
         <span>

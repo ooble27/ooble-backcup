@@ -3,9 +3,8 @@ import { useAppSettings } from "@/lib/settings";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
-import CopyRow from "@/components/app/CopyRow";
 import RecipientBook from "@/components/app/RecipientBook";
-import { Action, Actions, AmountField, AssetPick, ClosedPage, Facts, NetworkPick, StepHeader } from "@/components/app/Flat";
+import { Action, Actions, AmountField, AssetPick, ClosedPage, Countdown, Facts, NetworkPick, NumberedCopy, StepHeader } from "@/components/app/Flat";
 import { ASSET_BY_ID, openAssets, type AssetId } from "@/lib/assets";
 import { NETWORKS, openNetworks, type NetId } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
@@ -23,6 +22,7 @@ import { useOtcVisible } from "@/lib/otc";
 type Step = "amount" | "network" | "address" | "recap" | "done";
 const nfCad = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const nfUsdt = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 });
+const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
 const short = (a: string) => (a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a);
 
 /* Commandes fermées aux clients : la page d'attente. Composant à part, pour que les rôles de
@@ -96,6 +96,10 @@ const AppAcheterForm = () => {
     else setAmount(clean);
   };
 
+  // Montants tout prêts, dans l'unité choisie, seulement ceux qui sont permis.
+  const quick = (unit === "CAD" ? [100, 250, 500, 1000] : [50, 100, 250, 500])
+    .filter((n) => { const c = toCad(n, unit, buyRate); return c >= minCad && c <= maxCad; });
+
   const setPreset = (kind: "min" | "max") => setAmount(kind === "min" ? minText(unit) : maxText(unit));
 
   const nextAtText = allowance?.nextAt
@@ -165,12 +169,13 @@ const AppAcheterForm = () => {
 
   if (step === "amount") {
     return (
-      <AppShell center>
-        <StepHeader title={t("buy.title")} sub={t("buy.sub")} />
+      <AppShell center lead={<StepHeader title={t("buy.amountQ")} step={1} total={5} />}>
         <AssetPick list={assets} value={asset} label={getLang() === "en" ? "Cryptocurrency" : "Cryptomonnaie"}
           onPick={(a) => { if (a !== asset) { setAsset(a); setNet(null); setAddress(""); } }} />
         <AmountField label={t("buy.amount")} units={["CAD", "USDT"] as Unit[]} unit={unit} coin={coin} onUnit={(u) => { setUnit(u); setAmount(""); }}
-          value={amount} onChange={onAmount} disabled={blocked} onMin={() => setPreset("min")} onMax={() => setPreset("max")}>
+          value={amount} onChange={onAmount} disabled={blocked} onMin={() => setPreset("min")} onMax={() => setPreset("max")}
+          hint={value > 0 ? `≈ ${unit === "CAD" ? `${nfUsdt.format(usdt)} ${coin}` : `${nfCad.format(cad)} $`} · 1 ${coin} = ${nfRate.format(buyRate)} $` : `1 ${coin} = ${nfRate.format(buyRate)} $`}
+          quick={quick}>
           {blocked ? (
             <p className="ac-note">{t("buy.limitReached").replace("{time}", nextAtText)}</p>
           ) : belowMin ? (
@@ -181,11 +186,7 @@ const AppAcheterForm = () => {
           )}
         </AmountField>
 
-        <div className="mt-6">
-          <Facts rows={[
-            { label: unit === "CAD" ? t("buy.youReceive") : t("buy.youPay"), value: unit === "CAD" ? `${nfUsdt.format(usdt)} ${coin}` : `${nfCad.format(cad)} CAD`, usdt: unit === "CAD", coin },
-            { label: t("buy.rate"), value: `1 ${coin} = ${nfCad.format(buyRate)} CAD` },
-          ]} />
+        <div className="mt-4">
           <PromoField state={bonusState} />
         </div>
 
@@ -196,8 +197,7 @@ const AppAcheterForm = () => {
 
   if (step === "network") {
     return (
-      <AppShell center>
-        <StepHeader title={t("buy.dest")} sub={t("buy.destSub")} onBack={() => setStep("amount")} />
+      <AppShell center lead={<StepHeader title={t("buy.dest")} sub={t("buy.destSub")} onBack={() => setStep("amount")} step={2} total={5} />}>
         <NetworkPick list={openNetworks(networks, "buy", asset)} value={net} onPick={(id) => { if (id !== net) setAddress(""); setNet(id); }} />
         {next(() => setStep("address"), !net)}
       </AppShell>
@@ -206,8 +206,7 @@ const AppAcheterForm = () => {
 
   if (step === "address") {
     return (
-      <AppShell center>
-        <StepHeader title={t("buy.recvAddr")} sub={`${t("buy.yourAddr")} ${network?.tag}`} onBack={() => setStep("network")} />
+      <AppShell center lead={<StepHeader title={t("buy.recvAddr")} sub={`${t("buy.yourAddr")} ${network?.tag}`} onBack={() => setStep("network")} step={3} total={5} />}>
         <div className="flex items-center gap-2.5">
           <img src={`/coins/${network?.id}.svg`} alt="" className="h-6 w-6 rounded-full" draggable={false} />
           <span className="ac-k">{network?.name}</span>
@@ -233,8 +232,7 @@ const AppAcheterForm = () => {
 
   if (step === "recap") {
     return (
-      <AppShell center>
-        <StepHeader title={t("buy.recap")} sub={t("buy.recapSub")} onBack={() => setStep("address")} />
+      <AppShell center lead={<StepHeader title={t("buy.recap")} sub={t("buy.recapSub")} onBack={() => setStep("address")} step={4} total={5} />}>
         <Facts rows={[
           { label: t("buy.youPay"), value: `${nfCad.format(cad)} CAD` },
           { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} ${coin}`, usdt: true, coin },
@@ -250,20 +248,17 @@ const AppAcheterForm = () => {
     );
   }
 
+  // Payer : ce qu'on reçoit, puis les trois choses à copier dans le virement, numérotées, avec le temps qu'il reste.
   return (
-    <AppShell header={<StepHeader title={t("buy.created")} sub={t("buy.payInterac")} />}>
-      <Facts rows={[
-        { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} ${coin}`, usdt: true, coin },
-        { label: t("buy.toPay"), value: `${nfCad.format(cad)} CAD` },
-        { label: t("buy.network"), value: `${network?.name} · ${network?.tag}` },
-        { label: t("buy.address"), value: short(address), mono: true },
-      ]} />
-
-      <p className="ac-k mt-10">{t("buy.sendEtransfer")}</p>
-      <div className="ac-lines mt-2">
-        <CopyRow label={t("buy.recipient")} value={interacEmail} mono />
-        <CopyRow label={t("buy.exactAmount")} value={`${nfCad.format(cad)} CAD`} />
-        <CopyRow label={t("buy.reference")} value={savedRef} mono />
+    <AppShell lead={<StepHeader title={t("buy.payInterac")} sub={t("buy.created")} step={5} total={5} />}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="ac-k">{t("buy.sendEtransfer")}</p>
+        {payBy && <Countdown until={payBy} />}
+      </div>
+      <div className="mt-3">
+        <NumberedCopy n={1} label={t("buy.recipient")} value={interacEmail} mono />
+        <NumberedCopy n={2} label={t("buy.exactAmount")} value={`${nfCad.format(cad)} $`} />
+        <NumberedCopy n={3} label={t("buy.reference")} value={savedRef} mono mark />
       </div>
       {payBy && (
         <p className="ac-note">
@@ -274,6 +269,14 @@ const AppAcheterForm = () => {
         {t("buy.autoNote")}{" "}
         <Link to="/faq/payer-par-interac#regles-interac" className="font-medium text-foreground underline underline-offset-2">{t("buy.rulesLink")}</Link>
       </p>
+
+      <div className="mt-6">
+        <Facts rows={[
+          { label: t("buy.youReceive"), value: `${nfUsdt.format(usdt)} ${coin}`, usdt: true, coin },
+          { label: t("buy.network"), value: `${network?.name} · ${network?.tag}` },
+          { label: t("buy.address"), value: short(address), mono: true },
+        ]} />
+      </div>
 
       <Actions>
         <Action to="/app">{t("buy.done")}</Action>

@@ -125,4 +125,34 @@ export const FLAT_CSS = `
 .ac-row.pick .ac-n { color: #555; }
 .ac-row.pick.on .ac-n { color: #111; font-weight: 600; }
 .ac-note { color: #111; }
+
+/* ───────── Parcours Acheter et Vendre (variante A) ───────── */
+/* Le haut, posé sur la couleur : retour, barre d'étapes, titre. */
+.ap-lead .mb-8 { margin-bottom: 14px; }
+.ap-lead .ac-title { font-size: clamp(28px, 7.6vw, 40px); }
+.ap-lead .ac-sub { color: #222; }
+.ac-steps { display: flex; gap: 5px; margin: 4px 0 14px; }
+.ac-steps span { flex: 1; height: 7px; border-radius: 9px; background: rgba(17,17,17,.18); }
+.ac-steps span.on { background: #111; }
+.ac-steps span.cur { background: #fff; box-shadow: inset 0 0 0 1.8px #111; }
+/* CAD / USDC : un interrupteur en pastille. */
+.ac-seg { gap: 2px; padding: 2px; border: 2px solid #111; border-radius: 999px; background: #fff; }
+.ac-seg button { border: none; padding: 3px 12px; font-size: 12px; font-weight: 600; }
+/* Le montant en très grand, sans contour : la carte est le champ. */
+.ac-in.ac-amount { border: none; border-radius: 0; background: transparent; padding: 6px 96px 6px 0; font-size: clamp(48px, 13vw, 64px); font-weight: 500; letter-spacing: -0.05em; }
+.ac-in.ac-amount:focus { background: transparent; }
+.ac-amount + span { right: 0 !important; font-size: 20px; }
+.ac-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 13px; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.3; }
+/* Montants tout prêts. */
+.ac-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.ac-chips button { height: 34px; padding: 0 13px; border: 2px solid #111; border-radius: 999px; background: #fff; color: #111; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: transform .12s; }
+.ac-chips button[aria-pressed="true"] { background: #111; color: #fff; }
+.ac-chips button:active { transform: scale(.95); }
+/* Les choses à copier, numérotées. */
+.ac-copy { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 2.5px solid #111; border-radius: 18px; background: #fff; font: inherit; color: #111; cursor: pointer; transition: transform .12s; }
+.ac-copy + .ac-copy { margin-top: 8px; }
+.ac-copy.mark { background: #fff6c9; }
+.ac-copy:active { transform: scale(.98); }
+.ac-copy-n { width: 26px; height: 26px; flex-shrink: 0; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.ac-timer { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 2px solid #111; border-radius: 999px; background: #fff6c9; color: #111; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 `;

@@ -3,8 +3,9 @@
  * page « fermé », champ de montant, choix de blockchain et récapitulatif. Styles : flat.ts,
  * chargé une fois par AppShell.
  */
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, ShieldOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, Copy, ShieldOff } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import type { Network } from "@/components/app/networks";
 import { useT } from "@/lib/i18n";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
 import type { AssetId } from "@/lib/settings";
 
 /** Titre d'une étape : « ← Retour » au-dessus, le titre en grand, une phrase. */
-export const StepHeader = ({ title, sub, onBack }: { title: string; sub?: string; onBack?: () => void }) => {
+export const StepHeader = ({ title, sub, onBack, step, total }: { title: string; sub?: string; onBack?: () => void; step?: number; total?: number }) => {
   const t = useT();
   return (
     <div className="mb-8">
@@ -20,6 +21,12 @@ export const StepHeader = ({ title, sub, onBack }: { title: string; sub?: string
         <button type="button" className="ac-back" onClick={onBack}>
           <ArrowLeft className="h-[15px] w-[15px]" />{t("misc.back")}
         </button>
+      )}
+      {/* Barre d'étapes : faites en noir, en cours en blanc au trait noir, à venir en clair. */}
+      {step && total && (
+        <div className="ac-steps" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step}>
+          {Array.from({ length: total }, (_, i) => <span key={i} className={i + 1 < step ? "on" : i + 1 === step ? "cur" : undefined} />)}
+        </div>
       )}
       <h1 className="ac-title">{title}</h1>
       {sub && <p className="ac-sub">{sub}</p>}
@@ -46,28 +53,25 @@ export const ClosedPage = ({ title, message }: { title: string; message: string 
  * Le montant : étiquette, CAD / cryptomonnaie et Min / Max en mots soulignés, le nombre en très grand.
  * L'unité « USDT » désigne la cryptomonnaie de la commande : `coin` donne son symbole affiché (USDC…).
  */
-export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, coin = "USDC", children }: {
+export const AmountField = <U extends string>({ label, units, unit, onUnit, value, onChange, disabled, onMin, onMax, coin = "USDC", hint, quick, children }: {
   label: string; units: U[]; unit: U; onUnit: (u: U) => void; value: string; onChange: (v: string) => void; disabled?: boolean;
-  onMin?: () => void; onMax?: () => void; coin?: string; children?: React.ReactNode;
+  onMin?: () => void; onMax?: () => void; coin?: string;
+  /** La conversion, en pastille noire sous le montant (« ≈ 342,16 USDC · 1 USDC = 1,4613 $ »). */
+  hint?: string;
+  /** Montants tout prêts à toucher, dans l'unité choisie. */
+  quick?: number[];
+  children?: React.ReactNode;
 }) => (
   <div>
-    <div className="flex flex-wrap items-baseline justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="ac-k">{label}</p>
-      <div className="flex items-baseline gap-5">
-        <div className="ac-opts" role="group" aria-label={`CAD / ${coin}`}>
-          {units.map((u) => (
-            <button key={u} type="button" aria-pressed={unit === u} onClick={() => onUnit(u)}>{u === "USDT" ? coin : u}</button>
-          ))}
-        </div>
-        {(onMin || onMax) && (
-          <div className="ac-opts">
-            {onMin && <button type="button" onClick={onMin}>Min</button>}
-            {onMax && <button type="button" onClick={onMax}>Max</button>}
-          </div>
-        )}
+      <div className="ac-opts ac-seg" role="group" aria-label={`CAD / ${coin}`}>
+        {units.map((u) => (
+          <button key={u} type="button" aria-pressed={unit === u} onClick={() => onUnit(u)}>{u === "USDT" ? coin : u}</button>
+        ))}
       </div>
     </div>
-    <div className="relative mt-2">
+    <div className="relative mt-1">
       <input
         inputMode="decimal"
         placeholder="0"
@@ -79,12 +83,52 @@ export const AmountField = <U extends string>({ label, units, unit, onUnit, valu
       />
       <span className="pointer-events-none absolute bottom-4 right-0 flex items-center gap-1.5 text-[17px] font-medium text-muted-foreground">
         {unit === "USDT" && <img src={`/coins/${coin.toLowerCase()}.svg`} alt="" className="h-5 w-5" />}
-        {unit === "USDT" ? coin : unit}
+        {unit === "USDT" ? coin : "$"}
       </span>
     </div>
+    {hint && <div className="mt-1"><span className="ac-pill">{hint}</span></div>}
+    {(quick?.length || onMin || onMax) ? (
+      <div className="ac-chips" role="group" aria-label={label}>
+        {onMin && <button type="button" onClick={onMin}>Min</button>}
+        {quick?.map((n) => (
+          <button key={n} type="button" aria-pressed={Number(value.replace(",", ".")) === n} onClick={() => onChange(String(n))}>
+            {new Intl.NumberFormat("fr-CA").format(n)}{unit === "USDT" ? "" : " $"}
+          </button>
+        ))}
+        {onMax && <button type="button" onClick={onMax}>Max</button>}
+      </div>
+    ) : null}
     {children}
   </div>
 );
+
+/** Une chose à copier, numérotée (1, 2, 3) dans une pastille au trait noir ; `mark` la met en jaune pâle. */
+export const NumberedCopy = ({ n, label, value, mono, mark }: { n: number; label: string; value: string; mono?: boolean; mark?: boolean }) => {
+  const t = useT();
+  const [done, setDone] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(value); setDone(true); window.setTimeout(() => setDone(false), 1500); } catch { /* presse-papiers indisponible */ }
+  };
+  return (
+    <button type="button" className={cn("ac-copy", mark && "mark")} onClick={copy} aria-label={`${t("misc.copy")} ${label}`}>
+      <span className="ac-copy-n">{n}</span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-[12px] text-[#555]">{label}</span>
+        <span className={cn("block truncate text-[16px] font-medium text-[#111]", mono && "font-mono text-[15px]")}>{value}</span>
+      </span>
+      {done ? <Check className="h-[18px] w-[18px] shrink-0" strokeWidth={2.4} /> : <Copy className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />}
+    </button>
+  );
+};
+
+/** Le temps qu'il reste avant une heure limite, en pastille (mm:ss), relu chaque seconde. */
+export const Countdown = ({ until }: { until: Date }) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(id); }, []);
+  const left = Math.max(0, Math.floor((until.getTime() - now) / 1000));
+  const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0");
+  return <span className="ac-timer" aria-live="off"><Clock className="h-[14px] w-[14px]" strokeWidth={2.2} />{mm}:{ss}</span>;
+};
 
 /** Choix d'une blockchain : une ligne par réseau, le choix retenu en clair avec une coche. */
 export const NetworkPick = ({ list, value, onPick }: { list: Network[]; value: string | null; onPick: (id: Network["id"]) => void }) => (

@@ -658,6 +658,8 @@ const dict = {
   // ── Buy workflow ──
   "buy.title": { fr: "Acheter USDC", en: "Buy USDC" },
   "buy.sub": { fr: "Entrez le montant que vous souhaitez dépenser", en: "Enter the amount you want to spend" },
+  "buy.amountQ": { fr: "Combien voulez-vous dépenser ?", en: "How much do you want to spend?" },
+  "sell.amountQ": { fr: "Combien voulez-vous vendre ?", en: "How much do you want to sell?" },
   "buy.amount": { fr: "Montant", en: "Amount" },
   "buy.youReceive": { fr: "Vous recevez", en: "You receive" },
   "buy.youPay": { fr: "Vous payez", en: "You pay" },

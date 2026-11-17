@@ -42,6 +42,8 @@ interface AppShellProps {
   center?: boolean;
   /** Sans la carte blanche : la page pose elle-même ses blocs sur la couleur (accueil). */
   bare?: boolean;
+  /** Au-dessus de la carte, sur la couleur : retour, barre d'étapes et titre (parcours Acheter et Vendre). */
+  lead?: React.ReactNode;
   className?: string;
 }
 
@@ -52,7 +54,7 @@ interface AppShellProps {
  * largeur ; les pages de saisie gardent une colonne un peu plus large que le
  * mobile (600px, alignée à gauche) pour respirer sans être trop grosses.
  */
-const AppShell = ({ children, header, wide, wider, center, bare, className }: AppShellProps) => {
+const AppShell = ({ children, header, wide, wider, center, bare, lead, className }: AppShellProps) => {
   const { pathname } = useLocation();
   const color = pageColor(pathname);
   useAppScope(color);
@@ -110,6 +112,7 @@ const AppShell = ({ children, header, wide, wider, center, bare, className }: Ap
         )}
       >
         {/* Les trois pages du menu : la mascotte dépasse de la carte, comme à la connexion. */}
+        {lead && <div className="ap-lead">{lead}</div>}
         {withNav && !bare && <PeekMascot look={0} typing={false} hide={false} peek={false} />}
         {bare ? children : <div className="ap-card">{children}</div>}
       </div>
