@@ -4,6 +4,8 @@ import { LangPill } from "@/components/app/LangToggle";
 import { HELP_COLORS } from "@/lib/faq";
 import { useLang } from "@/lib/i18n";
 import AuthArt from "./AuthArt";
+import { isInstalledApp } from "@/lib/installed";
+import { PlayAuthFrame } from "@/components/launch/PlayLogin";
 
 /* Cadre des pages de connexion et d'inscription : le formulaire à gauche, un
    panneau de couleur à droite (ordinateur seulement). Le panneau est fixe et
@@ -63,6 +65,12 @@ const PANELS: Record<Exclude<Variant, "individual">, { bg: string; ink: string; 
 const AuthShell = ({ variant, children }: { variant: Variant; children: React.ReactNode }) => {
   const [lang] = useLang();
   const P = PANELS[variant === "individual" ? "signup" : variant];
+
+  // App installée : même style que l'accueil et la connexion, une couleur pleine par page.
+  if (isInstalledApp()) {
+    const bg = variant === "individual" ? "#dccaff" : variant === "business" ? "#ff6a3d" : "#fdd94e";
+    return <PlayAuthFrame bg={bg}>{children}</PlayAuthFrame>;
+  }
 
   return (
     <div className="ink-neutral app-type grid min-h-screen bg-background tracking-[-0.015em] lg:grid-cols-[1fr_minmax(0,0.9fr)]">

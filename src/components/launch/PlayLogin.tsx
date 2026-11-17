@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { paintPage } from "@/lib/installed";
 
 /*
@@ -18,6 +18,8 @@ const CSS = `
 .pl-pupil{transition:transform .25s cubic-bezier(.2,.8,.2,1)}
 .pl-paw{transition:transform .38s cubic-bezier(.34,1.4,.64,1)}
 .pl-card{position:relative;z-index:2;background:#fff;border:3px solid #111;border-radius:28px;padding:22px 18px 20px;animation:pl-up .6s cubic-bezier(.16,1,.3,1) .08s both}
+.pl-auth{padding:24px 20px 22px}
+.pl-auth .animate-up{animation:none}
 .pl-sub{margin:10px 0 0;font-size:15px;line-height:1.5}
 .pl-fld{display:block;border:2px solid #111;border-radius:16px;padding:9px 14px 8px;background:#fff;transition:background .2s}
 .pl-fld+.pl-fld{margin-top:10px}
@@ -39,14 +41,55 @@ const CSS = `
 @media (prefers-reduced-motion: reduce){.pl *{animation:none!important;transition:none!important}}
 `;
 
+/** Ces écrans sont toujours clairs, même si l'app est en thème sombre (les champs, le captcha suivent). */
+function useLightTheme() {
+  useEffect(() => {
+    const h = document.documentElement;
+    const had = h.classList.contains("dark");
+    h.classList.remove("dark");
+    return () => { if (had) h.classList.add("dark"); };
+  }, []);
+}
+
 export function PlayShell({ title, children }: { title: ReactNode; children: ReactNode }) {
   useEffect(() => paintPage("#fdd94e"), []);
+  useLightTheme();
   return (
     <div className="pl">
       <style>{CSS}</style>
       <div className="pl-in">
         <h1 className="pl-t">{title}</h1>
         {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Cadre des pages d'inscription dans l'app installée : la page entière de couleur, la mascotte qui dépasse
+ * de la carte blanche. Elle suit des yeux ce qu'on tape et se cache les yeux pendant un mot de passe.
+ */
+export function PlayAuthFrame({ bg, children }: { bg: string; children: ReactNode }) {
+  useEffect(() => paintPage(bg), [bg]);
+  useLightTheme();
+  const [field, setField] = useState<{ type: "text" | "password"; len: number } | null>(null);
+  const [peek, setPeek] = useState(false);
+  const track = (t: EventTarget) => {
+    if (!(t instanceof HTMLInputElement) || ["checkbox", "radio", "file", "hidden"].includes(t.type)) return;
+    const pw = t.type === "password" || t.autocomplete === "new-password" || t.autocomplete === "current-password";
+    setField({ type: pw ? "password" : "text", len: t.value.length });
+    setPeek(pw && t.type === "text");
+  };
+  return (
+    <div className="pl" style={{ background: bg }}>
+      <style>{CSS}</style>
+      <div className="pl-in">
+        <PeekMascot look={field?.len ?? 0} typing={field?.type === "text"} hide={field?.type === "password"} peek={peek} />
+        <div className="pl-card pl-auth"
+          onFocusCapture={(e) => track(e.target)} onInputCapture={(e) => track(e.target)}
+          onBlurCapture={() => setField(null)}>
+          {children}
+        </div>
       </div>
     </div>
   );
