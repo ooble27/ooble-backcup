@@ -88,12 +88,19 @@ export const FLAT_CSS = `
   --popover: 0 0% 100%; --popover-foreground: 0 0% 7%; --primary: 0 0% 7%; --primary-foreground: 0 0% 100%;
   --secondary: 46 90% 94%; --secondary-foreground: 0 0% 7%; --muted: 46 60% 95%; --muted-foreground: 0 0% 32%;
   --accent: 16 100% 62%; --accent-foreground: 0 0% 7%; --border: 40 8% 84%; --input: 0 0% 7%; --ring: 0 0% 7%; }
-.ap-card { position: relative; z-index: 2; background: #fff; border: 3px solid #111; border-radius: 28px; padding: 24px 20px 28px; }
+.ap-card { position: relative; z-index: 2; background: #fff; border: 3px solid #111; border-radius: 28px; padding: 20px 18px 22px; }
+/* Parcours plus courts : moins d'espace entre les blocs, lignes resserrées. */
+.ap-card .mb-8 { margin-bottom: 18px; }
+.ap-card .mt-10 { margin-top: 22px; }
+.ap-card .mt-8 { margin-top: 18px; }
+.ap-card .ac-back { margin-bottom: 8px; }
+.ac-kv { padding: 10px 0; }
+.ac-row { padding: 10px 0; }
 @media (min-width: 768px) { .ap-card { padding: 36px 36px 40px; } }
 .app-surface .pl-mascot { margin-top: 2px; animation: none; }
 .ap-ic { width: 42px; height: 42px; border-radius: 999px; background: #fff; border: 2.5px solid #111; display: flex; align-items: center; justify-content: center; color: #111; transition: transform .15s; }
 .ap-ic:active { transform: scale(.94); }
-.ac-title, .ac-name { font-weight: 500; font-size: clamp(28px, 7.4vw, 38px); line-height: 1.12; letter-spacing: -0.035em; color: #111; }
+.ac-title, .ac-name { font-weight: 500; font-size: clamp(26px, 6.8vw, 36px); line-height: 1.12; letter-spacing: -0.035em; color: #111; }
 .ac-gt, .ac-todo-t { font-weight: 500; color: #111; }
 .ac-k { color: #111; opacity: .62; letter-spacing: .1em; }
 .ac-sub, .ac-meta, .ac-gs, .ac-d, .ac-help, .ac-todo-s, .ac-v, .ac-kv > span:first-child { color: #444; }
@@ -103,7 +110,7 @@ export const FLAT_CSS = `
 .ac-todo { border: 2.5px solid #111; border-radius: 20px; padding: 16px 18px; background: #fff6c9; }
 .ac-todo-c { color: #111; }
 /* Action principale : la grande pastille noire avec la flèche, comme sur l'accueil. */
-.ac-act:not(.quiet) { flex: 1 1 100%; width: 100%; height: 58px; justify-content: space-between; padding: 0 24px; border-radius: 999px; background: #111; color: #fff; text-decoration: none; font-size: 16px; font-weight: 500; transition: transform .15s, opacity .2s; }
+.ac-act:not(.quiet) { flex: 1 1 100%; width: 100%; height: 54px; justify-content: space-between; padding: 0 24px; border-radius: 999px; background: #111; color: #fff; text-decoration: none; font-size: 16px; font-weight: 500; transition: transform .15s, opacity .2s; }
 .ac-act:not(.quiet):not(:disabled):active { transform: scale(.97); }
 .ac-act.quiet { color: #111; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; }
 /* Champs : contour noir épais, fond jaune pâle à la saisie. */

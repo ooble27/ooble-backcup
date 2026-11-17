@@ -25,7 +25,7 @@ const CopyRow = ({ label, value, mono }: CopyRowProps) => {
   };
 
   return (
-    <div className="flex items-center gap-3 py-3.5">
+    <div className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="text-[13px] text-muted-foreground">{label}</p>
         <p className={cn("mt-0.5 truncate text-[16px] font-semibold", mono && "font-mono")}>{value}</p>
