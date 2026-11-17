@@ -68,9 +68,9 @@ const Connexion = () => {
   const [onboarding, setOnboarding] = useState(() => play && !hasOnboarded());
   const [focus, setFocus] = useState<"email" | "password" | null>(null);
 
-  // App installée : vraie navigation vers l'app, pour que l'iPhone reprenne la couleur de l'app
-  // dans la barre d'état (elle garde celle du premier affichage, ici le jaune de la connexion).
-  const goApp = () => (isInstalledApp() ? window.location.replace("/app") : navigate("/app", { replace: true }));
+  // Navigation interne (sans rechargement) : un rechargement pendant que la session se charge
+  // renverrait ici, puis vers l'app, en boucle.
+  const goApp = () => navigate("/app", { replace: true });
   useEffect(() => {
     if (user) goApp();
     // eslint-disable-next-line react-hooks/exhaustive-deps
