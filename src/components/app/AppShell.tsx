@@ -79,7 +79,7 @@ const AppShell = ({ children, header, wide, wider, center, bare, className }: Ap
     {/* La barre du haut a la même largeur que le contenu : « ← Retour », la salutation et les boutons
         s'alignent sur la carte, sur ordinateur et tablette aussi. */}
     <div className={cn(
-      "mx-auto flex min-h-screen max-w-[440px] flex-col px-4 pb-[calc(6.75rem+env(safe-area-inset-bottom))] pt-[max(1rem,var(--ios-top))] app-top",
+      "mx-auto flex min-h-screen max-w-[440px] flex-col px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-[max(1rem,var(--ios-top))] app-top",
       wide ? "md:max-w-[720px] lg:max-w-[960px]" : "md:max-w-[560px] lg:max-w-[640px]",
       wider && "md:max-w-[840px] lg:max-w-[1040px] xl:max-w-[1180px] md:px-8",
     )}>

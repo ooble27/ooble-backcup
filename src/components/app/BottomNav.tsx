@@ -1,88 +1,45 @@
-import { useRef, useEffect, useState, useCallback } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { House, Coins, HandCoins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
-import type { TKey } from "@/lib/translations";
-
-const items: { to: string; labelKey: TKey; icon: typeof House; end: boolean }[] = [
-  { to: "/app", labelKey: "bnav.home", icon: House, end: true },
-  { to: "/app/acheter", labelKey: "bnav.buy", icon: Coins, end: false },
-  { to: "/app/vendre", labelKey: "bnav.sell", icon: HandCoins, end: false },
-];
 
 /**
- * Menu du bas : une pastille noire centrée, sur une seule ligne. La page en cours montre son nom sur une pastille jaune
- * qui glisse d'une page à l'autre. Affiché seulement sur ses trois pages
- * (Accueil, Acheter, Vendre) : les autres pages ont « ← Retour » en haut, et rien ne passe sous les icônes.
+ * Menu du bas (variante D) : une barre blanche au trait noir, Accueil à gauche, Vendre à droite, et au milieu
+ * Acheter en gros rond jaune qui dépasse, comme un bouton qu'on presse. Affiché seulement sur ses trois pages
+ * (Accueil, Acheter, Vendre) ; les autres pages ont « ← Retour » en haut.
  */
+
+const CSS = `
+.bn { position: relative; display: grid; grid-template-columns: 1fr 96px 1fr; align-items: center; width: 100%; max-width: 380px; height: 64px; border-radius: 26px; background: #fff; border: 3px solid #111; }
+.bn-side { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 100%; font-size: 11.5px; font-weight: 500; color: #666; text-decoration: none; -webkit-tap-highlight-color: transparent; transition: color .2s; }
+.bn-side svg { transition: transform .2s; }
+.bn-side.on { color: #111; font-weight: 600; }
+.bn-side.on svg { transform: scale(1.12); }
+.bn-mid { justify-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 78px; height: 78px; margin-top: -46px; border-radius: 999px; background: #fdd94e; border: 3px solid #111; color: #111; font-size: 11.5px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 0 #111; -webkit-tap-highlight-color: transparent; transition: transform .15s, box-shadow .15s, background-color .25s; }
+.bn-mid.on { background: #dccaff; }
+.bn-mid:active { transform: translateY(3px); box-shadow: 0 1px 0 #111; }
+.bn a:focus-visible { outline: 2.5px solid #111; outline-offset: 3px; border-radius: 18px; }
+@media (prefers-reduced-motion: reduce) { .bn *, .bn-mid { transition: none; } }
+`;
+
 const BottomNav = () => {
   const t = useT();
-  const location = useLocation();
-  const navRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const [line, setLine] = useState({ left: 0, width: 0, ready: false });
-
-  const activeIndex = items.findIndex(({ to, end }) =>
-    end ? location.pathname === to : location.pathname.startsWith(to),
-  );
-
-  // Le trait se cale sous la page en cours, une fois sa largeur finale connue (le nom s'ouvre en 300 ms).
-  const measure = useCallback(() => {
-    const nav = navRef.current;
-    const el = itemRefs.current[activeIndex];
-    if (!nav || !el) { setLine((l) => ({ ...l, ready: false })); return; }
-    const navRect = nav.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    setLine({ left: elRect.left - navRect.left + 14, width: Math.max(0, elRect.width - 28), ready: true });
-  }, [activeIndex]);
-
-  useEffect(() => {
-    requestAnimationFrame(measure);
-    const id = window.setTimeout(measure, 320);
-    window.addEventListener("resize", measure);
-    return () => { window.clearTimeout(id); window.removeEventListener("resize", measure); };
-  }, [measure]);
+  const { pathname } = useLocation();
+  const on = (to: string, end = false) => (end ? pathname.replace(/\/$/, "") === to : pathname.startsWith(to));
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-      <nav
-        ref={navRef}
-        className="relative flex w-full max-w-[280px] items-center justify-around gap-1 rounded-full bg-[#111] p-[5px]"
-      >
-        {line.ready && (
-          <div
-            aria-hidden="true"
-            className="absolute top-[5px] bottom-[5px] rounded-full bg-[#fdd94e] transition-[left,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            style={{ left: line.left - 14, width: line.width + 28 }}
-          />
-        )}
-
-        {items.map(({ to, labelKey, icon: Icon, end }, i) => {
-          const isActive = i === activeIndex;
-          return (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              ref={(el) => { itemRefs.current[i] = el; }}
-              className={cn(
-                "relative z-10 flex items-center justify-center py-[13px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                isActive ? "gap-2 px-[16px] text-[#111]" : "gap-0 px-[14px] text-white/70",
-              )}
-            >
-              <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0 transition-colors duration-200" />
-              <span
-                className={cn(
-                  "overflow-hidden whitespace-nowrap text-[13px] font-semibold tracking-[0.01em] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                  isActive ? "max-w-[80px] opacity-100" : "max-w-0 opacity-0",
-                )}
-              >
-                {t(labelKey)}
-              </span>
-            </NavLink>
-          );
-        })}
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <style>{CSS}</style>
+      <nav className="bn" aria-label="Menu">
+        <NavLink to="/app" end className={cn("bn-side", on("/app", true) && "on")} aria-current={on("/app", true) ? "page" : undefined}>
+          <House size={21} strokeWidth={2.1} />{t("bnav.home")}
+        </NavLink>
+        <NavLink to="/app/acheter" className={cn("bn-mid", on("/app/acheter") && "on")} aria-current={on("/app/acheter") ? "page" : undefined}>
+          <Coins size={25} strokeWidth={2.1} />{t("bnav.buy")}
+        </NavLink>
+        <NavLink to="/app/vendre" className={cn("bn-side", on("/app/vendre") && "on")} aria-current={on("/app/vendre") ? "page" : undefined}>
+          <HandCoins size={21} strokeWidth={2.1} />{t("bnav.sell")}
+        </NavLink>
       </nav>
     </div>
   );
