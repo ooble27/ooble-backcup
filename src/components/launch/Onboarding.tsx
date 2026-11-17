@@ -18,7 +18,7 @@ const ARROW = (
 );
 
 const CSS = `
-.ob{position:fixed;inset:0;z-index:60;overflow:hidden;font-family:Poppins,system-ui,sans-serif;color:${INK};-webkit-font-smoothing:antialiased;touch-action:pan-y}
+.ob{position:relative;width:100%;height:100vh;height:100dvh;z-index:60;overflow:hidden;font-family:Poppins,system-ui,sans-serif;color:${INK};-webkit-font-smoothing:antialiased;touch-action:pan-y}
 .ob-track{position:absolute;inset:0;display:flex;transition:transform .55s cubic-bezier(.65,0,.35,1)}
 .ob-sc{position:relative;flex:0 0 100%;height:100%;padding:calc(env(safe-area-inset-top,0px) + 64px) 26px 0}
 .ob-login{position:absolute;right:24px;top:calc(env(safe-area-inset-top,0px) + 18px);z-index:3;border:none;background:none;font:500 15px Poppins,system-ui,sans-serif;color:${INK};text-decoration:underline;text-underline-offset:4px;padding:8px 2px;cursor:pointer}
@@ -99,6 +99,17 @@ export default function Onboarding({ onLogin, onSignup }: { onLogin: () => void;
   }, []);
   // Couleur de la barre d'état assortie à l'écran.
   useEffect(() => paintPage(SCREENS[i].bg), [i]);
+  /*
+   * Sur iPhone (app installée), la barre d'état prend la couleur du contenu posé dans la page, pas d'un calque fixe :
+   * l'accueil est donc dans le cours de la page (et non en position fixe), à la hauteur de l'écran, sans défilement.
+   */
+  useEffect(() => {
+    const h = document.documentElement, b = document.body;
+    const prev = [h.style.overflow, b.style.overflow];
+    h.style.overflow = "hidden"; b.style.overflow = "hidden";
+    window.scrollTo(0, 0);
+    return () => { h.style.overflow = prev[0]; b.style.overflow = prev[1]; };
+  }, []);
 
   // Tablette en paysage et ordinateur : deux colonnes.
   const wide = size.w >= 768 && size.w > size.h * 0.9;
