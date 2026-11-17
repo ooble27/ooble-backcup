@@ -22,7 +22,7 @@
         // App installée, personne de connecté : l'accueil et la connexion sont jaunes (le lancement aussi).
         var inst = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
         var authed = Object.keys(localStorage).some(function (k) { return /^sb-.*-auth-token$/.test(k); });
-        if (inst && (p === "/connexion" || (!authed && /^\/app(\/|$)/.test(p)))) bg = "#fdd94e";
+        if (inst && (p === "/connexion" || (!authed && /^\/app(\/|$)/.test(p)))) { bg = "#fdd94e"; window.__oobleUnderBar = true; }
         h.style.backgroundColor = bg;
         document.querySelector('meta[name="theme-color"]').setAttribute("content", bg);
         if (localStorage.getItem("ooble.lang") === "en" && !/^\/(en|app|admin)(\/|$)/.test(p))
@@ -37,6 +37,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      // Accueil et connexion de l'app installée : la page passe sous la barre d'état, pour que chaque écran
+      // garde sa couleur jusqu'en haut (sinon l'iPhone fige la barre à la couleur du premier écran).
+      if (window.__oobleUnderBar) document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').setAttribute("content", "black-translucent");
+    </script>
     <meta name="apple-mobile-web-app-title" content="Ooble" />
     <meta
       data-seo
