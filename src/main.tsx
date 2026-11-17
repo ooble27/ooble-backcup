@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import LaunchSplash from "./components/launch/LaunchSplash";
 import "./index.css";
 import { initTheme } from "./lib/theme";
 import { initLang } from "./lib/i18n";
@@ -28,7 +29,7 @@ if (redirect) {
 } else {
   // Les pages publiques arrivent déjà rendues (pré-rendu SEO) ; React les
   // remplace par l'app, à l'identique.
-  createRoot(document.getElementById("root")!).render(<App basename={basename} />);
+  createRoot(document.getElementById("root")!).render(<><App basename={basename} /><LaunchSplash /></>);
 }
 
 // Toujours la dernière version publiée (voir lib/freshness.ts).

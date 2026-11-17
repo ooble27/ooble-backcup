@@ -271,6 +271,8 @@ const dict = {
 
   // ── Connexion ──
   "login.title": { fr: "Bon retour", en: "Welcome back" },
+  "login.playTitleA": { fr: "Bon retour", en: "Welcome back" },
+  "login.playTitleB": { fr: "chez Ooble", en: "to Ooble" },
   "login.sub": {
     fr: "Connectez-vous pour acheter et vendre vos USDC.",
     en: "Sign in to buy and sell your USDC.",

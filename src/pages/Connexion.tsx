@@ -8,6 +8,9 @@ import { useAuth } from "@/lib/auth";
 import AuthShell from "@/components/auth/AuthShell";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { hasOnboarded, isInstalledApp, markOnboarded } from "@/lib/installed";
+import Onboarding from "@/components/launch/Onboarding";
+import { PeekMascot, PlayArrow, PlayShell } from "@/components/launch/PlayLogin";
 
 type Mode = "login" | "forgot";
 type ForgotStep = "email" | "otp" | "newpw" | "done";
@@ -60,6 +63,10 @@ const Connexion = () => {
   const { user, signIn, signInWithGoogle } = useAuth();
   const t = useT();
   const [mode, setMode] = useState<Mode>("login");
+  // App installée : écrans d'accueil une seule fois (nouveau visiteur), puis la connexion animée.
+  const [play] = useState(isInstalledApp);
+  const [onboarding, setOnboarding] = useState(() => play && !hasOnboarded());
+  const [focus, setFocus] = useState<"email" | "password" | null>(null);
 
   useEffect(() => {
     if (user) navigate("/app", { replace: true });
@@ -205,6 +212,132 @@ const Connexion = () => {
           ? t("login.resetSent")
           : t("login.forgotSub")
     : t("login.sub");
+
+  const submitLabel = busy
+    ? t("misc.wait")
+    : isForgot
+      ? forgotStep === "otp"
+        ? t("login.verifyCode")
+        : forgotStep === "newpw"
+          ? t("login.savePw")
+          : t("login.sendLink")
+      : t("login.submit");
+
+  if (onboarding && !user) {
+    return (
+      <Onboarding
+        onLogin={() => { markOnboarded(); setOnboarding(false); }}
+        onSignup={() => { markOnboarded(); navigate("/inscription"); }}
+      />
+    );
+  }
+
+  if (play) {
+    const pwBtn = (shown: boolean, toggle: () => void) => (
+      <button type="button" onClick={toggle} aria-label={shown ? t("misc.hidePw") : t("misc.showPw")} className="shrink-0">
+        {shown ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={1.8} /> : <Eye className="h-[18px] w-[18px]" strokeWidth={1.8} />}
+      </button>
+    );
+    const playTitle = isForgot ? title : (
+      <>{t("login.playTitleA")} <PlayArrow /><br />{t("login.playTitleB")}</>
+    );
+    const hiding = (focus === "password" && !isForgot) || (isForgot && forgotStep === "newpw" && focus === "password");
+    const peeking = isForgot ? showNewPassword : showPassword;
+    return (
+      <PlayShell title={playTitle}>
+        <PeekMascot look={email.length} typing={focus === "email"} hide={hiding} peek={peeking} />
+        <div className="pl-card">
+          {isForgot && forgotStep !== "done" && (
+            <button type="button" className="pl-link" onClick={() => switchMode("login")} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <ArrowLeft className="h-4 w-4" /> {t("login.backToLogin")}
+            </button>
+          )}
+          {forgotStep === "done" ? (
+            <div style={{ textAlign: "center", padding: "10px 0" }}>
+              <Check className="mx-auto h-8 w-8" strokeWidth={2.4} />
+              <p className="pl-sub" style={{ fontWeight: 500, fontSize: 18 }}>{title}</p>
+              <p className="pl-sub">{subtitle}</p>
+            </div>
+          ) : (
+            <form onSubmit={submit}>
+              {isForgot && <p className="pl-sub" style={{ margin: "0 0 14px" }}>{subtitle}</p>}
+              {(!isForgot || forgotStep === "email") && (
+                <label className="pl-fld">
+                  <span>{t("login.email")}</span>
+                  <input type="email" autoComplete="email" value={email} required
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setFocus("email")} onBlur={() => setFocus(null)} />
+                </label>
+              )}
+              {!isForgot && (
+                <label className="pl-fld">
+                  <span>{t("login.password")}</span>
+                  <div className="flex items-center gap-2">
+                    <input type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} required
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => setFocus("password")} onBlur={() => setFocus(null)} />
+                    {pwBtn(showPassword, () => setShowPassword((v) => !v))}
+                  </div>
+                </label>
+              )}
+              {isForgot && forgotStep === "otp" && (
+                <label className="pl-fld">
+                  <span>{t("login.otpLabel")}</span>
+                  <input type="text" inputMode="numeric" pattern="[0-9]{8}" maxLength={8} autoComplete="one-time-code"
+                    placeholder={t("login.otpPlaceholder")} value={otp} required
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))} />
+                </label>
+              )}
+              {isForgot && forgotStep === "newpw" && (
+                <label className="pl-fld">
+                  <span>{t("login.newPwLabel")}</span>
+                  <div className="flex items-center gap-2">
+                    <input type={showNewPassword ? "text" : "password"} autoComplete="new-password" value={newPassword} required
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      onFocus={() => setFocus("password")} onBlur={() => setFocus(null)} />
+                    {pwBtn(showNewPassword, () => setShowNewPassword((v) => !v))}
+                  </div>
+                </label>
+              )}
+
+              {mode === "login" && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <button type="button" className="pl-link" onClick={() => switchMode("forgot")}>{t("login.forgot")}</button>
+                </div>
+              )}
+              {isForgot && forgotStep === "otp" && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <button type="button" className="pl-link" onClick={() => { setOtp(""); sendOtpCode(); }}>{t("login.resendCode")}</button>
+                </div>
+              )}
+
+              {needsCaptcha && <Captcha ref={captchaRef} onToken={setCaptcha} className="mt-4" />}
+              {error && <p className="pl-err" role="alert">{error}</p>}
+              {notice && forgotStep === "email" && <p className="pl-err">{notice}</p>}
+
+              <button type="submit" className="pl-go" disabled={busy || captchaBlocks}>
+                {submitLabel} <span style={{ fontSize: 22 }} aria-hidden>»</span>
+              </button>
+            </form>
+          )}
+          {!isForgot && (
+            <>
+              <div className="pl-or"><i />{t("login.or")}<i /></div>
+              <button type="button" className="pl-g" onClick={() => signInWithGoogle()}>
+                <GoogleIcon /> {t("login.google")}
+              </button>
+            </>
+          )}
+        </div>
+        {!isForgot && (
+          <p className="pl-foot">
+            {t("login.newUser")}{" "}
+            <Link to="/inscription" className="pl-link">{t("login.createAccount")}</Link>
+          </p>
+        )}
+      </PlayShell>
+    );
+  }
 
   return (
     <AuthShell variant="login">
