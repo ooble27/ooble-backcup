@@ -68,9 +68,13 @@ const Connexion = () => {
   const [onboarding, setOnboarding] = useState(() => play && !hasOnboarded());
   const [focus, setFocus] = useState<"email" | "password" | null>(null);
 
+  // App installée : vraie navigation vers l'app, pour que l'iPhone reprenne la couleur de l'app
+  // dans la barre d'état (elle garde celle du premier affichage, ici le jaune de la connexion).
+  const goApp = () => (isInstalledApp() ? window.location.replace("/app") : navigate("/app", { replace: true }));
   useEffect(() => {
-    if (user) navigate("/app", { replace: true });
-  }, [user, navigate]);
+    if (user) goApp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -168,7 +172,7 @@ const Connexion = () => {
       }
       await supabase.auth.signInWithPassword({ email: email.trim(), password: newPassword }).catch(() => {});
       setForgotStep("done");
-      setTimeout(() => navigate("/app", { replace: true }), 1400);
+      setTimeout(goApp, 1400);
     } finally {
       setBusy(false);
     }
@@ -189,7 +193,7 @@ const Connexion = () => {
       const res = await signIn(email, password, captcha);
       captchaRef.current?.reset();
       if (res.error) return setError(traduireErreur(res.error));
-      navigate("/app", { replace: true });
+      goApp();
     } finally {
       setBusy(false);
     }

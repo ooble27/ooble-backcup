@@ -19,6 +19,10 @@
         if (/^\/admin(\/|$)/.test(p)) bg = wide ? (dark ? "#171717" : "#e9e9e5") : (dark ? "#1a1a1a" : "#f5f5f3");
         else if (/^\/app(\/|$)/.test(p)) { h.classList.add("app-scope"); bg = dark ? "#171717" : "#f5f5f3"; }
         else bg = dark ? "#1a1a1a" : "#ffffff";
+        // App installée, personne de connecté : l'accueil et la connexion sont jaunes (le lancement aussi).
+        var inst = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+        var authed = Object.keys(localStorage).some(function (k) { return /^sb-.*-auth-token$/.test(k); });
+        if (inst && !authed && /^\/(app|connexion)(\/|$)/.test(p)) bg = "#fdd94e";
         h.style.backgroundColor = bg;
         document.querySelector('meta[name="theme-color"]').setAttribute("content", bg);
         if (localStorage.getItem("ooble.lang") === "en" && !/^\/(en|app|admin)(\/|$)/.test(p))
