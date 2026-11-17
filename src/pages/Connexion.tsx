@@ -63,9 +63,9 @@ const Connexion = () => {
   const { user, signIn, signInWithGoogle } = useAuth();
   const t = useT();
   const [mode, setMode] = useState<Mode>("login");
-  // App installée : écrans d'accueil une seule fois (nouveau visiteur), puis la connexion animée.
-  const [play] = useState(isInstalledApp);
-  const [onboarding, setOnboarding] = useState(() => play && !hasOnboarded());
+  // Nouveau design partout ; app installée : écrans d'accueil une seule fois (nouveau visiteur).
+  const play = true;
+  const [onboarding, setOnboarding] = useState(() => isInstalledApp() && !hasOnboarded());
   const [focus, setFocus] = useState<"email" | "password" | null>(null);
 
   // Navigation interne (sans rechargement) : un rechargement pendant que la session se charge

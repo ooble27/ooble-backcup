@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import { LayoutGrid, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
-import ThemeToggle from "./ThemeToggle";
 import BottomNav from "./BottomNav";
 import { useAuth } from "@/lib/auth";
 import { warmAppData } from "@/lib/warm";
@@ -13,39 +12,22 @@ import { claimStoredReferral } from "@/lib/growth";
 import { useNoZoom } from "@/lib/noZoom";
 import { trackPushOpen } from "@/lib/appMessages";
 import { FLAT_CSS } from "./flat";
+import { pageColor, paintPage, useLightTheme } from "@/lib/installed";
+import { PeekMascot, PLAY_CSS } from "@/components/launch/PlayLogin";
 
 /**
- * Marque <html> pendant que l'app est montée pour que la racine, le <body> et
- * la barre d'état (meta theme-color) prennent la teinte de la page de l'app.
- * Corrige la couture de couleur visible tout en haut. Suit la bascule de thème.
+ * Nouveau design : chaque page de l'app a sa couleur pleine (accueil jaune, acheter lavande, vendre corail…),
+ * peinte aussi sur <html>, <body> et la barre d'état, pour qu'aucune bande d'une autre couleur n'apparaisse.
+ * L'app est toujours en clair.
  */
-function useAppScope() {
+function useAppScope(color: string) {
   useEffect(() => {
     const html = document.documentElement;
     html.classList.add("app-scope");
-
-    const meta =
-      (document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null) ??
-      (() => {
-        const m = document.createElement("meta");
-        m.name = "theme-color";
-        document.head.appendChild(m);
-        return m;
-      })();
-    const previous = meta.getAttribute("content");
-    const sync = () => meta.setAttribute("content", html.classList.contains("dark") ? "#171717" : "#f5f5f3");
-    sync();
-
-    // La bascule clair/sombre change la classe de <html> : on resynchronise.
-    const obs = new MutationObserver(sync);
-    obs.observe(html, { attributes: true, attributeFilter: ["class"] });
-
-    return () => {
-      html.classList.remove("app-scope");
-      obs.disconnect();
-      if (previous !== null) meta.setAttribute("content", previous);
-    };
+    return () => html.classList.remove("app-scope");
   }, []);
+  useLightTheme();
+  useEffect(() => paintPage(color), [color]);
 }
 
 interface AppShellProps {
@@ -69,12 +51,13 @@ interface AppShellProps {
  * mobile (600px, alignée à gauche) pour respirer sans être trop grosses.
  */
 const AppShell = ({ children, header, wide, wider, center, className }: AppShellProps) => {
-  useAppScope();
+  const { pathname } = useLocation();
+  const color = pageColor(pathname);
+  useAppScope(color);
   // Pas de zoom dans l'app, comme dans le back-office (ordinateur et téléphone).
   useNoZoom();
   const { user, isStaff } = useAuth();
   const [lang] = useLang();
-  const { pathname } = useLocation();
   // Le menu du bas : seulement sur ses trois pages.
   const withNav = ["/app", "/app/acheter", "/app/vendre"].includes(pathname.replace(/\/$/, "") || "/");
   useEffect(() => { warmAppData(user?.id); }, [user?.id]);
@@ -88,34 +71,25 @@ const AppShell = ({ children, header, wide, wider, center, className }: AppShell
   // Ouverte depuis une notification de l'équipe : le toucher est compté.
   useEffect(() => { if (user?.id) trackPushOpen(); }, [user?.id]);
   return (
-  <div className="app-surface app-type min-h-screen bg-background">
+  <div className="app-surface app-type min-h-screen" style={{ background: color }}>
+    <style>{PLAY_CSS}</style>
     <style>{FLAT_CSS}</style>
-    <div className={cn("mx-auto flex min-h-screen max-w-[400px] flex-col px-5 pb-28 pt-[max(1.25rem,var(--ios-top))] app-top md:max-w-[720px] lg:max-w-[960px]", wider && "md:max-w-[840px] lg:max-w-[1040px] xl:max-w-[1180px] md:px-8")}>
+    <div className={cn("mx-auto flex min-h-screen max-w-[440px] flex-col px-4 pb-32 pt-[max(1.25rem,var(--ios-top))] app-top md:max-w-[720px] lg:max-w-[960px]", wider && "md:max-w-[840px] lg:max-w-[1040px] xl:max-w-[1180px] md:px-8")}>
       {/* Barre du haut — largeur constante, avatar toujours au même endroit */}
-      <div className="flex items-start justify-between gap-4 pb-6 pt-2 lg:pb-10 lg:pt-4">
+      <div className="flex items-start justify-between gap-4 px-1 pb-4 pt-2 lg:pb-6 lg:pt-4">
         <div className="flex min-w-0 items-start gap-3">
           <div className="min-w-0">{header}</div>
         </div>
-        <div className="flex shrink-0 items-center gap-2.5">
-          <ThemeToggle />
+        <div className="flex shrink-0 items-center gap-2">
           {/* Membres de l'équipe seulement (un rôle dans user_roles) : accès direct au back-office.
               Le back-office vérifie lui-même les rôles ; ce bouton n'est qu'un raccourci. */}
           {isStaff && (
-            <Link
-              to="/admin"
-              aria-label="Back-office"
-              title="Back-office"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground/55 transition-all hover:text-foreground active:scale-95"
-            >
-              <LayoutGrid className="h-5 w-5" strokeWidth={1.8} />
+            <Link to="/admin" aria-label="Back-office" title="Back-office" className="ap-ic">
+              <LayoutGrid className="h-[18px] w-[18px]" strokeWidth={2} />
             </Link>
           )}
-          <Link
-            to="/app/compte"
-            aria-label={lang === "en" ? "My account" : "Mon compte"}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground/55 transition-all hover:text-foreground active:scale-95"
-          >
-            <User className="h-5 w-5" strokeWidth={1.8} />
+          <Link to="/app/compte" aria-label={lang === "en" ? "My account" : "Mon compte"} className="ap-ic">
+            <User className="h-[18px] w-[18px]" strokeWidth={2} />
           </Link>
         </div>
       </div>
@@ -124,11 +98,13 @@ const AppShell = ({ children, header, wide, wider, center, className }: AppShell
         className={cn(
           "animate-page flex-1",
           !wide && "md:mx-auto md:w-full md:max-w-[500px] lg:max-w-[600px]",
-          center && "flex flex-col justify-center pb-[26vh] lg:justify-start lg:pb-0",
+          center && "flex flex-col justify-center pb-[18vh] lg:justify-start lg:pb-0",
           className,
         )}
       >
-        {children}
+        {/* Les trois pages du menu : la mascotte dépasse de la carte, comme à la connexion. */}
+        {withNav && <PeekMascot look={0} typing={false} hide={false} peek={false} />}
+        <div className="ap-card">{children}</div>
       </div>
     </div>
 

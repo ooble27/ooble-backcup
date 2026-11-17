@@ -16,6 +16,7 @@ import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import InAppMessage from "@/components/app/InAppMessage";
 import { openAssets, primaryAsset } from "@/lib/assets";
+import { PAGE_COLORS } from "@/lib/installed";
 
 /** Le taux d'achat (cours du marché + marge d'achat), à 4 décimales. */
 const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
@@ -65,23 +66,32 @@ const RecentActivity = () => {
   );
 };
 
-/** Acheter ou vendre : une ligne à plat qui glisse au survol ; grisée quand les échanges sont fermés. */
-const Trade = ({ to, icon: Icon, name, desc, open }: { to: string; icon: React.ElementType; name: string; desc: string; open: boolean }) => (
+/** Acheter ou vendre : une tuile de couleur au trait noir (nouveau design) ; grisée quand les échanges sont fermés. */
+const Trade = ({ to, icon: Icon, name, desc, open, bg }: { to: string; icon: React.ElementType; name: string; desc: string; open: boolean; bg: string }) => (
   <Link
     to={to}
-    className={cn("ac-row", !open && "pointer-events-none opacity-40")}
-    style={{ padding: "18px 0" }}
+    className={cn("dash-tile", !open && "pointer-events-none opacity-40")}
+    style={{ background: bg }}
     aria-disabled={!open}
     tabIndex={open ? undefined : -1}
   >
-    <Icon className="ac-ico" strokeWidth={1.7} style={{ width: 24, height: 24 }} />
-    <span className="ac-txt">
-      <span className="ac-n" style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.02em" }}>{name}</span>
-      <span className="ac-d">{desc}</span>
+    <span className="dash-tile-ic"><Icon className="h-[22px] w-[22px]" strokeWidth={2} /></span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-[20px] font-medium leading-tight tracking-[-0.02em] text-[#111]">{name}</span>
+      <span className="mt-0.5 block text-[13.5px] leading-snug text-[#222]">{desc}</span>
     </span>
-    <ChevronRight className="ac-go" strokeWidth={1.8} />
+    <span className="dash-tile-go" aria-hidden>»</span>
   </Link>
 );
+
+const TILE_CSS = `
+.dash-tile { display: flex; align-items: center; gap: 14px; padding: 16px 16px 16px 14px; border: 2.5px solid #111; border-radius: 22px; color: #111; text-decoration: none; transition: transform .15s; }
+.dash-tile + .dash-tile { margin-top: 12px; }
+.dash-tile:active { transform: scale(.98); }
+@media (hover: hover) { .dash-tile:hover { transform: translateY(-2px); } }
+.dash-tile-ic { width: 46px; height: 46px; flex-shrink: 0; border-radius: 999px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; }
+.dash-tile-go { font-size: 24px; line-height: 1; padding-right: 4px; }
+`;
 
 const Dashboard = () => {
   const t = useT();
@@ -145,7 +155,7 @@ const Dashboard = () => {
         <section className="flex flex-col">
           <p className="ac-k">{t("dash.rate").replace("USDT", coin.symbol)}</p>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="font-display text-[44px] font-light leading-none tracking-tight tabular-nums">
+            <span className="font-display text-[46px] leading-none tracking-[-0.04em] tabular-nums text-[#111]">
               {nfRate.format(rate.buy)}
             </span>
             <span className="text-[16px] font-medium text-muted-foreground">CAD</span>
@@ -155,9 +165,10 @@ const Dashboard = () => {
 
         {/* Acheter, vendre et blockchains — col droite sur desktop, juste après le taux sur mobile */}
         <div className="md:row-span-2">
-          <div className="ac-lines">
-            <Trade to="/app/acheter" icon={Coins} name={t("dash.buy")} desc={t("dash.buySub")} open={tradingEnabled || isStaff || !!profile?.testAccount} />
-            <Trade to="/app/vendre" icon={HandCoins} name={t("dash.sell")} desc={t("dash.sellSub")} open={tradingEnabled || isStaff || !!profile?.testAccount} />
+          <style>{TILE_CSS}</style>
+          <div>
+            <Trade to="/app/acheter" icon={Coins} name={t("dash.buy")} desc={t("dash.buySub")} bg={PAGE_COLORS.lavender} open={tradingEnabled || isStaff || !!profile?.testAccount} />
+            <Trade to="/app/vendre" icon={HandCoins} name={t("dash.sell")} desc={t("dash.sellSub")} bg={PAGE_COLORS.coral} open={tradingEnabled || isStaff || !!profile?.testAccount} />
           </div>
           {!tradingEnabled && !isStaff && !profile?.testAccount && (
             <p className="mt-2 text-[12.5px] text-muted-foreground">{t("dash.tradingSuspended")}</p>

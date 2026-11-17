@@ -4,7 +4,6 @@ import { LangPill } from "@/components/app/LangToggle";
 import { HELP_COLORS } from "@/lib/faq";
 import { useLang } from "@/lib/i18n";
 import AuthArt from "./AuthArt";
-import { isInstalledApp } from "@/lib/installed";
 import { PlayAuthFrame } from "@/components/launch/PlayLogin";
 
 /* Cadre des pages de connexion et d'inscription : le formulaire à gauche, un
@@ -66,8 +65,8 @@ const AuthShell = ({ variant, children }: { variant: Variant; children: React.Re
   const [lang] = useLang();
   const P = PANELS[variant === "individual" ? "signup" : variant];
 
-  // App installée : même style que l'accueil et la connexion, une couleur pleine par page.
-  if (isInstalledApp()) {
+  // Nouveau design (partout) : même style que l'accueil et la connexion, une couleur pleine par page.
+  if (variant !== "login") {
     const bg = variant === "individual" ? "#dccaff" : variant === "business" ? "#ff6a3d" : "#fdd94e";
     return <PlayAuthFrame bg={bg}>{children}</PlayAuthFrame>;
   }

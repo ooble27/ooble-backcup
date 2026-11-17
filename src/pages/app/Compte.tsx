@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, Building2, Check, ChevronRight, Copy, Gauge, Gift, Globe, Handshake, HelpCircle, KeyRound, LayoutGrid, Link2, Lock, LogOut, Mail, Share2, ShieldCheck, SunMoon, Trash2,
+  ArrowLeft, ArrowRight, Building2, Check, ChevronRight, Copy, Gauge, Gift, Globe, Handshake, HelpCircle, KeyRound, LayoutGrid, Link2, Lock, LogOut, Mail, Share2, ShieldCheck, Trash2,
 } from "lucide-react";
 import { useOtcVisible } from "@/lib/otc";
 import { useAppSettings } from "@/lib/settings";
@@ -10,7 +10,6 @@ import { useAuth } from "@/lib/auth";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { getMyKyc, peekMyKyc, type KycDbStatus } from "@/lib/kyc";
 import { useLang, useT } from "@/lib/i18n";
-import { getTheme, onThemeChange, setTheme, type Theme } from "@/lib/theme";
 import type { TKey } from "@/lib/translations";
 import { bpsText, myReferral, referralLink, type MyReferral } from "@/lib/growth";
 
@@ -95,8 +94,6 @@ const Compte = () => {
   const otc = useOtcVisible();
   const { verificationEnabled } = useAppSettings();
   const [lang, setLang] = useLang();
-  const [theme, setThemeState] = useState<Theme>(getTheme);
-  useEffect(() => onThemeChange(setThemeState), []);
   // Données déjà chargées (préchargement de l'app) : affichées tout de suite, puis relues en arrière-plan.
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
   const [kyc, setKyc] = useState<KycDbStatus | null>(() => {
@@ -211,9 +208,7 @@ const Compte = () => {
         <Group title={t("acct.preferences")} sub={t("acct.gPrefSub")}>
           <Row icon={Globe} name={t("acct.language")}
             right={<Opts label={t("acct.language")} value={lang} options={[{ v: "fr", label: "Français" }, { v: "en", label: "English" }]} onChange={setLang} />} />
-          <Row icon={SunMoon} name={t("acct.appearance")}
-            right={<Opts label={t("acct.appearance")} value={theme} options={[{ v: "light", label: t("acct.light") }, { v: "dark", label: t("acct.dark") }]}
-              onChange={(v) => { setTheme(v); setThemeState(v); }} />} />
+          {/* Plus de choix clair / sombre : le nouveau design de l'app est toujours clair. */}
         </Group>
 
         <Group title={t("acct.session")}>

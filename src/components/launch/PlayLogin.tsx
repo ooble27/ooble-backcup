@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { paintPage } from "@/lib/installed";
+import { paintPage, useLightTheme } from "@/lib/installed";
 
 /*
  * Connexion de l'app installée : fond jaune, gros titre, carte blanche au trait noir.
@@ -7,7 +7,7 @@ import { paintPage } from "@/lib/installed";
  * le courriel qu'on tape, et elle se cache les yeux avec les pattes pendant le mot de passe.
  */
 
-const CSS = `
+export const PLAY_CSS = `
 .pl{min-height:100dvh;background:#fdd94e;color:#111;font-family:Poppins,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:calc(env(safe-area-inset-top,0px) + 34px) 22px calc(env(safe-area-inset-bottom,0px) + 28px);color-scheme:light}
 .pl-in{max-width:420px;margin:0 auto}
 .pl h1.pl-t{margin:0;font-weight:500;font-size:clamp(34px,10vw,42px);line-height:1.15;letter-spacing:-0.03em;animation:pl-up .6s cubic-bezier(.16,1,.3,1) both}
@@ -41,22 +41,13 @@ const CSS = `
 @media (prefers-reduced-motion: reduce){.pl *{animation:none!important;transition:none!important}}
 `;
 
-/** Ces écrans sont toujours clairs, même si l'app est en thème sombre (les champs, le captcha suivent). */
-function useLightTheme() {
-  useEffect(() => {
-    const h = document.documentElement;
-    const had = h.classList.contains("dark");
-    h.classList.remove("dark");
-    return () => { if (had) h.classList.add("dark"); };
-  }, []);
-}
 
 export function PlayShell({ title, children }: { title: ReactNode; children: ReactNode }) {
   useEffect(() => paintPage("#fdd94e"), []);
   useLightTheme();
   return (
     <div className="pl">
-      <style>{CSS}</style>
+      <style>{PLAY_CSS}</style>
       <div className="pl-in">
         <h1 className="pl-t">{title}</h1>
         {children}
@@ -82,7 +73,7 @@ export function PlayAuthFrame({ bg, children }: { bg: string; children: ReactNod
   };
   return (
     <div className="pl" style={{ background: bg }}>
-      <style>{CSS}</style>
+      <style>{PLAY_CSS}</style>
       <div className="pl-in">
         <PeekMascot look={field?.len ?? 0} typing={field?.type === "text"} hide={field?.type === "password"} peek={peek} />
         <div className="pl-card pl-auth"

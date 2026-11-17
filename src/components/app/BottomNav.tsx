@@ -12,8 +12,8 @@ const items: { to: string; labelKey: TKey; icon: typeof House; end: boolean }[] 
 ];
 
 /**
- * Menu du bas : centré, sur une seule ligne, posé directement sur la page (ni cadre ni fond). La page en cours montre son nom, et un
- * trait fin glisse sous elle d'une page à l'autre (à la place de l'ancienne pastille). Affiché seulement sur ses trois pages
+ * Menu du bas : une pastille noire centrée, sur une seule ligne. La page en cours montre son nom sur une pastille jaune
+ * qui glisse d'une page à l'autre. Affiché seulement sur ses trois pages
  * (Accueil, Acheter, Vendre) : les autres pages ont « ← Retour » en haut, et rien ne passe sous les icônes.
  */
 const BottomNav = () => {
@@ -48,13 +48,13 @@ const BottomNav = () => {
     <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <nav
         ref={navRef}
-        className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 p-2"
+        className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 rounded-full border-[3px] border-[#111] bg-[#111] p-1.5"
       >
         {line.ready && (
           <div
             aria-hidden="true"
-            className="absolute bottom-2 h-[2px] rounded-full bg-foreground transition-[left,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            style={{ left: line.left, width: line.width }}
+            className="absolute top-1.5 bottom-1.5 rounded-full bg-[#fdd94e] transition-[left,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{ left: line.left - 14, width: line.width + 28 }}
           />
         )}
 
@@ -68,7 +68,7 @@ const BottomNav = () => {
               ref={(el) => { itemRefs.current[i] = el; }}
               className={cn(
                 "relative z-10 flex items-center justify-center py-[12px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                isActive ? "gap-2 px-[18px] text-foreground" : "gap-0 px-[15px] text-muted-foreground",
+                isActive ? "gap-2 px-[18px] text-[#111]" : "gap-0 px-[15px] text-white/70",
               )}
             >
               <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0 transition-colors duration-200" />

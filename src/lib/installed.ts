@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 /** L'app est-elle ouverte depuis l'écran d'accueil (app installée), et non dans un onglet du navigateur ? */
 export function isInstalledApp(): boolean {
   if (typeof window === "undefined") return false;
@@ -37,4 +39,32 @@ export function paintPage(color: string): () => void {
     body.style.backgroundColor = prev.body;
     if (meta && prev.meta) meta.setAttribute("content", prev.meta);
   };
+}
+
+/** Couleur pleine de chaque page de l'app (nouveau design). */
+export const PAGE_COLORS = {
+  yellow: "#fdd94e",
+  lavender: "#dccaff",
+  coral: "#ff6a3d",
+  mint: "#bfe8c8",
+  sky: "#bfe0ff",
+} as const;
+
+export function pageColor(path: string): string {
+  const p = path.replace(/\/$/, "");
+  if (/^\/app\/(acheter|otc)/.test(p)) return PAGE_COLORS.lavender;
+  if (/^\/app\/(vendre|envoyer)/.test(p)) return PAGE_COLORS.coral;
+  if (/^\/app\/activite/.test(p)) return PAGE_COLORS.mint;
+  if (/^\/app\/./.test(p)) return PAGE_COLORS.sky;
+  return PAGE_COLORS.yellow;
+}
+
+/** Le nouveau design est toujours clair : la classe « dark » est retirée tant que l'écran est affiché. */
+export function useLightTheme() {
+  useEffect(() => {
+    const h = document.documentElement;
+    const had = h.classList.contains("dark");
+    h.classList.remove("dark");
+    return () => { if (had) h.classList.add("dark"); };
+  }, []);
 }

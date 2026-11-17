@@ -1049,7 +1049,7 @@ const dict = {
   "acct.gSecSub": { fr: "Votre adresse courriel et votre mot de passe.", en: "Your email address and password." },
   "acct.gLimitsSub": { fr: "Ce que vous pouvez échanger.", en: "What you can trade." },
   "acct.gBizSub": { fr: "Les informations de votre entreprise.", en: "Your business details." },
-  "acct.gPrefSub": { fr: "La langue et l'apparence de l'app.", en: "The app's language and appearance." },
+  "acct.gPrefSub": { fr: "La langue de l'app et des courriels.", en: "The language of the app and emails." },
   "acct.session": { fr: "Session", en: "Session" },
   "acct.businessVerif": { fr: "Vérification de l'entreprise", en: "Business verification" },
   "acct.verifyTitle": { fr: "Vérifiez votre identité", en: "Verify your identity" },
