@@ -41,7 +41,21 @@ const ACC_CSS = `
 .acc-lang { margin-top: 12px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .acc-out { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; width: 100%; height: 54px; padding: 0 22px; border: none; border-radius: 999px; background: #111; color: #fff; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; }
 .acc-out:active { transform: scale(.98); }
-@media (min-width: 768px) { .acc-profile { padding: 26px 28px 20px; } .acc-tile { min-height: 150px; } }
+.acc-desk { display: none; }
+.acc-tiles .acc-tile { height: 100%; }
+@media (min-width: 768px) {
+  .acc-profile { padding: 26px 28px 20px; }
+  .acc-tiles { gap: 14px; margin-top: 16px; }
+  .acc-tile { min-height: 168px; padding: 18px; }
+  .acc-tile b { font-size: 19px; }
+}
+@media (min-width: 1024px) {
+  .acc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; align-items: start; }
+  .acc-desk { display: block; }
+  .acc-mob { display: none; }
+  .acc-tiles { margin-top: 98px; }
+  .acc-tile { min-height: 186px; }
+}
 `;
 
 const Tile = ({ to, icon: Icon, title, sub, bg }: { to: string; icon: React.ElementType; title: string; sub?: string; bg: string }) => (
@@ -235,23 +249,38 @@ const Compte = () => {
     </Link>
   );
 
+  // La langue et la déconnexion : sous le profil sur ordinateur, tout en bas ailleurs.
+  const prefs = (
+    <>
+      <div className="ap-card acc-lang">
+        <span className="flex items-center gap-2 text-[14px] font-medium text-[#111]"><Globe className="h-[18px] w-[18px]" strokeWidth={1.9} />{t("acct.language")}</span>
+        <Opts label={t("acct.language")} value={lang} options={[{ v: "fr", label: "Français" }, { v: "en", label: "English" }]} onChange={setLang} />
+      </div>
+      <button type="button" className="acc-out" onClick={logout}>
+        <span className="flex items-center gap-2.5"><LogOut className="h-[18px] w-[18px]" strokeWidth={2} />{t("acct.logout")}</span>
+        <span aria-hidden className="text-[20px]">»</span>
+      </button>
+    </>
+  );
+
   return (
-    <AppShell bare header={back("/app", t("misc.back"))}>
+    <AppShell wide bare header={back("/app", t("misc.back"))}>
       <style>{ACC_CSS}</style>
-      <div>
-        <div>
-          <div>
-            <PeekMascot look={0} typing={false} hide={false} peek={false} />
-            <div className="ap-card acc-profile">
-              <p className="ac-name" style={{ fontSize: 26 }}>{business ? profile?.businessName || name : name}</p>
-              <p className="ac-meta" style={{ marginTop: 4 }}>
-                {email}{" · "}{business ? t("kyb.accountBusiness") : t("acct.personal")}{verified && <> · {t("acct.verified")}</>}
-              </p>
-              {idLine("/app/verification", t("acct.identity"), kyc)}
-              {business && bizStatus && idLine("/app/entreprise", t("acct.businessVerif"), bizStatus)}
-              {showTodo && <p className="ac-help" style={{ textAlign: "left" }}>{todo.sub}</p>}
-            </div>
+      {/* Téléphone et tablette : les blocs se suivent. Ordinateur : le profil, la langue et la déconnexion
+          à gauche, les tuiles à droite. */}
+      <div className="acc-grid">
+        <div className="acc-left">
+          <PeekMascot look={0} typing={false} hide={false} peek={false} />
+          <div className="ap-card acc-profile">
+            <p className="ac-name" style={{ fontSize: 26 }}>{business ? profile?.businessName || name : name}</p>
+            <p className="ac-meta" style={{ marginTop: 4 }}>
+              {email}{" · "}{business ? t("kyb.accountBusiness") : t("acct.personal")}{verified && <> · {t("acct.verified")}</>}
+            </p>
+            {idLine("/app/verification", t("acct.identity"), kyc)}
+            {business && bizStatus && idLine("/app/entreprise", t("acct.businessVerif"), bizStatus)}
+            {showTodo && <p className="ac-help" style={{ textAlign: "left" }}>{todo.sub}</p>}
           </div>
+          <div className="acc-desk">{prefs}</div>
         </div>
 
         <div className="acc-tiles">
@@ -262,15 +291,7 @@ const Compte = () => {
           ))}
         </div>
 
-        <div className="ap-card acc-lang">
-          <span className="flex items-center gap-2 text-[14px] font-medium text-[#111]"><Globe className="h-[18px] w-[18px]" strokeWidth={1.9} />{t("acct.language")}</span>
-          <Opts label={t("acct.language")} value={lang} options={[{ v: "fr", label: "Français" }, { v: "en", label: "English" }]} onChange={setLang} />
-        </div>
-
-        <button type="button" className="acc-out" onClick={logout}>
-          <span className="flex items-center gap-2.5"><LogOut className="h-[18px] w-[18px]" strokeWidth={2} />{t("acct.logout")}</span>
-          <span aria-hidden className="text-[20px]">»</span>
-        </button>
+        <div className="acc-mob">{prefs}</div>
       </div>
     </AppShell>
   );
