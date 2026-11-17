@@ -25,11 +25,11 @@ const RecentActivity = () => {
   const t = useT();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [orders, setOrders] = useState<OrderRow[] | null>(() => peekMyOrders(user?.id, 3));
+  const [orders, setOrders] = useState<OrderRow[] | null>(() => peekMyOrders(user?.id, 4));
 
   useEffect(() => {
     let active = true;
-    listMyOrders(3).then((rows) => {
+    listMyOrders(4).then((rows) => {
       if (active) setOrders(rows);
     });
     return () => { active = false; };
@@ -51,9 +51,9 @@ const RecentActivity = () => {
       )}
       {orders && orders.length > 0 && (
         <div className="ac-lines mt-2">
-          {/* Sur téléphone, seulement la dernière opération ; « Voir tout » mène à l'Activité. */}
+          {/* Téléphone : la dernière opération ; tablette : trois ; ordinateur : quatre. « Voir tout » mène à l'Activité. */}
           {orders.map((o, i) => (
-            <div key={o.id} className={i > 0 ? "hidden sm:block" : undefined}>
+            <div key={o.id} className={i === 0 ? undefined : i < 3 ? "hidden md:block" : "hidden lg:block"}>
               <ActivityRow
                 o={o}
                 onClick={() => navigate(`/app/activite/${o.id}`, { state: { order: o } })}
@@ -103,6 +103,19 @@ const DASH_CSS = `
 @media (hover: hover) { .dash-tile:hover { transform: translateY(-2px); } }
 .dash-tile-ic { width: 46px; height: 46px; border-radius: 999px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; }
 .dash-act { margin-top: 12px; padding: 14px 18px 8px; }
+@media (min-width: 768px) {
+  .dash-rate { font-size: 100px; }
+  .dash-mascot { width: 150px; height: 150px; top: 6px; }
+  .dash-spark { right: 150px; top: 4px; }
+  .dash-tile { min-height: 190px; padding: 20px; }
+  .dash-act, .dash-nets { padding: 18px 22px 12px; }
+}
+@media (min-width: 1024px) {
+  .dash-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 0 40px; align-items: start; }
+  .dash-rate { font-size: 112px; }
+  .dash-side > .ap-card:first-child { margin-top: 8px; }
+  .dash-tile { min-height: 210px; }
+}
 .dash-nets { margin-top: 12px; padding: 14px 16px 16px; }
 .dash-nets-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
 .dash-net { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; color: #111; text-align: center; }
@@ -136,6 +149,7 @@ const Dashboard = () => {
   return (
     <AppShell
       wide
+      wider
       bare
       header={
         firstName ? (
@@ -165,7 +179,10 @@ const Dashboard = () => {
         </Link>
       )}
 
-      <div className="md:mx-auto md:max-w-[520px]">
+      {/* Ordinateur : deux colonnes (le taux et les tuiles à gauche, les blockchains et l'activité à droite).
+          Téléphone et tablette : les blocs se suivent, en pleine largeur. */}
+      <div className="dash-grid">
+        <div>
         {/* Le taux en très grand, la mascotte qui flotte à côté */}
         <section className="dash-hero" aria-label={t("dash.rate").replace("USDT", coin.symbol)}>
           <span className="dash-pill">{coin.symbol} → CAD <i>$</i></span>
@@ -183,7 +200,9 @@ const Dashboard = () => {
         {!tradingEnabled && !isStaff && !profile?.testAccount && (
           <p className="mt-3 text-[13px] text-[#111]">{t("dash.tradingSuspended")}</p>
         )}
+        </div>
 
+        <div className="dash-side">
         {/* Les blockchains ouvertes (Réglages › Réseaux), avec leurs vrais logos */}
         {nets.length > 0 && (
           <div className="ap-card dash-nets">
@@ -200,7 +219,7 @@ const Dashboard = () => {
         <div className="ap-card dash-act">
           <RecentActivity />
         </div>
-
+        </div>
       </div>
     </AppShell>
   );
