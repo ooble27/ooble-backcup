@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Clock, Coins, HandCoins, ChevronRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import RateChart from "@/components/app/RateChart";
-import { openNetworks } from "@/components/app/networks";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { useUsdtHistory } from "@/hooks/useUsdtHistory";
 import { listMyOrders, peekMyOrders, type OrderRow } from "@/lib/orders";
@@ -15,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import InAppMessage from "@/components/app/InAppMessage";
-import { openAssets, primaryAsset } from "@/lib/assets";
+import { primaryAsset } from "@/lib/assets";
 import { PAGE_COLORS } from "@/lib/installed";
 
 /** Le taux d'achat (cours du marché + marge d'achat), à 4 décimales. */
@@ -97,16 +96,13 @@ const Dashboard = () => {
   const t = useT();
   // Relu toutes les 5 secondes : le serveur le recalcule toutes les 10 secondes.
   const settings = useAppSettings();
-  const { tradingEnabled, networks } = settings;
-  // Taux de la cryptomonnaie principale (la seule ouverte, sinon l'USDC) ; réseaux où elle existe.
+  const { tradingEnabled } = settings;
+  // Taux de la cryptomonnaie principale (la seule ouverte, sinon l'USDC).
   const coin = primaryAsset(settings);
-  const single = openAssets(settings).length === 1;
   const rate = useUsdtRate({ live: true, asset: coin.id });
   const history = useUsdtHistory();
 
   const { user, isStaff } = useAuth();
-  const nets = openNetworks(networks, undefined, single ? coin.id : undefined);
-  const openCount = nets.length;
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
   useEffect(() => { getMyProfile().then(setProfile); }, []);
   const kybPending = profile?.businessStatus === "pending";
@@ -163,7 +159,7 @@ const Dashboard = () => {
           <RateChart data={history.points} className="hidden w-full text-foreground/55 md:mt-6 md:block md:min-h-[6rem] md:flex-1" />
         </section>
 
-        {/* Acheter, vendre et blockchains — col droite sur desktop, juste après le taux sur mobile */}
+        {/* Acheter et vendre — col droite sur desktop, juste après le taux sur mobile */}
         <div className="md:row-span-2">
           <style>{TILE_CSS}</style>
           <div>
@@ -173,26 +169,9 @@ const Dashboard = () => {
           {!tradingEnabled && !isStaff && !profile?.testAccount && (
             <p className="mt-2 text-[12.5px] text-muted-foreground">{t("dash.tradingSuspended")}</p>
           )}
-
-          {/* Le nombre suit les blockchains ouvertes dans Réglages › Réseaux. */}
-          {openCount > 0 && (
-            <div className="mt-10">
-              <p className="ac-k">
-                {openCount === 1 ? t("dash.networksOne") : t("dash.networks").replace("{n}", String(openCount))}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
-                {nets.map((n) => (
-                  <span key={n.id} className="flex items-center gap-2.5">
-                    <img src={`/coins/${n.id}.svg`} alt="" className="h-6 w-6 rounded-full" draggable={false} />
-                    <span className="whitespace-nowrap text-[14px]">{n.name}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Activité récente — sous les blockchains sur mobile, sous le taux sur desktop */}
+        {/* Activité récente — sous Acheter et Vendre sur mobile, sous le taux sur desktop */}
         <RecentActivity />
       </div>
     </AppShell>
