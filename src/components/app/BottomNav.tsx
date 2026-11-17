@@ -48,12 +48,12 @@ const BottomNav = () => {
     <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <nav
         ref={navRef}
-        className="relative flex w-full max-w-[320px] items-center justify-around gap-1.5 rounded-full border-[3px] border-[#111] bg-[#111] p-1.5"
+        className="relative flex w-full max-w-[236px] items-center justify-around gap-1 rounded-full bg-[#111] p-1"
       >
         {line.ready && (
           <div
             aria-hidden="true"
-            className="absolute top-1.5 bottom-1.5 rounded-full bg-[#fdd94e] transition-[left,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            className="absolute top-1 bottom-1 rounded-full bg-[#fdd94e] transition-[left,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
             style={{ left: line.left - 14, width: line.width + 28 }}
           />
         )}
@@ -67,14 +67,14 @@ const BottomNav = () => {
               end={end}
               ref={(el) => { itemRefs.current[i] = el; }}
               className={cn(
-                "relative z-10 flex items-center justify-center py-[12px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                isActive ? "gap-2 px-[18px] text-[#111]" : "gap-0 px-[15px] text-white/70",
+                "relative z-10 flex items-center justify-center py-[8px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                isActive ? "gap-1.5 px-[14px] text-[#111]" : "gap-0 px-[12px] text-white/70",
               )}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0 transition-colors duration-200" />
+              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0 transition-colors duration-200" />
               <span
                 className={cn(
-                  "overflow-hidden whitespace-nowrap text-[13px] font-semibold tracking-[0.01em] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                  "overflow-hidden whitespace-nowrap text-[12.5px] font-semibold tracking-[0.01em] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
                   isActive ? "max-w-[80px] opacity-100" : "max-w-0 opacity-0",
                 )}
               >

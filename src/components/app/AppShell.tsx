@@ -74,7 +74,7 @@ const AppShell = ({ children, header, wide, wider, center, className }: AppShell
   <div className="app-surface app-type min-h-screen" style={{ background: color }}>
     <style>{PLAY_CSS}</style>
     <style>{FLAT_CSS}</style>
-    <div className={cn("mx-auto flex min-h-screen max-w-[440px] flex-col px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-[max(1rem,var(--ios-top))] app-top md:max-w-[720px] lg:max-w-[960px]", wider && "md:max-w-[840px] lg:max-w-[1040px] xl:max-w-[1180px] md:px-8")}>
+    <div className={cn("mx-auto flex min-h-screen max-w-[440px] flex-col px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[max(1rem,var(--ios-top))] app-top md:max-w-[720px] lg:max-w-[960px]", wider && "md:max-w-[840px] lg:max-w-[1040px] xl:max-w-[1180px] md:px-8")}>
       {/* Barre du haut — largeur constante, avatar toujours au même endroit */}
       <div className="flex items-start justify-between gap-4 px-1 pb-4 pt-2 lg:pb-6 lg:pt-4">
         <div className="flex min-w-0 items-start gap-3">
