@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Coins, HandCoins, ChevronRight, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
+import { PAGE_COLORS } from "@/lib/installed";
 import { orderRef, DB_TO_NET, type OrderRow } from "@/lib/orders";
 import { NETWORKS } from "@/components/app/networks";
 import CopyRow from "@/components/app/CopyRow";
@@ -46,34 +47,37 @@ const dateLong = (d: Date) => {
 
 export { nf, nfUsdt, dateLong };
 
+/**
+ * Une opération : un rond de couleur au trait noir (lavande pour un achat, corail pour une vente) avec une flèche,
+ * « Achat · 342,16 USDC », le montant en dollars et la date en dessous, le statut à droite.
+ */
 export const ActivityRow = ({ o, onClick }: { o: OrderRow; onClick?: () => void }) => {
   const t = useT();
   const buy = o.side === "buy";
+  const d = new Date(o.created_at);
+  const today = d.toDateString() === new Date().toDateString();
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "flex w-full items-center gap-4 py-3.5 text-left",
-        onClick && "ac-row",
-      )}
+      className={cn("flex w-full items-center gap-3 py-3 text-left", onClick && "ac-row")}
     >
-      {buy ? <Coins className="ac-ico h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} /> : <HandCoins className="ac-ico h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-medium">
-          {buy ? t("act.buyLabel") : t("act.sellLabel")}
-        </p>
-        <p className="truncate text-[12px] text-muted-foreground">
-          {t(statusKey(o))}
-        </p>
-      </div>
-      <div className="shrink-0 text-right">
-        <p className="text-[14px] font-semibold">{nf.format(Number(o.cad_amount))} <span className="text-[12px] font-medium">CAD</span></p>
-        <p className="text-[11.5px] text-muted-foreground">
-          {dateShort(new Date(o.created_at))}
-        </p>
-      </div>
-      {onClick && <ChevronRight className="ac-go h-4 w-4 shrink-0 text-muted-foreground/50" />}
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#111]"
+        style={{ background: buy ? PAGE_COLORS.lavender : PAGE_COLORS.coral }}
+        aria-hidden
+      >
+        {buy ? <ArrowDown className="h-4 w-4 text-[#111]" strokeWidth={2.6} /> : <ArrowUp className="h-4 w-4 text-[#111]" strokeWidth={2.6} />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14.5px] font-medium text-[#111]">
+          {buy ? t("act.buyShort") : t("act.sellShort")} · {nfUsdt.format(Number(o.usdt_amount))} {assetSymbol(o.asset)}
+        </span>
+        <span className="block truncate text-[12.5px] text-[#555]">
+          {nf.format(Number(o.cad_amount))} $ · {today ? t("act.today") : dateShort(d)}
+        </span>
+      </span>
+      <span className="shrink-0 text-right text-[12.5px] font-medium text-[#111]">{t(statusKey(o))}</span>
     </button>
   );
 };

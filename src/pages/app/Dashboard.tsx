@@ -12,7 +12,9 @@ import { cn } from "@/lib/utils";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
 import { businessBlocked } from "@/components/app/BusinessGate";
 import InAppMessage from "@/components/app/InAppMessage";
-import { primaryAsset } from "@/lib/assets";
+import { openAssets, primaryAsset } from "@/lib/assets";
+import { openNetworks } from "@/components/app/networks";
+import NetworkGlyph from "@/components/app/NetworkGlyph";
 import { PAGE_COLORS } from "@/lib/installed";
 import { Sparkle, WholeMascot } from "@/components/launch/PlayLogin";
 
@@ -87,8 +89,8 @@ const DASH_CSS = `
 .dash-pill i { font-style: normal; width: 22px; height: 22px; border-radius: 999px; background: #ff6a3d; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
 .dash-rate { margin-top: 12px; font-size: clamp(56px, 17vw, 76px); font-weight: 500; letter-spacing: -0.05em; line-height: 1; color: #111; font-variant-numeric: tabular-nums; }
 .dash-cap { margin: 8px 0 0; font-size: 14px; color: #111; }
-.dash-mascot { position: absolute; right: -4px; top: -26px; }
-.dash-spark { position: absolute; right: 92px; top: -20px; }
+.dash-mascot { position: absolute; right: 0; top: 34px; }
+.dash-spark { position: absolute; right: 96px; top: 26px; }
 @media (prefers-reduced-motion: no-preference) {
   .dash-mascot { animation: dash-float 3.4s ease-in-out infinite; }
   .dash-spark { animation: dash-tw 2.6s ease-in-out infinite; }
@@ -100,17 +102,22 @@ const DASH_CSS = `
 .dash-tile:active { transform: scale(.97); }
 @media (hover: hover) { .dash-tile:hover { transform: translateY(-2px); } }
 .dash-tile-ic { width: 46px; height: 46px; border-radius: 999px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; }
-.dash-act { margin-top: 12px; padding: 12px 18px 8px; }
+.dash-act { margin-top: 12px; padding: 14px 18px 8px; }
+.dash-nets { margin-top: 12px; padding: 14px 16px 16px; }
+.dash-nets-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+.dash-net { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; color: #111; text-align: center; }
 `;
 
 const Dashboard = () => {
   const t = useT();
   // Relu toutes les 5 secondes : le serveur le recalcule toutes les 10 secondes.
   const settings = useAppSettings();
-  const { tradingEnabled } = settings;
+  const { tradingEnabled, networks } = settings;
   // Taux de la cryptomonnaie principale (la seule ouverte, sinon l'USDC).
   const coin = primaryAsset(settings);
   const rate = useUsdtRate({ live: true, asset: coin.id });
+  // Blockchains où la cryptomonnaie principale est ouverte.
+  const nets = openNetworks(networks, undefined, openAssets(settings).length === 1 ? coin.id : undefined);
 
   const { user, isStaff } = useAuth();
   const [profile, setProfile] = useState<MyProfile | null>(() => peekMyProfile(user?.id) ?? null);
@@ -164,7 +171,7 @@ const Dashboard = () => {
           <span className="dash-pill">{coin.symbol} → CAD <i>$</i></span>
           <div className="dash-rate">{nfRate.format(rate.buy)}</div>
           <p className="dash-cap">{t("dash.rateCaption").replace("{coin}", coin.symbol)}</p>
-          <WholeMascot size={96} className="dash-mascot" />
+          <WholeMascot size={100} className="dash-mascot" />
           <Sparkle size={18} className="dash-spark" />
         </section>
 
@@ -181,6 +188,18 @@ const Dashboard = () => {
         <div className="ap-card dash-act">
           <RecentActivity />
         </div>
+
+        {/* Les blockchains ouvertes (Réglages › Réseaux), dessinées au trait noir */}
+        {nets.length > 0 && (
+          <div className="ap-card dash-nets">
+            <p className="ac-k">{nets.length === 1 ? t("dash.networksOne") : t("dash.networks").replace("{n}", String(nets.length))}</p>
+            <div className="dash-nets-row" style={{ gridTemplateColumns: `repeat(${Math.min(4, nets.length)}, minmax(0, 1fr))` }}>
+              {nets.map((n) => (
+                <span key={n.id} className="dash-net"><NetworkGlyph id={n.id} size={50} />{n.name}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );
