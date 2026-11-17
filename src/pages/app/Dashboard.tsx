@@ -184,12 +184,7 @@ const Dashboard = () => {
           <p className="mt-3 text-[13px] text-[#111]">{t("dash.tradingSuspended")}</p>
         )}
 
-        {/* La dernière opération, dans une carte blanche */}
-        <div className="ap-card dash-act">
-          <RecentActivity />
-        </div>
-
-        {/* Les blockchains ouvertes (Réglages › Réseaux), dessinées au trait noir */}
+        {/* Les blockchains ouvertes (Réglages › Réseaux), avec leurs vrais logos */}
         {nets.length > 0 && (
           <div className="ap-card dash-nets">
             <p className="ac-k">{nets.length === 1 ? t("dash.networksOne") : t("dash.networks").replace("{n}", String(nets.length))}</p>
@@ -200,6 +195,12 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {/* La dernière opération, dans une carte blanche */}
+        <div className="ap-card dash-act">
+          <RecentActivity />
+        </div>
+
       </div>
     </AppShell>
   );
