@@ -12,7 +12,6 @@ import { getMyKyc, peekMyKyc, type KycDbStatus } from "@/lib/kyc";
 import { useLang, useT } from "@/lib/i18n";
 import type { TKey } from "@/lib/translations";
 import { bpsText, myReferral, referralLink, type MyReferral } from "@/lib/growth";
-import { PAGE_COLORS } from "@/lib/installed";
 import { PeekMascot } from "@/components/launch/PlayLogin";
 
 /*
@@ -36,6 +35,8 @@ const ACC_CSS = `
 .acc-tile:active { transform: scale(.97); }
 @media (hover: hover) { .acc-tile:hover { transform: translateY(-2px); } }
 .acc-tile-ic { width: 40px; height: 40px; border-radius: 999px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; }
+.acc-tile.dk { color: #fff; }
+.acc-tile.dk .acc-tile-ic { background: #fff; color: #111; }
 .acc-tile b { display: block; font-size: 17px; font-weight: 500; letter-spacing: -0.01em; }
 .acc-tile span.s { display: block; margin-top: 2px; font-size: 12px; line-height: 1.35; }
 .acc-lang { margin-top: 12px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -59,7 +60,7 @@ const ACC_CSS = `
 `;
 
 const Tile = ({ to, icon: Icon, title, sub, bg }: { to: string; icon: React.ElementType; title: string; sub?: string; bg: string }) => (
-  <Link to={to} className="acc-tile" style={{ background: bg }}>
+  <Link to={to} className={bg === "#111" ? "acc-tile dk" : "acc-tile"} style={{ background: bg }}>
     <span className="acc-tile-ic"><Icon className="h-[19px] w-[19px]" strokeWidth={2} /></span>
     <span><b>{title}</b>{sub && <span className="s">{sub}</span>}</span>
   </Link>
@@ -232,10 +233,10 @@ const Compte = () => {
 
   // Les tuiles : toujours Sécurité et Limites ; Interac, Parrainage, Entreprise, OTC et Back-office quand ils existent.
   const tiles: { to: string; icon: React.ElementType; title: string; sub?: string; bg: string }[] = [
-    { to: "/app/compte?v=securite", icon: Lock, title: t("acct.tSecurity"), sub: t("acct.tSecuritySub"), bg: PAGE_COLORS.mint },
-    ...(interacOk ? [{ to: "/app/compte?v=interac", icon: Mail, title: "Interac", sub: t("acct.tInteracSub"), bg: PAGE_COLORS.coral }] : []),
-    { to: "/app/limites", icon: Gauge, title: t("acct.limits"), sub: t("acct.limitsSub"), bg: PAGE_COLORS.lavender },
-    ...(refOk ? [{ to: "/app/compte?v=parrainage", icon: Gift, title: t("acct.refTitle"), sub: t("acct.tRefSub"), bg: PAGE_COLORS.sky }] : []),
+    { to: "/app/compte?v=securite", icon: Lock, title: t("acct.tSecurity"), sub: t("acct.tSecuritySub"), bg: "#111" },
+    ...(interacOk ? [{ to: "/app/compte?v=interac", icon: Mail, title: "Interac", sub: t("acct.tInteracSub"), bg: "#ffffff" }] : []),
+    { to: "/app/limites", icon: Gauge, title: t("acct.limits"), sub: t("acct.limitsSub"), bg: "#ffffff" },
+    ...(refOk ? [{ to: "/app/compte?v=parrainage", icon: Gift, title: t("acct.refTitle"), sub: t("acct.tRefSub"), bg: "#ffffff" }] : []),
     ...(bizOk ? [{ to: "/app/compte?v=entreprise", icon: Building2, title: t("acct.business"), sub: t("acct.tBizSub"), bg: "#ffffff" }] : []),
     ...(otc ? [{ to: "/app/otc", icon: Handshake, title: t("nav.otc"), sub: t("dash.otcSub"), bg: "#ffffff" }] : []),
     ...(isStaff ? [{ to: "/admin", icon: LayoutGrid, title: t("acct.backoffice"), sub: t("acct.tStaffSub"), bg: "#ffffff" }] : []),

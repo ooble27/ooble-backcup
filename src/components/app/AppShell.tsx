@@ -56,7 +56,7 @@ interface AppShellProps {
  */
 const AppShell = ({ children, header, wide, wider, center, bare, lead, className }: AppShellProps) => {
   const { pathname } = useLocation();
-  const color = pageColor(pathname);
+  const color = pageColor();
   useAppScope(color);
   // Pas de zoom dans l'app, comme dans le back-office (ordinateur et téléphone).
   useNoZoom();

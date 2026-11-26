@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
-import { PAGE_COLORS } from "@/lib/installed";
 import { orderRef, DB_TO_NET, type OrderRow } from "@/lib/orders";
 import { NETWORKS } from "@/components/app/networks";
 import CopyRow from "@/components/app/CopyRow";
@@ -64,10 +63,10 @@ export const ActivityRow = ({ o, onClick }: { o: OrderRow; onClick?: () => void 
     >
       <span
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#111]"
-        style={{ background: buy ? PAGE_COLORS.lavender : PAGE_COLORS.coral }}
+        style={{ background: buy ? "#fff" : "#111" }}
         aria-hidden
       >
-        {buy ? <ArrowDown className="h-4 w-4 text-[#111]" strokeWidth={2.6} /> : <ArrowUp className="h-4 w-4 text-[#111]" strokeWidth={2.6} />}
+        {buy ? <ArrowDown className="h-4 w-4 text-[#111]" strokeWidth={2.6} /> : <ArrowUp className="h-4 w-4 text-white" strokeWidth={2.6} />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] font-medium text-[#111]">

@@ -41,7 +41,7 @@ export function paintPage(color: string): () => void {
   };
 }
 
-/** Couleur pleine de chaque page de l'app (nouveau design). */
+/** Couleurs du nouveau design : le jaune pour l'entrée (lancement, connexion), le neutre pour l'app. */
 export const PAGE_COLORS = {
   yellow: "#fdd94e",
   neutral: "#f5f5f3",
@@ -51,12 +51,8 @@ export const PAGE_COLORS = {
   sky: "#bfe0ff",
 } as const;
 
-export function pageColor(path: string): string {
-  const p = path.replace(/\/$/, "");
-  if (/^\/app\/(acheter|otc)/.test(p)) return PAGE_COLORS.lavender;
-  if (/^\/app\/(vendre|envoyer)/.test(p)) return PAGE_COLORS.coral;
-  if (/^\/app\/activite/.test(p)) return PAGE_COLORS.mint;
-  if (/^\/app\/./.test(p)) return PAGE_COLORS.sky;
+export function pageColor(): string {
+  // Toutes les pages de l'app ont le même fond neutre (le jaune et les couleurs pleines restent à l'entrée).
   return PAGE_COLORS.neutral;
 }
 
