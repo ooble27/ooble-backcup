@@ -28,25 +28,25 @@ jobs:
         with:
           version: latest
       - run: |
-          supabase functions deploy send-email --project-ref uukxacjjviiktmbikdwp
-          supabase functions deploy ai-assist --project-ref uukxacjjviiktmbikdwp
-          supabase functions deploy mail-webhook --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy push-notify --project-ref uukxacjjviiktmbikdwp
-          supabase functions deploy order-notify --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy usdt-payout --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy interac-ingest --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy sumsub-webhook --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy sell-watch --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy delete-account --project-ref uukxacjjviiktmbikdwp
-          supabase functions deploy support-chat --project-ref uukxacjjviiktmbikdwp
-          supabase functions deploy reset-test-data --project-ref uukxacjjviiktmbikdwp
-          supabase functions deploy admin-tools --project-ref uukxacjjviiktmbikdwp
-          supabase functions deploy refresh-rate --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy campaign-dispatch --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy mail-events --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy journeys --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy push-campaign --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy team-notify --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
-          supabase functions deploy kyc-check --project-ref uukxacjjviiktmbikdwp --no-verify-jwt
+          supabase functions deploy send-email --project-ref uukxacjjviiktmbikdwp --yes
+          supabase functions deploy ai-assist --project-ref uukxacjjviiktmbikdwp --yes
+          supabase functions deploy mail-webhook --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy push-notify --project-ref uukxacjjviiktmbikdwp --yes
+          supabase functions deploy order-notify --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy usdt-payout --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy interac-ingest --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy sumsub-webhook --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy sell-watch --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy delete-account --project-ref uukxacjjviiktmbikdwp --yes
+          supabase functions deploy support-chat --project-ref uukxacjjviiktmbikdwp --yes
+          supabase functions deploy reset-test-data --project-ref uukxacjjviiktmbikdwp --yes
+          supabase functions deploy admin-tools --project-ref uukxacjjviiktmbikdwp --yes
+          supabase functions deploy refresh-rate --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy campaign-dispatch --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy mail-events --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy journeys --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy push-campaign --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy team-notify --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
+          supabase functions deploy kyc-check --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
