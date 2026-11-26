@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import {
-  ArrowLeft, Building2, Check, ChevronRight, Copy, Gauge, Gift, Globe, Handshake, HelpCircle, KeyRound, LayoutGrid, Link2, Lock, LogOut, Mail, Share2, Trash2,
-} from "lucide-react";
+import { ArrowLeft, Building2, Check, ChevronRight, Copy, Gauge, Gift, Globe, Handshake, HelpCircle, KeyRound, LayoutGrid, Link2, Lock, LogOut, Mail, Share2, Trash2, MessageCircle } from "lucide-react";
 import { useOtcVisible } from "@/lib/otc";
 import { useAppSettings } from "@/lib/settings";
 import AppShell from "@/components/app/AppShell";
@@ -231,9 +229,10 @@ const Compte = () => {
     );
   }
 
-  // Les tuiles : toujours Sécurité et Limites ; Interac, Parrainage, Entreprise, OTC et Back-office quand ils existent.
+  // Les tuiles : toujours Sécurité, Support et Limites ; Interac, Parrainage, Entreprise, OTC et Back-office quand ils existent.
   const tiles: { to: string; icon: React.ElementType; title: string; sub?: string; bg: string }[] = [
-    { to: "/app/compte?v=securite", icon: Lock, title: t("acct.tSecurity"), sub: t("acct.tSecuritySub"), bg: "#111" },
+    { to: "/app/compte?v=securite", icon: Lock, title: t("acct.tSecurity"), sub: t("acct.tSecuritySub"), bg: "#ffffff" },
+    { to: "/app/support", icon: MessageCircle, title: t("support.title"), sub: t("support.tileSub"), bg: "#ffffff" },
     ...(interacOk ? [{ to: "/app/compte?v=interac", icon: Mail, title: "Interac", sub: t("acct.tInteracSub"), bg: "#ffffff" }] : []),
     { to: "/app/limites", icon: Gauge, title: t("acct.limits"), sub: t("acct.limitsSub"), bg: "#ffffff" },
     ...(refOk ? [{ to: "/app/compte?v=parrainage", icon: Gift, title: t("acct.refTitle"), sub: t("acct.tRefSub"), bg: "#ffffff" }] : []),

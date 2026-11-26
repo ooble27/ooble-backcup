@@ -28,6 +28,7 @@ import Compte from "./pages/app/Compte";
 import ChangerEmail from "./pages/app/ChangerEmail";
 import ChangerMotDePasse from "./pages/app/ChangerMotDePasse";
 import Limites from "./pages/app/Limites";
+import Support from "./pages/app/Support";
 import SupprimerCompte from "./pages/app/SupprimerCompte";
 import AuRevoir from "./pages/AuRevoir";
 import Desabonnement from "./pages/Desabonnement";
@@ -110,6 +111,7 @@ export const AppRoutes = () => (
         <Route path="/app/changer-email" element={<RequireAuth><ChangerEmail /></RequireAuth>} />
         <Route path="/app/mot-de-passe" element={<RequireAuth><ChangerMotDePasse /></RequireAuth>} />
         <Route path="/app/limites" element={<RequireAuth><Limites /></RequireAuth>} />
+        <Route path="/app/support" element={<RequireAuth><Support /></RequireAuth>} />
         <Route path="/app/supprimer-compte" element={<RequireAuth><SupprimerCompte /></RequireAuth>} />
         <Route path="/app/verification" element={<RequireAuth><Verification /></RequireAuth>} />
         <Route path="/app/entreprise" element={<RequireAuth><Entreprise /></RequireAuth>} />
