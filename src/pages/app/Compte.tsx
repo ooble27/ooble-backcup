@@ -25,7 +25,7 @@ type View = "securite" | "interac" | "parrainage" | "entreprise";
 
 const ACC_CSS = `
 .acc-profile { position: relative; z-index: 2; text-align: center; padding: 20px 18px 16px; }
-.acc-id { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 10px 10px 14px; border: 2.5px solid #111; border-radius: 18px; background: #fff6c9; text-align: left; color: #111; text-decoration: none; }
+.acc-id { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 10px 10px 14px; border: 2.5px solid #111; border-radius: 18px; background: #f3f3f0; text-align: left; color: #111; text-decoration: none; }
 .acc-id + .acc-id { margin-top: 8px; }
 .acc-id b { display: block; font-size: 14px; font-weight: 500; }
 .acc-id span.s { font-size: 12.5px; color: #333; }
@@ -235,7 +235,7 @@ const Compte = () => {
     { to: "/app/compte?v=securite", icon: Lock, title: t("acct.tSecurity"), sub: t("acct.tSecuritySub"), bg: PAGE_COLORS.mint },
     ...(interacOk ? [{ to: "/app/compte?v=interac", icon: Mail, title: "Interac", sub: t("acct.tInteracSub"), bg: PAGE_COLORS.coral }] : []),
     { to: "/app/limites", icon: Gauge, title: t("acct.limits"), sub: t("acct.limitsSub"), bg: PAGE_COLORS.lavender },
-    ...(refOk ? [{ to: "/app/compte?v=parrainage", icon: Gift, title: t("acct.refTitle"), sub: t("acct.tRefSub"), bg: PAGE_COLORS.yellow }] : []),
+    ...(refOk ? [{ to: "/app/compte?v=parrainage", icon: Gift, title: t("acct.refTitle"), sub: t("acct.tRefSub"), bg: PAGE_COLORS.sky }] : []),
     ...(bizOk ? [{ to: "/app/compte?v=entreprise", icon: Building2, title: t("acct.business"), sub: t("acct.tBizSub"), bg: "#ffffff" }] : []),
     ...(otc ? [{ to: "/app/otc", icon: Handshake, title: t("nav.otc"), sub: t("dash.otcSub"), bg: "#ffffff" }] : []),
     ...(isStaff ? [{ to: "/admin", icon: LayoutGrid, title: t("acct.backoffice"), sub: t("acct.tStaffSub"), bg: "#ffffff" }] : []),

@@ -5,7 +5,7 @@ import { useT } from "@/lib/i18n";
 
 /**
  * Menu du bas (variante D) : une barre blanche au trait noir, Accueil à gauche, Vendre à droite, et au milieu
- * Acheter en gros rond jaune qui dépasse, comme un bouton qu'on presse. Affiché seulement sur ses trois pages
+ * Acheter en gros rond noir qui dépasse, comme un bouton qu'on presse. Affiché seulement sur ses trois pages
  * (Accueil, Acheter, Vendre) ; les autres pages ont « ← Retour » en haut.
  */
 
@@ -15,8 +15,8 @@ const CSS = `
 .bn-side svg { transition: transform .2s; }
 .bn-side.on { color: #111; font-weight: 600; }
 .bn-side.on svg { transform: scale(1.12); }
-.bn-mid { justify-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 78px; height: 78px; margin-top: -46px; border-radius: 999px; background: #fdd94e; border: 3px solid #111; color: #111; font-size: 11.5px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 0 #111; -webkit-tap-highlight-color: transparent; transition: transform .15s, box-shadow .15s, background-color .25s; }
-.bn-mid.on { background: #dccaff; }
+.bn-mid { justify-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 78px; height: 78px; margin-top: -46px; border-radius: 999px; background: #111; border: 3px solid #111; color: #fff; font-size: 11.5px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 0 #111; -webkit-tap-highlight-color: transparent; transition: transform .15s, box-shadow .15s, background-color .25s; }
+.bn-mid.on { background: #dccaff; color: #111; }
 .bn-mid:active { transform: translateY(3px); box-shadow: 0 1px 0 #111; }
 .bn a:focus-visible { outline: 2.5px solid #111; outline-offset: 3px; border-radius: 18px; }
 @media (prefers-reduced-motion: reduce) { .bn *, .bn-mid { transition: none; } }

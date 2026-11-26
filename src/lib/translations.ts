@@ -215,6 +215,7 @@ const dict = {
   "dash.buySub": { fr: "Payez par Interac, recevez vos USDC", en: "Pay with Interac, receive your USDC" },
   "dash.sellSub": { fr: "Envoyez vos USDC, recevez des dollars", en: "Send your USDC, receive dollars" },
   "dash.rateCaption": { fr: "Le prix d'un {coin}, en ce moment", en: "The price of one {coin}, right now" },
+  "dash.sellRate": { fr: "Vente : {r} $", en: "Sell: {r} $" },
   "dash.buyShort": { fr: "Par Interac", en: "By Interac" },
   "dash.sellShort": { fr: "Contre des dollars", en: "For dollars" },
   "dash.networks": { fr: "Recevez sur {n} blockchains", en: "Receive on {n} blockchains" },

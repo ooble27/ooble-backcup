@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppSettings } from "@/lib/settings";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Clock, Coins, HandCoins, ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Clock, ChevronRight } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { useUsdtRate } from "@/hooks/useUsdtRate";
 import { listMyOrders, peekMyOrders, type OrderRow } from "@/lib/orders";
@@ -15,8 +15,7 @@ import InAppMessage from "@/components/app/InAppMessage";
 import { openAssets, primaryAsset } from "@/lib/assets";
 import { openNetworks } from "@/components/app/networks";
 import NetworkGlyph from "@/components/app/NetworkGlyph";
-import { PAGE_COLORS } from "@/lib/installed";
-import { Sparkle, WholeMascot } from "@/components/launch/PlayLogin";
+import { PeekMascot } from "@/components/launch/PlayLogin";
 
 /** Le taux d'achat (cours du marché + marge d'achat), à 4 décimales. */
 const nfRate = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 4, minimumFractionDigits: 4 });
@@ -66,55 +65,45 @@ const RecentActivity = () => {
   );
 };
 
-/** Acheter ou vendre : une grande tuile carrée de couleur au trait noir ; grisée quand les échanges sont fermés. */
-const Trade = ({ to, icon: Icon, name, desc, open, bg }: { to: string; icon: React.ElementType; name: string; desc: string; open: boolean; bg: string }) => (
+/** Acheter ou vendre : un bouton rond dans la carte noire (plein ou au trait) ; grisé quand les échanges sont fermés. */
+const Trade = ({ to, icon: Icon, name, open, solid }: { to: string; icon: React.ElementType; name: string; open: boolean; solid?: boolean }) => (
   <Link
     to={to}
-    className={cn("dash-tile", !open && "pointer-events-none opacity-40")}
-    style={{ background: bg }}
+    className={cn("dash-btn", solid && "solid", !open && "pointer-events-none opacity-40")}
     aria-disabled={!open}
     tabIndex={open ? undefined : -1}
   >
-    <span className="dash-tile-ic"><Icon className="h-[22px] w-[22px]" strokeWidth={2} /></span>
-    <span>
-      <span className="block text-[21px] font-medium leading-tight tracking-[-0.02em] text-[#111]">{name}</span>
-      <span className="mt-0.5 block text-[12.5px] leading-snug text-[#111]">{desc} »</span>
-    </span>
+    <Icon className="h-[19px] w-[19px]" strokeWidth={2.4} />{name}
   </Link>
 );
 
 const DASH_CSS = `
-.dash-hero { position: relative; padding-top: 8px; }
-.dash-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 4px 0 13px; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 500; }
-.dash-pill i { font-style: normal; width: 22px; height: 22px; border-radius: 999px; background: #ff6a3d; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
-.dash-rate { margin-top: 12px; font-size: clamp(56px, 17vw, 76px); font-weight: 500; letter-spacing: -0.05em; line-height: 1; color: #111; font-variant-numeric: tabular-nums; }
-.dash-cap { margin: 8px 0 0; font-size: 14px; color: #111; }
-.dash-mascot { position: absolute; right: 0; top: 34px; }
-.dash-spark { position: absolute; right: 96px; top: 26px; }
-@media (prefers-reduced-motion: no-preference) {
-  .dash-mascot { animation: dash-float 3.4s ease-in-out infinite; }
-  .dash-spark { animation: dash-tw 2.6s ease-in-out infinite; }
-}
-@keyframes dash-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-@keyframes dash-tw { 0%, 100% { transform: scale(.85) rotate(0); } 50% { transform: scale(1.1) rotate(20deg); } }
-.dash-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 26px; }
-.dash-tile { display: flex; flex-direction: column; justify-content: space-between; min-height: 164px; padding: 16px; border: 3px solid #111; border-radius: 26px; color: #111; text-decoration: none; transition: transform .15s; }
-.dash-tile:active { transform: scale(.97); }
-@media (hover: hover) { .dash-tile:hover { transform: translateY(-2px); } }
-.dash-tile-ic { width: 46px; height: 46px; border-radius: 999px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; }
+.dash-card { position: relative; margin-top: 64px; padding: 22px 18px 18px; border-radius: 30px; background: #111; color: #fff; }
+.dash-peek { position: absolute; right: 16px; top: -78px; width: 124px; height: 80px; }
+.dash-peek .pl-mascot { margin: 0; width: 124px; height: 80px; }
+.dash-peek .pl-mascot svg { width: 124px; height: 80px; }
+.dash-k { margin: 0; font-size: 11.5px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #a9a9a5; }
+.dash-rate { margin-top: 8px; font-size: clamp(54px, 16vw, 72px); font-weight: 500; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+.dash-rate small { font-size: 20px; letter-spacing: 0; }
+.dash-cap { margin: 8px 0 0; font-size: 14px; color: #a9a9a5; font-variant-numeric: tabular-nums; }
+.dash-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+.dash-btn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 54px; border-radius: 999px; border: 2.5px solid #fff; color: #fff; font-size: 16px; font-weight: 500; text-decoration: none; -webkit-tap-highlight-color: transparent; transition: transform .15s; }
+.dash-btn.solid { background: #fff; color: #111; }
+.dash-btn:active { transform: scale(.97); }
+@media (hover: hover) { .dash-btn:hover { transform: translateY(-1px); } }
+.dash-btn:focus-visible { outline: 2.5px solid #fff; outline-offset: 3px; }
 .dash-act { margin-top: 12px; padding: 14px 18px 8px; }
 @media (min-width: 768px) {
-  .dash-rate { font-size: 100px; }
-  .dash-mascot { width: 150px; height: 150px; top: 6px; }
-  .dash-spark { right: 150px; top: 4px; }
-  .dash-tile { min-height: 190px; padding: 20px; }
+  .dash-card { padding: 28px 26px 24px; border-radius: 34px; }
+  .dash-rate { font-size: 96px; }
+  .dash-btns { margin-top: 28px; }
+  .dash-btn { height: 60px; font-size: 17px; }
   .dash-act, .dash-nets { padding: 18px 22px 12px; }
 }
 @media (min-width: 1024px) {
   .dash-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 0 40px; align-items: start; }
-  .dash-rate { font-size: 112px; }
-  .dash-side > .ap-card:first-child { margin-top: 8px; }
-  .dash-tile { min-height: 210px; }
+  .dash-rate { font-size: 104px; }
+  .dash-side > .ap-card:first-child { margin-top: 64px; }
 }
 .dash-nets { margin-top: 12px; padding: 14px 16px 16px; }
 .dash-nets-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
@@ -183,20 +172,17 @@ const Dashboard = () => {
           Téléphone et tablette : les blocs se suivent, en pleine largeur. */}
       <div className="dash-grid">
         <div>
-        {/* Le taux en très grand, la mascotte qui flotte à côté */}
-        <section className="dash-hero" aria-label={t("dash.rate").replace("USDT", coin.symbol)}>
-          <span className="dash-pill">{coin.symbol} → CAD <i>$</i></span>
-          <div className="dash-rate">{nfRate.format(rate.buy)}</div>
-          <p className="dash-cap">{t("dash.rateCaption").replace("{coin}", coin.symbol)}</p>
-          <WholeMascot size={100} className="dash-mascot" />
-          <Sparkle size={18} className="dash-spark" />
+        {/* Variante C : le taux dans une grande carte noire, Acheter et Vendre dedans, la mascotte qui dépasse en haut */}
+        <section className="dash-card" aria-label={t("dash.rate").replace("USDT", coin.symbol)}>
+          <span className="dash-peek"><PeekMascot look={0} typing={false} hide={false} peek={false} /></span>
+          <p className="dash-k">{coin.symbol} → CAD</p>
+          <div className="dash-rate">{nfRate.format(rate.buy)}<small> $</small></div>
+          <p className="dash-cap">{t("dash.sellRate").replace("{r}", nfRate.format(rate.sell))}</p>
+          <div className="dash-btns">
+            <Trade to="/app/acheter" icon={ArrowDown} name={t("dash.buy")} solid open={tradingEnabled || isStaff || !!profile?.testAccount} />
+            <Trade to="/app/vendre" icon={ArrowUp} name={t("dash.sell")} open={tradingEnabled || isStaff || !!profile?.testAccount} />
+          </div>
         </section>
-
-        {/* Acheter et vendre : deux grandes tuiles carrées */}
-        <div className="dash-tiles">
-          <Trade to="/app/acheter" icon={Coins} name={t("dash.buy")} desc={t("dash.buyShort")} bg={PAGE_COLORS.lavender} open={tradingEnabled || isStaff || !!profile?.testAccount} />
-          <Trade to="/app/vendre" icon={HandCoins} name={t("dash.sell")} desc={t("dash.sellShort")} bg={PAGE_COLORS.coral} open={tradingEnabled || isStaff || !!profile?.testAccount} />
-        </div>
         {!tradingEnabled && !isStaff && !profile?.testAccount && (
           <p className="mt-3 text-[13px] text-[#111]">{t("dash.tradingSuspended")}</p>
         )}

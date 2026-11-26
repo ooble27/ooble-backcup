@@ -20,7 +20,7 @@
           // Nouveau design de l'app : toujours clair, une couleur pleine par page (voir pageColor dans lib/installed.ts).
           h.classList.add("app-scope"); dark = false;
           bg = /^\/app\/(acheter|otc)/.test(p) ? "#dccaff" : /^\/app\/(vendre|envoyer)/.test(p) ? "#ff6a3d"
-            : /^\/app\/activite/.test(p) ? "#bfe8c8" : /^\/app\/./.test(p) ? "#bfe0ff" : "#fdd94e";
+            : /^\/app\/activite/.test(p) ? "#bfe8c8" : /^\/app\/./.test(p) ? "#bfe0ff" : "#f5f5f3";
         }
         else if (/^\/(connexion|inscription)(\/|$)/.test(p)) { dark = false; bg = "#fdd94e"; }
         else bg = dark ? "#1a1a1a" : "#ffffff";

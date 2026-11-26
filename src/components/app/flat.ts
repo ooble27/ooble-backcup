@@ -107,7 +107,7 @@ export const FLAT_CSS = `
 .ac-ico, .ac-go, .ac-link, .ac-back, .ac-n { color: #111; }
 .ac-back { font-weight: 500; }
 .ac-lines > * + * { border-top: 1.5px solid rgba(17,17,17,.12); }
-.ac-todo { border: 2.5px solid #111; border-radius: 20px; padding: 16px 18px; background: #fff6c9; }
+.ac-todo { border: 2.5px solid #111; border-radius: 20px; padding: 16px 18px; background: #f3f3f0; }
 .ac-todo-c { color: #111; }
 /* Action principale : la grande pastille noire avec la flèche, comme sur l'accueil. */
 .ac-act:not(.quiet) { flex: 1 1 100%; width: 100%; height: 54px; justify-content: space-between; padding: 0 24px; border-radius: 999px; background: #111; color: #fff; text-decoration: none; font-size: 16px; font-weight: 500; transition: transform .15s, opacity .2s; }
@@ -115,7 +115,7 @@ export const FLAT_CSS = `
 .ac-act.quiet { color: #111; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; }
 /* Champs : contour noir épais, fond jaune pâle à la saisie. */
 .ac-in { border: 2px solid #111; border-radius: 16px; padding: 12px 14px; background: #fff; transition: background-color .2s; }
-.ac-in:focus { background: #fff6c9; }
+.ac-in:focus { background: #f3f3f0; }
 .ac-amount { padding: 10px 112px 10px 16px; }
 .ac-amount + span { right: 16px !important; bottom: 50% !important; transform: translateY(50%); color: #111 !important; }
 /* Choix en pastilles : contour noir, la pastille choisie en noir. */
@@ -149,7 +149,7 @@ export const FLAT_CSS = `
 .ac-amount + span { right: 0 !important; font-size: 20px; }
 .ac-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 13px; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.3; }
 /* La conversion, bien en vue : ce qu'on reçoit (ou paie), en grand, dans un encadré jaune pâle. */
-.ac-result { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; padding: 10px 14px; border: 2.5px solid #111; border-radius: 18px; background: #fff6c9; }
+.ac-result { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; padding: 10px 14px; border: 2.5px solid #111; border-radius: 18px; background: #f3f3f0; }
 .ac-result-k { font-size: 12.5px; font-weight: 500; color: #333; }
 .ac-result-v { display: flex; align-items: center; gap: 8px; font-size: clamp(26px, 7.4vw, 32px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; color: #111; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .ac-result-r { font-size: 12px; color: #444; }
@@ -161,8 +161,8 @@ export const FLAT_CSS = `
 /* Les choses à copier, numérotées. */
 .ac-copy { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 2.5px solid #111; border-radius: 18px; background: #fff; font: inherit; color: #111; cursor: pointer; transition: transform .12s; }
 .ac-copy + .ac-copy { margin-top: 8px; }
-.ac-copy.mark { background: #fff6c9; }
+.ac-copy.mark { background: #f3f3f0; }
 .ac-copy:active { transform: scale(.98); }
 .ac-copy-n { width: 26px; height: 26px; flex-shrink: 0; border-radius: 999px; background: #111; color: #fff; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
-.ac-timer { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 2px solid #111; border-radius: 999px; background: #fff6c9; color: #111; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ac-timer { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 2px solid #111; border-radius: 999px; background: #f3f3f0; color: #111; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 `;

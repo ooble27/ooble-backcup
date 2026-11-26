@@ -44,6 +44,7 @@ export function paintPage(color: string): () => void {
 /** Couleur pleine de chaque page de l'app (nouveau design). */
 export const PAGE_COLORS = {
   yellow: "#fdd94e",
+  neutral: "#f5f5f3",
   lavender: "#dccaff",
   coral: "#ff6a3d",
   mint: "#bfe8c8",
@@ -56,7 +57,7 @@ export function pageColor(path: string): string {
   if (/^\/app\/(vendre|envoyer)/.test(p)) return PAGE_COLORS.coral;
   if (/^\/app\/activite/.test(p)) return PAGE_COLORS.mint;
   if (/^\/app\/./.test(p)) return PAGE_COLORS.sky;
-  return PAGE_COLORS.yellow;
+  return PAGE_COLORS.neutral;
 }
 
 /** Le nouveau design est toujours clair : la classe « dark » est retirée tant que l'écran est affiché. */
