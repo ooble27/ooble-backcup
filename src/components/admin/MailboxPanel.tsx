@@ -33,7 +33,7 @@ import {
   Send, Mail, Inbox, Eye, Bold, Italic,
   List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus,
   X, User, Users, Wand2, Loader2, ArrowLeft, Reply, MailOpen, Trash2,
-  ChevronRight, Hand,
+  ChevronRight, Hand, Check, RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,8 +52,8 @@ import {
 } from "@/lib/mailComposer";
 import {
   fetchThreads, fetchMessages, markThreadRead, removeThread, assignThread, SUPPORT_LABEL,
-  createThread, insertOutboundMessage, threadReplyTo, countUnread, fetchSentMessages, type SentRow,
-  type MailThread, type MailMessage, type MailboxId,
+  createThread, insertOutboundMessage, setSupportState, threadReplyTo, countUnread, fetchSentMessages, type SentRow,
+  type MailThread, type MailMessage, type MailboxId, type SupportState,
 } from "@/lib/mailThreads";
 import { enterView, returnTo } from "@/lib/pageMotion";
 import { C, FONT, inputStyle } from "./adminTheme";
@@ -1360,9 +1360,10 @@ function findRefs(texts: (string | null | undefined)[]): string[] {
 }
 
 
-function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove, onAssign, onShowClient, onOpenOrder }: {
+function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove, onAssign, onResolve, onShowClient, onOpenOrder }: {
   thread: MailThread; messages: MailMessage[]; loading: boolean; me: { id: string; name: string } | null;
   onBack?: () => void; onReply: (ref?: string) => void; onRemove: () => void; onAssign: (who: { id: string; name: string } | null) => void;
+  onResolve: (state: SupportState) => void;
   onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
 }) {
   const refs = findRefs([thread.subject, ...messages.map((m) => m.bodyText ?? snippet(m.bodyHtml, 4000))]);
@@ -1390,6 +1391,10 @@ function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove
         ) : me && (
           <Button size="sm" onClick={() => onAssign(me)} icon={<Hand style={{ width: 14, height: 14 }} />}>Prendre</Button>
         )}
+        {/* Réglée : la conversation sort de « À répondre » ; une discussion de l'app est alors fermée pour le client. */}
+        {thread.supportState === "resolved"
+          ? <Button size="sm" variant="ghost" onClick={() => onResolve("waiting")} icon={<RotateCcw style={{ width: 14, height: 14 }} />}>Rouvrir</Button>
+          : <Button size="sm" variant="ghost" onClick={() => onResolve("resolved")} icon={<Check style={{ width: 14, height: 14 }} />}>Réglée</Button>}
         <Button size="sm" variant="ghost" aria-label="Supprimer la conversation" title="Supprimer la conversation" onClick={onRemove} icon={<Trash2 style={{ width: 15, height: 15 }} />} />
         <Button size="sm" variant="primary" onClick={() => onReply(order?.ref ?? refs[0])} icon={<Reply style={{ width: 14, height: 14 }} strokeWidth={2} />}>Répondre</Button>
       </div>
@@ -1512,6 +1517,15 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
     if (res.error) { patchLocal(selected.id, prev); setErr(res.error); }
   };
 
+  const changeState = async (state: SupportState) => {
+    if (!selected) return;
+    const prev = selected.supportState;
+    patchLocal(selected.id, { supportState: state });
+    const res = await setSupportState(selected.id, state);
+    if (res.error) { patchLocal(selected.id, { supportState: prev }); setErr(res.error); }
+    onCount();
+  };
+
   const needle = q.trim().toLowerCase();
   const matches = (t: MailThread) => !needle || `${t.clientName ?? ""} ${t.clientEmail} ${t.subject}`.toLowerCase().includes(needle);
   const counts = { todo: threads.filter((t) => t.supportState === "todo").length, all: threads.length };
@@ -1528,7 +1542,7 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
   const conversation = selected && (
     <Conversation thread={selected} messages={messages} loading={msgsLoading} me={me}
       onBack={wide ? undefined : () => { setSelectedId(null); returnTo("mail"); }}
-      onReply={(ref) => onReply(selected, ref)} onRemove={remove} onAssign={changeAssign}
+      onReply={(ref) => onReply(selected, ref)} onRemove={remove} onAssign={changeAssign} onResolve={changeState}
       onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
   );
 

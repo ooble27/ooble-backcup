@@ -98,6 +98,13 @@ export async function removeThread(threadId: string, by: string | null): Promise
   return error ? { error: error.message } : {};
 }
 
+/** Marque une conversation réglée (ou la rouvre). Une discussion de l'app réglée est fermée pour le client,
+ *  qui peut en ouvrir une nouvelle ; elle se rouvre d'elle-même si le client réécrit par courriel. */
+export async function setSupportState(threadId: string, state: SupportState): Promise<{ error?: string }> {
+  const { error } = await supabase.from("mail_threads").update({ support_state: state, has_unread: false }).eq("id", threadId);
+  return error ? { error: error.message } : {};
+}
+
 /** Prend (ou libère) une conversation : toute l'équipe voit qui s'en occupe. */
 export async function assignThread(threadId: string, who: { id: string; name: string } | null): Promise<{ error?: string }> {
   const { error } = await supabase.from("mail_threads")
