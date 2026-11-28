@@ -1,22 +1,31 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
-import { StepHeader } from "@/components/app/Flat";
 import { Bubbles, Composer, SUPPORT_CSS, supportWhen, type PendingMsg } from "@/components/app/SupportUI";
 import { fetchSupportConversation, markSupportSeen, sendSupportMessage, type SupportConversation } from "@/lib/support";
 import { useLang, useT } from "@/lib/i18n";
 
 /**
- * Une discussion, comme dans une vraie messagerie : un cadre de la hauteur de l'écran, les messages défilent
- * à l'intérieur et la zone d'écriture reste en bas (au-dessus du clavier sur téléphone). On arrive sur le
+ * Une discussion, comme dans une vraie messagerie : un écran fixe calé sur la zone visible (le clavier compris,
+ * grâce à visualViewport), avec son en-tête ; les messages défilent à l'intérieur du cadre et la zone d'écriture
+ * reste en bas. La page en dessous ne bouge jamais (sur iPhone, le clavier la faisait défiler). On arrive sur le
  * dernier message. Relue toutes les 5 secondes tant que la page est visible.
  * Discussion close (par l'équipe, ou après 7 jours) : lisible, et un bouton pour en ouvrir une nouvelle.
  * Un message qui ne part pas reste affiché avec « Réessayer » : rien n'est perdu.
  */
 
 const FRAME_CSS = `
-.sp-frame { display: flex; flex-direction: column; min-height: 320px; background: #fff; border: 3px solid #111; border-radius: 28px; overflow: hidden; }
+.sp-screen { position: fixed; left: 0; right: 0; z-index: 60; background: #f5f5f3; display: flex; flex-direction: column; }
+.sp-inner { flex: 1; min-height: 0; width: 100%; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; padding: 0 16px; }
+.sp-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 0 12px; }
+.sp-back { width: 42px; height: 42px; flex: none; border-radius: 999px; border: 2.5px solid #111; background: #fff; color: #111; display: flex; align-items: center; justify-content: center; }
+.sp-back:focus-visible { outline: 2.5px solid #111; outline-offset: 2px; }
+.sp-title { min-width: 0; flex: 1; }
+.sp-title b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: #111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-title span { display: block; font-size: 12.5px; color: #555; }
+.sp-frame { flex: 1; display: flex; flex-direction: column; min-height: 0; background: #fff; border: 3px solid #111; border-radius: 28px; overflow: hidden; }
 .sp-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 16px 16px 12px; }
 .sp-foot { flex: none; padding: 10px 12px 12px; border-top: 1.5px solid rgba(17,17,17,.1); background: #fff; }
 .sp-foot .sp-note, .sp-foot .sp-err { margin: 8px 6px 0; }
@@ -34,41 +43,35 @@ const SupportThread = () => {
   const [pending, setPending] = useState<PendingMsg[]>([]);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [height, setHeight] = useState<number | null>(null);
+  // La zone visible : sa position et sa hauteur (le clavier ouvert la réduit).
+  const [box, setBox] = useState(() => ({ top: 0, h: typeof window === "undefined" ? 800 : window.innerHeight, kb: false }));
   const [away, setAway] = useState(false); // le client a remonté la discussion
-  const frameRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const awayRef = useRef(false);
   const shown = useRef(0);
 
-  // Le cadre occupe la hauteur visible restante (le clavier compris, grâce à visualViewport) ; la page ne défile plus.
+  // L'écran suit la zone visible ; la page en dessous ne défile plus du tout.
   useLayoutEffect(() => {
     const html = document.documentElement, body = document.body;
     const prev = [html.style.overflow, body.style.overflow];
     html.style.overflow = "hidden"; body.style.overflow = "hidden";
-    window.scrollTo(0, 0);
     const fit = () => {
-      const el = frameRef.current;
-      if (!el) return;
       const vv = window.visualViewport;
-      const viewH = vv ? vv.height : window.innerHeight;
-      const top = el.getBoundingClientRect().top - (vv ? vv.offsetTop : 0);
-      setHeight(Math.max(320, Math.floor(viewH - top - 14)));
+      const h = vv ? vv.height : window.innerHeight;
+      setBox({ top: vv ? vv.offsetTop : 0, h, kb: window.innerHeight - h > 120 });
     };
     fit();
-    const raf = requestAnimationFrame(fit);
     window.addEventListener("resize", fit);
     window.visualViewport?.addEventListener("resize", fit);
     window.visualViewport?.addEventListener("scroll", fit);
     return () => {
-      cancelAnimationFrame(raf);
       window.removeEventListener("resize", fit);
       window.visualViewport?.removeEventListener("resize", fit);
       window.visualViewport?.removeEventListener("scroll", fit);
       html.style.overflow = prev[0]; body.style.overflow = prev[1];
     };
-  }, [conv !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(async () => {
     const r = await fetchSupportConversation(id);
@@ -107,7 +110,7 @@ const SupportThread = () => {
       if (first) requestAnimationFrame(() => requestAnimationFrame(() => toEnd()));
     }
   });
-  useEffect(() => { if (height) requestAnimationFrame(() => toEnd()); }, [height]);
+  useEffect(() => { requestAnimationFrame(() => { if (!awayRef.current) toEnd(); }); }, [box.h]);
   // La liste change de taille (police chargée, cadre redimensionné, clavier) : on reste collé en bas, sauf si le client relit plus haut.
   useEffect(() => {
     const list = listRef.current, box = scrollRef.current;
@@ -145,9 +148,25 @@ const SupportThread = () => {
   const labels = { today: t("support.today"), sending: t("support.sending"), failed: t("support.failed"), retry: t("support.retry") };
 
   return (
-    <AppShell bare header={<StepHeader title={conv?.topic || t("support.title")} sub={conv ? (conv.open ? t("support.stOpen") : t("support.stClosed")) : ""} onBack={() => navigate("/app/support")} />}>
+    <AppShell bare>
       <style>{SUPPORT_CSS + FRAME_CSS}</style>
-      <div ref={frameRef} className="sp-frame" style={{ height: height ?? undefined, position: "relative" }}>
+      {/* Hors de la page (dont l'animation d'entrée décalerait un élément fixe), directement dans <body>. */}
+      {createPortal(<div className="sp-screen app-surface" style={{
+        top: box.top, height: box.h,
+        paddingTop: box.top > 0 ? 8 : "calc(env(safe-area-inset-top, 0px) + 8px)",
+        paddingBottom: box.kb ? 8 : "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+      }}>
+      <div className="sp-inner">
+      <div className="sp-head">
+        <button type="button" className="sp-back" onClick={() => navigate("/app/support")} aria-label={t("support.backHub")}>
+          <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
+        </button>
+        <div className="sp-title">
+          <b>{conv?.topic || t("support.title")}</b>
+          {conv && <span>{conv.open ? t("support.stOpen") : t("support.stClosed")}</span>}
+        </div>
+      </div>
+      <div className="sp-frame" style={{ position: "relative" }}>
         {missing ? (
           <div className="sp-scroll">
             <p className="text-[15px] font-medium text-[#111]">{t("support.missing")}</p>
@@ -195,6 +214,8 @@ const SupportThread = () => {
           </>
         )}
       </div>
+      </div>
+      </div>, document.body)}
     </AppShell>
   );
 };

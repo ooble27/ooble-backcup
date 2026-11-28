@@ -46,7 +46,7 @@ const ACC_CSS = `
 @media (min-width: 768px) {
   .acc-profile { padding: 26px 28px 20px; }
   .acc-tiles { gap: 14px; margin-top: 16px; }
-  .acc-tile { min-height: 168px; padding: 18px; }
+  .acc-tile { min-height: 140px; padding: 16px 18px; }
   .acc-tile b { font-size: 19px; }
 }
 @media (min-width: 1024px) {
@@ -54,7 +54,7 @@ const ACC_CSS = `
   .acc-desk { display: block; }
   .acc-mob { display: none; }
   .acc-tiles { margin-top: 98px; }
-  .acc-tile { min-height: 186px; }
+  .acc-tile { min-height: 148px; }
 }
 `;
 
