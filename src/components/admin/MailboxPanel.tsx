@@ -63,6 +63,7 @@ import ClientCard from "./ClientCard";
 import { OrderStatusPill } from "./orderBits";
 import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, useReveal, type Column } from "./layout";
 import { assetSymbol } from "@/lib/assets";
+import { AppChatFooter, AppChatMessages, appChatTopic, isAppChat } from "./SupportChat";
 
 // ──────────────────── Recipient model ────────────────────
 //
@@ -1360,23 +1361,31 @@ function findRefs(texts: (string | null | undefined)[]): string[] {
 }
 
 
-function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove, onAssign, onResolve, onShowClient, onOpenOrder }: {
+function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove, onAssign, onResolve, onRefresh, onShowClient, onOpenOrder }: {
   thread: MailThread; messages: MailMessage[]; loading: boolean; me: { id: string; name: string } | null;
   onBack?: () => void; onReply: (ref?: string) => void; onRemove: () => void; onAssign: (who: { id: string; name: string } | null) => void;
   onResolve: (state: SupportState) => void;
+  /** Relit les messages (après une réponse depuis une discussion de l'app). */
+  onRefresh: () => void;
   onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
 }) {
   const refs = findRefs([thread.subject, ...messages.map((m) => m.bodyText ?? snippet(m.bodyHtml, 4000))]);
   const orders = peek<AdminOrder[]>("orders")?.value ?? [];
   const order = refs.map((r) => orders.find((o) => o.ref === r)).find(Boolean) ?? null;
   const mine = !!me && thread.assignedTo === me.id;
+  const app = isAppChat(thread);
+  // Discussion de l'app : on arrive sur le dernier message, et on y reste quand un nouveau arrive.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (app && !loading && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [app, loading, messages.length]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px 6px", flexWrap: "wrap" }}>
         {onBack && <Button variant="ghost" size="sm" aria-label="Retour" onClick={onBack} icon={<ArrowLeft style={{ width: 16, height: 16 }} />} />}
         <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-          <p style={{ margin: 0, fontSize: 15, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{thread.subject}</p>
+          <p style={{ margin: 0, fontSize: 15, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app ? <>{appChatTopic(thread)} <span style={{ color: C.t3, fontSize: 12.5 }}>· discussion dans l'app</span></> : thread.subject}</p>
           <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {thread.supportState === "todo" && thread.lastInboundAt ? `Attend une réponse depuis ${since(thread.lastInboundAt)}` : SUPPORT_LABEL[thread.supportState]}
             {thread.mailbox === "otc" ? " · OTC" : ""}
@@ -1392,14 +1401,14 @@ function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove
           <Button size="sm" onClick={() => onAssign(me)} icon={<Hand style={{ width: 14, height: 14 }} />}>Prendre</Button>
         )}
         {/* Réglée : la conversation sort de « À répondre » ; une discussion de l'app est alors fermée pour le client. */}
-        {thread.supportState === "resolved"
+        {!app && (thread.supportState === "resolved"
           ? <Button size="sm" variant="ghost" onClick={() => onResolve("waiting")} icon={<RotateCcw style={{ width: 14, height: 14 }} />}>Rouvrir</Button>
-          : <Button size="sm" variant="ghost" onClick={() => onResolve("resolved")} icon={<Check style={{ width: 14, height: 14 }} />}>Réglée</Button>}
+          : <Button size="sm" variant="ghost" onClick={() => onResolve("resolved")} icon={<Check style={{ width: 14, height: 14 }} />}>Réglée</Button>)}
         <Button size="sm" variant="ghost" aria-label="Supprimer la conversation" title="Supprimer la conversation" onClick={onRemove} icon={<Trash2 style={{ width: 15, height: 15 }} />} />
-        <Button size="sm" variant="primary" onClick={() => onReply(order?.ref ?? refs[0])} icon={<Reply style={{ width: 14, height: 14 }} strokeWidth={2} />}>Répondre</Button>
+        {!app && <Button size="sm" variant="primary" onClick={() => onReply(order?.ref ?? refs[0])} icon={<Reply style={{ width: 14, height: 14 }} strokeWidth={2} />}>Répondre</Button>}
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "8px 20px 24px" }}>
+      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "8px 20px 24px" }}>
         {/* Le client et la commande dont il parle, avant de lire. */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 12, marginBottom: 10 }}>
           <ClientCard clientId={thread.clientId} name={thread.clientName ?? ""} email={thread.clientEmail} onShowClient={onShowClient} compact />
@@ -1423,6 +1432,8 @@ function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove
         </div>
         {loading ? (
           <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
+        ) : app ? (
+          <AppChatMessages messages={messages} clientName={thread.clientName ?? ""} />
         ) : messages.map((m) => {
           const inbound = m.direction === "inbound";
           const who = inbound ? (m.fromName || m.fromEmail) : "Ooble";
@@ -1441,6 +1452,10 @@ function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove
           );
         })}
       </div>
+      {app && !loading && (
+        <AppChatFooter thread={thread} me={me} orderRef={order?.ref ?? refs[0] ?? null}
+          onSent={(state) => { if (state) onResolve(state); onRefresh(); }} />
+      )}
     </div>
   );
 }
@@ -1539,8 +1554,22 @@ function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
   // 50 conversations, puis la suite en descendant : fluide même avec des milliers de messages.
   const { visible: listShown, more: listMore } = useReveal(list, 50, `${filter}|${needle}`);
 
+  // Relit les messages de la conversation ouverte (réponse envoyée, ou nouveau message du client en direct).
+  const refreshMessages = useCallback(async () => {
+    if (!selectedId) return;
+    const msgs = await fetchMessages(selectedId);
+    setMessages(msgs);
+  }, [selectedId]);
+  const selectedLast = selected?.lastMessageAt;
+  const seenLast = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!selectedId || !selectedLast) return;
+    if (seenLast.current && seenLast.current !== selectedLast) void refreshMessages();
+    seenLast.current = selectedLast;
+  }, [selectedId, selectedLast, refreshMessages]);
+
   const conversation = selected && (
-    <Conversation thread={selected} messages={messages} loading={msgsLoading} me={me}
+    <Conversation thread={selected} messages={messages} loading={msgsLoading} me={me} onRefresh={() => void refreshMessages()}
       onBack={wide ? undefined : () => { setSelectedId(null); returnTo("mail"); }}
       onReply={(ref) => onReply(selected, ref)} onRemove={remove} onAssign={changeAssign} onResolve={changeState}
       onShowClient={onShowClient} onOpenOrder={onOpenOrder} />

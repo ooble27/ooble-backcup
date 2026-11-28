@@ -3,8 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Support dans l'app : tout passe par la fonction serveur « support-chat » (le client ne voit que ses discussions).
- * Règles : une seule discussion ouverte à la fois ; fermée par l'équipe (« Réglée »), par le client, ou après
- * 7 jours sans réponse du client ; une discussion fermée reste lisible mais on en ouvre une nouvelle pour réécrire.
+ * Règles : une seule discussion ouverte à la fois ; close par l'équipe, ou après 7 jours sans réponse du client ; une discussion fermée reste lisible mais on en ouvre une nouvelle pour réécrire.
  */
 
 export type SupportTopic = "order" | "identity" | "interac" | "account" | "other";
@@ -34,7 +33,6 @@ async function call<T>(body: Record<string, unknown>): Promise<Res<T>> {
 
 export const fetchSupportThreads = () => call<{ threads: SupportThread[] }>({ action: "threads" });
 export const fetchSupportConversation = (threadId: string) => call<SupportConversation>({ action: "list", threadId });
-export const closeSupportThread = (threadId: string) => call<{ ok: true }>({ action: "close", threadId });
 export const sendSupportMessage = (p: { threadId?: string; text: string; topic?: SupportTopic; orderRef?: string }) =>
   call<{ ok: true; threadId: string }>({ action: "send", ...p });
 
