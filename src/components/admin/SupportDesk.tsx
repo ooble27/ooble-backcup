@@ -15,7 +15,8 @@
  * Mise à jour en direct. Raccourcis : J / K (suivante, précédente), R (répondre), E (régler).
  * Les membres de l'équipe sont montrés par leur prénom seulement.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowUp, Check, ChevronRight, Globe, Hand, Loader2, MessageSquarePlus, RotateCcw, Search, Smartphone, Trash2, UserRound, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -152,6 +153,14 @@ export const F_CSS = `
 .of-peek .pl-mascot svg { width: 112px; height: 72px; }
 .of :is(.of-chip, .of-btn, .of-card, .of-send, .of-quick button, .of-tpl-row):focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .of-card { transition: none; } }
+/* Téléphone : la discussion ouverte occupe un écran fixe (comme dans l'app client) ; seul le fil défile. */
+.of.of-full { position: fixed; left: 0; right: 0; z-index: 2147481000; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); border-radius: 0; background: #fff; display: flex; flex-direction: column; }
+.of-full .of-chat { flex: 1; border: 0; border-radius: 0; }
+.of-full .of-msgs { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.of-full .of-quick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.of-full .of-quick::-webkit-scrollbar { display: none; }
+.of-full .of-tpl { max-height: 38vh; overflow-y: auto; overscroll-behavior: contain; }
+.of-full .of-drawer { top: calc(env(safe-area-inset-top) + 10px); right: 10px; bottom: 10px; width: min(360px, calc(100% - 20px)); }
 /* Téléphone : plus de cadres autour de la discussion, elle prend toute la largeur pour lire et répondre à l'aise. */
 @media (max-width: 999px) {
   .of { padding: 0; border-radius: 0; background: transparent; }
@@ -409,7 +418,7 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
       onAssign={changeAssign} onState={changeState} onRemove={remove}
       onSent={(state) => { if (state) void changeState(state); void refreshMessages(); }}
       registerFocus={(f) => { replyFocus.current = f; }}
-      onContext={wide && !showCtx ? () => setCtxOpen((v) => !v) : undefined} ctxOpen={ctxOpen} />
+      onContext={!showCtx ? () => setCtxOpen((v) => !v) : undefined} ctxOpen={ctxOpen} />
   ) : (
     <div className="of-chat"><div className="of-empty"><WholeMascot size={90} /><b>Choisissez une conversation</b><span>La discussion, le client et sa commande s'affichent ici.</span></div></div>
   );
@@ -419,7 +428,22 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
       <style>{F_CSS}</style>
       <div className="of" style={{ height: height ?? undefined }}>
         {!wide ? (
-          selected ? <div style={{ display: "grid", gap: 16 }}>{chat}<div style={{ display: "grid", gap: 16, paddingTop: 58 }}><ContextPane thread={selected} messages={messages} threads={threads} onOpen={(t) => void openThread(t)} onShowClient={onShowClient} onOpenOrder={onOpenOrder} /></div></div> : listCol
+          selected ? (
+            <MobileScreen>
+              {chat}
+              {ctxOpen && (
+                <div className="of-drawer" role="dialog" aria-label="Le client et ses commandes">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <b style={{ fontSize: 15 }}>Le client</b>
+                    <button type="button" className="of-btn ic" onClick={() => setCtxOpen(false)} aria-label="Fermer"><X style={{ width: 16, height: 16 }} /></button>
+                  </div>
+                  <ContextPane thread={selected} messages={messages} threads={threads} onOpen={(t) => { setCtxOpen(false); void openThread(t); }}
+                    onShowClient={onShowClient && ((...a: Parameters<typeof onShowClient>) => { setCtxOpen(false); setSelectedId(null); onShowClient(...a); })}
+                    onOpenOrder={onOpenOrder && ((...a: Parameters<typeof onOpenOrder>) => { setCtxOpen(false); setSelectedId(null); onOpenOrder(...a); })} />
+                </div>
+              )}
+            </MobileScreen>
+          ) : listCol
         ) : (
           <>
           {selected && ctxOpen && !showCtx && (
@@ -446,6 +470,38 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
         )}
       </div>
     </div>
+  );
+}
+
+/** Téléphone : la discussion dans un écran fixe calé sur la zone visible (clavier compris). La page du back-office
+ *  en dessous ne défile plus ; seuls les messages bougent, l'en-tête et la zone d'écriture restent en place. */
+function MobileScreen({ children }: { children: React.ReactNode }) {
+  const [box, setBox] = useState<{ top: number; h: number }>(() => ({ top: 0, h: typeof window !== "undefined" ? window.innerHeight : 800 }));
+  useLayoutEffect(() => {
+    const html = document.documentElement, body = document.body;
+    const prev = [html.style.overflow, body.style.overflow];
+    html.style.overflow = "hidden"; body.style.overflow = "hidden";
+    const fit = () => {
+      const vv = window.visualViewport;
+      setBox({ top: vv ? vv.offsetTop : 0, h: vv ? vv.height : window.innerHeight });
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    window.visualViewport?.addEventListener("resize", fit);
+    window.visualViewport?.addEventListener("scroll", fit);
+    return () => {
+      window.removeEventListener("resize", fit);
+      window.visualViewport?.removeEventListener("resize", fit);
+      window.visualViewport?.removeEventListener("scroll", fit);
+      html.style.overflow = prev[0]; body.style.overflow = prev[1];
+    };
+  }, []);
+  return createPortal(
+    <div className="of of-full" style={{ top: box.top, height: box.h }}>
+      <style>{F_CSS}</style>
+      {children}
+    </div>,
+    document.body,
   );
 }
 
