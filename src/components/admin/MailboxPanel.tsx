@@ -29,7 +29,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { takePendingDraft } from "@/lib/mailDraft";
 import { fetchCached, peek, put } from "@/lib/adminCache";
-import { Send, Mail, Eye, Bold, Italic, List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus, X, User, Users, Wand2, Loader2, ChevronRight } from "lucide-react";
+import { Send, Mail, Eye, Bold, Italic, List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus, X, User, Users, Wand2, Loader2, ChevronRight, Search } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { sendCustomEmail } from "@/lib/email";
 import { loadSent, recordSent, type SentMail } from "@/lib/mailHistory";
@@ -40,8 +40,9 @@ import { markdownToHtml, wrapSelection, insertAtCursor, prefixLines, defaultSign
 import { fetchThreads, fetchMessages, createThread, insertOutboundMessage, threadReplyTo, countUnread, fetchSentMessages, type SentRow, type MailThread, type MailboxId } from "@/lib/mailThreads";
 import { C, FONT, inputStyle } from "./adminTheme";
 import { Button, Notice, Workspace } from "./ui";
-import { DataTable, EmptyState, Pill, Tabs, TwoLine, type Column } from "./layout";
-import { SupportDesk } from "./SupportDesk";
+import { Tabs } from "./layout";
+import { F_CSS, SupportDesk, TINTS, initials, tintOf } from "./SupportDesk";
+import { WholeMascot } from "@/components/launch/PlayLogin";
 import { SupportOverview } from "./SupportOverview";
 
 // ──────────────────── Recipient model ────────────────────
@@ -1252,57 +1253,101 @@ function PreviewFrame({ from, to, subject, html }: { from: string; to: string; s
 
 // ─────────────────── Envoyés ───────────────────
 
+/** Envoyés, dans le style de l'app (variante F) : chaque courriel en carte, filtres, recherche. */
 function SentView({ sent }: { sent: SentMail[] }) {
-  const columns: Column<SentMail>[] = [
-    { key: "subject", header: "Objet", render: (m) => <TwoLine primary={m.subject} secondary={`à ${m.to}`} /> },
-    { key: "by", header: "Envoyé par", hideBelow: 960, render: (m) => <span style={{ color: C.t2 }}>{m.sentBy}</span> },
-    { key: "state", header: "État", render: (m) => (m.outcome.ok
-      ? <Pill tone="ok" dot>Envoyé</Pill>
-      : <span title={m.outcome.error}><Pill tone="danger" dot>Échec</Pill></span>) },
-    { key: "date", header: "Date", align: "right", sort: (m) => m.sentAt, hideBelow: 760, render: (m) => <span style={{ color: C.t2, whiteSpace: "nowrap" }}>{dateFmt.format(new Date(m.sentAt))}</span> },
-  ];
+  const [filter, setFilter] = useState<"all" | "ok" | "fail">("all");
+  const [q, setQ] = useState("");
+  const [shown, setShown] = useState(40);
+  const needle = q.trim().toLowerCase();
+  const fails = sent.filter((m) => !m.outcome.ok).length;
+  const list = [...sent]
+    .filter((m) => filter === "all" || (filter === "ok" ? m.outcome.ok : !m.outcome.ok))
+    .filter((m) => !needle || `${m.subject} ${m.to}`.toLowerCase().includes(needle))
+    .sort((a, b) => b.sentAt.localeCompare(a.sentAt));
   return (
-    <>
-      <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Tous les courriels envoyés depuis le back-office, quel que soit l'appareil.</p>
-      <DataTable
-        rows={sent}
-        columns={columns}
-        rowKey={(m) => m.id}
-        initialSort={{ key: "date", dir: "desc" }}
-        empty={<EmptyState icon={Mail} title="Aucun envoi" text="Aucun courriel envoyé depuis le back-office pour l'instant." />}
-        mobile={(m) => (
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}><TwoLine primary={m.subject} secondary={`à ${m.to} · ${dateFmt.format(new Date(m.sentAt))}`} /></div>
-            {m.outcome.ok ? <Pill tone="ok">Envoyé</Pill> : <Pill tone="danger">Échec</Pill>}
+    <div style={{ marginTop: 10 }}>
+      <style>{F_CSS}</style>
+      <div className="of" style={{ display: "grid", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <h2>{sent.length} <span style={{ color: "#8a8a86" }}>{sent.length > 1 ? "courriels envoyés" : "courriel envoyé"}</span></h2>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: "#5f5f5b" }}>Tous les courriels envoyés depuis le back-office, quel que soit l'appareil.</p>
+          </div>
+          <WholeMascot size={58} />
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="of-chips">
+            {([["all", "Tous", sent.length], ["ok", "Envoyés", sent.length - fails], ["fail", "Échecs", fails]] as ["all" | "ok" | "fail", string, number][]).map(([id, label, n]) => (
+              <button key={id} type="button" className="of-chip" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}{n > 0 && <b className={id === "fail" ? "hot" : undefined}>{n}</b>}</button>
+            ))}
+          </div>
+          <label className="of-search" style={{ flex: "1 1 240px", maxWidth: 420, minWidth: 0 }}>
+            <Search style={{ width: 15, height: 15, flexShrink: 0 }} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Objet ou destinataire" aria-label="Chercher un envoi" />
+          </label>
+        </div>
+        {list.length === 0 ? (
+          <div className="of-box"><div className="of-empty" style={{ height: "auto" }}><WholeMascot size={70} /><b>{sent.length ? "Rien ne correspond" : "Aucun envoi"}</b><span>{sent.length ? "Changez le filtre ou la recherche." : "Aucun courriel envoyé depuis le back-office pour l'instant."}</span></div></div>
+        ) : (
+          <div style={{ display: "grid", gap: 8 }}>
+            {list.slice(0, shown).map((m) => (
+              <div key={m.id} className="of-card" style={{ cursor: "default", borderColor: m.outcome.ok ? "#111" : "#d4502a" }} title={m.outcome.ok ? undefined : m.outcome.error}>
+                <span className="of-av" style={{ width: 40, height: 40, fontSize: 12.5, background: tintOf(m.to) }}>{initials(m.to)}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="of-name" style={{ display: "block" }}>{m.subject || "(sans objet)"}</span>
+                  <span className="of-sub">à {m.to}</span>
+                </span>
+                <span className="of-tag" style={{ background: m.outcome.ok ? "#bfe8c8" : "#fff", flexShrink: 0 }}>{m.outcome.ok ? "Envoyé" : "Échec"}</span>
+                <span style={{ fontSize: 12, color: "#5f5f5b", whiteSpace: "nowrap", minWidth: 92, textAlign: "right" }}>{dateFmt.format(new Date(m.sentAt))}</span>
+              </div>
+            ))}
+            {list.length > shown && <button type="button" className="of-btn" onClick={() => setShown((n) => n + 40)} style={{ justifySelf: "center" }}>Voir plus ({list.length - shown})</button>}
           </div>
         )}
-      />
-    </>
+      </div>
+    </div>
   );
 }
 
 // ─────────────────── Modèles (points de départ) ───────────────────
 
+/** Modèles de courriel, dans le style de l'app (variante F) : une carte de couleur par modèle, recherche. */
 function SnippetsView({ onLoad }: { onLoad: (s: Snippet) => void }) {
+  const [q, setQ] = useState("");
+  const needle = q.trim().toLowerCase();
+  const list = SNIPPETS.filter((s) => !needle || `${s.name} ${s.description} ${s.subject}`.toLowerCase().includes(needle));
   return (
-    <>
-      <p style={{ margin: "16px 0 12px", fontSize: 12.5, color: C.t3 }}>Des débuts de message à reprendre et adapter. Rien n'est envoyé sans votre relecture.</p>
-      <div>
-        {SNIPPETS.map((s) => (
-          <div key={s.id} role="button" tabIndex={0} className="ui-row" onClick={() => onLoad(s)}
-            onKeyDown={(e) => { if (e.key === "Enter") onLoad(s); }}
-            style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 4px", borderBottom: `1px solid ${C.bds}`, cursor: "pointer" }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 13.5, color: C.t1 }}>{s.name}</p>
-              <p style={{ margin: "3px 0 0", fontSize: 12.5, lineHeight: 1.5, color: C.t3 }}>{s.description}</p>
-            </div>
-            <span style={{ fontSize: 12.5, color: C.t2, display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-              Utiliser <ChevronRight style={{ width: 14, height: 14 }} />
-            </span>
+    <div style={{ marginTop: 10 }}>
+      <style>{F_CSS}</style>
+      <div className="of" style={{ display: "grid", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <h2>{SNIPPETS.length} <span style={{ color: "#8a8a86" }}>modèles de courriel</span></h2>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: "#5f5f5b" }}>Des débuts de message à reprendre et adapter. Rien n'est envoyé sans votre relecture.</p>
           </div>
-        ))}
+          <WholeMascot size={58} />
+        </div>
+        <label className="of-search" style={{ maxWidth: 420 }}>
+          <Search style={{ width: 15, height: 15, flexShrink: 0 }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un modèle" aria-label="Chercher un modèle" />
+        </label>
+        {list.length === 0 ? (
+          <div className="of-box"><div className="of-empty" style={{ height: "auto" }}><WholeMascot size={70} /><b>Aucun modèle</b><span>Aucun modèle ne correspond à la recherche.</span></div></div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(260px, 100%), 1fr))", gap: 12 }}>
+            {list.map((s, i) => (
+              <button key={s.id} type="button" onClick={() => onLoad(s)} className="of-card"
+                style={{ flexDirection: "column", alignItems: "stretch", gap: 10, padding: 16, borderRadius: 24, background: TINTS[i % TINTS.length], textAlign: "left" }}>
+                <span style={{ fontSize: 15.5, fontWeight: 600, lineHeight: 1.25 }}>{s.name}</span>
+                <span style={{ fontSize: 12.5, lineHeight: 1.5, flex: 1 }}>{s.description}</span>
+                <span style={{ fontSize: 11.5, color: "#3f3f3b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Objet : {s.subject}</span>
+                <span className="of-btn dk" style={{ alignSelf: "flex-start", height: 34, fontSize: 12.5 }}>Utiliser <ChevronRight style={{ width: 14, height: 14 }} /></span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 

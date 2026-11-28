@@ -63,9 +63,9 @@ const shortFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "shor
 const nf0 = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 0 });
 
 /** Une couleur de l'app par client (toujours la même pour un client donné). */
-const TINTS = ["#dccaff", "#ff6a3d", "#bfe8c8", "#bfe0ff", "#ffffff"];
-const tintOf = (key: string) => TINTS[[...key].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7) % TINTS.length];
-const initials = (name: string) => name.split(/[\s@.]+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+export const TINTS = ["#dccaff", "#ff6a3d", "#bfe8c8", "#bfe0ff", "#ffffff"];
+export const tintOf = (key: string) => TINTS[[...key].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7) % TINTS.length];
+export const initials = (name: string) => name.split(/[\s@.]+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
 
 /** Le texte d'un message (le HTML d'un courriel, sans les balises). */
 function messageText(m: MailMessage): string {
@@ -84,7 +84,7 @@ function findRefs(texts: (string | null | undefined)[]): string[] {
 
 /* ─────────── Le style F ─────────── */
 
-const F_CSS = `
+export const F_CSS = `
 .of { position: relative; --ink: #111; --paper: #fff; --ground: #f5f5f3; --mute: #5f5f5b; --lav: #dccaff; --coral: #ff6a3d; --mint: #bfe8c8; --sky: #bfe0ff;
   font-family: 'Poppins', system-ui, sans-serif; color: var(--ink); background: var(--ground); border-radius: 28px; padding: 18px; color-scheme: light; }
 .of * { box-sizing: border-box; }
