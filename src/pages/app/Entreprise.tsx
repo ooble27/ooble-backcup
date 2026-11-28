@@ -6,7 +6,8 @@ import AppShell from "@/components/app/AppShell";
 import { BuildingGlyph } from "@/components/app/BusinessMark";
 import { Action, Actions, StepHeader } from "@/components/app/Flat";
 import { getMyProfile, peekMyProfile, type MyProfile } from "@/lib/profile";
-import { getMyKyc, peekMyKyc, type KycDbStatus } from "@/lib/kyc";
+import type { KycDbStatus } from "@/lib/kyc";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getMyKyb, peekMyKyb, submitKyb, KYB_ACCEPT, KYB_DOCS, KYB_MAX_FILE,
   type BusinessInfo, type BusinessOwner, type KybDocKey, type KybStatus, type MyKyb, type OwnerRole,
@@ -115,8 +116,8 @@ const Entreprise = () => {
   // Données déjà chargées (préchargement de l'app) : la page s'affiche tout
   // de suite ; la lecture en arrière-plan ne met à jour que les statuts.
   const [cached] = useState(() => {
-    const p = peekMyProfile(user?.id), k = peekMyKyb(user?.id), c = peekMyKyc(user?.id);
-    return p !== undefined && k !== undefined && c !== undefined ? { p, k, c } : null;
+    const p = peekMyProfile(user?.id), k = peekMyKyb(user?.id);
+    return p !== undefined && k !== undefined ? { p, k } : null;
   });
   const initForm = (p: MyProfile | null, k: MyKyb | null) => ({
     info: k ? k.info : {
@@ -128,7 +129,8 @@ const Entreprise = () => {
   const [loading, setLoading] = useState(!cached);
   const [profile, setProfile] = useState<MyProfile | null>(cached?.p ?? null);
   const [kyb, setKyb] = useState<MyKyb | null>(cached?.k ?? null);
-  const [kyc, setKyc] = useState<KycDbStatus>(cached?.c?.status ?? "not_started");
+  // Le responsable : le compte individuel vérifié relié à ce compte entreprise (undefined = en lecture, null = aucun).
+  const [owner, setOwner] = useState<{ full_name: string | null; kyc_status: KycDbStatus } | null | undefined>(undefined);
   const [view, setView] = useState<View>("hub");
 
   const [info, setInfo] = useState<BusinessInfo>(() => initForm(cached?.p ?? null, cached?.k ?? null).info);
@@ -145,10 +147,14 @@ const Entreprise = () => {
   const [otherOpen, setOtherOpen] = useState(false);
 
   useEffect(() => {
-    Promise.all([getMyProfile(), getMyKyb(), getMyKyc()]).then(([p, k, c]) => {
+    supabase.rpc("my_business_owner" as never).then(({ data, error: e }) => {
+      if (e) return;
+      const rows = (data as { full_name: string | null; kyc_status: KycDbStatus }[] | null) ?? [];
+      setOwner(rows[0] ?? null);
+    });
+    Promise.all([getMyProfile(), getMyKyb()]).then(([p, k]) => {
       setProfile(p);
       setKyb(k);
-      setKyc(c?.status ?? "not_started");
       // Formulaire déjà rempli depuis le cache : on ne l'écrase pas (saisie en cours).
       if (!cached || k?.status !== cached.k?.status) {
         const f = initForm(p, k);
@@ -510,16 +516,27 @@ const Entreprise = () => {
         })}
       </div>
 
-      {/* Identité du responsable (requise, vérifiée à part) */}
-      {kyc !== "approved" && (
-        <Link to="/app/verification" className="ac-row mt-2" style={{ borderTop: "1px solid hsl(var(--border))" }}>
-          <span className="w-[21px] shrink-0 text-[13px] font-semibold text-muted-foreground">{initials(profile?.fullName ?? user?.name ?? "")}</span>
-          <span className="ac-txt">
-            <span className="ac-n">{t("kyb.repTitle")}</span>
-            <span className="ac-d" style={{ whiteSpace: "normal" }}>{kyc === "pending" ? t("kyb.repPending") : t("kyb.repTodo")}</span>
-          </span>
-          <ChevronRight className="ac-go" />
-        </Link>
+      {/* Le responsable : le compte individuel vérifié qui a ouvert ce compte entreprise. Son identité compte
+          pour l'entreprise ; un compte non relié est relié par l'équipe sur demande. */}
+      {owner !== undefined && (
+        owner ? (
+          <div className="ac-row static mt-2" style={{ borderTop: "1px solid hsl(var(--border))" }}>
+            <span className="w-[21px] shrink-0 text-[13px] font-semibold text-muted-foreground">{initials(owner.full_name ?? "")}</span>
+            <span className="ac-txt">
+              <span className="ac-n">{t("biz.owner")} · {owner.full_name || "—"}</span>
+              <span className="ac-d" style={{ whiteSpace: "normal" }}>{owner.kyc_status === "approved" ? t("biz.ownerOk") : t("biz.ownerWait")}</span>
+            </span>
+          </div>
+        ) : (
+          <Link to="/app/support/nouvelle" className="ac-row mt-2" style={{ borderTop: "1px solid hsl(var(--border))" }}>
+            <span className="w-[21px] shrink-0 text-[13px] font-semibold text-muted-foreground">{initials(profile?.fullName ?? user?.name ?? "")}</span>
+            <span className="ac-txt">
+              <span className="ac-n">{t("biz.owner")}</span>
+              <span className="ac-d" style={{ whiteSpace: "normal" }}>{t("biz.ownerNone")}</span>
+            </span>
+            <ChevronRight className="ac-go" />
+          </Link>
+        )
       )}
 
       {/* Envoi */}

@@ -35,6 +35,8 @@ export interface KybRequest {
   assignedTo: string | null;
   assignedName: string | null;
   createdAt: string;
+  /** Le responsable : le compte individuel relié (profiles.business_owner_id). null = compte non relié. */
+  owner: { id: string; name: string; email: string; kyc: KybRequest["contactKyc"] } | null;
 }
 
 export async function fetchKyb(): Promise<KybRequest[]> {
@@ -45,7 +47,7 @@ export async function fetchKyb(): Promise<KybRequest[]> {
     .order("id")
     .range(a, b)).catch(() => null);
   if (!data) return [];
-  return (data as unknown as RowWithProfile[]).map((r) => ({
+  const rows: KybRequest[] = (data as unknown as RowWithProfile[]).map((r) => ({
     id: r.id,
     userId: r.user_id,
     status: r.status,
@@ -67,7 +69,28 @@ export async function fetchKyb(): Promise<KybRequest[]> {
     assignedTo: r.assigned_to,
     assignedName: r.assigned_name,
     createdAt: r.created_at,
+    owner: null,
   }));
+
+  // Le responsable de chaque compte entreprise : son compte individuel relié et son statut d'identité.
+  const ids = [...new Set(rows.map((r) => r.userId))];
+  if (ids.length) {
+    const { data: links } = await supabase.from("profiles").select("id, business_owner_id" as never).in("id", ids);
+    const ownerOf = new Map(((links as { id: string; business_owner_id: string | null }[] | null) ?? []).map((l) => [l.id, l.business_owner_id]));
+    const ownerIds = [...new Set([...ownerOf.values()].filter((v): v is string => !!v))];
+    const { data: owners } = ownerIds.length
+      ? await supabase.from("profiles").select("id, full_name, email, kyc_status").in("id", ownerIds)
+      : { data: [] };
+    const byId = new Map(((owners as { id: string; full_name: string | null; email: string | null; kyc_status: KybRequest["contactKyc"] }[] | null) ?? []).map((o) => [o.id, o]));
+    for (const r of rows) {
+      const o = byId.get(ownerOf.get(r.userId) ?? "");
+      r.owner = o ? { id: o.id, name: o.full_name?.trim() || o.email || "Client", email: o.email ?? "", kyc: o.kyc_status } : null;
+      // L'identité qui compte est celle du responsable relié ; sans responsable, rien n'est vérifié.
+      r.contactKyc = o ? o.kyc_status : "not_started";
+      if (o) r.contactName = r.owner!.name;
+    }
+  }
+  return rows;
 }
 
 /** Lien temporaire (5 min) vers un document du dossier. */

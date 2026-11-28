@@ -22,6 +22,7 @@ import ClientAccess from "./ClientAccess";
 import ClientTestAccount from "./ClientTestAccount";
 import ClientLimit from "./ClientLimit";
 import ClientWallets from "./ClientWallets";
+import ClientBusinessLink from "./ClientBusinessLink";
 import { assetSymbol } from "@/lib/assets";
 
 interface Props {
@@ -191,6 +192,11 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
             ...(profile.businessAddress ? [["Adresse", profile.businessAddress] as [string, React.ReactNode]] : []),
             ...(profile.businessPhone ? [["Téléphone", profile.businessPhone] as [string, React.ReactNode]] : []),
           ]} />
+        </Block>
+      )}
+      {profile && (
+        <Block title={profile.accountType === "business" ? "Responsable" : "Comptes entreprise"}>
+          <ClientBusinessLink userId={userId} business={profile.accountType === "business"} />
         </Block>
       )}
     </>

@@ -239,6 +239,8 @@ const Compte = () => {
     { to: "/app/limites", icon: Gauge, title: t("acct.limits"), sub: t("acct.limitsSub"), bg: "#ffffff" },
     ...(refOk ? [{ to: "/app/compte?v=parrainage", icon: Gift, title: t("acct.refTitle"), sub: t("acct.tRefSub"), bg: "#ffffff" }] : []),
     ...(bizOk ? [{ to: "/app/compte?v=entreprise", icon: Building2, title: t("acct.business"), sub: t("acct.tBizSub"), bg: "#ffffff" }] : []),
+    // Compte individuel : ses comptes entreprise (création après identité vérifiée).
+    ...(profile && !business ? [{ to: "/app/entreprises", icon: Building2, title: t("biz.tile"), sub: t("biz.tileSub"), bg: "#ffffff" }] : []),
     ...(otc ? [{ to: "/app/otc", icon: Handshake, title: t("nav.otc"), sub: t("dash.otcSub"), bg: "#ffffff" }] : []),
     ...(isStaff ? [{ to: "/admin", icon: LayoutGrid, title: t("acct.backoffice"), sub: t("acct.tStaffSub"), bg: "#ffffff" }] : []),
   ];
@@ -278,7 +280,8 @@ const Compte = () => {
             <p className="ac-meta" style={{ marginTop: 4 }}>
               {email}{" · "}{business ? t("kyb.accountBusiness") : t("acct.personal")}{verified && <> · {t("acct.verified")}</>}
             </p>
-            {idLine("/app/verification", t("acct.identity"), kyc)}
+            {/* Un compte entreprise n'a pas sa propre vérification d'identité : c'est celle de son responsable. */}
+            {!business && idLine("/app/verification", t("acct.identity"), kyc)}
             {business && bizStatus && idLine("/app/entreprise", t("acct.businessVerif"), bizStatus)}
             {showTodo && <p className="ac-help" style={{ textAlign: "left" }}>{todo.sub}</p>}
           </div>
