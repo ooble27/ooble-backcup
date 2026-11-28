@@ -152,6 +152,20 @@ export const F_CSS = `
 .of-peek .pl-mascot svg { width: 112px; height: 72px; }
 .of :is(.of-chip, .of-btn, .of-card, .of-send, .of-quick button, .of-tpl-row):focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .of-card { transition: none; } }
+/* Téléphone : plus de cadres autour de la discussion, elle prend toute la largeur pour lire et répondre à l'aise. */
+@media (max-width: 999px) {
+  .of { padding: 0; border-radius: 0; background: transparent; }
+  .of-chat { border: 0; border-radius: 20px; }
+  .of-head { padding: 12px 12px; gap: 8px; }
+  .of-head .of-btn { height: 34px; padding: 0 11px; font-size: 12.5px; }
+  .of-head .of-btn.ic { width: 34px; padding: 0; }
+  .of-msgs { padding: 14px 12px; }
+  .of-b { max-width: 88%; font-size: 15px; }
+  .of-quick { padding: 0 12px 10px; }
+  .of-comp { margin: 0 10px 10px; }
+  .of-tpl { padding: 10px 12px 6px; }
+  .of-note, .of-err { padding-left: 12px; padding-right: 12px; }
+}
 `;
 
 /* ─────────── Le poste ─────────── */
