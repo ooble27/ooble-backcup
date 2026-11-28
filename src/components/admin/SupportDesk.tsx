@@ -1,26 +1,22 @@
 /**
- * Messagerie › Réception : le poste de support, comme les grandes plateformes d'assistance.
+ * Messagerie › Réception : le poste de support, dans l'identité de l'app Ooble (variante F) :
+ * fond neutre, gros trait noir, cartes qui se soulèvent, bulles au trait, la mascotte sur la fiche client.
  *
- *  ┌ Files ───────┬ Liste ───────────┬ Conversation ─────────────────────┬ Contexte ──────┐
- *  │ À répondre   │ client, sujet,   │ messages, du plus ancien au plus  │ le client,     │
- *  │ Mes convers. │ attente, qui s'en│ récent ; en bas la réponse        │ la commande,   │
- *  │ En attente   │ occupe           │ (modèles, Ctrl/⌘ + Entrée,        │ ses autres     │
- *  │ Réglées      │                  │ Clôturer)                          │ conversations  │
- *  │ Toutes       │                  │                                    │                │
- *  │ App / Site   │                  │                                    │                │
- *  └──────────────┴──────────────────┴────────────────────────────────────┴────────────────┘
+ *  ┌ Conversations ────────┬ La discussion ───────────────────────────┬ Le client ─────────┐
+ *  │ Messagerie + mascotte │ client, sujet · Prendre · Régler          │ (mascotte)         │
+ *  │ files en pastilles    │ bulles : client au trait, équipe en noir  │ fiche client       │
+ *  │ App / Site · recherche│ réponses rapides en pastilles             │ commande (mauve)   │
+ *  │ cartes conversations  │ zone d'écriture, bouton rond noir         │ historique (noir)  │
+ *  └───────────────────────┴───────────────────────────────────────────┴────────────────────┘
  *
  * Deux sortes de conversations arrivent ici :
  *  • les discussions de l'app (Support) : la réponse s'affiche dans l'app, avec une notification et un courriel ;
- *  • les messages du site (Contact, OTC) : la réponse part par courriel.
- * La réponse s'écrit au même endroit pour les deux. Le poste est mis à jour en direct (nouveau message, collègue qui
- * prend une conversation). Raccourcis : J / K (suivante, précédente), R (répondre), E (régler).
+ *  • les messages du site (Contact, OTC) : la réponse part par courriel, signée du prénom.
+ * Mise à jour en direct. Raccourcis : J / K (suivante, précédente), R (répondre), E (régler).
  * Les membres de l'équipe sont montrés par leur prénom seulement.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft, Check, ChevronDown, ChevronUp, Hand, Inbox, Loader2, MailOpen, RotateCcw, Send, Smartphone, Globe, Trash2,
-} from "lucide-react";
+import { ArrowLeft, ArrowUp, Check, ChevronRight, Globe, Hand, Loader2, MessageSquarePlus, RotateCcw, Search, Smartphone, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { fetchCached, peek, put } from "@/lib/adminCache";
@@ -31,14 +27,12 @@ import {
   threadReplyTo, type MailMessage, type MailThread, type SupportState,
 } from "@/lib/mailThreads";
 import { REPLY_GROUPS, REPLY_TEMPLATES, fillReply, type ReplyGroup, type ReplyLang } from "@/lib/supportReplies";
-import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
+import { STATUS_META, nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
+import { fetchClientProfile, type ClientProfile } from "@/lib/adminClient";
 import { assetSymbol } from "@/lib/assets";
 import { enterView, returnTo } from "@/lib/pageMotion";
-import { C, FONT } from "./adminTheme";
-import { Button, Notice } from "./ui";
-import { Avatar, EmptyState, Pill, SearchField, useReveal } from "./layout";
-import ClientCard from "./ClientCard";
-import { OrderStatusPill } from "./orderBits";
+import { useReveal } from "./layout";
+import { PeekMascot, WholeMascot } from "@/components/launch/PlayLogin";
 import { appChatTopic, isAppChat } from "./SupportChat";
 
 /* ─────────── Petits outils ─────────── */
@@ -50,6 +44,9 @@ const first = (s?: string | null) => (s ?? "").trim().split(/\s+/)[0] ?? "";
 /** Le sujet lisible : « Une commande · OOB-… » pour l'app, l'objet sans « · formulaire de contact » pour le site. */
 export const threadTitle = (t: MailThread) => (isAppChat(t) ? appChatTopic(t) : t.subject.replace(/\s·\sformulaire de contact$/, ""));
 const sourceOf = (t: MailThread): Exclude<Source, "all"> => (isAppChat(t) ? "app" : "site");
+export function queueOf(t: MailThread): Exclude<Queue, "mine" | "all"> {
+  return t.supportState === "resolved" ? "resolved" : t.supportState === "todo" ? "todo" : "waiting";
+}
 
 /** « 3 min », « 2 h », « 3 j » depuis une date. */
 function since(iso: string | null): string {
@@ -59,10 +56,15 @@ function since(iso: string | null): string {
   const h = Math.round(m / 60);
   return h < 48 ? `${h} h` : `${Math.round(h / 24)} j`;
 }
-const waitMinutes = (iso: string | null) => (iso ? (Date.now() - new Date(iso).getTime()) / 60000 : 0);
 const dayFmt = new Intl.DateTimeFormat("fr-CA", { weekday: "long", day: "numeric", month: "long" });
 const timeFmt = new Intl.DateTimeFormat("fr-CA", { hour: "2-digit", minute: "2-digit" });
 const shortFmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short" });
+const nf0 = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 0 });
+
+/** Une couleur de l'app par client (toujours la même pour un client donné). */
+const TINTS = ["#dccaff", "#ff6a3d", "#bfe8c8", "#bfe0ff", "#ffffff"];
+const tintOf = (key: string) => TINTS[[...key].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7) % TINTS.length];
+const initials = (name: string) => name.split(/[\s@.]+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
 
 /** Le texte d'un message (le HTML d'un courriel, sans les balises). */
 function messageText(m: MailMessage): string {
@@ -72,7 +74,6 @@ function messageText(m: MailMessage): string {
   div.innerHTML = m.bodyHtml.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n\n");
   return (div.textContent ?? "").replace(/\n{3,}/g, "\n\n").trim();
 }
-
 /** Références de commande citées (OOB-XXXXXXXX). */
 function findRefs(texts: (string | null | undefined)[]): string[] {
   const out = new Set<string>();
@@ -80,26 +81,73 @@ function findRefs(texts: (string | null | undefined)[]): string[] {
   return [...out];
 }
 
-export function queueOf(t: MailThread): Exclude<Queue, "mine" | "all"> {
-  return t.supportState === "resolved" ? "resolved" : t.supportState === "todo" ? "todo" : "waiting";
-}
+/* ─────────── Le style F ─────────── */
 
-const DESK_CSS = `
-.sd { display: grid; min-height: 520px; font-family: ${FONT}; border-top: 1px solid ${C.bd}; }
-.sd > * { min-width: 0; min-height: 0; }
-.sd-col { display: flex; flex-direction: column; min-height: 0; }
-.sd-col + .sd-col { border-left: 1px solid ${C.bd}; }
-.sd-q { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; font-size: 13.5px; color: ${C.t2}; border-radius: 8px; }
-.sd-q:hover { background: ${C.hover1}; }
-.sd-q[aria-current="true"] { color: ${C.t1}; font-weight: 500; background: ${C.hover2}; }
-.sd-q .n { margin-left: auto; font-size: 12px; color: ${C.t3}; font-variant-numeric: tabular-nums; }
-.sd-q .n.hot { color: ${C.coral}; font-weight: 600; }
-.sd-k { margin: 18px 12px 6px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: ${C.t3}; }
-.sd-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: 10px; width: 100%; padding: 12px 14px; border-bottom: 1px solid ${C.bd}; }
-.sd-row:hover { background: ${C.hover1}; }
-.sd-row[aria-current="true"] { background: ${C.hover2}; box-shadow: inset 2px 0 0 ${C.t1}; }
-.sd-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
-.sd-q:focus-visible, .sd-row:focus-visible { outline: 2px solid ${C.t1}; outline-offset: -2px; }
+const F_CSS = `
+.of { --ink: #111; --paper: #fff; --ground: #f5f5f3; --mute: #5f5f5b; --lav: #dccaff; --coral: #ff6a3d; --mint: #bfe8c8; --sky: #bfe0ff;
+  font-family: 'Poppins', system-ui, sans-serif; color: var(--ink); background: var(--ground); border-radius: 28px; padding: 18px; color-scheme: light; }
+.of * { box-sizing: border-box; }
+.of-grid { display: grid; gap: 16px; height: 100%; min-height: 0; }
+.of-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
+.of-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 10px; padding: 4px 4px 10px; margin: 0 -4px; }
+.of h2 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
+.of-k { margin: 2px 2px 0; font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+.of-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.of-chip { all: unset; box-sizing: border-box; cursor: pointer; height: 32px; padding: 0 12px; border-radius: 99px; border: 2.5px solid var(--ink); background: var(--paper);
+  font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--ink); }
+.of-chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.of-chip b { font-size: 11px; line-height: 17px; min-width: 17px; text-align: center; border-radius: 99px; padding: 0 5px; background: var(--ground); color: var(--ink); font-weight: 600; }
+.of-chip b.hot { background: var(--coral); color: var(--ink); }
+.of-chip[aria-pressed="true"] b:not(.hot) { background: #333; color: #fff; }
+.of-search { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border: 2.5px solid var(--ink); border-radius: 99px; background: var(--paper); }
+.of-search input { flex: 1; min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13.5px; color: var(--ink); }
+.of-search input::placeholder { color: #8a8a86; }
+.of-btn { all: unset; box-sizing: border-box; cursor: pointer; height: 38px; padding: 0 14px; border-radius: 99px; border: 2.5px solid var(--ink); background: var(--paper);
+  font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; color: var(--ink); }
+.of-btn.dk { background: var(--ink); color: #fff; }
+.of-btn.ic { width: 38px; padding: 0; }
+.of-btn:disabled { opacity: .4; cursor: not-allowed; }
+.of-btn:active:not(:disabled) { transform: translateY(1px); }
+.of-card { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 13px; background: var(--paper);
+  border: 3px solid var(--ink); border-radius: 22px; transition: transform .15s, box-shadow .15s; }
+.of-card:hover { transform: translateY(-1px); }
+.of-card[aria-current="true"] { transform: translateY(-2px); box-shadow: 0 5px 0 var(--ink); }
+.of-card.done { opacity: .55; border-color: #8a8a86; }
+.of-av { flex: none; border-radius: 99px; border: 2.5px solid var(--ink); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; color: var(--ink); }
+.of-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.of-sub { font-size: 12px; color: var(--mute); display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.of-wait { font-size: 12px; font-weight: 600; color: #d4502a; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.of-chat { background: var(--paper); border: 3px solid var(--ink); border-radius: 30px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.of-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 2.5px solid var(--ink); flex-wrap: wrap; }
+.of-msgs { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; }
+.of-day { align-self: center; font-size: 11.5px; font-weight: 600; color: var(--mute); margin: 6px 0 2px; text-transform: capitalize; }
+.of-who { font-size: 11.5px; font-weight: 600; color: var(--mute); margin: 4px 4px -4px; }
+.of-b { max-width: 74%; padding: 11px 15px; border-radius: 20px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; border: 2.5px solid var(--ink); background: var(--paper); border-bottom-left-radius: 6px; }
+.of-b.me { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-left-radius: 20px; border-bottom-right-radius: 6px; }
+.of-quick { display: flex; gap: 6px; padding: 0 16px 10px; flex-wrap: wrap; }
+.of-quick button { all: unset; cursor: pointer; height: 30px; padding: 0 12px; border-radius: 99px; border: 2px solid var(--ink); background: var(--paper); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.of-quick button.more { border-style: dashed; }
+.of-comp { margin: 0 14px 14px; border: 2.5px solid var(--ink); border-radius: 24px; padding: 8px 8px 8px 16px; display: flex; align-items: flex-end; gap: 8px; background: var(--paper); }
+.of-comp textarea { flex: 1; min-width: 0; border: 0; outline: 0; resize: none; background: transparent; font: inherit; font-size: 14px; line-height: 1.5; color: var(--ink); padding: 8px 0; min-height: 40px; max-height: 200px; }
+.of-send { all: unset; box-sizing: border-box; cursor: pointer; width: 44px; height: 44px; flex: none; border-radius: 99px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; }
+.of-send:disabled { opacity: .3; cursor: not-allowed; }
+.of-box { background: var(--paper); border: 3px solid var(--ink); border-radius: 26px; padding: 16px; position: relative; }
+.of-box h4 { margin: 0 0 8px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+.of-kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 4px 0; color: var(--mute); }
+.of-kv b { color: var(--ink); font-weight: 600; text-align: right; }
+.of-tag { display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border-radius: 99px; border: 2px solid var(--ink); font-size: 11.5px; font-weight: 600; }
+.of-tpl { border-top: 2.5px solid var(--ink); padding: 10px 16px 6px; }
+.of-tpl-row { all: unset; box-sizing: border-box; cursor: pointer; display: block; width: 100%; padding: 8px 10px; border-radius: 14px; }
+.of-tpl-row:hover { background: var(--ground); }
+.of-note { font-size: 12px; color: var(--mute); padding: 0 18px 8px; }
+.of-err { margin: 0 18px 8px; font-size: 12.5px; font-weight: 500; }
+.of-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; height: 100%; padding: 30px; color: var(--mute); font-size: 13.5px; }
+.of-empty b { color: var(--ink); font-size: 17px; font-weight: 600; }
+.of-peek { position: absolute; right: 20px; top: -62px; width: 112px; height: 72px; pointer-events: none; }
+.of-peek .pl-mascot { margin: 0; width: 112px; height: 72px; animation: none; }
+.of-peek .pl-mascot svg { width: 112px; height: 72px; }
+.of :is(.of-chip, .of-btn, .of-card, .of-send, .of-quick button, .of-tpl-row):focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .of-card { transition: none; } }
 `;
 
 /* ─────────── Le poste ─────────── */
@@ -126,22 +174,21 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
   const [err, setErr] = useState<string | null>(null);
   const [wide, setWide] = useState(() => typeof window === "undefined" || window.innerWidth >= 1000);
   const [height, setHeight] = useState<number | null>(null);
-  // Largeur réelle du poste (la page du back-office est limitée en largeur) : elle décide des colonnes affichées.
   const [deskW, setDeskW] = useState(1200);
   const rootRef = useRef<HTMLDivElement>(null);
   const replyFocus = useRef<() => void>(() => {});
-
-  useEffect(() => { if (startQueue) setQueue(startQueue); }, [startQueue]);
   const opened = useRef<string | null>(null);
 
-  // Le poste occupe la hauteur de l'écran sous les onglets : la liste et la conversation défilent chacune à l'intérieur.
+  useEffect(() => { if (startQueue) setQueue(startQueue); }, [startQueue]);
+
+  // Le poste occupe la hauteur de l'écran sous les onglets : la liste et la discussion défilent chacune à l'intérieur.
   useEffect(() => {
     const fit = () => {
       setWide(window.innerWidth >= 1000);
       const el = rootRef.current;
       if (el) setDeskW(el.clientWidth);
       if (!el || window.innerWidth < 1000) { setHeight(null); return; }
-      setHeight(Math.max(520, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 24)));
+      setHeight(Math.max(560, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 24)));
     };
     fit();
     const raf = requestAnimationFrame(fit);
@@ -170,7 +217,6 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
 
   const selected = threads.find((t) => t.id === selectedId) ?? null;
 
-  // Compteurs des files (selon la source choisie).
   const bySource = threads.filter((t) => source === "all" || sourceOf(t) === source);
   const counts: Record<Queue, number> = {
     todo: bySource.filter((t) => queueOf(t) === "todo").length,
@@ -178,11 +224,6 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
     waiting: bySource.filter((t) => queueOf(t) === "waiting").length,
     resolved: bySource.filter((t) => queueOf(t) === "resolved").length,
     all: bySource.length,
-  };
-  const srcCounts = {
-    all: threads.filter((t) => queueOf(t) === "todo").length,
-    app: threads.filter((t) => sourceOf(t) === "app" && queueOf(t) === "todo").length,
-    site: threads.filter((t) => sourceOf(t) === "site" && queueOf(t) === "todo").length,
   };
 
   const needle = q.trim().toLowerCase();
@@ -217,7 +258,6 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
   const refreshMessages = useCallback(async () => {
     if (selectedId) setMessages(await fetchMessages(selectedId));
   }, [selectedId]);
-  // Nouveau message dans la conversation ouverte (client, ou collègue) : on la relit.
   const selectedLast = selected?.lastMessageAt;
   const seenLast = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -267,238 +307,201 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  // Colonnes : files à gauche dès 1 000 px de poste, contexte à droite dès 1 380 px.
-  const showRail = deskW >= 1000, showCtx = deskW >= 1380;
-  const columns = [showRail ? "190px" : null, showRail ? "320px" : "300px", "minmax(0, 1fr)", showCtx ? "300px" : null].filter(Boolean).join(" ");
+  // Colonnes : la fiche client à droite dès 1 180 px de poste.
+  const showCtx = deskW >= 1180;
+  const columns = showCtx ? "300px minmax(0, 1fr) 270px" : "290px minmax(0, 1fr)";
 
   const queues: { id: Queue; label: string; hot?: boolean }[] = [
     { id: "todo", label: "À répondre", hot: true },
-    { id: "mine", label: "Mes conversations" },
-    { id: "waiting", label: "En attente du client" },
+    { id: "mine", label: "Les miennes" },
+    { id: "waiting", label: "En attente" },
     { id: "resolved", label: "Réglées" },
     { id: "all", label: "Toutes" },
   ];
 
-  const rail = (
-    <div className="sd-col sd-rail" style={{ padding: "12px 10px" }}>
-      <Button variant="primary" size="sm" onClick={onCompose} icon={<Send style={{ width: 14, height: 14 }} />}>Nouveau message</Button>
-      <p className="sd-k">Files</p>
-      {queues.map((x) => (
-        <button key={x.id} type="button" className="sd-q" aria-current={queue === x.id ? "true" : undefined} onClick={() => setQueue(x.id)}>
-          {x.label}<span className={`n${x.hot && counts[x.id] ? " hot" : ""}`}>{counts[x.id] || ""}</span>
-        </button>
-      ))}
-      <p className="sd-k">Provenance</p>
-      {([["all", "Tout", Inbox], ["app", "App (Support)", Smartphone], ["site", "Site (Contact, OTC)", Globe]] as [Source, string, React.ElementType][]).map(([id, label, Icon]) => (
-        <button key={id} type="button" className="sd-q" aria-current={source === id ? "true" : undefined} onClick={() => setSource(id)}>
-          <Icon style={{ width: 15, height: 15, flexShrink: 0 }} />{label}<span className={`n${srcCounts[id] ? " hot" : ""}`}>{srcCounts[id] || ""}</span>
-        </button>
-      ))}
-      <p style={{ margin: "auto 12px 0", fontSize: 11.5, lineHeight: 1.6, color: C.t3 }}>
-        Raccourcis : <b style={{ color: C.t2 }}>J</b> / <b style={{ color: C.t2 }}>K</b> suivante, précédente · <b style={{ color: C.t2 }}>R</b> répondre · <b style={{ color: C.t2 }}>E</b> régler
-      </p>
-    </div>
-  );
-
   const listCol = (
-    <div className="sd-col">
-      <div style={{ padding: "12px 14px", display: "grid", gap: 10, borderBottom: `1px solid ${C.bd}` }}>
-        <SearchField value={q} onChange={setQ} placeholder="Client, courriel, sujet" width={600} />
-        {/* Files en ligne quand la colonne de gauche est masquée (écrans moyens). */}
-        <div style={{ display: wide && showRail ? "none" : "flex", gap: 6, flexWrap: "wrap" }}>
-          {queues.map((x) => (
-            <button key={x.id} type="button" onClick={() => setQueue(x.id)}
-              style={{ all: "unset", cursor: "pointer", fontSize: 12.5, padding: "3px 8px", color: queue === x.id ? C.t1 : C.t3, fontWeight: queue === x.id ? 500 : 400, borderBottom: `1.5px solid ${queue === x.id ? C.t1 : "transparent"}` }}>
-              {x.label}{counts[x.id] ? ` ${counts[x.id]}` : ""}
-            </button>
-          ))}
-        </div>
+    <div className="of-col">
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
+        <h2>{counts.todo ? <>{counts.todo} <span style={{ color: "#8a8a86" }}>à répondre</span></> : <>Tout est <span style={{ color: "#8a8a86" }}>répondu</span></>}</h2>
+        <WholeMascot size={52} />
       </div>
-      {err && <div style={{ padding: "10px 14px 0" }}><Notice tone="err">{err}</Notice></div>}
-      <div className="sd-scroll">
+      <div className="of-chips" role="group" aria-label="Files">
+        {queues.map((x) => (
+          <button key={x.id} type="button" className="of-chip" aria-pressed={queue === x.id} onClick={() => setQueue(x.id)}>
+            {x.label}{counts[x.id] > 0 && <b className={x.hot ? "hot" : undefined}>{counts[x.id]}</b>}
+          </button>
+        ))}
+      </div>
+      <div className="of-chips" role="group" aria-label="Provenance">
+        {([["all", "App et site", null], ["app", "App", Smartphone], ["site", "Site", Globe]] as [Source, string, React.ElementType | null][]).map(([id, label, Icon]) => (
+          <button key={id} type="button" className="of-chip" aria-pressed={source === id} onClick={() => setSource(id)} style={{ height: 28, fontSize: 12 }}>
+            {Icon && <Icon style={{ width: 13, height: 13 }} />}{label}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, minWidth: 0 }}>
+        <label className="of-search" style={{ flex: 1, minWidth: 0 }}>
+          <Search style={{ width: 15, height: 15, flexShrink: 0 }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Client, courriel, sujet" aria-label="Chercher une conversation" />
+          {q && <button type="button" onClick={() => setQ("")} aria-label="Effacer" style={{ all: "unset", cursor: "pointer", display: "flex" }}><X style={{ width: 15, height: 15 }} /></button>}
+        </label>
+        <button type="button" className="of-btn dk ic" onClick={onCompose} aria-label="Nouveau message" title="Nouveau message" style={{ width: 42, height: 42 }}>
+          <MessageSquarePlus style={{ width: 18, height: 18 }} />
+        </button>
+      </div>
+      {err && <p className="of-err" style={{ margin: 0 }} role="alert">{err}</p>}
+      <div className="of-scroll">
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
+          <div className="of-empty"><Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} /></div>
         ) : list.length === 0 ? (
-          <EmptyState icon={Inbox}
-            title={queue === "todo" ? "Tout est répondu" : "Rien ici"}
-            text={queue === "todo" ? "Aucun client n'attend de réponse." : needle ? "Aucune conversation ne correspond à la recherche." : "Aucune conversation dans cette file."} />
+          <div className="of-empty" style={{ height: "auto", paddingTop: 40 }}>
+            <WholeMascot size={70} />
+            <b>{queue === "todo" ? "Tout est répondu" : "Rien ici"}</b>
+            <span>{queue === "todo" ? "Aucun client n'attend de réponse." : needle ? "Aucune conversation ne correspond à la recherche." : "Aucune conversation dans cette file."}</span>
+          </div>
         ) : <>{shown.map((t) => {
           const todo = queueOf(t) === "todo";
-          const late = todo && waitMinutes(t.lastInboundAt) > 240;
+          const name = t.clientName || t.clientEmail;
           return (
-            <button key={t.id} type="button" className="sd-row" onClick={() => void openThread(t)} aria-current={selectedId === t.id ? "true" : undefined}>
-              <Avatar name={t.clientName || t.clientEmail} size={32} />
+            <button key={t.id} type="button" className={`of-card${queueOf(t) === "resolved" ? " done" : ""}`} onClick={() => void openThread(t)} aria-current={selectedId === t.id ? "true" : undefined}>
+              <span className="of-av" style={{ width: 40, height: 40, fontSize: 12.5, background: tintOf(t.clientEmail) }}>{initials(name)}</span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.t1, fontWeight: t.hasUnread ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.clientName || t.clientEmail}
-                  </span>
-                  <span style={{ fontSize: 11.5, flexShrink: 0, fontVariantNumeric: "tabular-nums", color: late ? C.coral : C.t3 }}>
-                    {todo && t.lastInboundAt ? since(t.lastInboundAt) : shortFmt.format(new Date(t.lastMessageAt))}
-                  </span>
-                </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                  {sourceOf(t) === "app" ? <Smartphone style={{ width: 12, height: 12, color: C.t3, flexShrink: 0 }} aria-label="App" /> : <Globe style={{ width: 12, height: 12, color: C.t3, flexShrink: 0 }} aria-label="Site" />}
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: t.hasUnread ? C.t2 : C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{threadTitle(t)}</span>
-                  {t.assignedName && <span title={`Prise par ${first(t.assignedName)}`} style={{ fontSize: 11.5, color: C.t3, whiteSpace: "nowrap" }}>{me && t.assignedTo === me.id ? "Vous" : first(t.assignedName)}</span>}
-                  {t.mailbox === "otc" && <Pill>OTC</Pill>}
+                <span className="of-name" style={{ display: "block", fontWeight: t.hasUnread ? 600 : 500 }}>{name}</span>
+                <span className="of-sub">
+                  {sourceOf(t) === "app" ? <Smartphone style={{ width: 12, height: 12, flexShrink: 0 }} aria-label="App" /> : <Globe style={{ width: 12, height: 12, flexShrink: 0 }} aria-label="Site" />}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{threadTitle(t)}{t.assignedName ? ` · ${me && t.assignedTo === me.id ? "vous" : first(t.assignedName)}` : ""}</span>
                 </span>
               </span>
+              {todo && t.lastInboundAt
+                ? <span className="of-wait">{since(t.lastInboundAt)}</span>
+                : <span style={{ fontSize: 12, color: "#77776f", whiteSpace: "nowrap" }}>{shortFmt.format(new Date(t.lastMessageAt))}</span>}
             </button>
           );
         })}{more}</>}
       </div>
+      <p style={{ margin: 0, fontSize: 11, color: "#77776f" }}>Raccourcis : J / K suivante, précédente · R répondre · E régler</p>
     </div>
   );
 
-  const conversation = selected ? (
+  const chat = selected ? (
     <ThreadView key={selected.id} thread={selected} messages={messages} loading={msgsLoading} me={me}
       onBack={wide ? undefined : () => { setSelectedId(null); returnTo("mail"); }}
       onAssign={changeAssign} onState={changeState} onRemove={remove}
       onSent={(state) => { if (state) void changeState(state); void refreshMessages(); }}
-      registerFocus={(f) => { replyFocus.current = f; }}
-      inlineCtx={!wide || !showCtx}
-      onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
+      registerFocus={(f) => { replyFocus.current = f; }} />
   ) : (
-    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <EmptyState icon={MailOpen} title="Choisissez une conversation" text="Le client, la commande dont il parle et tout l'historique s'affichent ici." />
-    </div>
+    <div className="of-chat"><div className="of-empty"><WholeMascot size={90} /><b>Choisissez une conversation</b><span>La discussion, le client et sa commande s'affichent ici.</span></div></div>
   );
 
   return (
-    <div ref={rootRef} style={{ marginTop: 8 }}>
-      <style>{DESK_CSS}</style>
-      {!wide ? (
-        <div style={{ fontFamily: FONT }}>
-          {selected ? conversation : (
-            <>
-              <div style={{ marginBottom: 8 }}><Button variant="primary" size="sm" onClick={onCompose} icon={<Send style={{ width: 14, height: 14 }} />}>Nouveau message</Button></div>
-              {listCol}
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="sd" style={{ height: height ?? undefined, gridTemplateColumns: columns }}>
-          {showRail && rail}
-          {listCol}
-          <div className="sd-col">{conversation}</div>
-          {showCtx && <div className="sd-col sd-ctx">
-            {selected ? <ContextPane thread={selected} messages={messages} threads={threads} onOpen={(t) => void openThread(t)} onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
-              : <p style={{ margin: 18, fontSize: 13, color: C.t3 }}>Le client et sa commande s'affichent ici.</p>}
-          </div>}
-        </div>
-      )}
+    <div ref={rootRef} style={{ marginTop: 10 }}>
+      <style>{F_CSS}</style>
+      <div className="of" style={{ height: height ?? undefined }}>
+        {!wide ? (
+          selected ? <div style={{ display: "grid", gap: 16 }}>{chat}<div style={{ display: "grid", gap: 16, paddingTop: 58 }}><ContextPane thread={selected} messages={messages} threads={threads} onOpen={(t) => void openThread(t)} onShowClient={onShowClient} onOpenOrder={onOpenOrder} /></div></div> : listCol
+        ) : (
+          <div className="of-grid" style={{ gridTemplateColumns: columns }}>
+            {listCol}
+            <div className="of-col">{chat}</div>
+            {showCtx && (
+              <div className="of-col" style={{ overflowY: "auto", paddingTop: 66 }}>
+                {selected
+                  ? <ContextPane thread={selected} messages={messages} threads={threads} onOpen={(t) => void openThread(t)} onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
+                  : <div className="of-box"><div className="of-peek"><PeekMascot look={0} typing={false} hide={false} peek={false} /></div><h4>Client</h4><p style={{ margin: 0, fontSize: 13, color: "#5f5f5b" }}>Sa fiche et sa commande s'affichent ici.</p></div>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-/* ─────────── La conversation ─────────── */
+/* ─────────── La discussion ─────────── */
 
-function ThreadView({ thread, messages, loading, me, onBack, onAssign, onState, onRemove, onSent, registerFocus, onShowClient, onOpenOrder, inlineCtx = true }: {
+function ThreadView({ thread, messages, loading, me, onBack, onAssign, onState, onRemove, onSent, registerFocus }: {
   thread: MailThread; messages: MailMessage[]; loading: boolean; me: { id: string; name: string } | null;
   onBack?: () => void; onAssign: (who: { id: string; name: string } | null) => void; onState: (s: SupportState) => void;
   onRemove: () => void; onSent: (state?: SupportState) => void; registerFocus: (f: () => void) => void;
-  onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
-  /** Sans colonne de droite : le client et la commande, repliables, sous la conversation. */
-  inlineCtx?: boolean;
 }) {
-  const app = isAppChat(thread);
   const mine = !!me && thread.assignedTo === me.id;
   const refs = findRefs([thread.subject, ...messages.map(messageText)]);
-  const orders = peek<AdminOrder[]>("orders")?.value ?? [];
-  const order = refs.map((r) => orders.find((o) => o.ref === r)).find(Boolean) ?? null;
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!loading && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [loading, messages.length]);
-
   const state = thread.supportState;
-  const stateLabel = state === "resolved" ? "Réglée" : state === "todo"
-    ? (thread.lastInboundAt ? `Attend une réponse depuis ${since(thread.lastInboundAt)}` : "À répondre")
-    : "En attente du client";
+  const stateLabel = state === "resolved" ? "réglée" : state === "todo"
+    ? (thread.lastInboundAt ? `attend depuis ${since(thread.lastInboundAt)}` : "à répondre")
+    : "en attente du client";
+  const name = thread.clientName || thread.clientEmail;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, fontFamily: FONT }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderBottom: `1px solid ${C.bd}`, flexWrap: "wrap" }}>
-        {onBack && <Button variant="ghost" size="sm" aria-label="Retour" onClick={onBack} icon={<ArrowLeft style={{ width: 16, height: 16 }} />} />}
-        <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-          <p style={{ margin: 0, fontSize: 15, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {thread.clientName || thread.clientEmail} <span style={{ color: C.t3 }}>· {threadTitle(thread)}</span>
-          </p>
-          <p style={{ margin: "2px 0 0", fontSize: 12.5, color: state === "todo" ? C.t1 : C.t3, display: "flex", alignItems: "center", gap: 6 }}>
-            {app ? <Smartphone style={{ width: 12, height: 12 }} /> : <Globe style={{ width: 12, height: 12 }} />}
-            {app ? "App" : thread.mailbox === "otc" ? "Site · OTC" : "Site"} · {stateLabel}
-          </p>
+    <div className="of-chat" style={{ flex: 1 }}>
+      <div className="of-head">
+        {onBack && <button type="button" className="of-btn ic" onClick={onBack} aria-label="Retour"><ArrowLeft style={{ width: 17, height: 17 }} /></button>}
+        <span className="of-av" style={{ width: 46, height: 46, fontSize: 14, background: tintOf(thread.clientEmail) }}>{initials(name)}</span>
+        <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+          <div className="of-name" style={{ fontSize: 18, fontWeight: 600 }}>{name}</div>
+          <div className="of-sub" style={{ fontSize: 12.5 }}>
+            {isAppChat(thread) ? <Smartphone style={{ width: 13, height: 13 }} /> : <Globe style={{ width: 13, height: 13 }} />}
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{threadTitle(thread)} · {stateLabel}</span>
+          </div>
         </div>
-        {/* Qui s'en occupe : toute l'équipe le voit. */}
-        {thread.assignedTo ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.t2 }}>
-            {mine ? "Vous vous en occupez" : `Prise par ${first(thread.assignedName) || "un membre"}`}
-            {me && <Button size="sm" variant="ghost" onClick={() => onAssign(mine ? null : me)}>{mine ? "Libérer" : "Reprendre"}</Button>}
-          </span>
-        ) : me && (
-          <Button size="sm" variant="ghost" onClick={() => onAssign(me)} icon={<Hand style={{ width: 14, height: 14 }} />}>Prendre</Button>
-        )}
+        {thread.assignedTo && !mine
+          ? <button type="button" className="of-btn" onClick={() => me && onAssign(me)} title={`Prise par ${first(thread.assignedName)}`}><Hand style={{ width: 15, height: 15 }} />{first(thread.assignedName)} · reprendre</button>
+          : <button type="button" className="of-btn" onClick={() => onAssign(mine ? null : me)} disabled={!me}><Hand style={{ width: 15, height: 15 }} />{mine ? "Libérer" : "Prendre"}</button>}
         {state === "resolved"
-          ? <Button size="sm" variant="ghost" onClick={() => onState("waiting")} icon={<RotateCcw style={{ width: 14, height: 14 }} />}>Rouvrir</Button>
-          : <Button size="sm" variant="ghost" onClick={() => onState("resolved")} title="Régler sans message (E)" icon={<Check style={{ width: 14, height: 14 }} />}>Réglée</Button>}
-        <Button size="sm" variant="ghost" aria-label="Supprimer la conversation" title="Supprimer la conversation" onClick={onRemove} icon={<Trash2 style={{ width: 15, height: 15 }} />} />
+          ? <button type="button" className="of-btn" onClick={() => onState("waiting")}><RotateCcw style={{ width: 15, height: 15 }} />Rouvrir</button>
+          : <button type="button" className="of-btn dk" onClick={() => onState("resolved")} title="Régler sans message (E)"><Check style={{ width: 15, height: 15 }} />Régler</button>}
+        <button type="button" className="of-btn ic" onClick={onRemove} aria-label="Supprimer la conversation" title="Supprimer la conversation"><Trash2 style={{ width: 15, height: 15 }} /></button>
       </div>
 
-      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "6px 18px 18px" }}>
-        {loading ? (
-          <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
-        ) : (
-          <MessageList messages={messages} thread={thread} />
-        )}
+      <div ref={bodyRef} className="of-msgs">
+        {loading ? <div className="of-empty"><Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} /></div> : <Bubbles messages={messages} thread={thread} />}
       </div>
 
-      {!loading && (
-        <ReplyBox thread={thread} me={me} orderRef={order?.ref ?? refs[0] ?? null} onSent={onSent} registerFocus={registerFocus} />
-      )}
-      {/* Le contexte sous la conversation quand la colonne de droite n'a pas la place. */}
-      {inlineCtx && <InlineContext thread={thread} order={order} refs={refs} onShowClient={onShowClient} onOpenOrder={onOpenOrder} />}
+      {!loading && <ReplyBox thread={thread} me={me} orderRef={refs[0] ?? null} onSent={onSent} registerFocus={registerFocus} />}
     </div>
   );
 }
 
-/** Les messages, à plat : le client à gauche (filet noir), l'équipe à droite avec son prénom. */
-function MessageList({ messages, thread }: { messages: MailMessage[]; thread: MailThread }) {
+/** Les bulles : le client au trait (à gauche), l'équipe en noir (à droite) avec son prénom. */
+function Bubbles({ messages, thread }: { messages: MailMessage[]; thread: MailThread }) {
   let day = "";
+  let prevWho = "";
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2, maxWidth: 820, margin: "0 auto" }}>
+    <>
       {messages.map((m) => {
         const d = new Date(m.createdAt).toDateString();
         const showDay = d !== day; day = d;
         const team = m.direction === "outbound";
         const who = team ? (first(m.fromName) && first(m.fromName) !== "Ooble" ? first(m.fromName) : "Équipe") : (first(thread.clientName) || m.fromEmail);
+        const label = `${who} · ${timeFmt.format(new Date(m.createdAt))}`;
+        const showWho = showDay || who !== prevWho; prevWho = who;
         return (
           <div key={m.id} style={{ display: "contents" }}>
-            {showDay && (
-              <p style={{ margin: "16px 0 6px", textAlign: "center", fontSize: 11.5, color: C.t3, textTransform: "capitalize" }}>
-                {d === new Date().toDateString() ? "Aujourd'hui" : dayFmt.format(new Date(m.createdAt))}
-              </p>
-            )}
-            <div style={{
-              alignSelf: team ? "flex-end" : "flex-start", maxWidth: "80%", padding: "8px 0",
-              borderLeft: team ? "none" : `2px solid ${C.t1}`, borderRight: team ? `2px solid ${C.t3}` : "none",
-              paddingLeft: team ? 0 : 12, paddingRight: team ? 12 : 0,
-            }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.t3, textAlign: team ? "right" : "left" }}>
-                <span style={{ color: C.t1, fontWeight: 500 }}>{who}</span> · {timeFmt.format(new Date(m.createdAt))}
-              </p>
-              <p style={{ margin: "3px 0 0", fontSize: 14, lineHeight: 1.6, color: team ? C.t2 : C.t1, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                {messageText(m) || "(vide)"}
-              </p>
-            </div>
+            {showDay && <span className="of-day">{d === new Date().toDateString() ? "Aujourd'hui" : dayFmt.format(new Date(m.createdAt))}</span>}
+            {showWho && <span className="of-who" style={{ alignSelf: team ? "flex-end" : "flex-start" }}>{label}</span>}
+            <div className={team ? "of-b me" : "of-b"} title={label}>{messageText(m) || "(vide)"}</div>
           </div>
         );
       })}
-    </div>
+    </>
   );
 }
 
 /* ─────────── La réponse ─────────── */
+
+/** Les réponses rapides proposées selon le sujet de la conversation. */
+function quickIds(thread: MailThread): string[] {
+  const t = thread.subject.toLowerCase();
+  if (t.includes("interac")) return ["interac-received", "interac-missing", "close-check"];
+  if (t.includes("identit")) return ["id-review", "id-redo", "close-check"];
+  if (t.includes("commande") || /oob-/.test(t)) return ["order-check", "interac-received", "order-sent", "close-check"];
+  if (t.includes("compte")) return ["account-limits", "account-password", "close-check"];
+  return ["hello", "more-info", "close-check"];
+}
 
 function ReplyBox({ thread, me, orderRef, onSent, registerFocus }: {
   thread: MailThread; me: { id: string; name: string } | null; orderRef: string | null;
@@ -518,6 +521,15 @@ function ReplyBox({ thread, me, orderRef, onSent, registerFocus }: {
   const closed = thread.supportState === "resolved";
 
   useEffect(() => { registerFocus(() => area.current?.focus()); }, [registerFocus]);
+  // Les modèles dans la langue du client quand elle est connue.
+  useEffect(() => {
+    if (!thread.clientId) return;
+    let on = true;
+    fetchClientProfile(thread.clientId).then((p) => { if (on && p?.preferredLang) setLang(p.preferredLang); });
+    return () => { on = false; };
+  }, [thread.clientId]);
+  const grow = () => { const a = area.current; if (a) { a.style.height = "auto"; a.style.height = Math.min(200, a.scrollHeight) + "px"; } };
+  useEffect(grow, [text]);
 
   const send = async (close = false) => {
     const v = text.trim();
@@ -549,7 +561,7 @@ function ReplyBox({ thread, me, orderRef, onSent, registerFocus }: {
     onSent(close ? "resolved" : undefined);
   };
 
-  const pick = (tplText: string) => {
+  const insert = (tplText: string) => {
     setText((cur) => (cur.trim() ? `${cur.trimEnd()}\n\n` : "") + fillReply(tplText, vars, lang));
     setShowTpl(false);
     requestAnimationFrame(() => { const a = area.current; if (a) { a.focus(); a.setSelectionRange(a.value.length, a.value.length); } });
@@ -562,149 +574,150 @@ function ReplyBox({ thread, me, orderRef, onSent, registerFocus }: {
 
   if (closed) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", borderTop: `1px solid ${C.bd}`, flexWrap: "wrap" }}>
-        <span style={{ flex: 1, fontSize: 13, color: C.t2 }}>
-          {app ? "Discussion réglée : elle est fermée dans l'app, le client peut en ouvrir une nouvelle." : "Conversation réglée."}
-        </span>
+      <div className="of-note" style={{ padding: "12px 18px", borderTop: "2.5px solid #111" }}>
+        {app ? "Discussion réglée : elle est fermée dans l'app, le client peut en ouvrir une nouvelle." : "Conversation réglée."} Rouvrez-la pour répondre.
       </div>
     );
   }
 
-  const list = REPLY_TEMPLATES.filter((x) => x.group === group);
+  const quick = quickIds(thread).map((id) => REPLY_TEMPLATES.find((x) => x.id === id)!).filter(Boolean);
   return (
-    <div style={{ borderTop: `1px solid ${C.bd}`, padding: "10px 18px 14px" }}>
+    <>
       {showTpl && (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", marginBottom: 4 }}>
+        <div className="of-tpl">
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
             {REPLY_GROUPS.map((g) => (
-              <button key={g.id} type="button" onClick={() => setGroup(g.id)}
-                style={{ all: "unset", cursor: "pointer", padding: "4px 9px", fontSize: 12.5, color: group === g.id ? C.t1 : C.t3, fontWeight: group === g.id ? 500 : 400, borderBottom: `1.5px solid ${group === g.id ? C.t1 : "transparent"}` }}>
-                {g.label}
-              </button>
+              <button key={g.id} type="button" className="of-chip" aria-pressed={group === g.id} onClick={() => setGroup(g.id)} style={{ height: 28, fontSize: 12 }}>{g.label}</button>
             ))}
-            <span style={{ marginLeft: "auto", display: "inline-flex" }}>
+            <span style={{ marginLeft: "auto", display: "inline-flex", gap: 4 }}>
               {(["fr", "en"] as ReplyLang[]).map((l) => (
-                <button key={l} type="button" onClick={() => setLang(l)} aria-pressed={lang === l}
-                  style={{ all: "unset", cursor: "pointer", padding: "4px 8px", fontSize: 12, textTransform: "uppercase", color: lang === l ? C.t1 : C.t3, fontWeight: lang === l ? 600 : 400 }}>{l}</button>
+                <button key={l} type="button" className="of-chip" aria-pressed={lang === l} onClick={() => setLang(l)} style={{ height: 28, fontSize: 11.5, textTransform: "uppercase" }}>{l}</button>
               ))}
             </span>
           </div>
-          <div style={{ maxHeight: 190, overflowY: "auto" }}>
-            {list.map((x) => (
-              <button key={x.id} type="button" onClick={() => pick(x.text[lang])} className="sd-row" style={{ padding: "8px 4px", display: "block" }}>
-                <span style={{ display: "block", fontSize: 13.5, color: C.t1 }}>{x.title[lang]}</span>
-                <span style={{ display: "block", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fillReply(x.text[lang], vars, lang)}</span>
+          <div style={{ maxHeight: 180, overflowY: "auto" }}>
+            {REPLY_TEMPLATES.filter((x) => x.group === group).map((x) => (
+              <button key={x.id} type="button" className="of-tpl-row" onClick={() => insert(x.text[lang])}>
+                <span style={{ display: "block", fontSize: 13.5, fontWeight: 500 }}>{x.title[lang]}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: "#5f5f5b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fillReply(x.text[lang], vars, lang)}</span>
               </button>
             ))}
           </div>
         </div>
       )}
-      {closing && (
-        <p style={{ margin: "0 0 8px", fontSize: 12.5, color: C.t2 }}>
-          Dernier message avant de clôturer : {app ? "le client le reçoit, puis la discussion se ferme dans l'app." : "il part par courriel, puis la conversation passe dans Réglées."}
-        </p>
+      {!showTpl && (
+        <div className="of-quick">
+          {quick.map((x) => <button key={x.id} type="button" onClick={() => (x.group === "close" ? startClose() : insert(x.text[lang]))}>{x.title[lang]}</button>)}
+          <button type="button" className="more" onClick={() => setShowTpl(true)}>Tous les modèles</button>
+        </div>
       )}
-      <textarea
-        ref={area}
-        value={text}
-        rows={3}
-        maxLength={5000}
-        placeholder={app
-          ? `Répondre à ${first(thread.clientName) || "ce client"} : la réponse s'affiche dans l'app, avec une notification et un courriel.`
-          : `Répondre à ${first(thread.clientName) || "ce client"} par courriel, signé « ${agent || "L'équipe"} ».`}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(closing); } }}
-        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: 76, maxHeight: 280, padding: "10px 12px", border: `1px solid ${C.bd}`, borderRadius: 10, background: C.l1, color: C.t1, fontFamily: FONT, fontSize: 14, lineHeight: 1.5, outline: "none" }}
-      />
-      {err && <p role="alert" style={{ margin: "6px 0 0", fontSize: 12.5, color: C.t1 }}>{err}</p>}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-        <Button size="sm" variant="ghost" onClick={() => setShowTpl((v) => !v)}
-          icon={showTpl ? <ChevronDown style={{ width: 14, height: 14 }} /> : <ChevronUp style={{ width: 14, height: 14 }} />}>Modèles</Button>
-        <span style={{ fontSize: 11.5, color: C.t3 }}>Ctrl/⌘ + Entrée</span>
-        <span style={{ flex: 1 }} />
+      {closing && <p className="of-note">Dernier message avant de clôturer : {app ? "le client le reçoit, puis la discussion se ferme dans l'app." : "il part par courriel, puis la conversation passe dans Réglées."}</p>}
+      {err && <p className="of-err" role="alert">{err}</p>}
+      <div className="of-comp">
+        <textarea
+          ref={area}
+          value={text}
+          rows={1}
+          maxLength={5000}
+          placeholder={app ? `Écrire à ${first(thread.clientName) || "ce client"}… (dans l'app, avec notification)` : `Écrire à ${first(thread.clientName) || "ce client"}… (par courriel, signé ${agent || "l'équipe"})`}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(closing); } if (e.key === "Escape" && closing) setClosing(false); }}
+        />
         {closing ? (
           <>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setClosing(false)}>Annuler</Button>
-            <Button size="sm" variant="primary" disabled={busy} onClick={() => void send(true)}
-              icon={busy ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Check style={{ width: 14, height: 14 }} />}>
+            <button type="button" className="of-btn" onClick={() => setClosing(false)} disabled={busy}>Annuler</button>
+            <button type="button" className="of-btn dk" onClick={() => void send(true)} disabled={busy}>
+              {busy ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Check style={{ width: 15, height: 15 }} />}
               {text.trim() ? "Envoyer et clôturer" : "Clôturer"}
-            </Button>
+            </button>
           </>
         ) : (
-          <>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={startClose} icon={<Check style={{ width: 14, height: 14 }} />}>Clôturer</Button>
-            <Button size="sm" variant="primary" disabled={busy || !text.trim()} onClick={() => void send(false)}
-              icon={busy ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 14, height: 14 }} />}>Envoyer</Button>
-          </>
+          <button type="button" className="of-send" onClick={() => void send(false)} disabled={busy || !text.trim()} aria-label="Envoyer (Ctrl/⌘ + Entrée)" title="Envoyer (Ctrl/⌘ + Entrée)">
+            {busy ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : <ArrowUp style={{ width: 20, height: 20 }} strokeWidth={2.6} />}
+          </button>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
-/* ─────────── Le contexte ─────────── */
+/* ─────────── Le client ─────────── */
 
-function OrderBlock({ order, refs, onOpenOrder }: { order: AdminOrder | null; refs: string[]; onOpenOrder?: (id: string) => void }) {
-  if (order) {
-    return (
-      <button type="button" className="ui-lift" onClick={() => onOpenOrder?.(order.id)} disabled={!onOpenOrder}
-        style={{ all: "unset", boxSizing: "border-box", display: "grid", gap: 6, width: "100%", padding: "12px 0", cursor: onOpenOrder ? "pointer" : "default", fontFamily: FONT, borderTop: `1px solid ${C.bd}` }}>
-        <span style={{ fontSize: 13.5, color: C.t1 }}>Commande {order.ref}</span>
-        <span style={{ fontSize: 13, color: C.t2 }}>{order.type === "buy" ? "Achat" : "Vente"} · {nfCad.format(order.cad)} $ · {nfUsdt.format(order.usdt)} {assetSymbol(order.asset)}</span>
-        <span><OrderStatusPill status={order.status} /></span>
-      </button>
-    );
-  }
-  if (refs[0]) return <p style={{ margin: 0, padding: "12px 0", fontSize: 12.5, color: C.t3, borderTop: `1px solid ${C.bd}` }}>Commande {refs[0]} citée, introuvable dans les commandes chargées.</p>;
-  return null;
-}
+const KYC: Record<string, [string, string]> = {
+  approved: ["Identité vérifiée", "#bfe8c8"],
+  pending: ["Identité en vérification", "#bfe0ff"],
+  rejected: ["Identité refusée", "#ffffff"],
+};
 
 function ContextPane({ thread, messages, threads, onOpen, onShowClient, onOpenOrder }: {
   thread: MailThread; messages: MailMessage[]; threads: MailThread[]; onOpen: (t: MailThread) => void;
   onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
 }) {
+  const [profile, setProfile] = useState<ClientProfile | null>(null);
+  useEffect(() => {
+    let on = true;
+    setProfile(null);
+    if (thread.clientId) fetchClientProfile(thread.clientId).then((p) => { if (on) setProfile(p); });
+    return () => { on = false; };
+  }, [thread.clientId]);
   const refs = findRefs([thread.subject, ...messages.map(messageText)]);
   const orders = peek<AdminOrder[]>("orders")?.value ?? [];
   const order = refs.map((r) => orders.find((o) => o.ref === r)).find(Boolean) ?? null;
   const others = threads
     .filter((t) => t.id !== thread.id && ((thread.clientId && t.clientId === thread.clientId) || t.clientEmail === thread.clientEmail))
-    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt))
-    .slice(0, 8);
-  return (
-    <div className="sd-scroll" style={{ padding: "14px 16px" }}>
-      <ClientCard clientId={thread.clientId} name={thread.clientName ?? ""} email={thread.clientEmail} onShowClient={onShowClient} />
-      <div style={{ marginTop: 14 }}><OrderBlock order={order} refs={refs} onOpenOrder={onOpenOrder} /></div>
-      <p style={{ margin: "18px 0 6px", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: C.t3 }}>Autres conversations</p>
-      {others.length === 0 ? <p style={{ margin: 0, fontSize: 12.5, color: C.t3 }}>Aucune autre conversation avec ce client.</p> : others.map((t) => (
-        <button key={t.id} type="button" className="sd-row" onClick={() => onOpen(t)} style={{ padding: "9px 0", display: "block" }}>
-          <span style={{ display: "block", fontSize: 13, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{threadTitle(t)}</span>
-          <span style={{ display: "block", fontSize: 12, color: C.t3 }}>
-            {sourceOf(t) === "app" ? "App" : "Site"} · {shortFmt.format(new Date(t.lastMessageAt))} · {queueOf(t) === "resolved" ? "réglée" : queueOf(t) === "todo" ? "à répondre" : "en attente"}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
+    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)).slice(0, 5);
+  const kyc = profile ? KYC[profile.kycStatus] ?? ["Identité non vérifiée", "#ffffff"] : null;
 
-/** Écrans moyens (colonne de droite masquée) : le client et la commande, repliables, sous la conversation. */
-function InlineContext({ thread, order, refs, onShowClient, onOpenOrder }: {
-  thread: MailThread; order: AdminOrder | null; refs: string[]; onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
   return (
-    <div style={{ borderTop: `1px solid ${C.bd}`, padding: "8px 18px" }}>
-      <button type="button" onClick={() => setOpen((v) => !v)} style={{ all: "unset", cursor: "pointer", fontSize: 12.5, color: C.t2, display: "flex", alignItems: "center", gap: 6 }}>
-        {open ? <ChevronDown style={{ width: 14, height: 14 }} /> : <ChevronUp style={{ width: 14, height: 14 }} />}
-        Client{order || refs[0] ? " et commande" : ""}
-      </button>
-      {open && (
-        <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-          <ClientCard clientId={thread.clientId} name={thread.clientName ?? ""} email={thread.clientEmail} onShowClient={onShowClient} compact />
-          <OrderBlock order={order} refs={refs} onOpenOrder={onOpenOrder} />
+    <>
+      <div className="of-box">
+        <div className="of-peek"><PeekMascot look={0} typing={false} hide={false} peek={false} /></div>
+        <h4>Client</h4>
+        <div style={{ fontSize: 17, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.fullName || thread.clientName || "Visiteur du site"}</div>
+        <div style={{ fontSize: 12.5, color: "#5f5f5b", overflow: "hidden", textOverflow: "ellipsis" }}>{thread.clientEmail}</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+          {kyc ? <span className="of-tag" style={{ background: kyc[1] }}>{kyc[0]}</span> : !thread.clientId && <span className="of-tag">Pas de compte</span>}
+          {profile?.preferredLang && <span className="of-tag">{profile.preferredLang === "en" ? "English" : "Français"}</span>}
+        </div>
+        {thread.clientId && onShowClient && (
+          <button type="button" className="of-btn" onClick={() => onShowClient(thread.clientId!)} style={{ marginTop: 12, width: "100%" }}>Voir la fiche <ChevronRight style={{ width: 15, height: 15 }} /></button>
+        )}
+      </div>
+
+      {(order || refs[0]) && (
+        <button type="button" className="of-box" onClick={() => order && onOpenOrder?.(order.id)} disabled={!order || !onOpenOrder}
+          style={{ all: "unset", boxSizing: "border-box", display: "block", background: "#dccaff", border: "3px solid #111", borderRadius: 26, padding: 16, cursor: order && onOpenOrder ? "pointer" : "default" }}>
+          <h4 style={{ margin: "0 0 8px", fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "#4a3f66", fontWeight: 600 }}>Commande</h4>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{order?.ref ?? refs[0]}</div>
+          {order ? (
+            <>
+              <div className="of-kv" style={{ color: "#3f3a4f" }}>{order.type === "buy" ? "Achat" : "Vente"}<b>{nfCad.format(order.cad)} $</b></div>
+              <div className="of-kv" style={{ color: "#3f3a4f" }}>Montant<b>{nfUsdt.format(order.usdt)} {assetSymbol(order.asset)}</b></div>
+              <div className="of-kv" style={{ color: "#3f3a4f" }}>Statut<b>{STATUS_META[order.status]?.label ?? order.status}</b></div>
+            </>
+          ) : <div style={{ fontSize: 12.5, color: "#3f3a4f", marginTop: 4 }}>Citée dans la conversation, pas dans les commandes chargées.</div>}
+        </button>
+      )}
+
+      {profile && (
+        <div className="of-box" style={{ background: "#111", color: "#fff" }}>
+          <h4 style={{ color: "#aaa" }}>Historique</h4>
+          <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em" }}>{nf0.format(profile.totalCad)} $</div>
+          <div style={{ fontSize: 12.5, color: "#bbb" }}>{profile.orderCount} {profile.orderCount > 1 ? "commandes" : "commande"} · {others.length + 1} {others.length ? "conversations" : "conversation"}</div>
         </div>
       )}
-    </div>
+
+      {others.length > 0 && (
+        <div className="of-box">
+          <h4>Autres conversations</h4>
+          {others.map((t) => (
+            <button key={t.id} type="button" className="of-tpl-row" onClick={() => onOpen(t)} style={{ padding: "7px 6px" }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{threadTitle(t)}</span>
+              <span style={{ display: "block", fontSize: 11.5, color: "#5f5f5b" }}>{sourceOf(t) === "app" ? "App" : "Site"} · {shortFmt.format(new Date(t.lastMessageAt))} · {queueOf(t) === "resolved" ? "réglée" : queueOf(t) === "todo" ? "à répondre" : "en attente"}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
-
