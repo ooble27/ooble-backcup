@@ -131,6 +131,10 @@ const Entreprise = () => {
   const [kyb, setKyb] = useState<MyKyb | null>(cached?.k ?? null);
   // Le responsable : le compte individuel vérifié relié à ce compte entreprise (undefined = en lecture, null = aucun).
   const [owner, setOwner] = useState<{ full_name: string | null; kyc_status: KycDbStatus } | null | undefined>(undefined);
+  const [ownerEdit, setOwnerEdit] = useState(false);
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerBusy, setOwnerBusy] = useState(false);
+  const [ownerErr, setOwnerErr] = useState<string | null>(null);
   const [view, setView] = useState<View>("hub");
 
   const [info, setInfo] = useState<BusinessInfo>(() => initForm(cached?.p ?? null, cached?.k ?? null).info);
@@ -146,12 +150,25 @@ const Entreprise = () => {
   const [editIdx, setEditIdx] = useState<number>(-1);
   const [otherOpen, setOtherOpen] = useState(false);
 
+  const loadOwner = async () => {
+    const { data, error: e } = await supabase.rpc("my_business_owner" as never);
+    if (e) { setOwner(null); return; }
+    const rows = (data as { full_name: string | null; kyc_status: KycDbStatus }[] | null) ?? [];
+    setOwner(rows[0] ?? null);
+  };
+  const linkOwner = async () => {
+    const v = ownerEmail.trim();
+    if (!v || ownerBusy) return;
+    setOwnerBusy(true); setOwnerErr(null);
+    const { error: e } = await supabase.rpc("link_my_business_owner" as never, { _owner_email: v } as never);
+    setOwnerBusy(false);
+    if (e) { setOwnerErr(e.message); return; }
+    setOwnerEdit(false); setOwnerEmail("");
+    await loadOwner();
+  };
+
   useEffect(() => {
-    supabase.rpc("my_business_owner" as never).then(({ data, error: e }) => {
-      if (e) return;
-      const rows = (data as { full_name: string | null; kyc_status: KycDbStatus }[] | null) ?? [];
-      setOwner(rows[0] ?? null);
-    });
+    void loadOwner();
     Promise.all([getMyProfile(), getMyKyb()]).then(([p, k]) => {
       setProfile(p);
       setKyb(k);
@@ -189,10 +206,13 @@ const Entreprise = () => {
   const requiredDocs = KYB_DOCS.filter((d) => d.required);
   const docsDone = requiredDocs.every((d) => files[d.key]);
   const doneCount = [companyDone, peopleDone, docsDone].filter(Boolean).length;
+  // Envoi possible quand les trois sections sont complètes ET le représentant relié.
+  const ready = doneCount === 3 && !!owner;
 
   const go = (v: View) => { setError(null); setView(v); window.scrollTo({ top: 0 }); };
 
   const submit = async () => {
+    if (!owner) { setError(t("biz.ownerNeeded")); return; }
     if (!attest) { setError(t("kyb.errAttest")); return; }
     setSending(true);
     setError(null);
@@ -516,36 +536,47 @@ const Entreprise = () => {
         })}
       </div>
 
-      {/* Le responsable : le compte individuel vérifié qui a ouvert ce compte entreprise. Son identité compte
-          pour l'entreprise ; un compte non relié est relié par l'équipe sur demande. */}
+      {/* Le représentant : la personne qui représente l'entreprise doit d'abord avoir son compte individuel Ooble.
+          L'entreprise indique le courriel de ce compte ; il est relié au compte entreprise (rien n'apparaît dans le
+          compte individuel). Son identité doit être vérifiée avant le premier échange. */}
       {owner !== undefined && (
-        owner ? (
-          <div className="ac-row static mt-2" style={{ borderTop: "1px solid hsl(var(--border))" }}>
-            <span className="w-[21px] shrink-0 text-[13px] font-semibold text-muted-foreground">{initials(owner.full_name ?? "")}</span>
-            <span className="ac-txt">
-              <span className="ac-n">{t("biz.owner")} · {owner.full_name || "—"}</span>
-              <span className="ac-d" style={{ whiteSpace: "normal" }}>{owner.kyc_status === "approved" ? t("biz.ownerOk") : t("biz.ownerWait")}</span>
-            </span>
-          </div>
-        ) : (
-          <Link to="/app/support/nouvelle" className="ac-row mt-2" style={{ borderTop: "1px solid hsl(var(--border))" }}>
-            <span className="w-[21px] shrink-0 text-[13px] font-semibold text-muted-foreground">{initials(profile?.fullName ?? user?.name ?? "")}</span>
-            <span className="ac-txt">
-              <span className="ac-n">{t("biz.owner")}</span>
-              <span className="ac-d" style={{ whiteSpace: "normal" }}>{t("biz.ownerNone")}</span>
-            </span>
-            <ChevronRight className="ac-go" />
-          </Link>
-        )
+        <div className="mt-2 py-4" style={{ borderTop: "1px solid hsl(var(--border))" }}>
+          <p className="ac-n" style={{ margin: 0 }}>{t("biz.owner")}</p>
+          {owner && !ownerEdit ? (
+            <div className="mt-1 flex items-baseline justify-between gap-3">
+              <span className="ac-d" style={{ whiteSpace: "normal" }}>
+                {t("biz.ownerLinked")}{owner.full_name ? ` · ${owner.full_name}` : ""} · {owner.kyc_status === "approved" ? t("biz.ownerOk") : t("biz.ownerWait")}
+                {owner.kyc_status !== "approved" && <><br />{t("biz.ownerWaitSub")}</>}
+              </span>
+              {editable && <button type="button" className="ac-link shrink-0" onClick={() => { setOwnerEdit(true); setOwnerErr(null); }}>{t("biz.ownerChange")}</button>}
+            </div>
+          ) : editable ? (
+            <form onSubmit={(e) => { e.preventDefault(); void linkOwner(); }} className="mt-1">
+              <p className="ac-d" style={{ whiteSpace: "normal", margin: 0 }}>{t("biz.ownerSub")}</p>
+              <label className="mt-3 block">
+                <span className="sr-only">{t("biz.ownerEmail")}</span>
+                <input className="ac-in" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} placeholder={t("biz.ownerEmail")} autoComplete="off" />
+              </label>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <button type="submit" className="ac-link" disabled={ownerBusy || !ownerEmail.trim()} style={{ opacity: ownerBusy || !ownerEmail.trim() ? 0.4 : 1 }}>{ownerBusy ? "…" : t("biz.ownerLink")}</button>
+                {owner && <button type="button" className="ac-link" onClick={() => { setOwnerEdit(false); setOwnerErr(null); }} style={{ opacity: 0.6 }}>{t("misc.cancel")}</button>}
+              </div>
+              <ErrorLine msg={ownerErr} />
+              <p className="ac-d mt-3" style={{ whiteSpace: "normal" }}>{t("biz.ownerOpen")} <a className="ac-link" href="/inscription/individuel" target="_blank" rel="noopener noreferrer">ooble.ca/inscription</a></p>
+            </form>
+          ) : (
+            <p className="ac-d mt-1" style={{ whiteSpace: "normal" }}>{t("biz.ownerNeeded")}</p>
+          )}
+        </div>
       )}
 
       {/* Envoi */}
       {editable && (
         <div className="mt-10">
-          <label className={cn("flex items-start gap-3", doneCount === 3 ? "cursor-pointer" : "opacity-50")}>
+          <label className={cn("flex items-start gap-3", ready ? "cursor-pointer" : "opacity-50")}>
             <input
               type="checkbox"
-              disabled={doneCount < 3}
+              disabled={!ready}
               className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-foreground"
               checked={attest}
               onChange={(e) => setAttest(e.target.checked)}
@@ -554,7 +585,7 @@ const Entreprise = () => {
           </label>
           <ErrorLine msg={error} />
           <Actions>
-            <Action disabled={doneCount < 3 || sending} onClick={submit}>{doneCount < 3 ? t("kyb.completeToSend") : t("kyb.submit")}</Action>
+            <Action disabled={!ready || sending} onClick={submit}>{doneCount < 3 ? t("kyb.completeToSend") : !owner ? t("biz.ownerNeeded") : t("kyb.submit")}</Action>
           </Actions>
         </div>
       )}

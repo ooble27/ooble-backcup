@@ -195,7 +195,7 @@ const ClientProfile = ({ userId, clientName, onOpenOrder }: Props) => {
         </Block>
       )}
       {profile && (
-        <Block title={profile.accountType === "business" ? "Responsable" : "Comptes entreprise"}>
+        <Block title={profile.accountType === "business" ? "Représentant" : "Comptes entreprise représentés"}>
           <ClientBusinessLink userId={userId} business={profile.accountType === "business"} />
         </Block>
       )}

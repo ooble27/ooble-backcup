@@ -1,10 +1,10 @@
 /**
  * Fiche client › lien entre compte individuel et comptes entreprise.
  *
- *   • Compte entreprise : son responsable (compte individuel vérifié), et « Relier au responsable » pour les
- *     comptes entreprise créés avant la règle (l'équipe saisit le courriel du compte individuel). Un compte
+ *   • Compte entreprise : son représentant (compte individuel indiqué dans le dossier), et « Relier au représentant »
+ *     pour relier ou corriger à la place de l'entreprise (l'équipe saisit le courriel du compte individuel). Un compte
  *     entreprise non relié ne peut pas passer d'ordre.
- *   • Compte individuel : les comptes entreprise dont il est responsable.
+ *   • Compte individuel : les comptes entreprise qu'il représente.
  *
  * Relier passe par la fonction admin_link_business_owner (administration, vérification d'identité, conformité).
  */
@@ -60,7 +60,7 @@ export default function ClientBusinessLink({ userId, business, onOpenClient, onL
     if (error) { setMsg({ ok: false, text: error.message }); return; }
     void logAdminAction({ action: "client.business_owner_link", entityKind: "client", entityId: userId, metadata: { owner_email: v.toLowerCase() } });
     setEditing(false); setEmail("");
-    setMsg({ ok: true, text: "Compte entreprise relié à son responsable." });
+    setMsg({ ok: true, text: "Compte entreprise relié à son représentant." });
     void load();
     onLinked?.();
   };
@@ -97,7 +97,7 @@ export default function ClientBusinessLink({ userId, business, onOpenClient, onL
           {owner.kyc_status !== "approved" && <span style={{ fontSize: 13, color: C.t2 }}>Tant que son identité n'est pas vérifiée, l'entreprise ne peut pas passer d'ordre.</span>}
         </div>
       ) : (
-        <p style={firstLine}>Aucun responsable relié. Ce compte entreprise ne peut pas passer d'ordre tant qu'il n'est pas relié au compte individuel vérifié de son responsable.</p>
+        <p style={firstLine}>Aucun représentant relié. L'entreprise indique le courriel du compte individuel de son représentant dans son dossier ; sans lui, pas d'ordre possible.</p>
       )}
 
       {mayLink && owner !== undefined && (editing ? (
@@ -111,7 +111,7 @@ export default function ClientBusinessLink({ userId, business, onOpenClient, onL
         </form>
       ) : (
         <button type="button" onClick={() => setEditing(true)} style={{ ...linkBtn(false), justifySelf: "start" }}>
-          {owner ? "Changer le responsable" : "Relier au responsable"}
+          {owner ? "Changer le représentant" : "Relier au représentant"}
         </button>
       ))}
       {msg && <p style={{ margin: 0, fontSize: 13, color: msg.ok ? C.sage : C.coral }}>{msg.text}</p>}

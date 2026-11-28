@@ -28,7 +28,6 @@ import Compte from "./pages/app/Compte";
 import ChangerEmail from "./pages/app/ChangerEmail";
 import ChangerMotDePasse from "./pages/app/ChangerMotDePasse";
 import Limites from "./pages/app/Limites";
-import MesEntreprises from "./pages/app/MesEntreprises";
 import Support from "./pages/app/Support";
 import SupportNew from "./pages/app/SupportNew";
 import SupportThread from "./pages/app/SupportThread";
@@ -114,7 +113,6 @@ export const AppRoutes = () => (
         <Route path="/app/changer-email" element={<RequireAuth><ChangerEmail /></RequireAuth>} />
         <Route path="/app/mot-de-passe" element={<RequireAuth><ChangerMotDePasse /></RequireAuth>} />
         <Route path="/app/limites" element={<RequireAuth><Limites /></RequireAuth>} />
-        <Route path="/app/entreprises" element={<RequireAuth><MesEntreprises /></RequireAuth>} />
         <Route path="/app/support" element={<RequireAuth><Support /></RequireAuth>} />
         <Route path="/app/support/nouvelle" element={<RequireAuth><SupportNew /></RequireAuth>} />
         <Route path="/app/support/:id" element={<RequireAuth><SupportThread /></RequireAuth>} />

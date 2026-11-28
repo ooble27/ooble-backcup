@@ -165,7 +165,7 @@ const BusinessKycPanel = () => {
                   <div style={{ marginTop: 18 }}><Facts cols={1} items={[["Siège", d.address]]} /></div>
                 </Section>
 
-                <Section title="Responsable" hint={d.owner ? `${d.owner.name} · identité` : "compte individuel relié"}>
+                <Section title="Représentant" hint={d.owner ? `${d.owner.name} · identité` : "compte individuel à relier"}>
                   {d.owner && <div style={{ marginBottom: 12 }}><Pill tone={STATUS[d.contactKyc]?.[1]}>{STATUS[d.contactKyc]?.[0] ?? d.contactKyc}</Pill></div>}
                   <ClientBusinessLink key={d.userId} userId={d.userId} business onLinked={() => { void fetchKyb().then(setRows); }} />
                 </Section>
@@ -208,7 +208,7 @@ const BusinessKycPanel = () => {
 
                 {d.status === "pending" && canDecide && (
                   <Section title="Note au client" hint="Obligatoire en cas de refus.">
-                    {d.contactKyc !== "approved" && <div style={{ marginBottom: 12 }}><Notice tone="warn">{d.owner ? `L'identité du responsable n'est pas encore vérifiée (${(STATUS[d.contactKyc]?.[0] ?? d.contactKyc).toLowerCase()}).` : "Ce compte entreprise n'est relié à aucun responsable : reliez-le avant d'approuver."}</Notice></div>}
+                    {d.contactKyc !== "approved" && <div style={{ marginBottom: 12 }}><Notice tone="warn">{d.owner ? `L'identité du représentant n'est pas encore vérifiée (${(STATUS[d.contactKyc]?.[0] ?? d.contactKyc).toLowerCase()}).` : "Aucun représentant relié : reliez son compte individuel avant d'approuver."}</Notice></div>}
                     <TextArea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex. : le registre des administrateurs fourni date de plus d'un an." />
                   </Section>
                 )}

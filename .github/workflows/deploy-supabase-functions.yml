@@ -39,7 +39,6 @@ jobs:
           supabase functions deploy sell-watch --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes
           supabase functions deploy delete-account --project-ref uukxacjjviiktmbikdwp --yes
           supabase functions deploy support-chat --project-ref uukxacjjviiktmbikdwp --yes
-          supabase functions deploy business-account --project-ref uukxacjjviiktmbikdwp --yes
           supabase functions deploy reset-test-data --project-ref uukxacjjviiktmbikdwp --yes
           supabase functions deploy admin-tools --project-ref uukxacjjviiktmbikdwp --yes
           supabase functions deploy refresh-rate --project-ref uukxacjjviiktmbikdwp --no-verify-jwt --yes

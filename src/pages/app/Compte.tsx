@@ -239,8 +239,6 @@ const Compte = () => {
     { to: "/app/limites", icon: Gauge, title: t("acct.limits"), sub: t("acct.limitsSub"), bg: "#ffffff" },
     ...(refOk ? [{ to: "/app/compte?v=parrainage", icon: Gift, title: t("acct.refTitle"), sub: t("acct.tRefSub"), bg: "#ffffff" }] : []),
     ...(bizOk ? [{ to: "/app/compte?v=entreprise", icon: Building2, title: t("acct.business"), sub: t("acct.tBizSub"), bg: "#ffffff" }] : []),
-    // Compte individuel : ses comptes entreprise (création après identité vérifiée).
-    ...(profile && !business ? [{ to: "/app/entreprises", icon: Building2, title: t("biz.tile"), sub: t("biz.tileSub"), bg: "#ffffff" }] : []),
     ...(otc ? [{ to: "/app/otc", icon: Handshake, title: t("nav.otc"), sub: t("dash.otcSub"), bg: "#ffffff" }] : []),
     ...(isStaff ? [{ to: "/admin", icon: LayoutGrid, title: t("acct.backoffice"), sub: t("acct.tStaffSub"), bg: "#ffffff" }] : []),
   ];
