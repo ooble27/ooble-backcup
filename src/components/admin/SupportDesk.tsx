@@ -16,7 +16,7 @@
  * Les membres de l'équipe sont montrés par leur prénom seulement.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowUp, Check, ChevronRight, Globe, Hand, Loader2, MessageSquarePlus, RotateCcw, Search, Smartphone, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, Check, ChevronRight, Globe, Hand, Loader2, MessageSquarePlus, RotateCcw, Search, Smartphone, Trash2, UserRound, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { fetchCached, peek, put } from "@/lib/adminCache";
@@ -27,8 +27,9 @@ import {
   threadReplyTo, type MailMessage, type MailThread, type SupportState,
 } from "@/lib/mailThreads";
 import { REPLY_GROUPS, REPLY_TEMPLATES, fillReply, type ReplyGroup, type ReplyLang } from "@/lib/supportReplies";
-import { STATUS_META, nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
-import { fetchClientProfile, type ClientProfile } from "@/lib/adminClient";
+import { nfCad, nfUsdt } from "@/lib/adminOrders";
+import { fetchClientOrders, fetchClientProfile, type ClientOrder, type ClientProfile } from "@/lib/adminClient";
+import { orderRef } from "@/lib/orders";
 import { assetSymbol } from "@/lib/assets";
 import { enterView, returnTo } from "@/lib/pageMotion";
 import { useReveal } from "./layout";
@@ -84,7 +85,7 @@ function findRefs(texts: (string | null | undefined)[]): string[] {
 /* ─────────── Le style F ─────────── */
 
 const F_CSS = `
-.of { --ink: #111; --paper: #fff; --ground: #f5f5f3; --mute: #5f5f5b; --lav: #dccaff; --coral: #ff6a3d; --mint: #bfe8c8; --sky: #bfe0ff;
+.of { position: relative; --ink: #111; --paper: #fff; --ground: #f5f5f3; --mute: #5f5f5b; --lav: #dccaff; --coral: #ff6a3d; --mint: #bfe8c8; --sky: #bfe0ff;
   font-family: 'Poppins', system-ui, sans-serif; color: var(--ink); background: var(--ground); border-radius: 28px; padding: 18px; color-scheme: light; }
 .of * { box-sizing: border-box; }
 .of-grid { display: grid; gap: 16px; height: 100%; min-height: 0; }
@@ -143,6 +144,9 @@ const F_CSS = `
 .of-err { margin: 0 18px 8px; font-size: 12.5px; font-weight: 500; }
 .of-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; height: 100%; padding: 30px; color: var(--mute); font-size: 13.5px; }
 .of-empty b { color: var(--ink); font-size: 17px; font-weight: 600; }
+.of-drawer { position: absolute; top: 18px; right: 18px; bottom: 18px; width: min(330px, calc(100% - 36px)); z-index: 5; background: var(--ground); border: 3px solid var(--ink);
+  border-radius: 28px; box-shadow: 0 18px 50px -20px rgba(0,0,0,.45); padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.of-drawer .of-peek { display: none; }
 .of-peek { position: absolute; right: 20px; top: -62px; width: 112px; height: 72px; pointer-events: none; }
 .of-peek .pl-mascot { margin: 0; width: 112px; height: 72px; animation: none; }
 .of-peek .pl-mascot svg { width: 112px; height: 72px; }
@@ -178,6 +182,7 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
   const rootRef = useRef<HTMLDivElement>(null);
   const replyFocus = useRef<() => void>(() => {});
   const opened = useRef<string | null>(null);
+  const [ctxOpen, setCtxOpen] = useState(false);
 
   useEffect(() => { if (startQueue) setQueue(startQueue); }, [startQueue]);
 
@@ -238,6 +243,7 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
 
   const openThread = useCallback(async (t: MailThread) => {
     if (window.innerWidth < 1000) enterView("mail");
+    setCtxOpen(false);
     setSelectedId(t.id);
     setMsgsLoading(true);
     setMessages(await fetchMessages(t.id));
@@ -388,7 +394,8 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
       onBack={wide ? undefined : () => { setSelectedId(null); returnTo("mail"); }}
       onAssign={changeAssign} onState={changeState} onRemove={remove}
       onSent={(state) => { if (state) void changeState(state); void refreshMessages(); }}
-      registerFocus={(f) => { replyFocus.current = f; }} />
+      registerFocus={(f) => { replyFocus.current = f; }}
+      onContext={wide && !showCtx ? () => setCtxOpen((v) => !v) : undefined} ctxOpen={ctxOpen} />
   ) : (
     <div className="of-chat"><div className="of-empty"><WholeMascot size={90} /><b>Choisissez une conversation</b><span>La discussion, le client et sa commande s'affichent ici.</span></div></div>
   );
@@ -400,6 +407,16 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
         {!wide ? (
           selected ? <div style={{ display: "grid", gap: 16 }}>{chat}<div style={{ display: "grid", gap: 16, paddingTop: 58 }}><ContextPane thread={selected} messages={messages} threads={threads} onOpen={(t) => void openThread(t)} onShowClient={onShowClient} onOpenOrder={onOpenOrder} /></div></div> : listCol
         ) : (
+          <>
+          {selected && ctxOpen && !showCtx && (
+            <div className="of-drawer" role="dialog" aria-label="Le client et ses commandes">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <b style={{ fontSize: 15 }}>Le client</b>
+                <button type="button" className="of-btn ic" onClick={() => setCtxOpen(false)} aria-label="Fermer"><X style={{ width: 16, height: 16 }} /></button>
+              </div>
+              <ContextPane thread={selected} messages={messages} threads={threads} onOpen={(t) => void openThread(t)} onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
+            </div>
+          )}
           <div className="of-grid" style={{ gridTemplateColumns: columns }}>
             {listCol}
             <div className="of-col">{chat}</div>
@@ -411,6 +428,7 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
               </div>
             )}
           </div>
+          </>
         )}
       </div>
     </div>
@@ -419,10 +437,12 @@ export function SupportDesk({ onCount, onShowClient, onOpenOrder, onCompose, sta
 
 /* ─────────── La discussion ─────────── */
 
-function ThreadView({ thread, messages, loading, me, onBack, onAssign, onState, onRemove, onSent, registerFocus }: {
+function ThreadView({ thread, messages, loading, me, onBack, onAssign, onState, onRemove, onSent, registerFocus, onContext, ctxOpen }: {
   thread: MailThread; messages: MailMessage[]; loading: boolean; me: { id: string; name: string } | null;
   onBack?: () => void; onAssign: (who: { id: string; name: string } | null) => void; onState: (s: SupportState) => void;
   onRemove: () => void; onSent: (state?: SupportState) => void; registerFocus: (f: () => void) => void;
+  /** Écrans moyens : ouvre le volet du client (fiche et commandes). */
+  onContext?: () => void; ctxOpen?: boolean;
 }) {
   const mine = !!me && thread.assignedTo === me.id;
   const refs = findRefs([thread.subject, ...messages.map(messageText)]);
@@ -448,6 +468,11 @@ function ThreadView({ thread, messages, loading, me, onBack, onAssign, onState, 
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{threadTitle(thread)} · {stateLabel}</span>
           </div>
         </div>
+        {onContext && (
+          <button type="button" className={ctxOpen ? "of-btn dk" : "of-btn"} onClick={onContext} aria-pressed={!!ctxOpen}>
+            <UserRound style={{ width: 15, height: 15 }} />Client
+          </button>
+        )}
         {thread.assignedTo && !mine
           ? <button type="button" className="of-btn" onClick={() => me && onAssign(me)} title={`Prise par ${first(thread.assignedName)}`}><Hand style={{ width: 15, height: 15 }} />{first(thread.assignedName)} · reprendre</button>
           : <button type="button" className="of-btn" onClick={() => onAssign(mine ? null : me)} disabled={!me}><Hand style={{ width: 15, height: 15 }} />{mine ? "Libérer" : "Prendre"}</button>}
@@ -648,25 +673,51 @@ const KYC: Record<string, [string, string]> = {
   pending: ["Identité en vérification", "#bfe0ff"],
   rejected: ["Identité refusée", "#ffffff"],
 };
+/** Statut d'une commande, en mots (statut de la base). */
+const ORDER_STATUS: Record<string, [string, string]> = {
+  created: ["En attente du paiement", "#ffffff"], awaiting_payment: ["En attente du paiement", "#ffffff"],
+  payment_received: ["Paiement reçu", "#bfe0ff"], settling: ["En cours d'envoi", "#bfe0ff"],
+  completed: ["Terminée", "#bfe8c8"], cancelled: ["Annulée", "#ffffff"], expired: ["Expirée", "#ffffff"], refunded: ["Remboursée", "#ffffff"],
+};
+const sinceDate = new Intl.DateTimeFormat("fr-CA", { month: "long", year: "numeric" });
 
+/**
+ * Le client de la conversation : sa fiche (identité, langue, contact, compte) avec le bouton vers la fiche complète,
+ * la commande dont il parle mise en avant, toutes ses commandes (un clic ouvre la commande), son historique et ses
+ * autres conversations. Tout est lu directement dans la base, pas seulement dans les commandes déjà chargées.
+ */
 function ContextPane({ thread, messages, threads, onOpen, onShowClient, onOpenOrder }: {
   thread: MailThread; messages: MailMessage[]; threads: MailThread[]; onOpen: (t: MailThread) => void;
   onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
 }) {
   const [profile, setProfile] = useState<ClientProfile | null>(null);
+  const [orders, setOrders] = useState<ClientOrder[] | null>(null);
+  const [allOrders, setAllOrders] = useState(false);
   useEffect(() => {
     let on = true;
-    setProfile(null);
-    if (thread.clientId) fetchClientProfile(thread.clientId).then((p) => { if (on) setProfile(p); });
+    setProfile(null); setOrders(null); setAllOrders(false);
+    if (thread.clientId) {
+      fetchClientProfile(thread.clientId).then((p) => { if (on) setProfile(p); });
+      fetchClientOrders(thread.clientId).then((o) => { if (on) setOrders(o); });
+    } else setOrders([]);
     return () => { on = false; };
   }, [thread.clientId]);
+
   const refs = findRefs([thread.subject, ...messages.map(messageText)]);
-  const orders = peek<AdminOrder[]>("orders")?.value ?? [];
-  const order = refs.map((r) => orders.find((o) => o.ref === r)).find(Boolean) ?? null;
+  // La commande dont il parle : citée (OOB-…) ; sinon sa commande en cours la plus récente.
+  const cited = orders?.find((o) => refs.includes(orderRef(o.id))) ?? null;
+  const ongoing = orders?.find((o) => ["created", "awaiting_payment", "payment_received", "settling"].includes(o.status)) ?? null;
+  const focus = cited ?? ongoing;
+  const strangerRef = refs.find((r) => !orders?.some((o) => orderRef(o.id) === r)) ?? null;
+  const rest = (orders ?? []).filter((o) => o.id !== focus?.id);
+  const shownRest = allOrders ? rest : rest.slice(0, 4);
   const others = threads
     .filter((t) => t.id !== thread.id && ((thread.clientId && t.clientId === thread.clientId) || t.clientEmail === thread.clientEmail))
     .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)).slice(0, 5);
   const kyc = profile ? KYC[profile.kycStatus] ?? ["Identité non vérifiée", "#ffffff"] : null;
+  const st = (o: ClientOrder) => ORDER_STATUS[o.status] ?? [o.status, "#ffffff"];
+  const amount = (o: ClientOrder) => `${nfUsdt.format(o.usdtAmount)} ${assetSymbol(o.asset)}`;
+  const open = (o: ClientOrder) => onOpenOrder?.(o.id);
 
   return (
     <>
@@ -674,36 +725,75 @@ function ContextPane({ thread, messages, threads, onOpen, onShowClient, onOpenOr
         <div className="of-peek"><PeekMascot look={0} typing={false} hide={false} peek={false} /></div>
         <h4>Client</h4>
         <div style={{ fontSize: 17, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.fullName || thread.clientName || "Visiteur du site"}</div>
-        <div style={{ fontSize: 12.5, color: "#5f5f5b", overflow: "hidden", textOverflow: "ellipsis" }}>{thread.clientEmail}</div>
+        {profile?.accountType === "business" && profile.businessName && <div style={{ fontSize: 12.5, fontWeight: 500 }}>{profile.businessName}</div>}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-          {kyc ? <span className="of-tag" style={{ background: kyc[1] }}>{kyc[0]}</span> : !thread.clientId && <span className="of-tag">Pas de compte</span>}
+          {kyc ? <span className="of-tag" style={{ background: kyc[1] }}>{kyc[0]}</span> : !thread.clientId && <span className="of-tag">Pas de compte Ooble</span>}
           {profile?.preferredLang && <span className="of-tag">{profile.preferredLang === "en" ? "English" : "Français"}</span>}
+          {profile?.accountType === "business" && <span className="of-tag" style={{ background: "#dccaff" }}>Entreprise</span>}
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <div className="of-kv">Courriel<b style={{ overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{thread.clientEmail}</b></div>
+          {profile?.phone && <div className="of-kv">Téléphone<b>{profile.phone}</b></div>}
+          {profile && <div className="of-kv">Client depuis<b>{sinceDate.format(new Date(profile.createdAt))}</b></div>}
+          {profile && <div className="of-kv">Limite sur 24 h<b>{nf0.format(profile.dailyLimitCad)} $</b></div>}
         </div>
         {thread.clientId && onShowClient && (
-          <button type="button" className="of-btn" onClick={() => onShowClient(thread.clientId!)} style={{ marginTop: 12, width: "100%" }}>Voir la fiche <ChevronRight style={{ width: 15, height: 15 }} /></button>
+          <button type="button" className="of-btn dk" onClick={() => onShowClient(thread.clientId!)} style={{ marginTop: 12, width: "100%" }}>Voir la fiche client <ChevronRight style={{ width: 15, height: 15 }} /></button>
         )}
       </div>
 
-      {(order || refs[0]) && (
-        <button type="button" className="of-box" onClick={() => order && onOpenOrder?.(order.id)} disabled={!order || !onOpenOrder}
-          style={{ all: "unset", boxSizing: "border-box", display: "block", background: "#dccaff", border: "3px solid #111", borderRadius: 26, padding: 16, cursor: order && onOpenOrder ? "pointer" : "default" }}>
-          <h4 style={{ margin: "0 0 8px", fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "#4a3f66", fontWeight: 600 }}>Commande</h4>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>{order?.ref ?? refs[0]}</div>
-          {order ? (
-            <>
-              <div className="of-kv" style={{ color: "#3f3a4f" }}>{order.type === "buy" ? "Achat" : "Vente"}<b>{nfCad.format(order.cad)} $</b></div>
-              <div className="of-kv" style={{ color: "#3f3a4f" }}>Montant<b>{nfUsdt.format(order.usdt)} {assetSymbol(order.asset)}</b></div>
-              <div className="of-kv" style={{ color: "#3f3a4f" }}>Statut<b>{STATUS_META[order.status]?.label ?? order.status}</b></div>
-            </>
-          ) : <div style={{ fontSize: 12.5, color: "#3f3a4f", marginTop: 4 }}>Citée dans la conversation, pas dans les commandes chargées.</div>}
-        </button>
+      {/* La commande dont il parle */}
+      {focus && (
+        <div className="of-box" style={{ background: "#dccaff" }}>
+          <h4 style={{ color: "#4a3f66" }}>{cited ? "Commande dont il parle" : "Commande en cours"}</h4>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{orderRef(focus.id)}</div>
+          <div className="of-kv" style={{ color: "#3f3a4f" }}>{focus.side === "buy" ? "Achat" : "Vente"}<b>{nfCad.format(focus.cadAmount)} $</b></div>
+          <div className="of-kv" style={{ color: "#3f3a4f" }}>Montant<b>{amount(focus)}</b></div>
+          <div className="of-kv" style={{ color: "#3f3a4f" }}>Passée le<b>{shortFmt.format(new Date(focus.createdAt))} · {timeFmt.format(new Date(focus.createdAt))}</b></div>
+          <div style={{ marginTop: 8 }}><span className="of-tag" style={{ background: st(focus)[1] }}>{st(focus)[0]}</span></div>
+          {onOpenOrder && <button type="button" className="of-btn dk" onClick={() => open(focus)} style={{ marginTop: 12, width: "100%" }}>Ouvrir la commande <ChevronRight style={{ width: 15, height: 15 }} /></button>}
+        </div>
+      )}
+      {strangerRef && (
+        <div className="of-box" style={{ fontSize: 12.5, color: "#5f5f5b" }}>
+          <h4>Commande citée</h4>
+          <b style={{ color: "#111", fontSize: 14 }}>{strangerRef}</b> n'est pas une commande de ce client. Vérifiez la référence avec lui.
+        </div>
+      )}
+
+      {/* Toutes ses commandes */}
+      {thread.clientId && (
+        <div className="of-box">
+          <h4>{orders ? `Ses commandes · ${orders.length}` : "Ses commandes"}</h4>
+          {orders === null ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} />
+            : orders.length === 0 ? <p style={{ margin: 0, fontSize: 12.5, color: "#5f5f5b" }}>Aucune commande pour l'instant.</p>
+            : rest.length === 0 ? <p style={{ margin: 0, fontSize: 12.5, color: "#5f5f5b" }}>Aucune autre commande.</p>
+            : (
+              <>
+                {shownRest.map((o) => (
+                  <button key={o.id} type="button" className="of-tpl-row" onClick={() => open(o)} disabled={!onOpenOrder} style={{ padding: "7px 6px", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 500 }}>{o.side === "buy" ? "Achat" : "Vente"} · {nfCad.format(o.cadAmount)} $</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "#5f5f5b" }}>{orderRef(o.id)} · {shortFmt.format(new Date(o.createdAt))} · {st(o)[0].toLowerCase()}</span>
+                    </span>
+                    {onOpenOrder && <ChevronRight style={{ width: 14, height: 14, flexShrink: 0 }} />}
+                  </button>
+                ))}
+                {rest.length > 4 && (
+                  <button type="button" className="of-tpl-row" onClick={() => setAllOrders((v) => !v)} style={{ padding: "7px 6px", fontSize: 12.5, fontWeight: 600 }}>
+                    {allOrders ? "Voir moins" : `Voir les ${rest.length} commandes`}
+                  </button>
+                )}
+              </>
+            )}
+        </div>
       )}
 
       {profile && (
         <div className="of-box" style={{ background: "#111", color: "#fff" }}>
           <h4 style={{ color: "#aaa" }}>Historique</h4>
           <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em" }}>{nf0.format(profile.totalCad)} $</div>
-          <div style={{ fontSize: 12.5, color: "#bbb" }}>{profile.orderCount} {profile.orderCount > 1 ? "commandes" : "commande"} · {others.length + 1} {others.length ? "conversations" : "conversation"}</div>
+          <div style={{ fontSize: 12.5, color: "#bbb" }}>échangés · {profile.orderCount} {profile.orderCount > 1 ? "commandes" : "commande"} · {others.length + 1} {others.length ? "conversations" : "conversation"}</div>
         </div>
       )}
 
