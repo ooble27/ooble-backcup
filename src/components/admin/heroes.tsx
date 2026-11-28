@@ -292,9 +292,9 @@ export function SettlementHero({ tanks, units, auto, maxCad, loading, toReview }
 
 /* ─── Messagerie ───────────────────────────────────────────── */
 
-interface HeroThread { createdAt: string; hasUnread: boolean; status: string; messageCount: number; mailbox: string }
+interface HeroThread { createdAt: string; hasUnread: boolean; status: string; messageCount: number; mailbox: string; supportState?: string; lastInboundAt?: string | null }
 
-/** Messages laissés sur le site, 14 derniers jours : une pastille par message, empilées par jour. */
+/** Conversations ouvertes (app et site), 14 derniers jours : une pastille par conversation, empilées par jour. */
 function MessageDays({ threads }: { threads: HeroThread[] }) {
   const days = useMemo(() => {
     const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -309,12 +309,12 @@ function MessageDays({ threads }: { threads: HeroThread[] }) {
     return out;
   }, [threads]);
   const total = days.reduce((s, d) => s + d.items.length, 0);
-  const tone = (t: HeroThread) => (t.hasUnread ? C.vzCoral : t.messageCount > 1 ? C.vzGreen : C.vzGray);
+  const tone = (t: HeroThread) => (t.supportState === "todo" ? C.vzCoral : t.supportState === "resolved" ? C.vzGreen : C.vzGray);
   const MAX = 6;
   const tallest = Math.max(3, ...days.map((d) => Math.min(MAX, d.items.length) + (d.items.length > MAX ? 1 : 0)));
   return (
     <div style={{ display: "grid", gap: 10 }}>
-      <span style={{ fontSize: 12.5, color: C.t3 }}>Messages reçus du site, 14 derniers jours · {total}</span>
+      <span style={{ fontSize: 12.5, color: C.t3 }}>Conversations ouvertes, 14 derniers jours · {total}</span>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(14, minmax(0, 1fr))", gap: 4, alignItems: "end", height: tallest * 16 }}>
         {days.map((d) => (
           <div key={d.t} title={`${d.long} : ${d.items.length} ${plural(d.items.length, "message")}`}
@@ -332,24 +332,27 @@ function MessageDays({ threads }: { threads: HeroThread[] }) {
         ))}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: 12, color: C.t2 }}>
-        <span style={{ color: C.vzCoral }}>Non lu</span>
-        <span style={{ color: C.vzGreen }}>Répondu</span>
-        <span>Lu</span>
+        <span style={{ color: C.vzCoral }}>À répondre</span>
+        <span>En attente du client</span>
+        <span style={{ color: C.vzGreen }}>Réglée</span>
       </div>
     </div>
   );
 }
 
-export function MailboxHero({ threads, unread, loading, action }: { threads: HeroThread[]; unread: number; loading: boolean; action?: React.ReactNode }) {
-  const open = threads.filter((t) => t.status === "open").length;
+export function MailboxHero({ threads, loading, action }: { threads: HeroThread[]; unread?: number; loading: boolean; action?: React.ReactNode }) {
+  const todo = threads.filter((t) => t.supportState === "todo");
+  const oldest = todo.reduce<string | null>((m, t) => (t.lastInboundAt && (!m || t.lastInboundAt < m) ? t.lastInboundAt : m), null);
   return (
     <Hero
-      title={loading ? <span className="mute">…</span> : unread ? (
-        <><span style={{ color: C.coral }}>{unread}</span> {plural(unread, "message")} <span className="mute">du site {plural(unread, "attend", "attendent")} une réponse.</span></>
+      title={loading ? <span className="mute">…</span> : todo.length ? (
+        <><span style={{ color: C.coral }}>{todo.length}</span> {plural(todo.length, "client")} <span className="mute">{plural(todo.length, "attend", "attendent")} une réponse.</span></>
       ) : (
         <>Réception <span style={{ color: C.sage }}>à jour</span>.</>
       )}
-      sub={<>Ici arrivent les messages laissés sur les pages Contact et OTC du site ({open} {plural(open, "conversation ouverte", "conversations ouvertes")}). Les courriels écrits à support@ooble.ca arrivent dans votre boîte habituelle.</>}
+      sub={todo.length && oldest
+        ? <>Le plus ancien attend depuis {ago(oldest)}. Ici arrivent les discussions ouvertes dans l'app (Support) et les messages laissés sur les pages Contact et OTC du site.</>
+        : <>Ici arrivent les discussions ouvertes dans l'app (Support) et les messages laissés sur les pages Contact et OTC du site. Les courriels écrits à support@ooble.ca arrivent dans votre boîte habituelle.</>}
       action={action}
     >
       <MessageDays threads={threads} />

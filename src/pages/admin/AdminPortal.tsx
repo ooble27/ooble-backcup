@@ -92,7 +92,7 @@ const GROUPS: NavGroup[] = [
     { id: "compliance", label: "Conformité", desc: "Alertes CANAFE, déclarations, dossiers et programme de conformité.", icon: NI.shield },
   ] },
   { label: "Communication", menu: { label: "Communication", icon: NI.send }, items: [
-    { id: "mailbox", label: "Messagerie", desc: "Écrire à un client à partir d'un modèle, historique des envois, boîte de réception.", icon: NI.mail },
+    { id: "mailbox", label: "Messagerie", desc: "Le support : répondre aux clients de l'app et du site, suivre les délais, écrire un courriel.", icon: NI.mail },
     { id: "campaigns", label: "Marketing", desc: "Campagnes, parcours automatiques et résultats, sous votre contrôle.", icon: NI.mega },
     { id: "social", label: "Réseaux sociaux", desc: "Les publications prêtes pour Instagram : images à télécharger et légendes à copier.", icon: NI.social },
     { id: "announcements", label: "Bannière et maintenance", desc: "Message en haut du site pour tous les clients, et mode maintenance qui suspend les commandes.", icon: NI.flag },

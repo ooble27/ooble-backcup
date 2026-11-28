@@ -29,41 +29,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { takePendingDraft } from "@/lib/mailDraft";
 import { fetchCached, peek, put } from "@/lib/adminCache";
-import {
-  Send, Mail, Inbox, Eye, Bold, Italic,
-  List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus,
-  X, User, Users, Wand2, Loader2, ArrowLeft, Reply, MailOpen, Trash2,
-  ChevronRight, Hand, Check, RotateCcw,
-} from "lucide-react";
+import { Send, Mail, Eye, Bold, Italic, List, ListOrdered, Link as LinkIcon, Heading2, Quote, Minus, X, User, Users, Wand2, Loader2, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
-import { nfCad, nfUsdt, type AdminOrder } from "@/lib/adminOrders";
 import { sendCustomEmail } from "@/lib/email";
 import { loadSent, recordSent, type SentMail } from "@/lib/mailHistory";
-import {
-  fetchClientDirectory, fetchClientProfile,
-  type ClientDirectoryEntry,
-} from "@/lib/adminClient";
+import { fetchClientDirectory, fetchClientProfile, type ClientDirectoryEntry } from "@/lib/adminClient";
 import { draftMail, isAIError, toAIClientContext } from "@/lib/ai";
 import { fetchPlatformContext } from "@/lib/aiContext";
-import {
-  markdownToHtml, wrapSelection, insertAtCursor, prefixLines, defaultSignature,
-  substituteVars, extractRemainingVars, CLIENT_VARS,
-} from "@/lib/mailComposer";
-import {
-  fetchThreads, fetchMessages, markThreadRead, removeThread, assignThread, SUPPORT_LABEL,
-  createThread, insertOutboundMessage, setSupportState, threadReplyTo, countUnread, fetchSentMessages, type SentRow,
-  type MailThread, type MailMessage, type MailboxId, type SupportState,
-} from "@/lib/mailThreads";
-import { enterView, returnTo } from "@/lib/pageMotion";
+import { markdownToHtml, wrapSelection, insertAtCursor, prefixLines, defaultSignature, substituteVars, extractRemainingVars, CLIENT_VARS } from "@/lib/mailComposer";
+import { fetchThreads, fetchMessages, createThread, insertOutboundMessage, threadReplyTo, countUnread, fetchSentMessages, type SentRow, type MailThread, type MailboxId } from "@/lib/mailThreads";
 import { C, FONT, inputStyle } from "./adminTheme";
 import { Button, Notice, Workspace } from "./ui";
-import { MailboxHero } from "./heroes";
-import ClientCard from "./ClientCard";
-import { OrderStatusPill } from "./orderBits";
-import { Avatar, DataTable, EmptyState, FilterChips, Pill, SearchField, Tabs, TwoLine, useReveal, type Column } from "./layout";
-import { assetSymbol } from "@/lib/assets";
-import { AppChatFooter, AppChatMessages, appChatTopic, isAppChat } from "./SupportChat";
+import { DataTable, EmptyState, Pill, Tabs, TwoLine, type Column } from "./layout";
+import { SupportDesk } from "./SupportDesk";
+import { SupportOverview } from "./SupportOverview";
 
 // ──────────────────── Recipient model ────────────────────
 //
@@ -523,7 +502,7 @@ interface ComposeViewProps {
 function ComposeView({ onSent, initial, onConsumed, clients, clientsLoading, replyThreadId, replyMailbox, onDone, onDirty }: ComposeViewProps) {
   const { user } = useAuth();
   const author = user?.email ?? "staff";
-  const signature = useMemo(() => defaultSignature(author), [author]);
+  const signature = useMemo(() => defaultSignature(author, user?.name), [author, user?.name]);
 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [cc, setCc] = useState("");
@@ -1329,317 +1308,13 @@ function SnippetsView({ onLoad }: { onLoad: (s: Snippet) => void }) {
 
 // ─────────────────── Réception ───────────────────
 
-const msgDateFmt = new Intl.DateTimeFormat("fr-CA", {
-  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-});
-
-function snippet(text: string | null, max = 100): string {
-  if (!text) return "";
-  const clean = text.replace(/\s+/g, " ").trim();
-  return clean.length <= max ? clean : `${clean.slice(0, max)}...`;
-}
-
-/* ─────────────────── Réception : le poste Support ─────────────────── */
-
-type InboxFilter = "todo" | "all";
-
-/** « 3 min », « 2 h », « 3 j » depuis une date. */
-function since(iso: string | null): string {
-  if (!iso) return "";
-  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (m < 60) return `${m} min`;
-  const h = Math.round(m / 60);
-  return h < 48 ? `${h} h` : `${Math.round(h / 24)} j`;
-}
-const waitMinutes = (iso: string | null) => (iso ? (Date.now() - new Date(iso).getTime()) / 60000 : 0);
-
-/** Références de commande citées dans la conversation (OOB-XXXXXXXX). */
-function findRefs(texts: (string | null | undefined)[]): string[] {
-  const out = new Set<string>();
-  for (const t of texts) for (const m of (t ?? "").matchAll(/OOB-[0-9A-F]{8}/gi)) out.add(m[0].toUpperCase());
-  return [...out];
-}
-
-
-function Conversation({ thread, messages, loading, me, onBack, onReply, onRemove, onAssign, onResolve, onRefresh, onShowClient, onOpenOrder }: {
-  thread: MailThread; messages: MailMessage[]; loading: boolean; me: { id: string; name: string } | null;
-  onBack?: () => void; onReply: (ref?: string) => void; onRemove: () => void; onAssign: (who: { id: string; name: string } | null) => void;
-  onResolve: (state: SupportState) => void;
-  /** Relit les messages (après une réponse depuis une discussion de l'app). */
-  onRefresh: () => void;
-  onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
-}) {
-  const refs = findRefs([thread.subject, ...messages.map((m) => m.bodyText ?? snippet(m.bodyHtml, 4000))]);
-  const orders = peek<AdminOrder[]>("orders")?.value ?? [];
-  const order = refs.map((r) => orders.find((o) => o.ref === r)).find(Boolean) ?? null;
-  const mine = !!me && thread.assignedTo === me.id;
-  const app = isAppChat(thread);
-  // Discussion de l'app : on arrive sur le dernier message, et on y reste quand un nouveau arrive.
-  const bodyRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (app && !loading && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-  }, [app, loading, messages.length]);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px 6px", flexWrap: "wrap" }}>
-        {onBack && <Button variant="ghost" size="sm" aria-label="Retour" onClick={onBack} icon={<ArrowLeft style={{ width: 16, height: 16 }} />} />}
-        <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-          <p style={{ margin: 0, fontSize: 15, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app ? <>{appChatTopic(thread)} <span style={{ color: C.t3, fontSize: 12.5 }}>· discussion dans l'app</span></> : thread.subject}</p>
-          <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {thread.supportState === "todo" && thread.lastInboundAt ? `Attend une réponse depuis ${since(thread.lastInboundAt)}` : SUPPORT_LABEL[thread.supportState]}
-            {thread.mailbox === "otc" ? " · OTC" : ""}
-          </p>
-        </div>
-        {/* Qui s'en occupe : toute l'équipe le voit. */}
-        {thread.assignedTo ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.t2 }}>
-            {mine ? "Vous vous en occupez" : `Prise par ${thread.assignedName ?? "un membre"}`}
-            {me && <Button size="sm" variant="ghost" onClick={() => onAssign(mine ? null : me)}>{mine ? "Libérer" : "Reprendre"}</Button>}
-          </span>
-        ) : me && (
-          <Button size="sm" onClick={() => onAssign(me)} icon={<Hand style={{ width: 14, height: 14 }} />}>Prendre</Button>
-        )}
-        {/* Réglée : la conversation sort de « À répondre » ; une discussion de l'app est alors fermée pour le client. */}
-        {!app && (thread.supportState === "resolved"
-          ? <Button size="sm" variant="ghost" onClick={() => onResolve("waiting")} icon={<RotateCcw style={{ width: 14, height: 14 }} />}>Rouvrir</Button>
-          : <Button size="sm" variant="ghost" onClick={() => onResolve("resolved")} icon={<Check style={{ width: 14, height: 14 }} />}>Réglée</Button>)}
-        <Button size="sm" variant="ghost" aria-label="Supprimer la conversation" title="Supprimer la conversation" onClick={onRemove} icon={<Trash2 style={{ width: 15, height: 15 }} />} />
-        {!app && <Button size="sm" variant="primary" onClick={() => onReply(order?.ref ?? refs[0])} icon={<Reply style={{ width: 14, height: 14 }} strokeWidth={2} />}>Répondre</Button>}
-      </div>
-
-      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "8px 20px 24px" }}>
-        {/* Le client et la commande dont il parle, avant de lire. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 12, marginBottom: 10 }}>
-          <ClientCard clientId={thread.clientId} name={thread.clientName ?? ""} email={thread.clientEmail} onShowClient={onShowClient} compact />
-          {refs.length > 0 && (
-            order ? (
-              <button type="button" className="ui-lift" onClick={() => onOpenOrder?.(order.id)} disabled={!onOpenOrder}
-                style={{ all: "unset", boxSizing: "border-box", display: "grid", gap: 6, alignContent: "start", padding: "12px 14px", borderRadius: 14, background: C.hover2, cursor: onOpenOrder ? "pointer" : "default", fontFamily: FONT }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ flex: 1, fontSize: 14, color: C.t1 }}>Commande {order.ref}</span>
-                  {onOpenOrder && <ChevronRight style={{ width: 16, height: 16, color: C.t3 }} />}
-                </span>
-                <span style={{ fontSize: 13, color: C.t2 }}>{order.type === "buy" ? "Achat" : "Vente"} · {nfCad.format(order.cad)} $ · {nfUsdt.format(order.usdt)} {assetSymbol(order.asset)}</span>
-                <span><OrderStatusPill status={order.status} /></span>
-              </button>
-            ) : (
-              <div style={{ padding: "12px 14px", borderRadius: 14, background: C.hover2, fontSize: 13, color: C.t3 }}>
-                Commande {refs[0]} citée, introuvable dans les commandes chargées.
-              </div>
-            )
-          )}
-        </div>
-        {loading ? (
-          <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
-        ) : app ? (
-          <AppChatMessages messages={messages} clientName={thread.clientName ?? ""} />
-        ) : messages.map((m) => {
-          const inbound = m.direction === "inbound";
-          const who = inbound ? (m.fromName || m.fromEmail) : "Ooble";
-          return (
-            <article key={m.id} style={{ padding: "16px 0" }}>
-              <header style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <Avatar name={who} size={28} />
-                <span style={{ fontSize: 13.5, color: C.t1 }}>{who}</span>
-                {!inbound && <Pill>Équipe</Pill>}
-                <span style={{ marginLeft: "auto", fontSize: 12, color: C.t3, fontVariantNumeric: "tabular-nums" }}>{msgDateFmt.format(new Date(m.createdAt))}</span>
-              </header>
-              <div style={{ fontSize: 14, color: inbound ? C.t1 : C.t2, lineHeight: 1.65, paddingLeft: 38, whiteSpace: "pre-wrap", wordBreak: "break-word", maxWidth: 720 }}>
-                {m.bodyText || snippet(m.bodyHtml, 500) || "(vide)"}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      {app && !loading && (
-        <AppChatFooter thread={thread} me={me} orderRef={order?.ref ?? refs[0] ?? null}
-          onSent={(state) => { if (state) onResolve(state); onRefresh(); }} />
-      )}
-    </div>
-  );
-}
-
-function InboxView({ onReply, onCount, onShowClient, onOpenOrder }: {
-  onReply: (thread: MailThread, ref?: string) => void; onCount: () => void;
-  onShowClient?: (id: string) => void; onOpenOrder?: (id: string) => void;
-}) {
-  const { user } = useAuth();
-  const me = user ? { id: user.id, name: user.name || user.email } : null;
-  const [threads, setThreads] = useState<MailThread[]>(() => peek<MailThread[]>("mail.threads")?.value ?? []);
-  const [loading, setLoading] = useState(() => !peek("mail.threads"));
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<MailMessage[]>([]);
-  const [msgsLoading, setMsgsLoading] = useState(false);
-  const [filter, setFilter] = useState<InboxFilter>("todo");
-  const [q, setQ] = useState("");
-  const [err, setErr] = useState<string | null>(null);
-  const [wide, setWide] = useState(() => typeof window === "undefined" || window.innerWidth >= 1000);
-
-  useEffect(() => {
-    const on = () => setWide(window.innerWidth >= 1000);
-    window.addEventListener("resize", on);
-    return () => window.removeEventListener("resize", on);
-  }, []);
-  const reload = useCallback(() => fetchThreads().then((t) => { setThreads(t); put("mail.threads", t); setLoading(false); }), []);
-  useEffect(() => {
-    fetchCached("mail.threads", fetchThreads).then((t) => { setThreads(t); setLoading(false); });
-    // En direct : nouveau message d'un client, conversation prise ou résolue par un collègue.
-    let timer: number | undefined;
-    const ch = supabase.channel("admin-inbox")
-      .on("postgres_changes", { event: "*", schema: "public", table: "mail_threads" }, () => { window.clearTimeout(timer); timer = window.setTimeout(() => { void reload(); onCount(); }, 400); })
-      .subscribe();
-    return () => { window.clearTimeout(timer); void supabase.removeChannel(ch); };
-  }, [reload, onCount]);
-
-  const selected = threads.find((t) => t.id === selectedId) ?? null;
-  const patchLocal = (id: string, changes: Partial<MailThread>) => setThreads((prev) => {
-    const next = prev.map((x) => (x.id === id ? { ...x, ...changes } : x));
-    put("mail.threads", next);
-    return next;
-  });
-
-  const openThread = async (t: MailThread) => {
-    // Téléphone : la conversation remplace la liste ; « retour » rend la liste à sa position.
-    if (!wide) enterView("mail");
-    setSelectedId(t.id);
-    setMsgsLoading(true);
-    const msgs = await fetchMessages(t.id);
-    setMessages(msgs);
-    setMsgsLoading(false);
-    if (t.hasUnread) {
-      await markThreadRead(t.id);
-      patchLocal(t.id, { hasUnread: false });
-      onCount();
-    }
-  };
-
-  // Supprimer : la conversation disparaît tout de suite ; elle revient si la base refuse.
-  const remove = async () => {
-    if (!selected || !confirm("Supprimer cette conversation ? Elle disparaîtra de la messagerie.")) return;
-    const gone = selected;
-    setThreads((prev) => { const next = prev.filter((x) => x.id !== gone.id); put("mail.threads", next); return next; });
-    setSelectedId(null);
-    const res = await removeThread(gone.id, me?.id ?? null);
-    if (res.error) { setErr(res.error); void reload(); }
-    onCount();
-  };
-  const changeAssign = async (who: { id: string; name: string } | null) => {
-    if (!selected) return;
-    const prev = { assignedTo: selected.assignedTo, assignedName: selected.assignedName };
-    patchLocal(selected.id, { assignedTo: who?.id ?? null, assignedName: who?.name ?? null });
-    const res = await assignThread(selected.id, who);
-    if (res.error) { patchLocal(selected.id, prev); setErr(res.error); }
-  };
-
-  const changeState = async (state: SupportState) => {
-    if (!selected) return;
-    const prev = selected.supportState;
-    patchLocal(selected.id, { supportState: state });
-    const res = await setSupportState(selected.id, state);
-    if (res.error) { patchLocal(selected.id, { supportState: prev }); setErr(res.error); }
-    onCount();
-  };
-
-  const needle = q.trim().toLowerCase();
-  const matches = (t: MailThread) => !needle || `${t.clientName ?? ""} ${t.clientEmail} ${t.subject}`.toLowerCase().includes(needle);
-  const counts = { todo: threads.filter((t) => t.supportState === "todo").length, all: threads.length };
-  // À répondre : celui qui attend depuis le plus longtemps en premier. Toutes : la plus récente en premier.
-  const list = threads
-    .filter((t) => filter === "all" || t.supportState === "todo")
-    .filter(matches)
-    .sort((a, b) => (filter === "todo"
-      ? (a.lastInboundAt ?? a.lastMessageAt).localeCompare(b.lastInboundAt ?? b.lastMessageAt)
-      : b.lastMessageAt.localeCompare(a.lastMessageAt)));
-  // 50 conversations, puis la suite en descendant : fluide même avec des milliers de messages.
-  const { visible: listShown, more: listMore } = useReveal(list, 50, `${filter}|${needle}`);
-
-  // Relit les messages de la conversation ouverte (réponse envoyée, ou nouveau message du client en direct).
-  const refreshMessages = useCallback(async () => {
-    if (!selectedId) return;
-    const msgs = await fetchMessages(selectedId);
-    setMessages(msgs);
-  }, [selectedId]);
-  const selectedLast = selected?.lastMessageAt;
-  const seenLast = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (!selectedId || !selectedLast) return;
-    if (seenLast.current && seenLast.current !== selectedLast) void refreshMessages();
-    seenLast.current = selectedLast;
-  }, [selectedId, selectedLast, refreshMessages]);
-
-  const conversation = selected && (
-    <Conversation thread={selected} messages={messages} loading={msgsLoading} me={me} onRefresh={() => void refreshMessages()}
-      onBack={wide ? undefined : () => { setSelectedId(null); returnTo("mail"); }}
-      onReply={(ref) => onReply(selected, ref)} onRemove={remove} onAssign={changeAssign} onResolve={changeState}
-      onShowClient={onShowClient} onOpenOrder={onOpenOrder} />
-  );
-
-  if (!wide && selected) return <div className="mb-pane">{conversation}</div>;
-
-  const listPane = (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
-      <div style={{ display: "grid", gap: 12, padding: "12px 12px 12px" }}>
-        <SearchField value={q} onChange={setQ} placeholder="Client, courriel, objet" width={600} />
-        <FilterChips value={filter} onChange={setFilter} options={([["todo", "À répondre"], ["all", "Toutes"]] as [InboxFilter, string][])
-          .map(([id, label]) => ({ id, label, count: counts[id], alert: id === "todo" }))} />
-      </div>
-      {err && <div style={{ padding: "0 12px 10px" }}><Notice tone="err">{err}</Notice></div>}
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-        {loading ? (
-          <div style={{ padding: 40, textAlign: "center" }}><Loader2 style={{ width: 18, height: 18, color: C.t3, animation: "spin 1s linear infinite" }} /></div>
-        ) : list.length === 0 ? (
-          <EmptyState icon={Inbox} title={threads.length ? (filter === "todo" ? "Tout est répondu" : "Rien ici") : "Aucune conversation"}
-            text={threads.length ? (filter === "todo" ? "Aucun client n'attend de réponse." : "Aucune conversation ne correspond.") : "Les messages laissés sur les pages Contact et OTC du site arrivent ici."} />
-        ) : <>{listShown.map((t) => {
-          const late = t.supportState === "todo" && waitMinutes(t.lastInboundAt) > 240;
-          return (
-            <button key={t.id} type="button" className="ui-row" onClick={() => openThread(t)} aria-current={selectedId === t.id ? "true" : undefined}
-              style={{ all: "unset", boxSizing: "border-box", width: "100%", display: "flex", gap: 10, padding: "12px 14px", cursor: "pointer", fontFamily: FONT, background: selectedId === t.id ? C.hover2 : undefined, borderRadius: 12 }}>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.t1, fontWeight: t.hasUnread ? 500 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.clientName || t.clientEmail}
-                  </span>
-                  <span style={{ fontSize: 11.5, flexShrink: 0, fontVariantNumeric: "tabular-nums", color: late ? C.coral : C.t3 }}>
-                    {t.supportState === "todo" && t.lastInboundAt ? `attend depuis ${since(t.lastInboundAt)}` : msgDateFmt.format(new Date(t.lastMessageAt))}
-                  </span>
-                </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: t.hasUnread ? C.t2 : C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span>
-                  {t.assignedName && <span title={`Prise par ${t.assignedName}`} style={{ fontSize: 11.5, color: C.t3, whiteSpace: "nowrap" }}>{me && t.assignedTo === me.id ? "Vous" : t.assignedName.split(/\s+/)[0]}</span>}
-                  {t.mailbox === "otc" && <Pill>OTC</Pill>}
-                </span>
-              </span>
-            </button>
-          );
-        })}{listMore}</>}
-      </div>
-    </div>
-  );
-
-  if (!wide) return <div className="mb-pane">{listPane}</div>;
-
-  return (
-    <div className="mb-pane mb-split">
-      
-      {listPane}
-      <div className="mb-read">
-        {conversation ?? (
-          <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <EmptyState icon={MailOpen} title="Choisissez une conversation" text="Le client, la commande dont il parle et tout l'historique s'affichent ici." />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+/* La Réception (poste de support) est dans SupportDesk.tsx ; la vue d'ensemble dans SupportOverview.tsx. */
 
 // ─────────────────── Panneau principal ───────────────────
 
 const noop = () => undefined;
 
-type SubTab = "inbox" | "sent" | "snippets";
+type SubTab = "inbox" | "overview" | "sent" | "snippets";
 
 const MAIL_CSS = `
 .mb-compose { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; overflow-y: auto; border-radius: 16px; }
@@ -1670,6 +1345,7 @@ const MailboxPanel = ({ onShowClient, onOpenOrder }: { onShowClient?: (id: strin
   const [heroThreads, setHeroThreads] = useState<MailThread[] | null>(() => peek<MailThread[]>("mail.threads")?.value ?? null);
   useEffect(() => { fetchCached("mail.threads", fetchThreads).then(setHeroThreads).catch(() => setHeroThreads([])); }, [unreadCount]);
   const [done, setDone] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const dirty = useRef(false);
 
   // Envoyés : la base (tous les appareils) + les échecs gardés sur cet appareil.
@@ -1694,6 +1370,7 @@ const MailboxPanel = ({ onShowClient, onOpenOrder }: { onShowClient?: (id: strin
   useEffect(refreshUnread, [refreshUnread, tab]);
 
   const failedSent = useMemo(() => sent.filter((m) => !m.outcome.ok).length, [sent]);
+  const todoCount = (heroThreads ?? []).filter((t) => t.supportState === "todo").length;
 
   const openComposer = (state: ComposerState | null, title = "Nouveau message", threadId: string | null = null, mailbox: MailboxId = "support") => {
     dirty.current = false;
@@ -1715,32 +1392,21 @@ const MailboxPanel = ({ onShowClient, onOpenOrder }: { onShowClient?: (id: strin
 
   const loadSnippet = (s: Snippet) => openComposer({ recipients: [], cc: "", subject: s.subject, body: s.body }, s.name);
 
-  const handleReply = useCallback((thread: MailThread, orderRef?: string) => {
-    const firstName = thread.clientName?.split(/\s+/)[0] || thread.clientEmail.split("@")[0];
-    openComposer({
-      recipients: [{ id: thread.clientId ?? undefined, email: thread.clientEmail, firstName, fullName: thread.clientName || thread.clientEmail }],
-      cc: "",
-      subject: `Re: ${thread.subject}`,
-      body: "",
-      orderRef,
-    }, `Répondre à ${thread.clientName || thread.clientEmail}`, thread.id, thread.mailbox);
-  }, []);
 
   return (
     <div>
       <style>{MAIL_CSS}</style>
       {done && <div style={{ marginBottom: 16 }}><Notice tone="ok">{done}</Notice></div>}
-      {/* Le bouton vit sous la phrase d'en-tête : il ne recouvre plus les onglets sur téléphone. */}
-      <MailboxHero threads={heroThreads ?? []} unread={unreadCount} loading={heroThreads === null}
-        action={<Button variant="primary" icon={<Send style={{ width: 15, height: 15 }} />} onClick={() => openComposer(null)}>Nouveau message</Button>} />
-
       <Tabs value={tab} onChange={setTab} items={[
-        { id: "inbox", label: "Réception", count: unreadCount || undefined },
+        { id: "inbox", label: "Réception", count: todoCount || undefined },
+        { id: "overview", label: "Vue d'ensemble" },
         { id: "sent", label: "Envoyés", count: sent.length || undefined, tone: failedSent ? "danger" : undefined },
-        { id: "snippets", label: "Modèles", count: SNIPPETS.length },
+        { id: "snippets", label: "Modèles de courriel", count: SNIPPETS.length },
       ]} />
 
-      {tab === "inbox" && <InboxView onReply={handleReply} onCount={refreshUnread} onShowClient={onShowClient} onOpenOrder={onOpenOrder} />}
+      {tab === "inbox" && <SupportDesk onCount={refreshUnread} onShowClient={onShowClient} onOpenOrder={onOpenOrder} onCompose={() => openComposer(null)} openId={openId} />}
+      {tab === "overview" && <SupportOverview threads={heroThreads ?? []} loading={heroThreads === null} onCompose={() => openComposer(null)}
+        onOpen={(id) => { setOpenId(id); setTab("inbox"); }} />}
       {tab === "sent" && <SentView sent={sent} />}
       {tab === "snippets" && <SnippetsView onLoad={loadSnippet} />}
 

@@ -251,11 +251,11 @@ export const CLIENT_VARS = ["prenom", "nom", "email", "nom_complet"] as const;
  * juste le prénom + « Ooble » sur deux lignes, sans faux e-mail ni
  * séparateur (le staff peut le rajouter s'il le veut).
  */
-export function defaultSignature(agentEmail: string | null): string {
+export function defaultSignature(agentEmail: string | null, agentName?: string | null): string {
+  // Le prénom du membre (son profil) ; à défaut seulement, le début de son adresse.
+  const fromName = (agentName ?? "").trim().split(/\s+/)[0] ?? "";
   const local = (agentEmail ?? "").split("@")[0] ?? "";
-  const first = local
-    .split(/[.\-_]/)[0]
-    .replace(/^./, (c) => c.toUpperCase());
-  const name = first || "L'équipe Ooble";
+  const fromEmail = local.split(/[.\-_]/)[0].replace(/^./, (c) => c.toUpperCase());
+  const name = (fromName && !fromName.includes("@") ? fromName : fromEmail) || "L'équipe Ooble";
   return `\n\n${name}\nOoble`;
 }
